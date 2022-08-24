@@ -14,10 +14,10 @@ class FleetAddons(models.Model):
         try:
             logging.info(vals['driver_id'])
             # Database connection
-            url = 'http://localhost:8069'
-            db = 'odoo15'
-            username = 'admin'
-            password = 'root'
+            url = 'http://190.232.26.249:8070'
+            db = 'odoo'
+            username = 'rapitash@gmail.com'
+            password = 'Krishnna17'
 
             common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
             uid = common.authenticate(db, username, password, {})
@@ -41,6 +41,7 @@ class FleetAddons(models.Model):
             models.execute_kw(db, uid, password, 'fleet.vehicle', 'write',
                               [self.id, {'x_quotation_driver_id': driver_id}])
 
-        except:
+        except Exception as e:
+            logging.info(str(e))
             logging.info('no data')
             res = super(FleetAddons, self).write(vals)

@@ -322,3 +322,4 @@ Partition table type (auto): None
 Partition table type (auto): None
 Partition table type defaults to Intel
 Media is opened in read-only.
+SIGHUP detected! TestDisk has been killed.
