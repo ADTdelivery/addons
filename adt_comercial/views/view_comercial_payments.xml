@@ -1,0 +1,30 @@
+<odoo>
+
+    <record id="view_adt_register_payment_form" model="ir.ui.view">
+        <field name="name">adt.register.payment.form</field>
+        <field name="model">adt.register.payment</field>
+        <field name="arch" type="xml">
+            <form string="Register Payment">
+                <!-- Invisible fields -->
+                <field name="company_id" readonly="1" invisible="1"/>
+                <field name="cuota_id" readonly="1" invisible="1"/>
+                <field name="payment_type" readonly="1" invisible="1"/>
+                <group>
+                    <group name="group1">
+                        <field name="journal_id" string="Diario" options="{'no_open': True, 'no_create': True}" required="1"/>
+                    </group>
+                    <group name="group2">
+                        <field name="amount" string="Monto"/>
+                        <field name="payment_date" string="Fecha"/>
+                        <field name="communication" string="# Operación"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Crear pago" name="action_create_payments" type="object" class="oe_highlight"/>
+                    <button string="Cancelar" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,11 @@
+<odoo noupdate="1">
+    <data>
+        <record id="seq_comercial_cuentas" model="ir.sequence">
+            <field name="name">Comercial Cuentas Sequence</field>
+            <field name="code">comercial.cuentas</field>
+            <field name="prefix">CC</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,7 @@
+<odoo>
+    <record id="group_perm_invoice_and_shipping_addres_custom" model="res.groups">
+        <field name="name">Formulario de dirección de envío y facturación avanzado.</field>
+        <field name="implied_ids" eval="[(4,ref('sale.group_delivery_invoice_address'))]"/>
+    </record>
+    
+</odoo>

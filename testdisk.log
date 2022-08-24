@@ -1,0 +1,324 @@
+
+
+Wed Aug 24 15:39:17 2022
+Command line: TestDisk
+
+TestDisk 7.1, Data Recovery Utility, July 2019
+Christophe GRENIER <grenier@cgsecurity.org>
+https://www.cgsecurity.org
+OS: Linux, kernel 5.4.0-124-generic (#140-Ubuntu SMP Thu Aug 4 02:23:37 UTC 2022) x86_64
+Compiler: GCC 9.2
+ext2fs lib: 1.45.5, ntfs lib: libntfs-3g, reiserfs lib: none, ewf lib: none, curses lib: ncurses 6.1
+/dev/sda: LBA, LBA48 support
+/dev/sda: size       1875385008 sectors
+/dev/sda: user_max   1875385008 sectors
+/dev/sdb: LBA, LBA48 support
+/dev/sdb: size       1875385008 sectors
+/dev/sdb: user_max   1875385008 sectors
+Warning: can't get size for Disk /dev/mapper/control - 0 B - 0 sectors, sector size=512
+/dev/mapper/ubuntu--vg--1-ubuntu--lv: LBA, LBA48 support
+/dev/mapper/ubuntu--vg--1-ubuntu--lv: size       209715200 sectors
+/dev/mapper/ubuntu--vg--1-ubuntu--lv: user_max   1875385008 sectors
+/dev/mapper/ubuntu--vg-ubuntu--lv: LBA, LBA48 support
+/dev/mapper/ubuntu--vg-ubuntu--lv: size       209715200 sectors
+/dev/mapper/ubuntu--vg-ubuntu--lv: user_max   1875385008 sectors
+/dev/dm-0: LBA, LBA48 support
+/dev/dm-0: size       209715200 sectors
+/dev/dm-0: user_max   1875385008 sectors
+/dev/dm-1: LBA, LBA48 support
+/dev/dm-1: size       209715200 sectors
+/dev/dm-1: user_max   1875385008 sectors
+Warning: can't get size for Disk /dev/loop6 - 0 B - 0 sectors, sector size=512
+Warning: can't get size for Disk /dev/loop7 - 0 B - 0 sectors, sector size=512
+Hard disk list
+Disk /dev/sda - 960 GB / 894 GiB - CHS 116737 255 63, sector size=512 - HP SSD S650 960GB, S/N:HBSA42090100970, FW:SN10033
+Disk /dev/sdb - 960 GB / 894 GiB - CHS 116737 255 63, sector size=512 - HP SSD S650 960GB, S/N:HBSA42090100985, FW:SN10033
+Disk /dev/mapper/ubuntu--vg--1-ubuntu--lv - 107 GB / 100 GiB - 209715200 sectors, sector size=512 - HP SSD S650 960GB, S/N:HBSA42090100970, FW:SN10033
+Disk /dev/mapper/ubuntu--vg-ubuntu--lv - 107 GB / 100 GiB - 209715200 sectors, sector size=512 - HP SSD S650 960GB, S/N:HBSA42090100985, FW:SN10033
+Disk /dev/dm-0 - 107 GB / 100 GiB - 209715200 sectors, sector size=512 - HP SSD S650 960GB, S/N:HBSA42090100970, FW:SN10033
+Disk /dev/dm-1 - 107 GB / 100 GiB - 209715200 sectors, sector size=512 - HP SSD S650 960GB, S/N:HBSA42090100985, FW:SN10033
+Disk /dev/loop0 - 64 MB / 61 MiB - 126896 sectors (RO), sector size=512
+Disk /dev/loop1 - 64 MB / 61 MiB - 126888 sectors (RO), sector size=512
+Disk /dev/loop2 - 70 MB / 67 MiB - 137712 sectors (RO), sector size=512
+Disk /dev/loop3 - 71 MB / 67 MiB - 138880 sectors (RO), sector size=512
+Disk /dev/loop4 - 49 MB / 46 MiB - 96160 sectors (RO), sector size=512
+Disk /dev/loop5 - 49 MB / 46 MiB - 96176 sectors (RO), sector size=512
+
+Partition table type (auto): EFI GPT
+Disk /dev/sda - 960 GB / 894 GiB - HP SSD S650 960GB
+Partition table type: EFI GPT
+
+Interface Advanced
+hdr_size=92
+hdr_lba_self=1
+hdr_lba_alt=1875385007 (expected 1875385007)
+hdr_lba_start=34
+hdr_lba_end=1875384974
+hdr_lba_table=2
+hdr_entries=128
+hdr_entsz=128
+ 1 P EFI System                  2048    2203647    2201600
+ 2 P Linux filesys. data      2203648    5349375    3145728
+ 3 P Linux filesys. data      5349376 1875382271 1870032896
+
+
+dir_partition inode=2
+ 2 P Linux filesys. data      2203648    5349375    3145728
+Directory /
+       2 drwxr-xr-x     0      0      4096 21-Aug-2022 05:16 .
+       2 drwxr-xr-x     0      0      4096 21-Aug-2022 05:16 ..
+      11 drwx------     0      0     16384 24-Apr-2022 16:59 lost+found
+      12 drwxr-xr-x     0      0      4096 24-Apr-2022 16:59 efi
+    8193 drwxr-xr-x     0      0      4096 11-Aug-2022 06:56 grub
+      20 -rw-r--r--     0      0    237947  4-Aug-2022 01:48 config-5.4.0-124-generic
+      14 lrwxrwxrwx     0      0        28 11-Aug-2022 06:55 initrd.img.old
+     310 lrwxrwxrwx     0      0        25 11-Aug-2022 06:55 vmlinuz.old
+X     21 -rw-r--r--     0      0  84804934 21-Aug-2022 05:16 initrd.img-5.4.0-122-generic.new
+     308 -rw-------     0      0  13660416  4-Aug-2022 01:54 vmlinuz-5.4.0-124-generic
+     307 lrwxrwxrwx     0      0        25 11-Aug-2022 06:55 vmlinuz
+      16 lrwxrwxrwx     0      0        28 11-Aug-2022 06:55 initrd.img
+X     19 -rw-r--r--     0      0  84805828 21-Aug-2022 05:15 System.map-5.4.0-120-generic
+      18 -rw-------     0      0   4758850  4-Aug-2022 01:48 System.map-5.4.0-124-generic
+X    304 -rw-r--r--     0      0         0 11-Aug-2022 06:56 config-5.4.0-120-generic
+      19 -rw-r--r--     0      0  84805828 21-Aug-2022 05:15 initrd.img-5.4.0-124-generic
+X    311 -rw-r--r--     0      0         0 21-Aug-2022 05:16 initrd.img-5.4.0-122-generic.dpkg-bak
+     306 -rw-r--r--     0      0    237947 22-Jun-2022 13:00 config-5.4.0-122-generic
+      15 -rw-------     0      0   4758694 22-Jun-2022 13:00 System.map-5.4.0-122-generic
+     309 -rw-------     0      0  13660416 22-Jun-2022 13:26 vmlinuz-5.4.0-122-generic
+      21 -rw-r--r--     0      0  84804934 21-Aug-2022 05:16 initrd.img-5.4.0-122-generic
+X     20 -rw-r--r--     0      0    237947  4-Aug-2022 01:48 initrd.img-5.4.0-109-generic.dpkg-bak
+
+ 3 P Linux filesys. data      5349376 1875382271 1870032896
+Support for this filesystem wasn't enabled during compilation.
+search_superblock
+
+recover_EXT2: s_block_group_nr=0/12, s_mnt_count=17/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 16:59:34 2022
+Last mount time:    Wed Aug 24 10:13:12 2022
+Ext2 superblock found at sector 2 (block=0, blocksize=4096)
+
+block_group_nr 1
+
+recover_EXT2: "e2fsck -b 32768 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=1/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 16:59:34 2022
+Ext2 superblock found at sector 262144 (block=32768, blocksize=4096)
+
+block_group_nr 3
+
+recover_EXT2: "e2fsck -b 98304 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=3/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 16:59:34 2022
+Ext2 superblock found at sector 786432 (block=98304, blocksize=4096)
+
+block_group_nr 5
+
+recover_EXT2: "e2fsck -b 163840 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=5/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 16:59:34 2022
+Ext2 superblock found at sector 1310720 (block=163840, blocksize=4096)
+
+block_group_nr 7
+
+recover_EXT2: "e2fsck -b 229376 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=7/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 16:59:34 2022
+Ext2 superblock found at sector 1835008 (block=229376, blocksize=4096)
+
+block_group_nr 9
+
+recover_EXT2: "e2fsck -b 294912 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=9/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 16:59:34 2022
+Ext2 superblock found at sector 2359296 (block=294912, blocksize=4096)
+  Linux filesys. data      2203648    5349375    3145728
+superblock 0, blocksize=4096 []
+superblock 32768, blocksize=4096 []
+superblock 98304, blocksize=4096 []
+superblock 163840, blocksize=4096 []
+superblock 229376, blocksize=4096 []
+superblock 294912, blocksize=4096 []
+
+To repair the filesystem using alternate superblock, run
+fsck.ext4 -p -b superblock -B blocksize device
+gpt_change_part_type
+Change partition type:
+ 2 P Linux filesys. data      2203648    5349375    3145728
+Change partition type:
+ 2 P Unknown                  2203648    5349375    3145728
+
+Interface Advanced
+hdr_size=92
+hdr_lba_self=1
+hdr_lba_alt=1875385007 (expected 1875385007)
+hdr_lba_start=34
+hdr_lba_end=1875384974
+hdr_lba_table=2
+hdr_entries=128
+hdr_entsz=128
+ 1 P EFI System                  2048    2203647    2201600
+ 2 P Linux filesys. data      2203648    5349375    3145728
+ 3 P Linux filesys. data      5349376 1875382271 1870032896
+
+
+dir_partition inode=2
+ 2 P Linux filesys. data      2203648    5349375    3145728
+Directory /
+       2 drwxr-xr-x     0      0      4096 21-Aug-2022 05:16 .
+       2 drwxr-xr-x     0      0      4096 21-Aug-2022 05:16 ..
+      11 drwx------     0      0     16384 24-Apr-2022 16:59 lost+found
+      12 drwxr-xr-x     0      0      4096 24-Apr-2022 16:59 efi
+    8193 drwxr-xr-x     0      0      4096 11-Aug-2022 06:56 grub
+      20 -rw-r--r--     0      0    237947  4-Aug-2022 01:48 config-5.4.0-124-generic
+      14 lrwxrwxrwx     0      0        28 11-Aug-2022 06:55 initrd.img.old
+     310 lrwxrwxrwx     0      0        25 11-Aug-2022 06:55 vmlinuz.old
+X     21 -rw-r--r--     0      0  84804934 21-Aug-2022 05:16 initrd.img-5.4.0-122-generic.new
+     308 -rw-------     0      0  13660416  4-Aug-2022 01:54 vmlinuz-5.4.0-124-generic
+     307 lrwxrwxrwx     0      0        25 11-Aug-2022 06:55 vmlinuz
+      16 lrwxrwxrwx     0      0        28 11-Aug-2022 06:55 initrd.img
+X     19 -rw-r--r--     0      0  84805828 21-Aug-2022 05:15 System.map-5.4.0-120-generic
+      18 -rw-------     0      0   4758850  4-Aug-2022 01:48 System.map-5.4.0-124-generic
+X    304 -rw-r--r--     0      0         0 11-Aug-2022 06:56 config-5.4.0-120-generic
+      19 -rw-r--r--     0      0  84805828 21-Aug-2022 05:15 initrd.img-5.4.0-124-generic
+X    311 -rw-r--r--     0      0         0 21-Aug-2022 05:16 initrd.img-5.4.0-122-generic.dpkg-bak
+     306 -rw-r--r--     0      0    237947 22-Jun-2022 13:00 config-5.4.0-122-generic
+      15 -rw-------     0      0   4758694 22-Jun-2022 13:00 System.map-5.4.0-122-generic
+     309 -rw-------     0      0  13660416 22-Jun-2022 13:26 vmlinuz-5.4.0-122-generic
+      21 -rw-r--r--     0      0  84804934 21-Aug-2022 05:16 initrd.img-5.4.0-122-generic
+X     20 -rw-r--r--     0      0    237947  4-Aug-2022 01:48 initrd.img-5.4.0-109-generic.dpkg-bak
+Partition table type (auto): EFI GPT
+Disk /dev/sdb - 960 GB / 894 GiB - HP SSD S650 960GB
+Partition table type: EFI GPT
+
+Interface Advanced
+hdr_size=92
+hdr_lba_self=1
+hdr_lba_alt=1875385007 (expected 1875385007)
+hdr_lba_start=34
+hdr_lba_end=1875384974
+hdr_lba_table=2
+hdr_entries=128
+hdr_entsz=128
+ 1 P EFI System                  2048    2203647    2201600
+ 2 P Linux filesys. data      2203648    5349375    3145728
+ 3 P Linux filesys. data      5349376 1875382271 1870032896
+
+
+dir_partition inode=2
+ 2 P Linux filesys. data      2203648    5349375    3145728
+Directory /
+       2 drwxr-xr-x     0      0      4096 24-Apr-2022 15:47 .
+       2 drwxr-xr-x     0      0      4096 24-Apr-2022 15:47 ..
+      11 drwx------     0      0     16384 24-Apr-2022 15:30 lost+found
+      12 drwxr-xr-x     0      0      4096 24-Apr-2022 15:30 efi
+    8193 drwxr-xr-x     0      0      4096 24-Apr-2022 15:33 grub
+      15 -rw-r--r--     0      0    237975  8-Apr-2022 08:44 config-5.4.0-109-generic
+      18 lrwxrwxrwx     0      0        28 24-Apr-2022 15:32 initrd.img.old
+      17 lrwxrwxrwx     0      0        25 24-Apr-2022 15:32 vmlinuz.old
+      14 -rw-------     0      0   4759493  8-Apr-2022 08:44 System.map-5.4.0-109-generic
+      16 -rw-------     0      0  13668608  8-Apr-2022 08:45 vmlinuz-5.4.0-109-generic
+      20 lrwxrwxrwx     0      0        28 24-Apr-2022 15:32 initrd.img
+      19 lrwxrwxrwx     0      0        25 24-Apr-2022 15:32 vmlinuz
+X     21 -rw-r--r--     0      0  84401920 24-Apr-2022 15:47 initrd.img-5.4.0-109-generic.new
+      21 -rw-r--r--     0      0  84401920 24-Apr-2022 15:47 initrd.img-5.4.0-109-generic
+X     24 -rw-r--r--     0      0         0 24-Apr-2022 15:47 initrd.img-5.4.0-109-generic.dpkg-bak
+
+ 3 P Linux filesys. data      5349376 1875382271 1870032896
+Support for this filesystem wasn't enabled during compilation.
+
+ 3 P Linux filesys. data      5349376 1875382271 1870032896
+Support for this filesystem wasn't enabled during compilation.
+search_superblock
+search_superblock
+
+recover_EXT2: s_block_group_nr=0/12, s_mnt_count=2/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 15:30:22 2022
+Last mount time:    Sun Apr 24 15:42:56 2022
+Ext2 superblock found at sector 2 (block=0, blocksize=4096)
+
+block_group_nr 1
+
+recover_EXT2: "e2fsck -b 32768 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=1/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 15:30:22 2022
+Ext2 superblock found at sector 262144 (block=32768, blocksize=4096)
+
+block_group_nr 3
+
+recover_EXT2: "e2fsck -b 98304 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=3/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 15:30:22 2022
+Ext2 superblock found at sector 786432 (block=98304, blocksize=4096)
+
+block_group_nr 5
+
+recover_EXT2: "e2fsck -b 163840 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=5/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 15:30:22 2022
+Ext2 superblock found at sector 1310720 (block=163840, blocksize=4096)
+
+block_group_nr 7
+
+recover_EXT2: "e2fsck -b 229376 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=7/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 15:30:22 2022
+Ext2 superblock found at sector 1835008 (block=229376, blocksize=4096)
+
+block_group_nr 9
+
+recover_EXT2: "e2fsck -b 294912 -B 4096 device" may be needed
+recover_EXT2: s_block_group_nr=9/12, s_mnt_count=0/4294967295, s_blocks_per_group=32768, s_inodes_per_group=8192
+recover_EXT2: s_blocksize=4096
+recover_EXT2: s_blocks_count 393216
+recover_EXT2: part_size 3145728
+Filesystem created: Sun Apr 24 15:30:22 2022
+Ext2 superblock found at sector 2359296 (block=294912, blocksize=4096)
+  Linux filesys. data      2203648    5349375    3145728
+superblock 0, blocksize=4096 []
+superblock 32768, blocksize=4096 []
+superblock 98304, blocksize=4096 []
+superblock 163840, blocksize=4096 []
+superblock 229376, blocksize=4096 []
+superblock 294912, blocksize=4096 []
+
+To repair the filesystem using alternate superblock, run
+fsck.ext4 -p -b superblock -B blocksize device
+Partition table type (auto): None
+Partition table type (auto): None
+Partition table type (auto): None
+Partition table type (auto): None
+Partition table type defaults to Intel
+Media is opened in read-only.

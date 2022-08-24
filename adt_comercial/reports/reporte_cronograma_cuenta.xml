@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <template id="reporte_cronograma_cuenta">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="adt_comercial.external_layout_cronograma">
+                    <div class="page">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h3 class="text-center">CRONOGRAMA DE PAGOS</h3>
+                                </div>
+                            </div>
+                            <br/>
+                            <div class="row">
+                                <div class="col-12">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Nombres y apellidos: </th>
+                                            <td><span t-esc="doc.partner_id.name"/></td>
+                                            <th>Fecha de entrega: </th>
+                                            <td><span t-esc="doc.fecha_entrega"/></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Celular:</th>
+                                            <td><span t-esc="doc.partner_id.mobile"/></td>
+                                            <th>Cuota (<span t-esc="doc.periodicidad"/>):</th>
+                                            <td><span t-esc="doc.monto_cuota"/></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <br/>
+                            <div class="row">
+                                <div class="col-12 small">
+                                    <table class="table table-striped table-bordered">
+                                        <thead>
+                                            <th width="10%"># Cuota</th>
+                                            <th width="13%">F. cuota</th>
+                                            <th width="13%">Monto cuota</th>
+                                            <th width="13%">F. pago</th>
+                                            <th width="13%">Monto pago</th>
+                                            <th width="17%">Operación</th>
+                                            <th width="21%">Observaciones</th>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="doc.get_cronograma_report(doc.id)" t-as="cuota">
+                                                <td><span t-esc="cuota['cuota']"/></td>
+                                                <td class="text-right"><span t-esc="cuota['fecha_cronograma']"/></td>
+                                                <td class="text-right"><span t-esc="cuota['monto_cuota']"/></td>
+                                                <td class="text-right"><span t-esc="cuota['fecha_pago']"/></td>
+                                                <td class="text-right"><span t-esc="cuota['monto_pagado']"/></td>
+                                                <td><span t-esc="cuota['operacion']"/></td>
+                                                <td><span t-raw="cuota['observaciones']"/></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,130 @@
+<odoo>
+    <record id="adt_reporte_cobranza_en_captura_tree" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.en.captura.tree</field>
+        <field name="model">adt.reporte.cobranza.captura</field>
+        <field name="arch" type="xml">
+            <tree string="En captura" create="0">
+                <field name="recuperado"/>
+                <field name="partner_id"/>
+                <field name="cuenta_id" string="Cuenta"/>
+                <field name="dias_retraso"/>
+                <field name="periodicidad"/>
+                <field name="fecha_cronograma"/>
+                <field name="monto"/>
+                <field name="gps_chip"/>
+                <field name="gps_activo"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_reporte_cobranza_en_captura_search" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.captura.search</field>
+        <field name="model">adt.reporte.cobranza.captura</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                <field name="partner_id" />
+                <field name="cuenta_id"/>
+                <separator/>
+                <filter string="Fecha de cronograma" name="filter_fecha_cronograma" date="fecha_cronograma"/>
+                <separator/>
+                <group expand="0" name="group_by" string="Group By">
+                    <filter name="fecha" string="Fecha de cronograma" domain="[]" context="{'group_by' : 'fecha_cronograma'}"/>
+                    <filter name="cuenta" string="Cuenta" domain="[]" context="{'group_by' : 'cuenta_id'}"/>
+                    <filter name="partner" string="Socio" domain="[]" context="{'group_by' : 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cobranzas_en_captura" model="ir.actions.act_window">
+        <field name="name">Cobranzas - En captura</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.reporte.cobranza.captura</field>
+        <field name="view_mode">tree</field>
+        <field name="domain">[('recuperado','=',False)]</field>
+        <field name="search_view_id" ref="adt_comercial.adt_reporte_cobranza_en_captura_search"/>
+        <!-- <field name="context">{'default_is_company': True}</field> -->
+    </record>
+
+    <record id="action_cobranzas_en_captura_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial.adt_reporte_cobranza_en_captura_tree"/>
+        <field name="act_window_id" ref="action_cobranzas_en_captura"/>
+    </record>
+
+    <record id="adt_reporte_cobranza_recuperado_tree" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.recuperado.tree</field>
+        <field name="model">adt.reporte.cobranza.recuperado</field>
+        <field name="arch" type="xml">
+            <tree string="En captura" create="0">
+                <field name="recuperado"/>
+                <field name="partner_id"/>
+                <field name="cuenta_id" string="Cuenta"/>
+                <field name="vehiculo_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- <record id="adt_reporte_cobranza_capturado_search" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.captura.search</field>
+        <field name="model">adt.reporte.cobranza.captura</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                <field name="partner_id" />
+                <field name="cuenta_id"/>
+                <field name="vehiculo_id"/>
+                <separator/>
+                <filter string="Fecha de cronograma" name="filter_fecha_cronograma" date="fecha_cronograma"/>
+                <separator/>
+                <group expand="0" name="group_by" string="Group By">
+                    <filter name="fecha" string="Fecha de cronograma" domain="[]" context="{'group_by' : 'fecha_cronograma'}"/>
+                    <filter name="cuenta" string="Cuenta" domain="[]" context="{'group_by' : 'cuenta_id'}"/>
+                    <filter name="partner" string="Socio" domain="[]" context="{'group_by' : 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record> -->
+
+    <record id="adt_reporte_cobranza_recuperado_search" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.captura.search</field>
+        <field name="model">adt.reporte.cobranza.recuperado</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                <field name="partner_id" />
+                <field name="cuenta_id"/>
+                <field name="vehiculo_id"/>
+                <separator/>
+                <group expand="0" name="group_by" string="Group By">
+                    <filter name="cuenta" string="Cuenta" domain="[]" context="{'group_by' : 'cuenta_id'}"/>
+                    <filter name="partner" string="Socio" domain="[]" context="{'group_by' : 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cobranzas_recuperado" model="ir.actions.act_window">
+        <field name="name">Cobranzas - Recuperado</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.reporte.cobranza.recuperado</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="adt_comercial.adt_reporte_cobranza_recuperado_search"/>
+    </record>
+
+    <record id="action_cobranzas_recuperado_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial.adt_reporte_cobranza_recuperado_tree"/>
+        <field name="act_window_id" ref="action_cobranzas_recuperado"/>
+    </record>
+
+    <menuitem id="adt_cobranza_menu_capturas" name="Capturas" parent="menu_adt_cobranza" sequence="3"/>
+    <menuitem id="adt_cobranza_menu_en_captura" name="En captura" parent="adt_cobranza_menu_capturas" action="action_cobranzas_en_captura" sequence="1"/>
+    <menuitem id="adt_cobranza_menu_recuperado" name="Recuperados" parent="adt_cobranza_menu_capturas" action="action_cobranzas_recuperado" sequence="1"/>
+    <!-- <menuitem id="adt_cobranza_menu_pagos_realizados" name="Pagos realizados" parent="adt_cobranza_menu_pagos" action="action_cobranzas_pagos_realizados" sequence="2"/> -->
+
+
+
+
+
+</odoo>

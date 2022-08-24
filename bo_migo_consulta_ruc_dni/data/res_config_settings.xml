@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+    <record id="api_migo_endpoint" model="ir.config_parameter">
+        <field name="key">api.migo.endpoint</field>
+        <field name="value">https://api.migo.pe/api/v1/</field>
+    </record>
+
+    <record id="api_migo_token" model="ir.config_parameter">
+        <field name="key">api.migo.token</field>
+        <field name="value">&lt; TOKEN &gt;</field>
+    </record>
+</odoo>
