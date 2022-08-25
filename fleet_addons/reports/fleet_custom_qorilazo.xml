@@ -1,0 +1,1716 @@
+<?xml version="1.0" ?>
+<odoo>
+    <data>
+
+        <record id="paperformat_cronograma_a4" model="report.paperformat">
+            <field name="name">Cronograma A4</field>
+            <field name="default" eval="True"/>
+            <field name="format">A4</field>
+            <field name="page_height">0</field>
+            <field name="page_width">0</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">40</field>
+            <field name="margin_bottom">10</field>
+            <field name="margin_left">7</field>
+            <field name="margin_right">7</field>
+            <field name="header_line" eval="False"/>
+            <field name="header_spacing">40</field>
+            <field name="dpi">90</field>
+        </record>
+
+
+        <record id="fleet_addons.fleet_custom_report2" model="ir.actions.report">
+            <field name="name">Contrato Qorilazo</field>
+            <field name="model">fleet.vehicle</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">fleet_addons.vehicle_contrato2_report_view</field>
+            <field name="report_file">fleet_addons.vehicle_contrato2_report</field>
+            <field name="binding_model_id" ref="model_fleet_vehicle"/>
+            <field name="binding_type">report</field>
+            <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
+        </record>
+
+        <template id="vehicle_contrato2_report_view">
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <t t-foreach="docs" t-as="vehicle">
+                        <style>
+
+                            .general_body_xs{
+                            margin: 10px;
+                            font-size: 14px;
+                            }
+
+                            .title_report{
+                            text-align: center;
+                            }
+
+                            table {
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 100%;
+                            font-size: 10px;
+                            }
+
+                            td, th {
+                            border: 1px solid #dddddd;
+                            text-align: left;
+                            padding: 8px;
+                            width: 50%;
+                            }
+
+                            .subrayado{
+                            text-decoration: underline black;
+                            font-weight: bold;
+                            font-size: 14px;
+                            }
+
+                            span{
+                            font-weight: bold;
+                            }
+
+                            .box_clausula{
+                            margin-left: 20px;
+                            }
+
+                            .box_subclausula{
+                            display:flex;
+                            }
+                            .indice_negrita{
+                            font-weight: bold;
+                            margin:0%;
+                            }
+
+                            .table_cuota_inicial{
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 50%;
+                            }
+
+                            .title_ligth{
+                            font-weight: normal;
+                            }
+
+                            .box_firma{
+                            display: -webkit-box;
+                            -webkit-box-pack: center;
+                            justify-content: center;
+                            }
+
+                            .box_line{
+                            width: 100%;
+                            height: 1px;
+                            background-color: black;
+                            }
+
+                            .box_data{
+                            margin-top: 100px;
+                            margin-left: 5px;
+                            height: 60px;
+                            width: 50%;
+                            }
+
+                            .box_place_date{
+                            display: -webkit-box;
+                            -webkit-box-pack: end;
+                            justify-content: end;
+                            }
+
+                            .box_guion{
+                            display: -webkit-box;
+                            }
+
+                            .box_guion_space {
+                            margin-left: 20px;
+                            }
+
+                            .box_italica{
+                            font-style: italic;
+                            }
+                            .box_space{
+                            height: 800px;
+                            }
+
+                            /* table */
+
+                            .general_body {
+                            height: 35px;
+                            width: 100%;
+                            background-color: #C0C0C0;
+                            display: -webkit-box;
+                            -webkit-box-pack: start;
+                            justify-content: end;
+                            }
+
+                            .w60p {
+                            width: 60%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .w40p {
+                            width: 40%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .box_margin {
+                            margin-left: 10px;
+                            }
+
+                            .box_bordertop {
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent transparent transparent;
+                            }
+
+                            .box_borderbottom {
+                            border-bottom: 1.5px;
+                            border-style: solid;
+                            border-color: transparent transparent black transparent;
+                            }
+
+                            .box_borderbi {
+                            border-bottom: 1.5px;
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent black transparent;
+                            }
+                            .box_space_heigth{
+                            height: 15px;
+                            }
+                            .box_justify_space{
+                            display: -webkit-box;
+                            -webkit-box-pack: justify;
+                            justify-content: space-between;
+                            }
+
+                        </style>
+
+                        <div class="general_body_xs">
+                            <div class="header">
+                                <img src="/fleet_addons/static/src/img/fleet_custom_qorilazo.jpg" alt="Not found" height="150"
+                                     width="1000"/>
+                            </div>
+
+                            <div class="box_place_date">
+
+                                <p>Número de Participación Lima Norte: 2022-00000000 (Soles)</p>
+
+                            </div>
+
+                            <div class="box_place_date">
+                                <p>Vigencia: 52 (Semanas)</p>
+                            </div>
+
+
+                            <div>
+                                <p class="subrayado">INTRODUCCIÓN</p>
+                                <br/>
+                            </div>
+                            <p>
+                                De acuerdo al crédito de moto otorgado a los socios de la
+                                <span class="indice_negrita">COOPAC
+                                    QORILAZO
+                                </span>
+                                ., y de conformidad con las
+                                cotizaciones adjuntas al expediente presentado por el Socio, PERDIGON SANCHEZ JOSE
+                                RAFAEL, Identificado
+                                con CPP: 000863516 domiciliado
+                                <span class="indice_negrita">CA TA. ROSA 106M_-L SUBLOTE 1B-4B 120
+                                    URB.CAMPY- S.J.L
+                                </span>
+                                adelante EL
+                                <span class="indice_negrita">COBERTURADO</span>
+                                , en donde se detalla el periodo de la contratación de
+                                este fondo de contingencia, y cuya
+                                veracidad constituye causa determinante para su celebración; y, asimismo, de acuerdo a
+                                lo estipulado
+                                tanto en las Condiciones Generales de Contratación, así como en las presentes
+                                condiciones generales del
+                                Fondo de Contingencia; Empresa
+                                <span class="indice_negrita">Corporación ADT SAC</span>
+                                , en adelante
+                                <span class="indice_negrita">LA COMPAÑÍA</span>
+                                , conviene en amparar a EL
+                                COBERTURADO contra riesgos que correspondan al producto
+                                <span class="indice_negrita">MOTO QORILAZO de la
+                                    COOPAC QORILAZO.
+                                </span>
+                                , y que se
+                                encuentran expresamente contemplados en el presente contrato, en los términos y
+                                condiciones
+                                siguientes:
+                                <span class="indice_negrita">ARTÍCULO Nº 1 - COBERTURAS PRINCIPALES</span>
+
+                            </p>
+
+                            <p>
+                                Siempre que la contratación individual de cada Cobertura, conste expresamente en las
+                                Condiciones
+                                Particulares, y sujeto a todos los términos y condiciones que forman parte del presente
+                                contrato.
+                                Siempre que el siniestro ocurra durante la vigencia del Contrato como resultado directo
+                                del uso y/o
+                                circulación y/o posesión del vehículo coberturado, además el siniestro debe ser
+                                consecuencia directa de
+                                un riesgo cubierto especificado en el artículo 2° de las presentes Condiciones
+                                Generales.
+                                Siempre que
+                                <span class="indice_negrita">EL COBERTURADO</span>
+                                se encuentre al día con sus pagos a la
+                                <span class="indice_negrita">COOPAC QORILAZO</span>
+                                , según cronograma de
+                                pagos entregado al socio al momento del desembolso, además se tomara en cuenta los
+                                aportes que
+                                <span class="indice_negrita">EL
+                                    COBERTURADO
+                                </span>
+                                está obligado a depositar durante el periodo del crédito. Durante el tiempo de
+                                vigencia de
+                                este contrato y si el socio cumple con las condiciones indicadas
+                                <span class="indice_negrita">LA
+                                    COMPAÑÍA
+                                </span>
+                                cubre:
+                            </p>
+
+                            <div>
+                                <p class="subrayado">COBERTURAS</p>
+                            </div>
+
+                            <div>
+                                <p class="subrayado">Cobertura Daños Materiales</p>
+                            </div>
+
+                            <div class="box_clausula">
+                                <ul>
+                                    <li>Por choque, vuelco, incendio, o cualquier otro tipo de siniestro ocurrido en la
+                                        ciudad de LIMA.
+                                    </li>
+                                    <li>Robo Total del vehículo, una vez agotadas todas las instancias de contingencia
+                                        iniciales como el
+                                        rastreo satelital (gps) y operativos policiales.
+                                    </li>
+                                    <li>Daños derivados de desastres naturales como terremotos, huaycos, etc.</li>
+                                    <li>En caso de huelgas, conmoción civil, daño malicioso, vandalismo siempre y cuando
+                                        se encuentre
+                                        respaldado por informe del personal de la Compañía.
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <p class="subrayado">Cobertura de Daño Propio</p>
+                            </div>
+
+                            <div class="box_clausula">
+                                <ul>
+                                    <li>Los vehículos descritos como Materia Coberturada en las Condiciones
+                                        Particulares, contra daños o
+                                        pérdidas físicas que le ocurran durante la vigencia del contrato, siempre y
+                                        cuando dichos daños
+                                        y pérdidas físicas sucedan en forma accidental, súbita e imprevista como
+                                        consecuencia directa e
+                                        inmediata de cualquier riesgo cubierto especificado en el artículo 2° de las
+                                        presentes
+                                        Condiciones Generales, y no sea aplicable alguna de las exclusiones.
+                                    </li>
+                                </ul>
+                            </div>
+
+
+                            <div>
+                                <p class="subrayado">ARTÍCULO Nº 2 - RIESGOS CUBIERTOS</p>
+                            </div>
+
+                            <p>
+                                Para vehículos descritos como Materia Coberturada en las Condiciones Particulares y que
+                                correspondan al
+                                servicio que efectúan (Servicio de Delivery) los riesgos cubiertos a los que se refieren
+                                en el inciso A
+                                artículo 1° de las presentes Condiciones Generales, son los siguientes:
+                            </p>
+
+
+                            <div>
+                                <p>
+                                    <span class="indice_negrita">Inciso A del artículo 1° Cobertura de Daño Propio:
+                                    </span>
+                                </p>
+                            </div>
+
+
+                            <div class="box_clausula">
+                                <p>1. Por choque, vuelco, incendio, o cualquier otro tipo de siniestro ocurrido en la
+                                    ciudad de LIMA.
+                                </p>
+                                <p>2. Robo Total del vehículo, una vez agotadas todas las instancias de contingencia
+                                    iniciales como el
+                                    rastreo satelital y operativos policiales.
+                                </p>
+                                <p>3. Daños derivados de desastres naturales como terremotos, huaycos, etc.</p>
+                                <p>4. En caso de huelgas, conmoción civil, daño malicioso, vandalismo y terrorismo.</p>
+                                <p>5. Cualquier otro riesgo que se contrate y que esté especificado en las Condiciones
+                                    Particulares de
+                                    esta Póliza.
+                                </p>
+                                <p>6. Para vehículos descritos como Materia Asegurada en las Condiciones Particulares
+                                    del servicio de
+                                    Delivery.
+                                </p>
+                            </div>
+
+
+                            <div>
+                                <p class="subrayado">ARTÍCULO Nº 3 - CESE DE COBERTURA</p>
+                            </div>
+
+                            <p>
+                                La cobertura otorgada para cada vehículo cesa por Resolución Automática antes de la
+                                terminación de la
+                                vigencia del presente Contrato, en el momento mismo en que el vehículo coberturado:
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <p>1. Pasa a poder o control o custodia de otras personas(ADT Delivery) por haber sido
+                                    embargado,
+                                    confiscado o cedido con intervención de las Partes (ADT
+                                    Delivery-COOPAC)
+                                </p>
+                                <p>2. Cambia de propietario (Recolocación), a excepción del que provenga de transmisión
+                                    a solicitud de
+                                    COOPAC.
+                                </p>
+                                <p>3. Por no encontrarse al día en los pagos ante la COOPAC, de conformidad al
+                                    cronograma de pago
+                                </p>
+                            </div>
+
+
+                            <p>La COMPAÑÍA podrá rehabilitar la cobertura para el vehículo cuya cobertura hubiera cesado
+                                por las
+                                causales mencionadas en el presente artículo 3°.
+                            </p>
+
+
+                            <div>
+                                <p class="subrayado">ARTÍCULO Nº 4 - VALORES DECLARADOS Y SUMAS ASEGURADAS</p>
+                            </div>
+
+                            <p>
+                                <span class="indice_negrita">Cobertura de Daño Propio.</span>
+                            </p>
+
+                            <p>
+                                La Suma Asegurada para esta Cobertura deberá coincidir con el Valor Comercial del
+                                vehículo coberturado.
+                                LA COMPAÑIA debe proporcionar y fijar la Suma Asegurada por cada vehículo coberturado,
+                                además el importe
+                                deberá ser consignado en el Contrato de Gestión y la Cotización, firmados entre EL
+                                COBERTURADO y LA
+                                COMPAÑÍA.
+                            </p>
+
+                            <p>
+                                La suma asegurada, es el valor comercial del vehículo adquirido por el socio de la
+                                cooperativa, importe
+                                que será la base para el cálculo de la Prima, que
+                                <span class="indice_negrita">se fija en un 20%, y que
+                                    deberá ser abonado en un
+                                    plazo máximo de treinta (30) días,
+                                </span>
+                                para la reposición de un vehículo robado, caso contario
+                                pasado el
+                                periodo informado, se procederá a la liquidación de la deuda que mantiene EL COBERTURADO
+                                con la
+                                Cooperativa.
+                            </p>
+
+
+                            <div>
+                                <p class="subrayado">ARTÍCULO Nº 5 – EXCLUSIONES</p>
+                            </div>
+
+                            <p>Este contrato no cubre:</p>
+
+
+                            <div class="box_clausula">
+                                <ul>
+                                    <li>Daños Materiales a terceros</li>
+                                    <li>Pérdidas físicas</li>
+                                    <li>Responsabilidades Hospitalarias o curaciones a terceros</li>
+                                    <li>Daños Personales a terceros</li>
+                                    <li>Pérdidas de objetos personales</li>
+                                    <li>Robos de Accesorios del vehículo.</li>
+                                </ul>
+                            </div>
+
+
+                            <p>Que surjan o resulten de, o que sean causados directa o indirectamente por:</p>
+
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>A.</div>
+                                    <div class="box_guion_space">Actos de naturaleza fraudulenta o dolosa, o acto
+                                        intencional, o
+                                        negligencia inexcusable del
+                                        COBERTURADO o CONTRATANTE o BENEFICIARIO o ENDOSATARIO, o de los familiares de
+                                        cualquiera de
+                                        ellos,
+                                        o de cualquier persona que estuviera a cargo del, o conduciendo el, vehículo
+                                        coberturado.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>B.</div>
+                                    <div class="box_guion_space">Guerra, conflictos armados, invasión, acto de enemigo
+                                        extranjero,
+                                        hostilidades u operaciones
+                                        de
+                                        guerra, sea que la guerra haya sido declarada o no; guerra civil, sublevación,
+                                        insurgencia,
+                                        insubordinación, rebelión, revolución, conspiración, insurrección, sedición,
+                                        asonada, huelga,
+                                        motín,
+                                        conmoción civil, daño malicioso, sabotaje, vandalismo, alboroto popular, cierre
+                                        patronal
+                                        (lock-out),
+                                        levantamiento popular, levantamiento militar, y, en general, hechos de carácter
+                                        político social
+                                        que
+                                        alteren el orden público o constitucional; confiscación, requisa, expropiación,
+                                        o
+                                        nacionalización;
+                                        destrucción de bienes por orden de cualquier autoridad; poder militar o
+                                        usurpación del poder; o
+                                        cualquier evento o causa que determine la proclamación de estado de sitio.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>C.</div>
+                                    <div class="box_guion_space">Cualquier Acto de Terrorismo.</div>
+                                </div>
+
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>D.</div>
+                                    <div class="box_guion_space">Material para armas nucleares o material nuclear;
+                                        reacción nuclear o
+                                        radiación nuclear o
+                                        contaminación radioactiva o emisión de radiaciones ionizantes; contaminación por
+                                        la
+                                        radioactividad
+                                        de cualquier combustible nuclear o de cualquier desperdicio proveniente de la
+                                        combustión de
+                                        dicho
+                                        combustible nuclear.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>E.</div>
+                                    <div class="box_guion_space">Uso indebido del vehículo coberturado y/o sobrecarga
+                                        del mismo.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>F.</div>
+                                    <div class="box_guion_space">Instalación defectuosa o incorrecta o indebida de
+                                        cables eléctricos y/o
+                                        componentes eléctricos
+                                        y/o
+                                        componentes electrónicos y/o accesorios de cualquier tipo, así como el uso
+                                        indebido del cableado
+                                        eléctrico del vehículo coberturado.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>G.</div>
+                                    <div class="box_guion_space">No respetar los límites máximo y mínimo de velocidad
+                                        establecidos.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>H.</div>
+                                    <div class="box_guion_space">No detenerse al llegar a un cruce ferroviario a
+                                        nivel.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>I.</div>
+                                    <div class="box_guion_space">Circular en sentido contrario al tránsito autorizado o
+                                        invadiendo el
+                                        carril contrario.
+                                    </div>
+                                </div>
+
+                                <br/>
+                                <div class="box_guion">
+                                    <div>J.</div>
+                                    <div class="box_guion_space">Cruzar una intersección o girar, estando el semáforo
+                                        con luz roja y no
+                                        existiendo la indicación
+                                        en
+                                        contrario.
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>K.</div>
+                                    <div class="box_guion_space">Desobedecer las indicaciones del efectivo de la Policía
+                                        Nacional
+                                        asignado al control del
+                                        tránsito.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>L.</div>
+                                    <div class="box_guion_space">Circular sobre aceras, áreas verdes, pasos peatonales y
+                                        demás lugares
+                                        prohibidos.
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>M.</div>
+                                    <div class="box_guion_space">Conducir un vehículo cuyo sistema de frenos y/o sistema
+                                        de dirección
+                                        y/o sistema de luces, se
+                                        encuentre en mal estado de funcionamiento.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>N.</div>
+                                    <div class="box_guion_space">Voltear en U sobre la misma calzada, en las
+                                        proximidades de curvas,
+                                        puentes, túneles,
+                                        estructuras
+                                        elevadas, cima de cuesta, cruce ferroviario a nivel u otros lugares de riesgo
+                                        para la seguridad.
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>
+                                        O.
+                                    </div>
+                                    <div class="box_guion_space">Estacionar en carreteras sin señalizar el lugar
+                                        colocando los
+                                        dispositivos de seguridad
+                                        reglamentarios.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>P.</div>
+                                    <div class="box_guion_space">Estacionar o detener el vehículo en el carril de
+                                        circulación, en
+                                        carreteras o caminos donde
+                                        existe
+                                        berma lateral.
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>P.</div>
+                                    <div class="box_guion_space">Estacionar o detener el vehículo en el carril de
+                                        circulación, en
+                                        carreteras o caminos donde
+                                        existe
+                                        berma lateral.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>Q.</div>
+                                    <div class="box_guion_space">No llevar puesto el caso de seguridad.</div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>R.</div>
+                                    <div class="box_guion_space">Estacionar un vehículo en vías con pendientes
+                                        pronunciadas sin asegurar
+                                        su inmovilización.
+                                    </div>
+                                </div>
+
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>1) Este Contrato no cubre los Daños Materiales y/o Robo Total, cuando el
+                                        vehículo coberturado
+                                        se
+                                        encuentre:
+                                    </div>
+                                </div>
+
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>A.</div>
+                                    <div class="box_guion_space">Circulando por vías o lugares no autorizados para el
+                                        tránsito
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>B.</div>
+                                    <div class="box_guion_space">Tomando parte en carreras, competencias, apuestas o
+                                        ensayos, pruebas de
+                                        asistencia, de
+                                        resistencia
+                                        o de velocidad u otro uso arriesgado
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>C.</div>
+                                    <div class="box_guion_space">Siendo conducido por una persona que no cuente con la
+                                        licencia de
+                                        conducir vigente y auténtica
+                                        que
+                                        corresponda al tipo de vehículo, o cuya licencia de conducir esté suspendida o
+                                        cancelada o
+                                        vencida.
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>D.</div>
+                                    <div class="box_guion_space">Siendo remolcado o auxiliado por otro medio que no sea
+                                        el Auxilio
+                                        mecánico de la Compañía .
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>E.</div>
+                                    <div class="box_guion_space">Siendo conducido por una persona en estado de ebriedad
+                                        y/o que esté
+                                        bajo los efectos o
+                                        Influencia
+                                        de estupefacientes, narcóticos y/o alucinógenos.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>F.</div>
+                                    <div class="box_guion_space">Cuando el vehículo sea utilizado para operaciones
+                                        delictivas, Robos
+                                        Secuestros etc.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>G.</div>
+                                    <div class="box_guion_space">Cuando contravengan con los valores de nuestra
+                                        sociedad.
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                Para efectos de este contrato, se entiende que una persona se encuentra en estado de
+                                ebriedad, cuando al
+                                practicársele el examen de alcoholemia u otro que corresponda, éste arroje un resultado
+                                igual o superior
+                                a 0.50 gramos de alcohol por litro de sangre al momento del accidente.
+                            </p>
+
+                            <p>
+                                Para determinar la cantidad de alcohol por litro de sangre que corresponde al momento
+                                del accidente, se
+                                considerará que la cantidad de alcohol en la sangre en una persona desciende, cada hora,
+                                0.11 gramos de
+                                alcohol por litro de sangre; consecuentemente, a la cifra que arroje el resultado del
+                                examen de
+                                alcoholemia, se le añadirá 0.0018334 gramos de alcohol por litro de sangre, por cada
+                                minuto transcurrido
+                                desde el momento del accidente hasta el momento en que se practicó el examen.
+                            </p>
+                            <p>
+                                Si el conductor se niega y/o no se somete oportunamente al examen de alcoholemia o al
+                                examen
+                                toxicológico u otro que corresponda, se presumirá que, al momento del accidente, estaba
+                                en estado de
+                                ebriedad y/o bajo los efectos o influencia de estupefacientes, narcóticos y/o
+                                alucinógenos;
+                                consecuentemente se aplicará la presente exclusión.
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <span class="indice_negrita">2) Esta Póliza no cubre los Daños Materiales ocasionados
+                                    por el siniestro
+                                    y/o Robos cuando el vehículo coberturado se encuentre en poder de personas extrañas
+                                    por haber sido
+                                    robado.
+                                </span>
+                            </div>
+
+
+                            <p>
+                                <span class="indice_negrita">El Contrato tampoco cubre:</span>
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>A.</div>
+                                    <div class="box_guion_space">La Responsabilidad Civil derivada de Daños Materiales
+                                        causados a
+                                        bienes o de Terceros que, por cualquier motivo (depósito, uso, préstamo,
+                                        manipulación,
+                                        transporte, u otro), se hallen en poder o custodia o control del COBERTURADO o
+                                        de persona de
+                                        quien éste sea responsable o de sus contratistas o subcontratistas o del
+                                        conductor del vehículo
+                                        coberturado.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>B.</div>
+                                    <div class="box_guion_space">Pérdidas por interrupción de la explotación comercial o
+                                        industrial;
+                                        pérdidas por la suspensión o paralización o cesación, total o parcial, del
+                                        negocio; pérdidas por
+                                        incumplimiento o resoluciones de contratos.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>C.</div>
+                                    <div class="box_guion_space">Desgaste o deterioro paulatino o fatiga, causado por, o
+                                        resultante
+                                        de, el uso o funcionamiento.
+                                    </div>
+                                </div>
+
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>D.</div>
+                                    <div class="box_guion_space">Deterioro debido a condiciones atmosféricas o
+                                        ambientales;
+                                        rasgaduras o ralladuras en superficies pintadas o pulidas.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>E.</div>
+                                    <div class="box_guion_space">Daños en el vehículo coberturado, por quemaduras
+                                        causadas por brasa
+                                        o ceniza de tabaco, encendedores de cualquier tipo, fósforos, artefactos
+                                        eléctricos, a menos que
+                                        se produzca incendio que esté debidamente amparado por esta Póliza y, en ese
+                                        caso, sólo los
+                                        daños en el vehículo coberturado causado por ese incendio.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>F.</div>
+                                    <div class="box_guion_space">Pérdidas por la reparación o rehabilitación cuando haya
+                                        sido
+                                        alquilado sin la autorización de la compañía.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>G.</div>
+                                    <div class="box_guion_space">Daños o pérdidas en el vehículo coberturado causados
+                                        por bienes de
+                                        cualquier tipo que caigan o escapen o se desprendan o se suelten, de dicho
+                                        vehículo coberturado.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>H.</div>
+                                    <div class="box_guion_space">Responsabilidad Penal de ningún tipo, ni gasto alguno
+                                        relacionado
+                                        con responsabilidades Penales.
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>I.</div>
+                                    <div class="box_guion_space">Los costos de cualquier reparación provisional.</div>
+                                </div>
+
+                                <br/>
+                                <div class="box_guion">
+                                    <div>J.</div>
+                                    <div class="box_guion_space">Todo costo incurrido para implementar modificaciones o
+                                        mejoras o por
+                                        mantenimiento o para hacer otras reparaciones o arreglos en el vehículo
+                                        coberturado.
+                                    </div>
+                                </div>
+                                <br/>
+
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>3)</span>
+                                    </div>
+                                    <div>
+                                        <span class="box_guion_space indice_negrita">Salvo convenio especial, el mismo
+                                            que deberá
+                                            constar en las Condiciones Particulares del presente Contrato con indicación
+                                            expresa de su
+                                            respectiva Suma Coberturada, están excluidos de la cobertura otorgada por la
+                                            presente
+                                            Contrato:
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>A.</div>
+                                    <div class="box_guion_space">Carrocería acoplada o adaptada, ya sea de fibra de
+                                        vidrio o de metal.
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>B.</div>
+                                    <div class="box_guion_space">Partes, accesorios o herramientas que no formen parte
+                                        del equipamiento
+                                        original del vehículo coberturado
+                                    </div>
+                                </div>
+                                <br/>
+                                <div class="box_guion">
+                                    <div>C.</div>
+                                    <div class="box_guion_space">Vehículos cuyas características y condiciones hayan
+                                        sido modificadas o
+                                        alteradas o agregadas
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>4)</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        <span>El Contrato no cubre la pérdida física del vehículo coberturado,
+                                            o
+                                            de sus partes y piezas, por el apoderamiento ilícito, abuso de confianza o
+                                            la retención
+                                            indebida, cometido por quien haya estado autorizado por EL COBERTURADO o sus
+                                            dependientes
+                                            para su manejo, o por quien haya estado encargado de su custodia.
+                                        </span>
+                                    </div>
+                                </div>
+                                <br/>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>5)</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        <span>El Contrato no cubre los daños o pérdidas físicas y/o las
+                                            pérdidas causadas directamente por terremoto, temblor, movimientos sísmicos,
+                                            erupción
+                                            volcánica, fuego subterráneo, maremoto, tsunami, marejada, maretazo, oleaje,
+                                            salida de mar,
+                                            o embravecimiento de mar; lluvias, granizo, nieve, ciclón, huracán,
+                                            tempestad, tormenta,
+                                            vientos, ventarrones, ventisca; inundación, desbordamiento; hundimiento de
+                                            suelos,
+                                            subsidencia; deslizamiento del terreno, huayco, alud, avalancha, aluvión,
+                                            derrumbes y
+                                            desprendimiento de tierra o de rocas; y en general, todas las fuerzas de la
+                                            naturaleza.
+                                        </span>
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                <span>ARTÍCULO Nº 6 – GARANTÍAS</span>
+                            </p>
+
+
+                            <p>
+                                El Contrato está sujeto al cumplimiento por parte del
+                                <span>COBERTURADO</span>
+                                , de las garantías
+                                indicadas en las
+                                Condiciones Especiales y/o Condiciones Particulares y/o Cláusulas Adicionales. Estas
+                                garantías rigen
+                                desde la fecha indicada en dichas Condiciones Especiales y/o Condiciones Particulares
+                                y/o Cláusulas
+                                Adicionales, y se mantienen en pleno vigor durante todo el periodo de vigencia del
+                                Contrato y sus
+                                renovaciones.
+                            </p>
+
+                            <p>
+                                La COMPAÑÍA queda liberada de toda responsabilidad por las pérdidas o destrucción o
+                                daños o
+                                responsabilidades o Daños Materiales o Daños Personales que, en su origen o extensión,
+                                sean causados o
+                                agravados por la inobservancia o incumplimiento de las garantías indicadas en el
+                                contrato
+                            </p>
+
+
+                            <p>
+                                <span>ARTÍCULO Nº 7 - CARGAS Y OBLIGACIONES</span>
+                            </p>
+
+                            <p>En adición a las señaladas en el Artículo 9° Inciso A de las Condiciones Generales de
+                                Contratación, EL
+                                COBERTURADO y/o el conductor o persona a cargo del vehículo coberturado, está obligado a
+                                cumplir con las
+                                siguientes cargas y obligaciones:
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>
+                                        <span>1.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Mantener el vehículo coberturado en buen estado de funcionamiento, dándole el
+                                        mantenimiento
+                                        indicado por el fabricante o proveedor.
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>2.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Observar las prescripciones legales sobre condiciones de seguridad y prevención
+                                        de accidentes.
+                                    </div>
+                                </div>
+
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>3.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Conducir el vehículo cumpliendo con las restricciones especificadas en su
+                                        licencia de conducir.
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <p>
+                                En caso de incumplimiento de cualquiera de estas cargas y obligaciones, se perderá todo
+                                derecho de
+                                Indemnización en la medida en que el incumplimiento haya causado, o contribuido de
+                                alguna manera a
+                                causar y/o agravar, el daño o pérdida o accidente.
+                            </p>
+
+                            <p>
+                                Asimismo, en caso de siniestro, además de las cargas y obligaciones señaladas en las
+                                Condiciones
+                                Generales de Contratación, EL COBERTURADO deberá cumplir con las siguientes
+                                obligaciones:
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>
+                                        <span>A.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Modificando lo estipulado en el numeral 3 del inciso B del artículo 9° de las
+                                        Condiciones
+                                        Generales de Contratación, denunciar el hecho ante las autoridades policiales de
+                                        la jurisdicción
+                                        y a la COMPAÑÍA en el plazo máximo de una hora después de ocurrido el siniestro,
+                                        y solicitar a
+                                        las autoridades policiales la constatación de los daños.
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <p>
+                                <span>El incumplimiento de esta obligación dará lugar a la pérdida de los derechos de
+                                    indemnización.
+                                </span>
+                            </p>
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>
+                                        <span>B.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Impedir que se efectúen reparaciones y/o cambio de piezas mientras la COMPAÑÍA
+                                        no lo autorice.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p>
+                                El incumplimiento de esta obligación dará lugar a la pérdida de los derechos de
+                                indemnización. No
+                                obstante, la pérdida de ese derecho estará limitada al perjuicio causado a los intereses
+                                de la
+                                <span>COMPAÑÍA</span>
+                                .
+                            </p>
+
+                            <p>
+                                Presentar a la
+                                <span>COMPAÑÍA</span>
+                                dentro de los dos (02) días calendario siguientes de ocurrido el
+                                daño o pérdida, una declaración detallada de todos los demás seguros vigentes sobre los
+                                mismos bienes o
+                                responsabilidades materia de la reclamación. El deliberado ocultamiento de la existencia
+                                de los otros
+                                fondos de cobertura, seguros o pólizas, constituirá Reclamación Fraudulenta y, por
+                                tanto, se perderá
+                                todo derecho de indemnización conforme con lo estipulado por el Artículo 16° de las
+                                Condiciones
+                                Generales de Contratación.
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>
+                                        <span>C.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        En caso de Accidente de Tránsito, el conductor del vehículo coberturado deberá
+                                        someterse
+                                        oportunamente, dentro de un plazo máximo de tres (3) horas de ocurrido el
+                                        Accidente de Tránsito,
+                                        al examen de alcoholemia y/o a los exámenes toxicológicos que correspondan
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p>
+                                Si el conductor se niega y/o no se somete oportunamente al examen de alcoholemia o al
+                                examen
+                                toxicológico u otro que corresponda, se presumirá que, al momento del Accidente de
+                                Tránsito, estaba en
+                                estado de ebriedad y/o bajo los efectos o influencia de estupefacientes, narcóticos y/o
+                                alucinógenos.
+                            </p>
+
+                            <p>
+                                El incumplimiento de esta obligación dará lugar a la pérdida de los derechos de
+                                indemnización.
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>
+                                        <span>D.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        De producirse un accidente que pudiera dar lugar a cualquier tipo de
+                                        responsabilidad civil
+                                        extracontractual del COBERTURADO, o en caso de recibir alguna reclamación sea
+                                        que ésta haya sido
+                                        hecha en forma verbal o escrita, o en caso de tomar conocimiento de cualquier
+                                        tipo de
+                                        información que pudiere derivar en la presentación de una reclamación,
+                                        <span>EL
+                                            COBERTURADO
+                                        </span>
+                                        está
+                                        obligado a cumplir con las siguientes obligaciones:
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>1.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        En caso de recibir alguna comunicación, aviso, notificación, citación y, en
+                                        general,
+                                        cualquier tipo de documento o nota relacionada con los hechos materia de la
+                                        reclamación, debe
+                                        informar y remitir dicho documento a la
+                                        <span>COMPAÑÍA</span>
+                                        , dentro de un (1) día hábil
+                                        siguiente de
+                                        haberlo recibido. Asimismo, deberá transmitir dentro del mismo plazo, cualquier
+                                        información
+                                        verbal o escrita de la que tome conocimiento.
+                                    </div>
+                                </div>
+
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>2.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Previa coordinación con la
+                                        <span>COMPAÑÍA</span>
+                                        , contestar oportunamente toda notificación o
+                                        emplazamiento notarial, administrativo, policial.
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>3.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Abstenerse de incurrir en gasto alguno o comprometerse a hacer algún pago
+                                        comprometiendo a
+                                        <span>LA COMPAÑÍA</span>
+                                        .
+                                    </div>
+                                </div>
+
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>4.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Colaborar activamente en la defensa, asistir a todas las diligencias
+                                        administrativas y/o
+                                        policiales.
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>5.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Mantener permanente y periódicamente informada a la COMPAÑÍA, respecto al
+                                        accidente o
+                                        reclamación de tercero de un accidente.
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                El incumplimiento del
+                                <span>COBERTURADO</span>
+                                de cualquiera de estas obligaciones, dará lugar a la
+                                pérdida de los derechos de indemnización. No obstante, la pérdida de ese derecho estará
+                                limitada al
+                                perjuicio causado a los intereses de la COMPAÑÍA.
+                            </p>
+
+
+                            <div class="box_clausula">
+                                <div class="box_guion">
+                                    <div>
+                                        <span>E.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        <span>Ningún siniestro podrá ser consentido por la COMPAÑÍA, si es que EL
+                                            COBERTURADO no cumple
+                                            con las siguientes obligaciones:
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>1)</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Entregar todos los detalles, recibos, facturas, copias de facturas, documentos
+                                        justificativos,
+                                        actas, copias de documentos, presupuestos, copia de denuncias policiales y/o
+                                        fiscales y/o
+                                        judiciales, así como copia de partes policiales y/o atestados policiales y, en
+                                        general,
+                                        cualquier tipo de documento o informe que la
+                                        <span>COMPAÑÍA</span>
+                                        le solicite con referencia a
+                                        la
+                                        reclamación, sea con respecto de la causa del siniestro o de las circunstancias
+                                        bajo las cuales
+                                        la destrucción o daño o pérdida física o accidente o Daños Materiales se produjo
+                                        o que tengan
+                                        relación con la responsabilidad extracontractual del
+                                        <span></span>
+                                        COBERTURADO, o con la responsabilidad de la
+                                        COMPAÑÍA.
+                                    </div>
+                                </div>
+
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>2)</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        En caso de Pérdida Total del vehículo coberturado, EL COBERTURADO deberá
+                                        entregar a la COMPAÑÍA
+                                        toda la documentación correspondiente del vehículo coberturado, a fin de que
+                                        ésta pueda disponer
+                                        de la propiedad de los restos o salvamento.
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                <span>ARTÍCULO Nº 8 - FACULTADES DE LA COMPAÑÍA – COBERTURA DE RESPONSABILIDAD CIVIL
+                                </span>
+                            </p>
+
+                            <p>
+                                <span class="box_italica">Este contrato no cobertura gastos de responsabilidad civil, no
+                                    obstante LA
+                                    COMPAÑÍA Esta en la facultad de apoyar al COBERTURADO en los siguientes casos:
+                                </span>
+                            </p>
+
+
+                            <div class="box_clausula">
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>1)</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        En cualquier procedimiento judicial que se derive de una reclamación amparada
+                                        por el Contrato,
+                                        la COMPAÑÍA podrá, asesorar al COBERTURADO frente a la reclamación de un
+                                        Tercero.
+                                    </div>
+                                </div>
+
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>2)</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        La COMPAÑÍA podrá hacer efectivo el pago de un siniestro, siempre y cuando este
+                                        supere los S/.
+                                        300,00 (Trescientos soles) en gastos de reparación.
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <p>En este caso el pago se realizara por el 100% de lo señalado en el presupuesto emitido
+                                por los talleres
+                                autorizados por LA COMPAÑÍA.
+                            </p>
+
+
+                            <p>
+                                <span>ARTÍCULO Nº 9 - TERRITORIALIDAD Y LEY APLICABLE – RESPONSABILIDAD CIVIL</span>
+                            </p>
+
+
+                            <p>
+                                En concordancia con lo estipulado por las Condiciones Generales de Contratación, este
+                                Contrato ampara,
+                                única y exclusivamente, las reclamaciones señaladas en el ARTÍCULO 2 –
+                                <span>RIESGOS CUBIERTOS</span>
+                                ,
+                                inciso A del
+                                artículo 1° de las presentes Condiciones Generales, derivadas de accidentes ocurridos
+                                durante la
+                                vigencia del Contrato dentro del territorio peruano.
+                            </p>
+
+
+                            <p>
+                                La cobertura otorgada por dicho inciso A del artículo 1° se basa en los artículos
+                                pertinentes del Código
+                                Civil Peruano sobre Responsabilidad Civil Extracontractual.
+                            </p>
+
+                            <p>
+                                <span>ARTÍCULO Nº 10 – DEFINICIONES</span>
+                            </p>
+
+                            <p>
+                                Complementando las definiciones de las Condiciones Generales de Contratación, queda
+                                convenido entre las
+                                partes que el significado de las palabras más adelante indicadas es el siguiente:
+                            </p>
+
+
+                            <p>
+                                •
+                                <span>ACCIDENTE DE TRÁNSITO</span>
+                                .- Choque, atropello, vuelco, o despeño que ocasione daños al
+                                vehículo coberturado y/o a personas o cosas que se encuentren fuera del vehículo
+                                coberturado y/o a los
+                                ocupantes del vehículo coberturado
+                            </p>
+
+                            <p>
+                                •
+                                <span>ACTO DE TERRORISMO</span>
+                                .- Es el acto de cualquier persona o grupo (s) de personas, actuando
+                                sola por su cuenta o a favor de, o en conexión con, o en nombre de, cualquier
+                                organización u
+                                organizaciones o gobiernos, cometido por razones políticas, religiosas, ideológicas o
+                                por cualquier otra
+                                razón, incluyendo, pero no limitado a, actividades dirigidas a destituir por la fuerza
+                                al gobierno "de
+                                jure" o "de facto", o para intentar influenciarlo, y/o con la finalidad de
+                                desestabilizar el sistema
+                                político establecido, o causar temor e inseguridad en el medio social en que se produce.
+                            </p>
+
+                            <p>
+                                •
+                                <span>DAÑO MATERIAL</span>
+                                .- El daño, deterioro, pérdida o destrucción de un bien, así como el daño
+                                ocasionado a los animales.
+                            </p>
+
+                            <p>
+                                •
+                                <span>DAÑO PERSONAL</span>
+                                .- Lesión corporal – excluyendo enfermedades – o muerte causadas a personas
+                                naturales.
+                            </p>
+
+                            <p>
+                                •
+                                <span>TERCEROS</span>
+                                .- Cualquier persona, natural o jurídica, distinta de:
+                            </p>
+
+
+                            <div class="box_clausula">
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>A.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        <span>El CONTRATANTE o EL COBERTURADO</span>
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>B.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Personas miembros de la familia del COBERTURADO y/o del CONTRATANTE
+                                        considerándose como tales a:
+                                        los cónyuges, los ascendientes, los descendientes, los hermanos y, en general,
+                                        los familiares
+                                        hasta el cuarto grado de consanguinidad y el segundo de afinidad, incluyendo el
+                                        padre adoptante
+                                        o hijo adoptivo, así como la (o el) conviviente.
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>C.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        Personas, naturales o jurídicas, que sean socios o formen parte del accionariado
+                                        del COBERTURADO
+                                        y/o CONTRATANTE.
+                                    </div>
+                                </div>
+
+                                <div class="box_guion">
+                                    <div>
+                                        <span>D.</span>
+                                    </div>
+                                    <div class="box_guion_space">
+                                        D. Personas que sean parte de la Administración, así como directivos, empleados
+                                        y/o
+                                        trabajadores, sea que estén en planilla o contratados o que, de hecho o de
+                                        derecho, tengan
+                                        alguna relación de dependencia con EL COBERTURADO y/o CONTRATANTE.
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <p>
+                                •
+                                <span>VALOR COMERCIAL</span>
+                                .- Es el valor de mercado de un vehículo de la misma marca, año, modelo y
+                                estado de conservación que el vehículo coberturado en mercado peruano en el momento que
+                                se especifique
+                                en las presentes Condiciones Generales u otra parte del contrato.
+                            </p>
+
+
+                            <p>
+                                Si en el mercado peruano no hubiera un vehículo de similares características a las del
+                                vehículo
+                                coberturado, el Valor Comercial corresponderá a su valor nuevo menos la depreciación que
+                                le corresponda
+                                por su antigüedad, uso, estado de conservación y obsolescencia en el momento que se
+                                especifique en las
+                                presentes Condiciones Generales u otra parte del contrato. La documentación contractual
+                                firmadas con
+                                anterioridad con
+                                <span>LA COMPAÑÍA</span>
+                                así mismo con la Cooperativa, y la nota técnica descrita en el Anexo A1,
+                                integran estas condiciones generales, que son firmados por las partes en señal de
+                                conformidad y de haber
+                                sido informados en su momento minuciosamente sobre las características de este
+                                <span>FONDO DE CONTINGENCIA DE
+                                    MOTOS ANDRADE OLIVO, ANGELO JAVIER 004168194
+                                    CALLE 8 MZ T LOTE 35 URBANISACION LOS INCAS
+                                </span>
+                            </p>
+
+
+                            <div style="height:200px;"></div>
+
+
+                            <div class="box_margin">
+                                <div>
+                                    <span>R.U.C. 20607747521</span>
+                                </div>
+                                <div>
+                                    <span>LA COMPAÑIA</span>
+                                </div>
+                            </div>
+
+
+                            <div>
+                                <div class="title_report">Anexo A1 DATOS</div>
+                                <div class="box_margin">
+                                    DEL COBERTURADO
+                                </div>
+                            </div>
+
+                            <div class="box_row general_body box_bordertop">
+                                <div class="w60p">
+                                    Fecha de Efecto:
+                                    <span>22/06/2022</span>
+                                </div>
+
+
+                                <div class="w40p">
+                                    Fecha de Expiración:
+                                    <span>22/06/2023</span>
+                                </div>
+                            </div>
+
+                            <div class="box_space_heigth"></div>
+
+                            <t t-foreach="vehicle.driver_id" t-as="driver">
+
+                                <div class="box_row general_body">
+                                    <div class="w60p">
+                                        Nombre del Socio:
+                                        <span class="title_ligth" t-field="driver.name"/>
+                                    </div>
+                                    <div class="w40p">
+                                        <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>
+                                        :
+                                        <span class="title_ligth" t-field="driver.vat"/>
+                                    </div>
+                                </div>
+
+                                <div class="box_space_heigth"></div>
+
+
+                                <div class="box_row general_body">
+                                    <div class="w60p">
+                                        Dirección :
+                                        <span class="title_ligth" t-field="driver.street"/>
+                                    </div>
+                                </div>
+
+                                <div class="box_space_heigth"></div>
+
+                                <div class="box_row general_body box_borderbottom">
+                                    <div class="w60p">
+                                        Teléfonos:
+                                        <span class="title_ligth" t-field="driver.phone"/>
+                                    </div>
+                                    <div class="w40p"></div>
+                                </div>
+
+                            </t>
+
+
+                            <t t-foreach="vehicle.model_id" t-as="model">
+
+                                <div class="box_margin">
+                                    Características del Vehículo:
+                                </div>
+
+                                <div class="box_row general_body box_bordertop">
+                                    <div class="w60p">
+                                        Placa de Rodaje :
+                                        <span>EN CURSO</span>
+                                    </div>
+                                    <div class="w40p">
+                                        Marca del Vehículo:
+                                        <span class="title_ligth" t-field="model.brand_id"/>
+                                    </div>
+                                </div>
+
+                                <div class="box_space_heigth"></div>
+
+                                <div class="box_row general_body">
+                                    <div class="w60p">
+                                        Modelo:
+                                        <span class="title_ligth" t-field="model.name"/>
+                                    </div>
+                                    <div class="w40p">
+                                        Color:
+                                        <span class="title_ligth" t-field="vehicle.color"/>
+                                    </div>
+                                </div>
+
+                                <div class="box_space_heigth"></div>
+
+                                <div class="box_row general_body">
+                                    <div class="w60p">
+                                        N° de Motor:
+                                    </div>
+                                    <div class="w40p">
+                                        N° de Chasis:
+                                        <span class="title_ligth" t-field="vehicle.vin_sn"/>
+                                    </div>
+                                </div>
+
+                                <div class="box_space_heigth"></div>
+
+                                <div class="box_row general_body">
+                                    <div class="w60p">
+                                        Año de Fabricación:
+                                        <span>
+                                            MODELO
+                                            <span class="title_ligth" t-field="vehicle.model_year"/>
+                                        </span>
+                                    </div>
+                                    <div class="w40p">
+                                        N° de Ocupantes: 2
+                                    </div>
+                                </div>
+
+                                <div class="box_space_heigth"></div>
+
+                                <div class="box_row general_body box_borderbottom">
+                                    <div class="w60p">
+                                        Clase:
+                                        <span>VEHICULOR MENOR</span>
+                                    </div>
+                                    <div class="w40p">
+                                        Tipo de Uso:
+                                        <span>Servicio USO PERSONAL</span>
+                                    </div>
+                                </div>
+                                <div class="box_margin">
+                                    Tiempo de Vigencia:
+                                </div>
+
+                                <div class="box_row general_body box_borderbi">
+                                    <div class="w60p">
+                                        <span>1 año (1) o 52 Semanas</span>
+                                    </div>
+                                    <div class="w40p"></div>
+                                </div>
+
+                            </t>
+
+
+                            <div class="box_firma">
+                                <div class="box_data"></div>
+                                <div class="box_data">
+                                    <div></div>
+                                    <div class="box_line"></div>
+
+                                    <div class="box_firma box_place_date">
+                                        <span class="title_ligth" t-field="driver.name"/>
+                                    </div>
+                                    <div class="box_firma box_place_date">
+                                        <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>
+                                        :
+                                        <span class="title_ligth" t-field="driver.vat"/>
+                                    </div>
+
+                                    <div class="box_firma box_place_date">
+                                        <span>EL COBERTURADO</span>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="box_margin">
+                                <div>
+                                    <p>Los Olivos 22 de JUNIO del 2022</p>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+    </data>
+</odoo>

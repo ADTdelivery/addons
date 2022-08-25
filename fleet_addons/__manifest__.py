@@ -27,6 +27,11 @@
         # 'security/ir.model.access.csv',
         'views/views.xml',
         'views/templates.xml',
+        'reports/fleet_custom_qorilazo.xml',
+        'reports/fleet_custom_report.xml',
+        'reports/fleet_custom_report2.xml',
+        'reports/fleet_custom_report3.xml'
+
     ],
     # only loaded in demonstration mode
     'demo': [

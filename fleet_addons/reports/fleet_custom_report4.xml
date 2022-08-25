@@ -1,0 +1,337 @@
+<?xml version="1.0"?>
+<odoo>
+
+
+    <record id="paperformat_cronograma_a4" model="report.paperformat">
+        <field name="name">Cronograma A4</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">40</field>
+
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="fleet_report.fleet_custom_report5" model="ir.actions.report">
+        <field name="name">Cronograma de pagos</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fleet_report.vehicle_contrato5_report_view</field>
+        <field name="report_file">fleet_report.vehicle_contrato5_report</field>
+        <field name="binding_model_id" ref="model_fleet_vehicle"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
+    </record>
+
+    <template id="vehicle_contrato5_report_view">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="vehicle">
+                    <t t-foreach="vehicle.driver_id" t-as="driver">
+                        <style>
+
+                            .general_body_xs{
+                            margin: 10px;
+                            font-size: 14px;
+                            }
+
+                            .title_report{
+                            text-align: center;
+                            }
+
+                            table {
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 100%;
+                            font-size: 10px;
+                            }
+
+                            td, th {
+                            border: 1px solid #dddddd;
+                            text-align: left;
+                            padding: 8px;
+                            width: 50%;
+                            }
+
+                            .subrayado{
+                            text-decoration: underline black;
+                            font-weight: bold;
+                            font-size: 14px;
+                            }
+
+                            span{
+                            font-weight: bold;
+                            }
+
+                            .box_clausula{
+                            margin-left: 20px;
+                            }
+
+                            .box_subclausula{
+                            display:flex;
+                            }
+                            .indice_negrita{
+                            font-weight: bold;
+                            margin:0%;
+                            }
+
+                            .table_cuota_inicial{
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 50%;
+                            }
+
+                            .title_ligth{
+                            font-weight: normal;
+                            }
+
+                            .box_firma{
+                            display: -webkit-box;
+                            -webkit-box-pack: center;
+                            justify-content: center;
+                            }
+
+                            .box_line{
+                            width: 100%;
+                            height: 1px;
+                            background-color: black;
+                            }
+
+                            .box_data{
+                            margin-top: 100px;
+                            margin-left: 5px;
+                            height: 60px;
+                            width: 50%;
+                            }
+
+                            .box_place_date{
+                            display: -webkit-box;
+                            -webkit-box-pack: end;
+                            justify-content: end;
+                            }
+
+                            .box_guion{
+                            display: -webkit-box;
+                            }
+
+                            .box_guion_space {
+                            margin-left: 20px;
+                            }
+
+                            .box_italica{
+                            font-style: italic;
+                            }
+                            .box_space{
+                            height: 800px;
+                            }
+
+                            /* table */
+
+                            .general_body {
+                            height: 35px;
+                            width: 100%;
+                            background-color: #C0C0C0;
+                            display: -webkit-box;
+                            -webkit-box-pack: start;
+                            justify-content: end;
+                            }
+
+                            .w60p {
+                            width: 60%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .w40p {
+                            width: 40%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .box_margin {
+                            margin-left: 10px;
+                            }
+
+                            .box_bordertop {
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent transparent transparent;
+                            }
+
+                            .box_borderbottom {
+                            border-bottom: 1.5px;
+                            border-style: solid;
+                            border-color: transparent transparent black transparent;
+                            }
+
+                            .box_borderbi {
+                            border-bottom: 1.5px;
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent black transparent;
+                            }
+                            .box_space_heigth{
+                            height: 15px;
+                            }
+                            .box_justify_space{
+                            display: -webkit-box;
+                            -webkit-box-pack: justify;
+                            justify-content: space-between;
+                            }
+
+                            .w50p{
+                            width: 50%;
+                            }
+
+                            .box_cuota{
+
+                            margin: 10px;
+                            background: darkgrey;
+                            border: 2px solid black;
+                            }
+
+                            .box_cuota p {
+                            margin-left: 10px;
+                            margin-right: 10px;
+                            }
+
+                            .box_cuota_data{
+                            margin: 10px;
+                            font-weight: bold;
+                            font-size: 20px;
+                            }
+
+                        </style>
+
+                        <div class="header">
+                            <img src="/fleet_addons/static/src/img/header_adt.jpg" alt="Not found" height="100"
+                                 width="1000"/>
+                        </div>
+
+
+                        <div class="general_body_xs">
+
+                            <div class="title_report">
+                                <span>
+                                    <h1>CRONOGRAMA DE PAGOS</h1>
+                                </span>
+
+                            </div>
+
+                            <div style="height:100px"></div>
+
+                            <div>
+                                <div class="box_justify_space">
+                                    <div>
+                                        Nombre y Apellido :
+                                        <span class="title_ligth" t-field="driver.name"/>
+                                    </div>
+                                    <div>
+                                        Número de celular :
+                                        <span class="title_ligth" t-field="driver.mobile"/>
+                                    </div>
+                                </div>
+
+                                <div class="box_justify_space">
+                                    <div>1949398016052 - BCP / CORPORACIÓN ADT</div>
+                                    <div>ENVIAR BAUCHER: 914366351 - ATENCION</div>
+                                </div>
+                            </div>
+
+
+                            <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                <t t-if="cuenta.partner_id == vehicle.driver_id">
+
+                                    <div class="title_report">
+                                        <span>
+                                            FECHA DE ENTREGA
+                                            <span class="title_ligth" t-field="cuenta.fecha_entrega"/>
+                                        </span>
+
+
+                                    </div>
+
+                                    <div style="height:30px"></div>
+
+                                    <div class="title_report box_firma">
+                                        <div class="box_justify_space">
+                                            <div class="box_cuota">
+                                                <p>
+                                                    <span class="title_ligth" t-field="cuenta.periodicidad"/>
+                                                </p>
+                                            </div>
+                                            <div class="box_cuota_data">
+                                                <p>
+                                                    <span class="title_ligth" t-field="cuenta.monto_cuota"/>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="box_justify_space">
+                                            <div class="box_cuota">
+                                                <p>N° cuotas</p>
+                                            </div>
+                                            <div class="box_cuota_data">
+                                                <p>
+                                                    <span class="title_ligth" t-field="cuenta.qty_cuotas"/>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </t>
+                            </t>
+                            <div style="height:30px"></div>
+
+                            <table>
+
+                                <tr>
+                                    <th style="width:10%;text-align: center;">N°</th>
+                                    <th style="width:20%;text-align: center;">Fecha de pago</th>
+                                    <th style="width:30%;text-align: center;">Día de pago</th>
+                                    <th style="width:40%;text-align: center;">Cuota</th>
+                                </tr>
+
+
+                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                    <t t-if="cuenta.partner_id == vehicle.driver_id">
+
+                                        <t t-foreach="cuenta.cuota_ids" t-as="cuota">
+
+                                            <tr>
+                                                <td style="width:10%;text-align: center;">
+                                                    <span class="title_ligth" t-field="cuota.name"/>
+                                                </td>
+                                                <td style="width:20%;text-align: center;">
+                                                    <span class="title_ligth" t-field="cuota.fecha_cronograma"/>
+                                                </td>
+                                                <td style="width:30%;text-align: center;"></td>
+                                                <td style="width:40%;text-align: center;">
+                                                    <span class="title_ligth" t-field="cuota.monto"/>
+                                                </td>
+                                            </tr>
+
+                                        </t>
+
+                                    </t>
+                                </t>
+
+
+                            </table>
+                        </div>
+
+
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+
+</odoo>

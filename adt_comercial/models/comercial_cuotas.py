@@ -1,8 +1,10 @@
 from datetime import timedelta, datetime, date
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError, RedirectWarning, UserError
+import xmlrpc.client
 
 import logging
+
 _logger = logging.getLogger(__name__)
 
 
@@ -35,7 +37,7 @@ class ADTComercialCuotas(models.Model):
         for record in self:
             html = "<ul>"
             for obs in record.observacion_ids:
-                html += "<li>"+obs.comentario+"</li>"
+                html += "<li>" + obs.comentario + "</li>"
             html += "</ul>"
             record.resumen_observaciones = html
 
@@ -48,7 +50,7 @@ class ADTComercialCuotas(models.Model):
     def _compute_saldo(self):
         for record in self:
             record.saldo = record.monto - \
-                sum(record.payment_ids.mapped('amount'))
+                           sum(record.payment_ids.mapped('amount'))
 
     @api.depends('payment_ids', 'cuenta_id.state')
     def _compute_state(self):
@@ -56,7 +58,8 @@ class ADTComercialCuotas(models.Model):
             if len(record.payment_ids) > 0:
                 if record.monto == sum(record.payment_ids.mapped('amount')):
                     record.state = 'pagado'
-                elif (sum(record.payment_ids.mapped('amount')) > 0) and (sum(record.payment_ids.mapped('amount')) < record.monto):
+                elif (sum(record.payment_ids.mapped('amount')) > 0) and (
+                        sum(record.payment_ids.mapped('amount')) < record.monto):
                     record.state = 'a_cuenta'
             else:
                 if record.fecha_cronograma < date.today():
@@ -140,7 +143,10 @@ class ADTComercialRegisterPayment(models.TransientModel):
             raise UserError(
                 'Ya existe un pago con el mismo número de operación.')
 
-        payment = self.env['account.payment'].create({
+        logging.info("Data Account Payment")
+        logging.info(str(self))
+
+        data = {
             'payment_type': self.payment_type,
             'journal_id': self.journal_id.id,
             'cuota_id': self.cuota_id.id,
@@ -148,9 +154,33 @@ class ADTComercialRegisterPayment(models.TransientModel):
             'amount': self.amount,
             'date': self.payment_date,
             'partner_id': self.cuota_id.cuenta_id.partner_id.id
-        })
+        }
 
-        payment.action_post()
+        logging.info(str(data))
+
+        try:
+            logging.info(" data 1 " + str(self._name))
+
+            # Database connection
+            url = 'http://190.232.26.249:8070'
+            db = 'odoo'
+            username = 'rapitash@gmail.com'
+            password = 'Krishnna17'
+
+            common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
+            uid = common.authenticate(db, username, password, {})
+            models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
+
+            logging.info("print array data")
+
+            payment = self.env['account.payment'].create(data)
+            payment.action_post()
+
+        except Exception as e:
+            logging.info(str(e))
+            logging.info(
+                "failed excep"
+            )
 
 
 class ADTRegistrarObservacion(models.TransientModel):

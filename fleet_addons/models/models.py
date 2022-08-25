@@ -42,6 +42,6 @@ class FleetAddons(models.Model):
                               [self.id, {'x_quotation_driver_id': driver_id}])
 
         except Exception as e:
-            logging.info(str(e))
-            logging.info('no data')
+            logging.info('exception ' + str(e))
+            logging.info('no data fleet')
             res = super(FleetAddons, self).write(vals)
