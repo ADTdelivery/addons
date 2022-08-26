@@ -1,0 +1,19 @@
+<odoo>
+    <record id="fleet_addons_form" model="ir.ui.view">
+        <field name="name">fleet.addons.form</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="GPS">
+                    <group>
+                        <field name="x_imei" style="width:30%"/>
+                        <field name="x_chip" style="width:30%"/>
+                        <field name="x_puerto_gps1" style="width:30%"/>
+                        <field name="x_puerto_gps2" style="width:30%"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
