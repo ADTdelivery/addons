@@ -331,7 +331,9 @@
 
                             <div class="box_margin">
                                 <div>
-                                    <p>Los Olivos 22 de JUNIO del 2022</p>
+                                    <p>Lima ,
+                                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/>
+                                    </p>
                                 </div>
                             </div>
 

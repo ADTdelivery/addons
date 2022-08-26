@@ -379,7 +379,7 @@
 
                                     <tr>
                                         <td>GARANTIA :</td>
-                                        <td></td>
+                                        <td> 12 MESES Y/O 12,000 KM </td>
                                     </tr>
 
                                     <tr>
@@ -489,7 +489,10 @@
                                     <td>
                                         <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                             <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                                <span class="title_ligth" t-field="cuenta.qty_cuotas"/>
+                                                <!-- <span class="title_ligth" t-field="cuenta.qty_cuotas"/> -->
+                                                <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                    <t t-esc="counter"/>
+
                                             </t>
                                         </t>
                                         CUOTAS SEMANALES
@@ -1316,9 +1319,11 @@
                         <br/>
                         <br/>
 
-                        <div class="box_place_date">
+                        <div class="box_margin">
                             <div>
-                                <p>Los Olivos 22 de JUNIO del 2022</p>
+                                <p>Lima ,
+                                    <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/>
+                                </p>
                             </div>
                         </div>
 

@@ -189,7 +189,7 @@
 
                         <div class="general_body_xs">
                             <div class="header">
-                                <img src="/fleet_addons/static/src/img/fleet_custom_qorilazo.jpg" alt="Not found" height="150"
+                                <img src="/fleet_addons/static/src/img/header_qorilazo.jpg" alt="Not found" height="150"
                                      width="1000"/>
                             </div>
 
@@ -208,42 +208,50 @@
                                 <p class="subrayado">INTRODUCCIÓN</p>
                                 <br/>
                             </div>
-                            <p>
-                                De acuerdo al crédito de moto otorgado a los socios de la
-                                <span class="indice_negrita">COOPAC
-                                    QORILAZO
-                                </span>
-                                ., y de conformidad con las
-                                cotizaciones adjuntas al expediente presentado por el Socio, PERDIGON SANCHEZ JOSE
-                                RAFAEL, Identificado
-                                con CPP: 000863516 domiciliado
-                                <span class="indice_negrita">CA TA. ROSA 106M_-L SUBLOTE 1B-4B 120
-                                    URB.CAMPY- S.J.L
-                                </span>
-                                adelante EL
-                                <span class="indice_negrita">COBERTURADO</span>
-                                , en donde se detalla el periodo de la contratación de
-                                este fondo de contingencia, y cuya
-                                veracidad constituye causa determinante para su celebración; y, asimismo, de acuerdo a
-                                lo estipulado
-                                tanto en las Condiciones Generales de Contratación, así como en las presentes
-                                condiciones generales del
-                                Fondo de Contingencia; Empresa
-                                <span class="indice_negrita">Corporación ADT SAC</span>
-                                , en adelante
-                                <span class="indice_negrita">LA COMPAÑÍA</span>
-                                , conviene en amparar a EL
-                                COBERTURADO contra riesgos que correspondan al producto
-                                <span class="indice_negrita">MOTO QORILAZO de la
-                                    COOPAC QORILAZO.
-                                </span>
-                                , y que se
-                                encuentran expresamente contemplados en el presente contrato, en los términos y
-                                condiciones
-                                siguientes:
-                                <span class="indice_negrita">ARTÍCULO Nº 1 - COBERTURAS PRINCIPALES</span>
+                            <t t-foreach="vehicle.driver_id" t-as="driver">
+                                <p>
+                                    De acuerdo al crédito de moto otorgado a los socios de la
+                                    <span class="indice_negrita">COOPAC
+                                        QORILAZO
+                                    </span>
+                                    ., y de conformidad con las
+                                    cotizaciones adjuntas al expediente presentado por el Socio,<span
+                                        class="title_ligth" t-field="driver.name"/>, Identificado
+                                    con<span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>,
+                                    Identificado
+                                    con
+                                    <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>
+                                    :
+                                    <span class="title_ligth" t-field="driver.vat"/>
+                                    domiciliado
+                                    <span class="indice_negrita" t-field="driver.street"/>
 
-                            </p>
+                                    adelante EL
+                                    <span class="indice_negrita">COBERTURADO</span>
+                                    , en donde se detalla el periodo de la contratación de
+                                    este fondo de contingencia, y cuya
+                                    veracidad constituye causa determinante para su celebración; y, asimismo, de acuerdo
+                                    a
+                                    lo estipulado
+                                    tanto en las Condiciones Generales de Contratación, así como en las presentes
+                                    condiciones generales del
+                                    Fondo de Contingencia; Empresa
+                                    <span class="indice_negrita">Corporación ADT SAC</span>
+                                    , en adelante
+                                    <span class="indice_negrita">LA COMPAÑÍA</span>
+                                    , conviene en amparar a EL
+                                    COBERTURADO contra riesgos que correspondan al producto
+                                    <span class="indice_negrita">MOTO QORILAZO de la
+                                        COOPAC QORILAZO.
+                                    </span>
+                                    , y que se
+                                    encuentran expresamente contemplados en el presente contrato, en los términos y
+                                    condiciones
+                                    siguientes:
+                                    <span class="indice_negrita">ARTÍCULO Nº 1 - COBERTURAS PRINCIPALES</span>
+
+                                </p>
+                            </t>
 
                             <p>
                                 Siempre que la contratación individual de cada Cobertura, conste expresamente en las
@@ -1551,7 +1559,7 @@
 
                                 <div class="w40p">
                                     Fecha de Expiración:
-                                    <span>22/06/2023</span>
+                                    <span>22/07/2023</span>
                                 </div>
                             </div>
 
@@ -1603,7 +1611,8 @@
                                 <div class="box_row general_body box_bordertop">
                                     <div class="w60p">
                                         Placa de Rodaje :
-                                        <span>EN CURSO</span>
+                                          <span>EN CURSO
+                                            </span>
                                     </div>
                                     <div class="w40p">
                                         Marca del Vehículo:
@@ -1629,6 +1638,7 @@
                                 <div class="box_row general_body">
                                     <div class="w60p">
                                         N° de Motor:
+                                        <span class="title_ligth" t-field="vehicle.x_motor_sn"/>
                                     </div>
                                     <div class="w40p">
                                         N° de Chasis:
@@ -1699,9 +1709,14 @@
                             </div>
 
 
-                            <div class="box_margin">
+
+
+                            <div class="box_place_date">
                                 <div>
-                                    <p>Los Olivos 22 de JUNIO del 2022</p>
+
+                                    <p>Lima ,
+                                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/>
+                                    </p>
                                 </div>
                             </div>
 

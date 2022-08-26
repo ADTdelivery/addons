@@ -9,22 +9,23 @@
         <field name="page_height">0</field>
         <field name="page_width">0</field>
         <field name="orientation">Portrait</field>
-        <field name="margin_top">40</field>
+        <!-- <field name="margin_top">40</field>-->
         <field name="margin_bottom">10</field>
         <field name="margin_left">7</field>
         <field name="margin_right">7</field>
         <field name="header_line" eval="False"/>
-        <field name="header_spacing">40</field>
-
+        <!-- <field name="header_spacing">40</field>-->
         <field name="dpi">90</field>
+
+
     </record>
 
-    <record id="fleet_report.fleet_custom_report5" model="ir.actions.report">
+    <record id="fleet_addons.fleet_custom_report5" model="ir.actions.report">
         <field name="name">Cronograma de pagos</field>
         <field name="model">fleet.vehicle</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">fleet_report.vehicle_contrato5_report_view</field>
-        <field name="report_file">fleet_report.vehicle_contrato5_report</field>
+        <field name="report_name">fleet_addons.vehicle_contrato5_report_view</field>
+        <field name="report_file">fleet_addons.vehicle_contrato5_report</field>
         <field name="binding_model_id" ref="model_fleet_vehicle"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
@@ -208,7 +209,16 @@
                             font-size: 20px;
                             }
 
+                            .box_table{
+                            width : 50%;
+                            height: auto;
+                            margin: 0 auto;
+                            padding: 10px;
+                            position: relative;
+                            }
+
                         </style>
+
 
                         <div class="header">
                             <img src="/fleet_addons/static/src/img/header_adt.jpg" alt="Not found" height="100"
@@ -225,7 +235,7 @@
 
                             </div>
 
-                            <div style="height:100px"></div>
+                            <div style="height:50px"></div>
 
                             <div>
                                 <div class="box_justify_space">
@@ -279,7 +289,8 @@
                                             </div>
                                             <div class="box_cuota_data">
                                                 <p>
-                                                    <span class="title_ligth" t-field="cuenta.qty_cuotas"/>
+                                                    <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                    <t t-esc="counter"/>
                                                 </p>
                                             </div>
                                         </div>
@@ -289,41 +300,51 @@
                             </t>
                             <div style="height:30px"></div>
 
-                            <table>
 
-                                <tr>
-                                    <th style="width:10%;text-align: center;">N°</th>
-                                    <th style="width:20%;text-align: center;">Fecha de pago</th>
-                                    <th style="width:30%;text-align: center;">Día de pago</th>
-                                    <th style="width:40%;text-align: center;">Cuota</th>
-                                </tr>
+                            <div class="box_table">
+                                <table style="width:100%">
+
+                                    <tr>
+                                        <th style="width:10%;text-align: center;">N°</th>
+                                        <th style="width:20%;text-align: center;">Fecha de pago</th>
+                                        <th style="width:20%;text-align: center;">Cuota</th>
+                                    </tr>
+
+                                    <t t-set="counter" t-value="0"/>
+                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
 
 
-                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
-                                    <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                        <t t-if="cuenta.partner_id == vehicle.driver_id">
 
-                                        <t t-foreach="cuenta.cuota_ids" t-as="cuota">
+                                            <t t-foreach="cuenta.cuota_ids" t-as="cuota">
 
-                                            <tr>
-                                                <td style="width:10%;text-align: center;">
-                                                    <span class="title_ligth" t-field="cuota.name"/>
-                                                </td>
-                                                <td style="width:20%;text-align: center;">
-                                                    <span class="title_ligth" t-field="cuota.fecha_cronograma"/>
-                                                </td>
-                                                <td style="width:30%;text-align: center;"></td>
-                                                <td style="width:40%;text-align: center;">
-                                                    <span class="title_ligth" t-field="cuota.monto"/>
-                                                </td>
-                                            </tr>
+                                                <tr>
+                                                    <td style="width:10%;text-align: center;">
+                                                        <t t-set="counter" t-value="counter + 1"/>
+                                                        <t t-esc="counter"/>
+                                                    </td>
+                                                    <td style="width:20%;text-align: center;">
+                                                        <span class="title_ligth" t-field="cuota.fecha_cronograma"/>
+                                                    </td>
+
+
+                                                    <td style="width:40%;text-align: center;">
+                                                        <span class="title_ligth" t-field="cuota.monto"/>
+                                                    </td>
+                                                </tr>
+
+                                            </t>
 
                                         </t>
 
+
                                     </t>
-                                </t>
 
 
-                            </table>
+                                </table>
+                            </div>
+
+
                         </div>
 
 
