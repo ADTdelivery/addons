@@ -8,7 +8,8 @@
                 <page string="GPS">
                     <group>
                         <field name="x_imei" style="width:30%"/>
-                        <field name="x_chip" style="width:30%"/>
+                        <field name="numero_celular" style="width:30%"/>
+                        <field name="puerto" style="width:30%"/>
                         <field name="x_puerto_gps1" style="width:30%"/>
                         <field name="x_puerto_gps2" style="width:30%"/>
                     </group>

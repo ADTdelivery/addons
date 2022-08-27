@@ -21,3 +21,6 @@ class FleetGPS(models.Model):
                                       ('5002', '5002 / stopelec123456'),
                                       ("5013", '5013 / 9400000'),
                                       ], 'Detener GPS')
+
+    numero_celular = fields.Char(string="Celular")
+    puerto = fields.Char(string="Puerto")
