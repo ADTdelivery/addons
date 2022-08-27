@@ -1,0 +1,1012 @@
+<?xml version="1.0" ?>
+<odoo>
+    <data>
+
+
+        <record id="paperformat_cronograma_a4" model="report.paperformat">
+            <field name="name">Cronograma A4</field>
+            <field name="default" eval="True"/>
+            <field name="format">A4</field>
+            <field name="page_height">0</field>
+            <field name="page_width">0</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">40</field>
+            <field name="margin_bottom">10</field>
+            <field name="margin_left">7</field>
+            <field name="margin_right">7</field>
+            <field name="header_line" eval="False"/>
+            <field name="header_spacing">40</field>
+            <field name="dpi">90</field>
+        </record>
+
+        <record id="fleet_addons.fleet_custom_mototaxi" model="ir.actions.report">
+            <field name="name">Gestion de vehiculos menores Mototaxi</field>
+            <field name="model">fleet.vehicle</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">fleet_addons.vehicle_contrato6_report_view</field>
+            <field name="report_file">fleet_addons.vehicle_contrato6_report</field>
+            <field name="binding_model_id" ref="model_fleet_vehicle"/>
+            <field name="binding_type">report</field>
+	    <field name="paperformat_id" ref="paperformat_cronograma_a4" />
+        </record>
+
+        <template id="vehicle_contrato6_report_view">
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+            <t t-foreach="docs" t-as="vehicle">
+                <style>
+
+                    .general_body_xs{
+
+                      font-size: 14px;
+                    }
+
+                    .title_report{
+                    text-align: center;
+                    }
+
+                    table {
+                    font-family: arial, sans-serif;
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 10px;
+                    }
+
+                    td, th {
+                    border: 1px solid #dddddd;
+                    text-align: left;
+                    padding: 8px;
+                    width: 50%;
+                    }
+
+                    .subrayado{
+                    text-decoration: underline black;
+                    font-weight: bold;
+                    font-size: 14px;
+                    }
+
+                    span{
+                    font-weight: bold;
+                    }
+
+                    .box_clausula{
+                    margin-left: 20px;
+                    }
+
+                    .box_subclausula{
+                    display:flex;
+                    }
+                    .indice_negrita{
+                    font-weight: bold;
+                    margin:0%;
+                    }
+
+                    .table_cuota_inicial{
+                    font-family: arial, sans-serif;
+                    border-collapse: collapse;
+                    width: 50%;
+                    margin: 0 auto;
+                    }
+
+                    .title_ligth{
+                    font-weight: normal;
+                    }
+
+                    .box_firma{
+                      display: -webkit-box;
+                      -webkit-box-pack: center;
+                      justify-content: center;
+                    }
+
+                    .box_line{
+                      width: 100%;
+                      height: 1px;
+                      background-color: black;
+                    }
+
+                    .box_data{
+                      margin-top: 100px;
+                      margin-left: 5px;
+                      height: 60px;
+                      width: 50%;
+                    }
+
+                    .box_place_date{
+                      display: -webkit-box;
+                      -webkit-box-pack: end;
+                      justify-content: end;
+                    }
+
+                    .box_guion{
+                      display: -webkit-box;
+                    }
+
+                    .box_guion_space {
+                      margin-left: 20px;
+                    }
+
+                    .box_italica{
+                      font-style: italic;
+                    }
+                    .box_space{
+                    height: 800px;
+                    }
+
+                    /* table */
+
+                    .general_body {
+                      height: 35px;
+                      width: 100%;
+                      background-color: #C0C0C0;
+                      display: -webkit-box;
+                      -webkit-box-pack: start;
+                      justify-content: end;
+                    }
+
+                    .w60p {
+                      width: 60%;
+                      margin-left: 10px;
+                      margin-top: 5px;
+                    }
+
+                    .w40p {
+                      width: 40%;
+                      margin-left: 10px;
+                      margin-top: 5px;
+                    }
+
+                    .box_margin {
+                      margin-left: 10px;
+                    }
+
+                    .box_bordertop {
+                      border-top: 1.5px;
+                      border-style: solid;
+                      border-color: black transparent transparent transparent;
+                    }
+
+                    .box_borderbottom {
+                      border-bottom: 1.5px;
+                      border-style: solid;
+                      border-color: transparent transparent black transparent;
+                    }
+
+                    .box_borderbi {
+                      border-bottom: 1.5px;
+                      border-top: 1.5px;
+                      border-style: solid;
+                      border-color: black transparent black transparent;
+                    }
+                    .box_space_heigth{
+                      height: 15px;
+                    }
+                    .box_justify_space{
+                      display: -webkit-box;
+                      -webkit-box-pack: justify;
+                      justify-content: space-between;
+                    }
+                    .justificar{
+                      text-align: justify;
+                    }
+
+                  </style>
+
+
+
+
+                    <div class="header">
+                        <img src="/fleet_vehicle_addons/static/src/img/header_adt.jpg" alt="Not found" height="100" width="1000"  />
+                    </div>
+
+                    <div class="footer">
+                        <img src="/fleet_vehicle_addons/static/src/img/footer_adt.jpg" alt="Not found" height="50" width="1000"  />
+                    </div>
+
+
+                        <u class="subrayado">CONTRATO DE GESTION DE VEHICULOS MENORES MOTOTAXIS</u>
+
+
+                    <div>
+                        <br />
+                        <br />
+                        <p class="justificar">
+                            Conste por el presente documento, el Contrato de Gestión, que celebran de una parte la
+                            <span>EMPRESA CORPORACION ADT SAC</span>, con domicilio fiscal, sector buenos milagros – Paradero 10 y medio de la
+                            A , Distrito de San juan de Miraflores, Provincia y Departamento de Lima, con RUC N°
+                            <span>20607747521</span>y Partida Electrónica N° 11665541 inscrita correspondientemente en Registros Públicos y
+                            debidamente representada por su Gerente General <span> HECTOR PEDRO ALLAZO MARCOS </span>, identificado con DNI
+                            <span>72878490</span>, quien en lo sucesivo se les denominará <span>EL GESTOR</span> y de la otra parte <span>EL COMPRADOR:</span>
+                        </p>
+                    </div>
+                    <table>
+
+                        <t t-foreach="vehicle.driver_id" t-as="driver">
+                            <tbody>
+                                <tr>
+                                    <td>NOMBRE :</td>
+                                    <td>
+                                        <span class="title_ligth" t-field="vehicle.driver_id" />
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>
+
+                                        <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id" />
+
+                                    </td>
+                                    <td>
+
+                                        <span class="title_ligth" t-field="driver.vat" />
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <td>DOMICILIO</td>
+                                    <td>
+
+                                        <span class="title_ligth" t-field="driver.street" />
+
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <td>DISTRITO</td>
+                                    <td>
+
+                                        <span class="title_ligth" t-field="driver.l10n_pe_district" />
+
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>PROVINCIA Y DEPARTAMENTO</td>
+                                    <td>
+
+                                        <span class="title_ligth" t-field="driver.state_id" />
+                                        /
+                                        <span class="title_ligth" t-field="driver.city_id" />
+                                    </td>
+                                </tr>
+                            </tbody>
+
+                        </t>
+                    </table>
+
+                    <br />
+
+                    <p class="justificar">
+                        En concordancia con lo establecido en el Artículo 1529 y siguientes del Código Civil. Convienen y
+                        realizan el presente Contrato de Compraventa Vehicular bajo los siguientes términos y condiciones
+                    </p>
+
+
+                    <u class="subrayado">1) DE LA GESTION DEL VEHICULO MENOR.</u>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> PRIMERA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="box_subclausula">
+
+                            <div class="contenido">
+                                <p class="justificar">
+                                    <span class="indice_negrita">1.1 CORPORACION ADT SAC</span>
+                                    , es una empresa que nace en el año 2021,
+                                    su principal actividad es la Distribución y Comercialización de Motos Lineales y Mototaxis, otorgando ventas
+                                    al contado, créditos directos o través de una financiera, en las condiciones más favorables de
+                                    acuerdo a su normatividad vigente. Su principal objetivo es el apoyo a la renovación del Parque
+                                    Automotor de Vehículos Menores a través de créditos accesibles, con garantía y trayectoria para
+                                    lograr un desarrollo económico, social y ambiental sostenibles que respalda dicha función.
+                                </p>
+                            </div>
+                        </div>
+                        <br />
+                        <div class="box_subclausula">
+                            <div class="contenido">
+                                <p class="justificar">
+                                <span class="indice_negrita">1.2 EL COMPRADOR,</span> es persona natural, dedicada a la
+                                actividad de Transporte de Vehículos Menores (MotoTaxis), acreditado a través de su documentación
+                                presentada, no teniendo inconvenientes para poder realizar un contrato, ni multas que le hayan
+                                otorgado una muerte civil ni cualquier otro impedimento para realizar un acto jurídico,
+                                establecido en el artículo 140º del Código Civil Peruano.
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                    <br />
+                    <div class="box_clausula">
+
+                        <div>
+                            <u class="subrayado"> SEGUNDA CLAUSULA:</u>
+                        </div>
+                        <br />
+
+                        <div class="box_subclausula">
+                            <p class="justificar">
+                                <span class="indice_negrita">EL GESTOR </span> se compromete transferir a <span>EL COMPRADOR</span> la propiedad
+                            del Vehículo Menor (MotoTaxi) que a continuación se detalla:
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <br/>
+                    <br/>
+                    <table>
+
+                        <t t-foreach="vehicle.model_id" t-as="model">
+                            <tbody>
+                                <tr>
+                                    <td>MARCA :</td>
+                                    <td>
+                                        <span class="title_ligth" t-field="model.brand_id" />
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>AÑO DE FABRICACION :</td>
+                                    <td>
+                                        <span class="title_ligth" t-field="vehicle.model_year" />
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <td>MODELO :</td>
+                                    <td>
+                                        <span class="title_ligth" t-field="model.name" />
+                                    </td>
+                                </tr>
+
+
+                                <tr>
+                                    <td>GARANTIA :</td>
+                                    <td></td>
+                                </tr>
+
+                                <tr>
+                                    <td>CHASIS :</td>
+                                    <td>
+                                        <span class="title_ligth" t-field="vehicle.vin_sn" />
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>COLOR :</td>
+                                    <td>
+                                        <span class="title_ligth" t-field="vehicle.color" />
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </t>
+                    </table>
+
+                    <br />
+                    <br />
+                    <br />
+
+
+                    <div class="box_clausula">
+
+                        <div>
+                            <u class="subrayado"> TERCERA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            El presente contrato entre el
+                            <span class="indice_negrita">EL GESTOR </span>
+                            y el
+                            <span class="indice_negrita">COMPRADOR </span>
+                            convienen a realizar la Compraventa a crédito un
+                            Vehículo Automotor Menor (Mototaxi), al precio de XXXXX, incluyendo la tarjeta de propiedad, placa, AFOCAT
+                            , GPS y monitoreo por un año las 24 horas del día y a su vez un seguro interno siendo
+                            responsable el
+                            <span class="indice_negrita"> GESTOR </span>
+                            , claramente aceptado por el
+                            <span class="indice_negrita">COMPRADOR</span>
+                        </div>
+
+                    </div>
+                    <br />
+
+                    <div class="box_clausula">
+
+                        <div>
+                            <u class="subrayado"> CUARTA CLAUSULA:</u>
+                        </div>
+
+                        <br />
+
+                        <div class="justificar">
+                            Bajo el amparo del artículo 1558 del Código Civil, que especifica que el comprador está obligado a
+                            pagar el precio en el momento, de la manera y lugar pactados en el presente contrato, pactando como
+                            precio la suma de XXXXXX nuevos soles.
+                        </div>
+                        <div class="justificar">
+                            A fin de la claridad y transparencia de este contrato, se le asignará un cronograma de pagos
+                            convenientes al
+                            <span class="subrayado"> COMPRADOR </span>
+                            llegando a un acuerdo con el
+                            <span class="subrayado"> GESTOR </span>
+                            de lo siguiente:
+                        </div>
+                        <br />
+
+                    </div>
+
+
+                    <table class="table_cuota_inicial">
+
+
+                        <tbody>
+                            <tr>
+                                <td>CUOTA INICIAL</td>
+                                <td>
+
+                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                        <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                            <span class="title_ligth" t-field="cuenta.monto_inicial" />
+                                        </t>
+                                    </t>
+
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>SALDO A FINANCIAR</td>
+                                <td>
+                                    6300.00
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td>
+                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                        <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                            <span class="title_ligth" t-field="cuenta.qty_cuotas" />
+                                        </t>
+                                    </t>
+                                    CUOTAS SEMANALES
+                                </td>
+                                <td>
+                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                        <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                            <span class="title_ligth" t-field="cuenta.monto_cuota" />
+                                        </t>
+                                    </t>
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td>De conformidad al cronograma de pago COOPAC</td>
+                                <td>Se adjunta</td>
+                            </tr>
+
+                        </tbody>
+
+
+                    </table>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> QUINTA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">EL GESTOR,</span>
+                            se obliga a realizar la entrega del vehículo
+                            automotor descrito en el presente contrato, en perfecto estado mecánico, dual, interiores,
+                            accesorios y de carrocería, con cero Km. (1) de recorrido, con un dispositivo GPS tal y como lo
+                            faculta el Artículo 1550° del Código Civil. Por otro lado, para su ubicación y seguridad, libre de
+                            multas, impuestos, pactos de reserva de dominio, asimismo la MotoTaxi, estará a nombre de la
+                            Empresa
+                            <span class="indice_negrita">CORPORACION ADT SAC</span>
+                            , hasta la cancelación del presente
+                            contrato.
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">EL GESTOR</span>
+                            se obliga a realizar las gestiones pertinentes ante
+                            los organismos competentes, a efectos de que se emita la respectiva tarjeta de propiedad vehicular y
+                            las placas de rodaje correspondiente conforme a lo establecido en el Artículo 1511° del Código
+                            Civil.
+                        </div>
+                        <br/>
+                        <br/>
+                        <div class="justificar">
+                            <span class="indice_negrita">EL GESTOR,</span>
+                            se compromete a que el bien mueble sea entregado en
+                            el lugar al momento de celebrarse el contrato, que de conformidad con lo dispuesto en el Reglamento
+                            Interno de la
+                            <span class="indice_negrita">CORPORACIÓN ADT SAC</span>
+                            será entregado en su local de
+                            actividades, de conformidad con el artículo 1553° del Código Civil.
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <div class="box_clausula">
+
+                        <div>
+                            <u class="subrayado"> SEXTA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">EL COMPRADOR </span>
+                            se compromete a cumplir fielmente con la modalidad
+                            de pago establecida en la Cláusula Cuarta, de lo contrario el <span>GESTOR</span> puede contemplarse en el
+                            Artículo 1559º del Código Civil y efectuar la resolución del contrato por falta de pago del saldo,
+                            así mismo el
+                            <span class="indice_negrita">VENDEDOR</span>
+                            incurriría en el supuesto de sanción y así
+                            iniciarse el procedimiento de Cobranza Morosa teniendo como base legal a:
+                        </div>
+
+                        <div class="box_clausula">
+
+                            <ul>
+                                <p class="justificar">
+                                <li>DECRETO SUPREMO N° 074/90-TR Texto Único Ordenado de la ley General de Cooperativas.</li>
+                                <li class="justificar">Ley N° 30822, Ley que modifica la Ley 26702, Ley General del Sistema Financiero y del
+                                    Sistema de Seguros y Orgánica de la Superintendencia de Banca y Seguros, y Otras Normas
+                                    Concordantes, Respecto de la Regulación y Supervisión de las Cooperativas de Ahorro y
+                                    Crédito.</li>
+                                <li>Ley 29571 Código de Protección y Defensa del Consumidor.</li>
+                                <li>Ley N° 27287 Ley de Títulos Valores.</li>
+                                <li>Decreto Legislativo N.º 295, Código Civil.</li>
+                                <li class="justificar">Resolución SBS N° 11356-2008 Reglamento para la Evaluación y Clasificación del Deudor y la
+                                    Exigencia de Provisiones y sus modificatorias.</li>
+                                </p>
+                            </ul>
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> SEPTIMA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span> EL COMPRADOR</span> es responsable de formalizarse con los permisos  (Certificado de Operaciones) para prestar
+                            servicios de Moto Taxi, otorgados por las Empresas registradas ante la Municipalidad, de lo contrario
+                            <span>EL COMPRADOR</span>, se expondrá a ser sancionado por la entidad sancionadora y de ocurrir esto,
+                            EL GESTOR podrá pagar, multas o papeletas (Deposito) que deriven de una intervención de fiscalización de la Autoridad
+                            local competente (Municipalidad), a fin de evitar cualquier perjuicio o sanciones del vehículo menor,   EL COMPRADOR
+                            se compromete a devolver a EL GESTOR  el monto de las multas o infracciones ocasionadas con un adicional de 5% por gastos
+                            administrativos en máximo de 48 horas.
+                        </div>
+                        <br />
+                    </div>
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> OCTAVA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            El procedimiento de Cobranza en cartera Morosa, se iniciará si
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                            incumpliera el pago consecutivos o alternantes de dos cuotas semanales,
+                            establecidas en el cuadro de <span class="indice_negrita">PAGO</span>
+                            de la <span class="indice_negrita">CUARTA CLAUSULA DEL VIGENTE CONTRATO</span>
+                            .
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <div class="box_clausula">
+
+                        <div>
+                            <u class="subrayado"> NOVENA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            Si
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                            incumpliera el pago de <span class="indice_negrita">DOS (2) cuotas semanales</span>
+                            el procedimiento se realizará a través del departamento de Cobranza y Recuperaciones de
+                            <span class="indice_negrita">LA EMPRESA</span> mediante el sistema GPS Apagado/Encendido, el cual consta de las siguientes etapas:
+                        </div>
+
+                        <div class="box_clausula">
+                            <p class="justificar">
+                                1. El
+                                <span class="indice_negrita">GPS</span>
+                                de LA EMPRESA del <span class="indice_negrita">GESTOR</span>
+                                enviará un correo electrónico y realizará llamada
+                                telefónica, indicando la orden de iniciar el procedimiento de Cobranza, asimismo se indicará,
+                                vía correo electrónico al sistema GPS, los datos actualizados del <span class="indice_negrita">COMPRADOR</span>
+                                y su estado de morosidad.
+                            </p>
+                            <p class="justificar">
+                                2.
+                                <span class="indice_negrita">LA EMPRESA,</span>
+                                procurara ubicar al cliente <span class="indice_negrita">MOROSO,</span>
+                                vía llamadas telefónicas y/o visitas domiciliarias
+                                durante las siguientes <span class="indice_negrita">24 Horas.</span>
+                            </p>
+                            <p class="justificar">
+                                3. Transcurridas las <span class="indice_negrita">24 Horas,</span>
+                                el sistema de GPS realizara el
+                                apagado del vehículo, si en el transcurso de dicho procedimiento, el
+                                <span class="indice_negrita">COMPRADOR</span>
+                                hace algún acuerdo con la <span class="indice_negrita">FINANCIERA,</span>
+                                dicha entidad avisara al sistema GPS y a <span class="indice_negrita">EL GESTOR</span>
+                                sobre la cancelación del procedimiento de cobranza
+                                vía correo electrónico y llamada telefónica.
+                            </p>
+                            <p class="justificar">
+                                4. En caso de que el <span class="indice_negrita">COMPRADOR</span>
+                                no conteste las llamadas de aviso para proceder el apagado de la Mototaxi se procederá sin perjuicio de lo antes descrito
+                                a la inmediata ubicación y captura del vehículo.
+                            </p>
+                            <p class="justificar">
+                                5.
+                                <span class="indice_negrita">El COMPRADOR</span>
+                                hará un pago de S/. 50.00 <span class="indice_negrita">(Cincuenta soles)</span>
+                                por concepto captura, cada vez que el Vehículo Motorizado  sea intervenida por el equipo de captura de nuestra institución.
+                                siempre y cuando este incurra en morosidad.
+                            </p>
+                            <p class="justificar">
+                                6. El vehículo Motorizado  luego del pago de la cuota o cuotas pendientes con la
+                                <span class="indice_negrita">FINANCIERA o EL GESTOR</span> será entregado a EL COMPRADOR.
+                            </p>
+                            <p class="justificar">
+                                7. El sistema GPS, así como,
+                                <span class="indice_negrita">EL GESTOR</span>
+                                . y la <span class="indice_negrita">FINANCIERA</span>
+                                , se eximen de cualquier responsabilidad civil, por
+                                cualquier hecho ocurrido que afecte <span class="indice_negrita">AL COMPRADOR,</span>
+                                desde la aplicación del inicio del procedimiento de cobranza en mención
+                            </p>
+                            <p class="justificar">
+                                8. En caso de que el
+                                <span class="indice_negrita">COMPRADOR</span> se rehusara a la entrega de la
+                                Mototaxi conforme lo establece el procedimiento de Cobranza, inmediatamente la
+                                <span class="indice_negrita">FINANCIERA,</span> <u>iniciara el procedimiento judicial respectivo e
+                                    interpondrá la denuncia y/o gestiones necesarias para la recuperacion del bien,</u>
+                                así mismo coordinará con <span class="indice_negrita">EL GESTOR,</span>
+                                para que solicite el auxilio de la Policía Nacional del Perú, a efectos de ejecutarse la entrega inmediata.
+                            </p>
+                            <p class="justificar">
+                                9. Resuelto el contrato,<span class="indice_negrita">EL COMPRADOR</span>
+                                entregará la MotoTaxi, objeto de la presente compraventa, en calidad de
+                                <span class="indice_negrita">DACION EN PAGO,</span>
+                                (Firmada por Ambas Partes) a efecto de cumplir con el abono de las armadas
+                                impagas y de indemnizar a la <span class="indice_negrita">FINANCIERA,</span>
+                                y a <span class="indice_negrita">LA EMPRESA</span>, por los daños y perjuicios que se hubiesen
+                                generado.
+                            </p>
+                        </div>
+
+
+                    </div>
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> DECIMA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">EL SEGURO INTERNO CONTRA TODO RIESGO,</span>
+                                será utilizado por
+                                el cliente solo si se encuentran al día en sus pagos semanales, además tendrá la siguiente
+                                operatividad.
+                            <p>
+                                En caso de
+                                <span class="indice_negrita">SINIESTROS,</span> solo cubrirá por única vez un evento que supere los
+                                <span class="indice_negrita">S/ 1,000.00</span>
+                                (Mil y 00/1 00 Nuevos Soles) de reparación,
+                                siempre y cuando el Motorizado no tenga la responsabilidad del mismo, además está supeditado
+                                a la presentación de una denuncia Policial, Dopaje Etílico y el presupuesto del taller donde
+                                fue ubicado la Mototaxi para su reparación, una vez corroborado la información se
+                                procederá al pago en un 90%, según el presupuesto presentado y EL COMPRADOR deberá abonar el 10% del mismo.
+                            </p>
+                             <p>10.2 En caso de ROBO o SINIESTRO TOTAL el socio tendrá dos alternativas:</p>
+                                <div class="box_clausula"></div>
+                                <p>a) Se cancelará la deuda pendiente a la FINANCIERA, con esto el socio no tendrá
+                                    responsabilidad de pago futuro con la misma.</p>
+                                <p>b) Se repondrá una Mototaxi con el mismo valor de la reposición de la misma, se tendrá en
+                                    consideración para el cálculo del valor de reposición los siguientes
+                                    porcentajes de devaluación ( 1 – 12 meses el 30% / 12.01 – 24 meses el 50% / 24.01 – 30
+                                    meses el 70%); la unidad se entregara en un plazo no mayor a los
+                                    35 días, de esta manera el socio continuara con los pagos que le faltasen para cancelar su
+                                    crédito, , de no contar con una moto taxi para reposición, podrá entregarse el valor de reposición en dinero en efectivo </p>
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> DECIMA PRIMERA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                            , se compromete a no manipular o procurar realizar
+                            la desinstalación del sistema <span>GPS,</span>
+                            baja sanción de resolución del contrato, más el <span>pago de la siguiente penalidad S/.500.00 </span>
+                            (quinientos con 00/100 soles); de identificarse dicha acción se iniciara la aplicación del procedimiento
+                            de cobranza (captura del vehículo motorizado).
+                        </div>
+                        <br />
+                    </div>
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> DECIMA SEGUNDA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            A efectos de realizarse la Resolución del Contrato, se aplicará lo establecido en el artículo 1430°
+                            del Código Civil, en tal sentido la resolución del contrato será de aplicación automática por las siguientes causales:
+                            <div class="box_clausula">
+                            <ul>
+                                <p class="justificar">
+                                <li>El traslado del Vehículo automotor menor fuera de la jurisdicción de Lima-Metropolitana. </li>
+                                <li>El incumplimiento de parte de EL COMPRADOR de una (02) pagos semanales de conformidad al cronograma de pago.</li>
+                                <li>El traspaso, transferencia o cesión a terceras personas, sin conocimiento de EL GESTOR.</li>
+                                <li>Que el vehículo menor en mención lo estén utilizando para realizar actividades ilícitas (Robo, Violaciones ID y otros).</li>
+                                <li>El no contar con permiso municipal (certificado de operaciones) para brindar servicio de mototaxi.</li>
+                                <li>El haber sido enviado al depósito por más de 02 veces por infracciones.</li>
+                                </p>
+                            </ul>
+                            </div>
+                            La resolución del contrato por parte de EL GESTOR no dará lugar a la devolución de la cuota inicial y de las letras canceladas a fecha
+                            de la resolución, las que se tomaran como penalidad.
+                            De concretarse la resolución del contrato por parte de EL GESTOR; <span>EL COMPRADOR</span>acepta libre y voluntariamente entregar el vehículo en las
+                            mismas condiciones de uso y conservación en que lo recibió en el momento de la entrega a <span>EL GESTOR</span> quien tendrá las facultades de asumir
+                            el saldo deudor y adjudicarse el bien.
+                            <span>EL GESTOR</span> está facultado a transferir las letras y/o cederlas en descuento en alguna Entidad Financiera y/o Bancaria, así como realizar cualquier
+                            transacción permitido por la ley.
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> DECIMO TERCERA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            Que, de existir controversia algún sobre la ejecución del presente contrato, así como el cálculo
+                            y liquidación de los daños y perjuicios ocasionados a
+                            <span class="indice_negrita">EL GESTOR,</span>
+                            ambas partes contratantes se comprometen a recurrir previamente a la vía de la conciliación Extrajudicial
+                            a efectos de llevar de la mejor manera el <span>CONTRATO DE GESTION DE VEHICULOS MENORES.</span>
+                        </div>
+                        <br/>
+                    </div>
+                     <br/>
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> DECIMO CUARTA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            El pago se realizará en efectivo o mediante transferencia bancaria, el en número de cuenta de la
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                            la indemnización
+                            por daños y perjuicios ocasionados a
+                            <span class="indice_negrita">COOPAC QORILAZO Y/O CORPORACIÓN ADT – SAC,</span>
+                            de acuerdo con el cronograma de pagos de la  <span class="indice_negrita">CUARTA CLAUSULA </span>
+                            del presente contrato.
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado"> DECIMO QUINTA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">El GESTOR</span>
+                            se reserva la propiedad del vehículo automotor menor descrito en la
+                            <span class="indice_negrita">SEGUNDA CLAUSULA</span>
+                            , dicha Reserva será
+                            hasta que
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                            cancele el precio total pactado y en
+                            consecuencia se realizará la
+                            transferencia de la tarjeta de Propiedad Vehicular a nombre de
+                            <span class="indice_negrita">EL
+                                COMPRADOR,</span> el cual asumirá los gastos de dicho trámite.
+                            La presente clausula se rige, al artículo 1583° del Código Civil,
+                            el cual señala que en la compra venta puede pactarse que el vendedor
+                            se reserva la propiedad del bien hasta que se haya pagado todo el precio
+                            o una parte determinada de él, aunque el bien haya sido entregado al comprador, quien asume
+                            el riesgo de su pérdida o deterioro desde el momento de la entrega. Haciendo constar que
+                            el Vehículo Menor que se encuentra en poder de <span>EL COMPRADOR</span> no se podrá enajenar ni vender
+                            hasta su cancelación total, materia del presente contrato.
+                        </div>
+                        <br />
+                    </div>
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado">DECIMO SEXTA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                            bajo expresa responsabilidad mantendrá el bien objeto del presente  contrato en perfectas
+                            condiciones también a tomar cualquier providencia para el mantenimiento, servicio
+                            y reparación que fuesen  necesarias, no podrán efectuar inserciones, modificaciones,
+                            supresiones, acoplamiento en general cualquier modificación en el bien, ni disponer
+                            su traslado a lugar distinto de la zona donde se desenvuelven la actividad propia de su giro,
+                            salvo los necesarios para conservar sus fines principales y características de funcionamiento
+                            y calidad.
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado">DECIMO SETIMA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            El bien se entrega en perfectas condiciones de funcionamiento con una garantía real de dos años
+                            o 24,000 km de recorrido lo que ocurra primero.
+                            Dos (02) servicios de mantenimientos gratis, no incluye el cambio de aceite.
+                            La garantía del vehículo y las condiciones de las mismas están establecidas en el certificado
+                            de garantía del fabricante y
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                           mediante este contrato deja constancia de que acepta y conoce las condiciones del mismo.
+                        </div>
+                        <br />
+                    </div>
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado">DECIMO OCTAVA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            <span class="indice_negrita">EL COMPRADOR,</span>
+                            declara bajo juramento y deja expresa constancia en caso de ocurrencia de algún siniestro,
+                            tales como Robo, Accidente e infracciones de tránsito (PAPELETAS) donde implique responsabilidad
+                            civil y/o pecuniarios causados a terceros y derivados directa o indirectamente de la posesión,
+                            transporte u operación del bien objeto del presente contrato tocará única y exclusivamente a
+                            <span class="indice_negrita">EL COMPRADOR</span>
+                            a responsabilidad relativa a esta ocurrencia.
+                        </div>
+                        <br />
+                    </div>
+                    <div class="box_clausula">
+                        <br/>
+                        <br/>
+                        <div>
+                            <u class="subrayado">DECIMO NOVENA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            La inscripción al Registro de Propiedad Vehicular, así como los gastos de prenda vehicular que
+                            origine la compra - venta, así como la resolución del mismo de producirse serán asumidos los costos
+                            por
+                            <span class="indice_negrita">EL GESTOR.</span>
+                            Los gastos que demande la transferencia a la cancelación total del vehículo serán por exclusividad cuenta de
+                            <span class="indice_negrita">EL COMPRADOR.</span>
+                            <span>EL GESTOR</span>
+                            se reserva el derecho de inscribir el presente Contrato en los Registros Públicos de Propiedad de Lima,
+                            registro de fiscal de Ventas a Créditos y/o direcciones el Parque Automotor de Circulación Vial y registro
+                            de Ministerio de transporte y comunicaciones.
+                        </div>
+                        <br />
+                    </div>
+                     <div class="box_clausula">
+                        <br />
+                        <div>
+                            <u class="subrayado">VIGESIMA CLAUSULA:</u>
+                        </div>
+                        <br />
+                        <div class="justificar">
+                            El presente contrato entrará en vigencia desde la entrega física del vehículo hasta la finalización
+                            del pago de las cuotas de financiamiento del crédito de la Moto taxi, otorgado por la entidad financiera,
+                            que serán acordados entre el
+                            <span class="indice_negrita">GESTOR y COMPRADOR. </span>
+                            <span>EL COMPRADOR,</span>
+                            firma e imprime su huella digital del dedo índice derecho en aceptación de conformidad del presente contrato
+                            y se compromete a legalizar las firmas ante el Notario Público para su vigencia, cumple con suscribir el
+                            presente contrato.
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <div class="box_clausula">
+                        <br />
+                        <div>
+                            En señal de conformidad, los contratantes suscriben el presente documento en tres (2) ejemplares del
+                            mismo tenor.
+                        </div>
+                        <br />
+                    </div>
+
+
+                    <br />
+                    <br />
+                    <br />
+                    <br />
+
+                    <br />
+                    <br />
+
+
+                    <div class="box_firma">
+                        <div class="box_data">
+                            <div></div>
+                            <div class="box_line"></div>
+                            <div class="box_firma">
+                                <p>EL GESTOR</p>
+                            </div>
+                        </div>
+                        <div class="box_data">
+                            <div></div>
+                            <div class="box_line"></div>
+                            <div class="box_firma">
+                                <p>
+                                    <span class="title_ligth" t-field="vehicle.driver_id" />
+                                </p>
+                            </div>
+                            <div class="box_firma">
+                                <p>
+                                    <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id" />
+                                    :
+                                    <span class="title_ligth" t-field="driver.vat" />
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <br />
+                    <br />
+
+                    <div class="box_place_date">
+                        <div>
+                            <p>Lima , <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')" /></p>
+                        </div>
+                    </div>
+
+            </t>
+        </t>
+            </t>
+        </template>
+
+    </data>
+</odoo>

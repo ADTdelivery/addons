@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# from odoo import models, fields, api
+from odoo import models, fields, api
 
 
-# class sale_addons(models.Model):
+class sale_addons(models.Model):
+    _inherit = "sale.order"
 #     _name = 'sale_addons.sale_addons'
 #     _description = 'sale_addons.sale_addons'
 

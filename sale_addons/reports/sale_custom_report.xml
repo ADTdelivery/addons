@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="paperformat_cronograma_a4" model="report.paperformat">
+        <field name="name">Cronograma A4</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">40</field>
+        <field name="dpi">90</field>
+    </record>
+
+
+    <record id="sale_addons.sale_custom_report" model="ir.actions.report">
+        <field name="name">Cotizacion de moto</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale_addons.order_report_view</field>
+        <field name="report_file">sale_addons.order_report</field>
+        <field name="binding_model_id" ref="model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
+    </record>
+    <template id="order_report_view">
+        <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <div class="watermarked" >
+                        <img src="/sale_addons/static/src/img/marca.png" />
+                    </div>
+                    <t t-foreach="docs" t-as="sale">
+                        <div class="header">
+                            <img src="/fleet_report/static/src/img/header_adt.jpg" alt="Not found" height="100" width="1000" />
+                        </div>
+                        <div class="footer">
+                        <img src="/fleet_report/static/src/img/footer_adt.jpg" alt="Not found" height="50" width="1000"  />
+                        </div>
+
+                        <style>
+                            .watermarked{
+                            position:absolute;
+                            opacity:0.5;
+                            font-size:3cm;
+                            height: 200;
+                            width: 200;
+                            text-align:center;
+                            z-index:1000;
+                            right:350px;
+                            border:0;
+                            }
+                            .page{
+                            height: 35px;
+                            width: 100%;
+                            background-color: #C0C0C0;
+                            }
+                            .box_firma{
+                            text-align: center;
+                            }
+                            span{
+                            font-weight: bold;
+                            }
+                            .title_ligth{
+                            font-weight: normal;
+                            }
+
+                        </style>
+                        <div class="page">
+                            <h2 style="text-align: center;"><b> COTIZACION DE MOTO</b></h2>
+                            <u><h4><b>DATOS DEL CLIENTE:</b></h4></u>
+                                <div>
+                                    <ul>
+                                    <span>APELLIDOS Y NOMBRES: </span> <span class="title_ligth" t-field="sale.partner_id"/>
+                                    </ul>
+                                    <ul>
+                                    <span>DNI: </span> <span class="title_ligth" t-field="sale.partner_id.vat"/>
+                                    </ul>
+                                    <ul>
+                                    <span>DIRECCION: </span> <span class="title_ligth" t-field="sale.partner_id.street"/>
+                                    </ul>
+                                    <ul>
+                                    <span>TELEFONO MOVIL: </span> <span class="title_ligth" t-field="sale.partner_id.mobile"/>
+                                    </ul>
+                                    <!--<img src="sale.order_line.image_small"/> -->
+                                </div>
+                            <u><h4><b>DATOS DEL CREDITO:</b></h4></u>
+                                <t t-foreach="sale.order_line" t-as="order">
+                                    <ul>
+                                        <l>
+                                            <b><span t-field="order.product_id"/></b>
+                                            <th> : </th>
+                                        </l>
+                                        <l>
+                                            <span class="title_ligth" t-field="order.price_subtotal"/>
+                                        </l>
+                                    </ul>
+                                </t>
+                                <ul>
+                                    <h5><b>TOTAL A FINANCIAR: <span t-field="sale.amount_total"/></b></h5>
+                                </ul>
+                            <br />
+                            <br />
+                            <div>
+                                <span>EQUIPO Y MONITOREO DE GPS:</span>
+                                <th>Soporte técnico las 24 horas, los 365 días del año (12 Meses) acceso
+                                ilimitado para su auto monitoreo, velocidad y recorridos de su unidad. (Monitoreado
+                                por personal CORPORACION ADT).  </th>
+                            </div>
+                            <br />
+
+                            <div>
+                                <span>VARIOS: </span>
+                                <th>SOAT, SEGURO INTERNO, Transferencia, placas, legalización de firmas, ingreso de
+                                garantía, tarjeta de propiedad.   </th>
+                            </div>
+                            <br />
+
+                            <div>
+                                <span>FORMA DE PAGO: </span>
+                                <th>Mediante Financiamiento a 12 Meses.</th>
+                            </div>
+                            <br />
+                            <br />
+                            <br />
+                            <br />
+                            <br />
+
+                            <div class="box_firma">
+                                <h6><b><span t-field="sale.partner_id"/></b></h6>
+                                <h6><b>DNI:</b> <span t-field="sale.partner_id.vat"/></h6>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+        </t>
+    </template>
+
+</odoo>

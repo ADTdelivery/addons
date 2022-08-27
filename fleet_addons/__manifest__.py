@@ -33,6 +33,7 @@
         'reports/fleet_custom_report2.xml',
         'reports/fleet_custom_report3.xml',
         'reports/fleet_custom_report4.xml',
+        'reports/fleet_custom_mototaxi.xml',
 
     ],
     # only loaded in demonstration mode
