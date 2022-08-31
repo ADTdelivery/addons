@@ -20,11 +20,8 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-<<<<<<< HEAD
+
     'depends': ['base', 'sale_management', 'sale'],
-=======
-    'depends': ['base','sale'],
->>>>>>> 2cdc1fc122dbb322c9fcb29c2090cabf90c18310
 
     # always loaded
     'data': [
