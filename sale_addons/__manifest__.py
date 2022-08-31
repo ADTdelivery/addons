@@ -20,13 +20,18 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
+<<<<<<< HEAD
     'depends': ['base', 'sale_management', 'sale'],
+=======
+    'depends': ['base','sale'],
+>>>>>>> 2cdc1fc122dbb322c9fcb29c2090cabf90c18310
 
     # always loaded
     'data': [
         # 'security/ir.model.access.csv',
         'views/views.xml',
         'views/templates.xml',
+        'reports/sale_custom_report.xml',
     ],
     # only loaded in demonstration mode
     'demo': [
