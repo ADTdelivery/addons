@@ -36,7 +36,7 @@ class AccountAddons(models.Model):
                 fleet_data = {
                     'name': data_template[0]['name'],
                     'active': True,
-                    'company_id': 1,
+                    #'company_id': 1,
                     'vin_sn': vals['x_quotation_chasis'],
                     'trailer_hook': False,
                     'driver_id': vals['x_quotation_driver_id'],

@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# from odoo import models, fields, api
+from odoo import models, fields, api
+import json
 
 
-# class sale_addons(models.Model):
-#     _name = 'sale_addons.sale_addons'
-#     _description = 'sale_addons.sale_addons'
+class SaleAddons(models.Model):
+    _inherit = "sale.order"
 
-#     name = fields.Char()
-#     value = fields.Integer()
-#     value2 = fields.Float(compute="_value_pc", store=True)
-#     description = fields.Text()
-#
-#     @api.depends('value')
-#     def _value_pc(self):
-#         for record in self:
-#             record.value2 = float(record.value) / 100
+    total_comision = fields.Monetary("Margin", compute='_compute_commission', store=True)
+
+    @api.depends('order_line', 'amount_untaxed')
+    def _compute_commission(self):
+        if not all(self._ids):
+            for order in self:
+                order.total_comision = sum(order.order_line.mapped('x_line_comision'))
+
