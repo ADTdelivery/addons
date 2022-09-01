@@ -14,4 +14,3 @@ class SaleAddons(models.Model):
         if not all(self._ids):
             for order in self:
                 order.total_comision = sum(order.order_line.mapped('x_line_comision'))
-

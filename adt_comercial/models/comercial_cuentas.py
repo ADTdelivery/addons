@@ -401,6 +401,7 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
     cuenta_id = fields.Many2one('adt.comercial.cuentas', string="Id de cuenta")
 
     def action_create_cuotas(self):
+        global days
         for sin_pagar in self.cuenta_id.cuota_ids.filtered(lambda x: x.state in ['pendiente', 'a_cuenta', 'retrasado']):
             if sin_pagar.state == 'a_cuenta':
                 sin_pagar.monto = sum(sin_pagar.payment_ids.mapped('amount'))
@@ -418,13 +419,15 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
         monto_cuota = self.monto_cuota if self.monto_cuota else 0
         total_a_pagar = self.monto_refinanciado + self.monto_adicional
 
+        if self.cuenta_id.periodicidad == 'semanal':
+            days = 7
         if self.cuenta_id.periodicidad == 'quincena':
             days = 15
         elif self.cuenta_id.periodicidad == 'mensual':
             days = 30
 
         a = []
-        fecha_inicial = self.fecha_refinanciamiento+timedelta(days=days)
+        fecha_inicial = self.fecha_refinanciamiento#+timedelta(days=days)
 
         if monto_cuota == 0:
             monto_cuota_mod = total_a_pagar % qty_cuotas
