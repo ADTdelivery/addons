@@ -4,6 +4,7 @@ from odoo.exceptions import ValidationError, RedirectWarning, UserError
 
 import math
 import logging
+
 _logger = logging.getLogger(__name__)
 
 
@@ -15,7 +16,8 @@ class ADTComercialCuentas(models.Model):
     reference_no = fields.Char(
         string='Referencia', required=True, readonly=True, default=lambda self: _('Nuevo'))
     state = fields.Selection(
-        [("borrador", "Borrador"), ("aprobado", "Aprobado"), ("en_curso", "En curso"), ("cancelado", "Cancelado"), ("pagado", "Pagado")], default="borrador", string="Estado", tracking=1)
+        [("borrador", "Borrador"), ("aprobado", "Aprobado"), ("en_curso", "En curso"), ("cancelado", "Cancelado"),
+         ("pagado", "Pagado")], default="borrador", string="Estado", tracking=1)
 
     def aprobar_cuenta(self):
         for cuenta in self:
@@ -43,7 +45,7 @@ class ADTComercialCuentas(models.Model):
     def name_get(self):
         result = []
         for cuenta in self:
-            name = cuenta.reference_no+" - "+cuenta.partner_id.name
+            name = cuenta.reference_no + " - " + cuenta.partner_id.name
 
             result.append((cuenta.id, name))
         return result
@@ -66,7 +68,8 @@ class ADTComercialCuentas(models.Model):
                                   string="Company Currency", readonly=True, related="company_id.currency_id")
 
     periodicidad = fields.Selection(
-        [('semanal', 'Semanal'), ('quincena', 'Quincenal'), ('mensual', 'Mensual')], default="quincena", string="Periodo")
+        [('semanal', 'Semanal'), ('quincena', 'Quincenal'), ('mensual', 'Mensual')], default="quincena",
+        string="Periodo")
     monto_total = fields.Monetary(string="Valor total del vehículo", default=0)
     # monto_financiado = fields.Monetary(string="Monto financiado", default=0)
     monto_inicial = fields.Monetary(string="Inicial", default=0)
@@ -145,7 +148,8 @@ class ADTComercialCuentas(models.Model):
         if (pagadas > 0) and self.state != 'cancelado':
             self.state = 'en_curso'
 
-        if (len(self.cuota_ids) > 0) and (len(self.cuota_ids.filtered(lambda x: x.state == 'pagado')) == len(self.cuota_ids)):
+        if (len(self.cuota_ids) > 0) and (
+                len(self.cuota_ids.filtered(lambda x: x.state == 'pagado')) == len(self.cuota_ids)):
             self.state = 'pagado'
 
     cuota_ids = fields.One2many(
@@ -209,49 +213,49 @@ class ADTComercialCuentas(models.Model):
             days = 30
 
         a = []
-        fecha_inicial = self.fecha_gracia+timedelta(days=0)
+        fecha_inicial = self.fecha_gracia + timedelta(days=0)
 
         # ? ASIGNACION DE CUOTAS
         a.append(self.env["adt.comercial.cuotas"].create(
             {'name': 'Cuota 0', 'monto': cuota_gracia, 'fecha_cronograma': self.fecha_gracia}).id)
 
         if monto_cuota == 0:
-            monto_cuota_mod = (monto_fraccionado-cuota_gracia) % qty_cuotas
+            monto_cuota_mod = (monto_fraccionado - cuota_gracia) % qty_cuotas
 
             if monto_cuota_mod > 0:
                 monto_cuota_temp = (
-                    (monto_fraccionado - cuota_gracia) - monto_cuota_mod) / qty_cuotas
+                                           (monto_fraccionado - cuota_gracia) - monto_cuota_mod) / qty_cuotas
             else:
                 monto_cuota_temp = (monto_fraccionado -
-                                    cuota_gracia)/qty_cuotas
+                                    cuota_gracia) / qty_cuotas
 
             self.monto_cuota = monto_cuota_temp
 
             for i in range(qty_cuotas):
-                fecha_inicial = fecha_inicial+timedelta(days=days)
+                fecha_inicial = fecha_inicial + timedelta(days=days)
 
-                if i == (qty_cuotas-1):
+                if i == (qty_cuotas - 1):
                     monto_cuota_temp += monto_cuota_mod
 
                 a.append(self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota '+str(i+1), 'monto': monto_cuota_temp, 'fecha_cronograma': fecha_inicial}).id)
+                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota_temp, 'fecha_cronograma': fecha_inicial}).id)
 
         else:
-            total_temp = qty_cuotas*monto_cuota
+            total_temp = qty_cuotas * monto_cuota
             # if total_temp > monto_financiado:
             #     raise UserError(
             #         'El monto calculado [cuotas * monto] es mayor al saldo a pagar. Por favor corrija la cantidad de cuotas o el monto.')
 
             # ? ASIGNACION DE CUOTAS
             for i in range(qty_cuotas):
-                fecha_inicial = fecha_inicial+timedelta(days=days)
+                fecha_inicial = fecha_inicial + timedelta(days=days)
 
-                if i == (qty_cuotas-1):
+                if i == (qty_cuotas - 1):
                     monto_cuota += ((monto_fraccionado -
-                                     cuota_gracia)-total_temp)
+                                     cuota_gracia) - total_temp)
 
                 a.append(self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota '+str(i+1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id)
+                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id)
 
         self.cuota_ids = [(6, 0, a)]
 
@@ -427,59 +431,74 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
             days = 30
 
         a = []
-        fecha_inicial = self.fecha_refinanciamiento#+timedelta(days=days)
+        fecha_inicial = self.fecha_refinanciamiento  # +timedelta(days=days)
 
         if monto_cuota == 0:
             monto_cuota_mod = total_a_pagar % qty_cuotas
 
             if monto_cuota_mod > 0:
-                monto_cuota_temp = (total_a_pagar-monto_cuota_mod)/qty_cuotas
+                monto_cuota_temp = (total_a_pagar - monto_cuota_mod) / qty_cuotas
             else:
-                monto_cuota_temp = total_a_pagar/qty_cuotas
+                monto_cuota_temp = total_a_pagar / qty_cuotas
 
             self.monto_cuota = monto_cuota_temp
 
             # ? ASIGNACION DE CUOTAS
             for i in range(qty_cuotas):
-                fecha_inicial = fecha_inicial+timedelta(days=days)
+                fecha_inicial = fecha_inicial + timedelta(days=days)
 
-                if i == (qty_cuotas-1):
+                if i == (qty_cuotas - 1):
                     monto_cuota_temp += monto_cuota_mod
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota R. - '+str(i+1), 'monto': monto_cuota_temp, 'fecha_cronograma': fecha_inicial}).id
+                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota_temp,
+                     'fecha_cronograma': fecha_inicial}).id
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
 
         elif qty_cuotas == 0:
-            qty_cuotas = math.floor(total_a_pagar/monto_cuota)
-            total_temp = qty_cuotas*monto_cuota
+            qty_cuotas = math.floor(total_a_pagar / monto_cuota)
+            total_temp = qty_cuotas * monto_cuota
 
             self.qty_cuotas = qty_cuotas
 
             # ? ASIGNACION DE CUOTAS
             for i in range(qty_cuotas):
-                fecha_inicial = fecha_inicial+timedelta(days=days)
+                fecha_inicial = fecha_inicial + timedelta(days=days)
 
-                if i == (qty_cuotas-1):
-                    monto_cuota += (total_a_pagar-total_temp)
+                if i == (qty_cuotas - 1):
+                    monto_cuota += (total_a_pagar - total_temp)
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota R. - '+str(i+1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id
+                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
         else:
-            total_temp = qty_cuotas*monto_cuota
+            total_temp = qty_cuotas * monto_cuota
             if total_temp > total_a_pagar:
                 raise UserError(
                     'El monto calculado [cuotas * monto] es mayor al saldo a pagar. Por favor corrija la cantidad de cuotas o el monto.')
 
             # ? ASIGNACION DE CUOTAS
             for i in range(qty_cuotas):
-                fecha_inicial = fecha_inicial+timedelta(days=days)
+                fecha_inicial = fecha_inicial + timedelta(days=days)
 
-                if i == (qty_cuotas-1):
-                    monto_cuota += (total_a_pagar-total_temp)
+                if i == (qty_cuotas - 1):
+                    monto_cuota += (total_a_pagar - total_temp)
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota R. - '+str(i+1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id
+                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id
 
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
+
+
+class ADTComercialCuentasFunction(models.Model):
+    _inherit = 'adt.comercial.cuentas'
+
+    def unlink(self):
+        # Extract id from adt.comercial.cuentas
+        data = self.env['adt.comercial.cuentas'].search([('id', '=', self.id)])
+
+        # Then search into fleet.vehicle by id for update disponible state
+        vehicle = self.env['fleet.vehicle'].search([('id', '=', data.vehiculo_id.id)])
+        vehicle.write({'disponible': True})
+
+        return super(ADTComercialCuentasFunction, self).unlink()
