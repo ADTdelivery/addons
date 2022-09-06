@@ -82,7 +82,8 @@ class Cobranza(http.Controller):
         captura_rec = request.env['adt.reporte.cobranza.captura'].search([])
         data = []
         for captura in captura_rec:
-            vals = {
+            if captura.vehiculo_id.name:
+                vals = {
                 'id': captura.id,
                 'deudor_id': captura.partner_id.id,
                 'deudor': captura.partner_id.name,
@@ -90,8 +91,8 @@ class Cobranza(http.Controller):
                 'dias_retraso': captura.dias_retraso,
                 'tipo_pago': captura.periodicidad,
                 'monto': captura.monto,
-            }
-            data.append(vals)
+                }
+                data.append(vals)
         newlista = []
         for x in data:
             if x not in newlista:
