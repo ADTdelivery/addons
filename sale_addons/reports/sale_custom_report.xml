@@ -36,10 +36,10 @@
                     </div>
                     <t t-foreach="docs" t-as="sale">
                         <div class="header">
-                            <img src="/fleet_report/static/src/img/header_adt.jpg" alt="Not found" height="100" width="1000" />
+                            <img src="/sale_addons/static/src/img/header_adt.jpg" alt="Not found" height="100" width="1000" />
                         </div>
                         <div class="footer">
-                        <img src="/fleet_report/static/src/img/footer_adt.jpg" alt="Not found" height="50" width="1000"  />
+                        <img src="/sale_addons/static/src/img/footer_adt.jpg" alt="Not found" height="50" width="1000"  />
                         </div>
 
                         <style>
