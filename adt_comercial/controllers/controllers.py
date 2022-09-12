@@ -333,6 +333,21 @@ class Cobranza(http.Controller):
     @http.route('/api/fleetList', type='json', auth='public')
     def fleetList(self, db, login, password, id):
         request.session.authenticate(db, login, password)
+        listTemp = []
         listVehicle = request.env['fleet.vehicle'].search([])
-        # for vehicle in listVehicle:
+        for vehicle in listVehicle:
+            data = {
+                'id': vehicle.id,
+                'modelo': vehicle.model_id.name,
+                'matricula': vehicle.license_plate,
+                'conductor': vehicle.driver_id.name,
+                'color': vehicle.color,
+                'soat': vehicle.x_soat,
+                'licencia': vehicle.x_licencia_final,
+                'tarjeta_propiedad': vehicle.x_fleet_tarjeta_propiedad,
+                'chasis': vehicle.vin_sn,
+                'puerto': vehicle.puerto,
+                'numero_celular': vehicle.numero_celular,
+            }
+            listTemp.append(data)
         return listVehicle
