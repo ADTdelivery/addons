@@ -5,15 +5,15 @@ import requests
 
 class Cobranza(http.Controller):
     @http.route('/detalle', type='json', auth='none')
-    def get_nuevo(self, db, login, password,id):
+    def get_nuevo(self, db, login, password, id):
         request.session.authenticate(db, login, password)
-        contacto = request.env['res.partner'].search([['id', '=',id]])
+        contacto = request.env['res.partner'].search([['id', '=', id]])
         val = {
             'name': contacto.name,
             'direccion': contacto.street,
             'mobile': contacto.mobile,
         }
-        #print(val)
+        # print(val)
         vehicle_rec = request.env['fleet.vehicle'].search([['driver_id.id', '=', id]])
         fleet = []
         for vehicle in vehicle_rec:
@@ -32,21 +32,21 @@ class Cobranza(http.Controller):
 
             }
             fleet.append(vals)
-            #print(fleet)
+            # print(fleet)
         cuenta_rec = request.env['adt.comercial.cuentas'].search([['partner_id.id', '=', id]])
-        estado2=cuenta_rec[0].state
+        estado2 = cuenta_rec[0].state
 
         captura_rec = request.env['adt.reporte.cobranza.captura'].search([['partner_id.id', '=', id]])
-        dias=[]
+        dias = []
         data = []
         for captura in captura_rec:
             capturados = {
                 'dias_retraso': captura.dias_retraso,
                 'tipo_pago': captura.periodicidad,
-                'state':estado2,
+                'state': estado2,
             }
         dias.append(capturados)
-        #print(data)
+        # print(data)
         """vendedor_rec = request.env['adt.reporte.cobranza.pagos.pendientes'].search([['partner_id.id', '=', id]])
         valor2 = {
             'vendedor': vendedor_rec.user_id.name,
@@ -64,14 +64,14 @@ class Cobranza(http.Controller):
                 'saldo': cuota.saldo,
             }
             data.append(cuota_det)
-            if (cuota.state== 'retrasado'):
+            if (cuota.state == 'retrasado'):
                 monto_total += cuota.monto
         print(monto_total)
 
         final = {
             'contacto': val,
             'vehiculos': fleet,
-            'dias':dias,
+            'dias': dias,
             'deudas': data,
         }
         return final
@@ -84,13 +84,13 @@ class Cobranza(http.Controller):
         for captura in captura_rec:
             if captura.vehiculo_id.name:
                 vals = {
-                'id': captura.id,
-                'deudor_id': captura.partner_id.id,
-                'deudor': captura.partner_id.name,
-                'moto': captura.vehiculo_id.name,
-                'dias_retraso': captura.dias_retraso,
-                'tipo_pago': captura.periodicidad,
-                'monto': captura.monto,
+                    'id': captura.id,
+                    'deudor_id': captura.partner_id.id,
+                    'deudor': captura.partner_id.name,
+                    'moto': captura.vehiculo_id.name,
+                    'dias_retraso': captura.dias_retraso,
+                    'tipo_pago': captura.periodicidad,
+                    'monto': captura.monto,
                 }
                 data.append(vals)
         newlista = []
@@ -131,15 +131,15 @@ class Cobranza(http.Controller):
             post = r.json()
             print(post)
             newlist = [x for x in post if x['contact'] == data_deudores['name'] and x['model'] == b]
-            #print(newlist)
+            # print(newlist)
         lista.append(newlist)
         return post
 
     @http.route('/recuperar', type='json', auth='none')
-    def get_recuperar(self, db, login, password,id):
+    def get_recuperar(self, db, login, password, id):
         request.session.authenticate(db, login, password)
         captura_rec = request.env['adt.comercial.cuentas'].search([['partner_id.id', '=', id]])
-        val= captura_rec['id']
+        val = captura_rec['id']
 
         newlista = []
         for x in captura_rec:
@@ -152,17 +152,17 @@ class Cobranza(http.Controller):
         return (val)
 
     @http.route('/posicion', type='json', auth='none')
-    def get_posicion(self, db, login, password,id):
+    def get_posicion(self, db, login, password, id):
         request.session.authenticate(db, login, password)
         URL_TRACCAR2 = 'http://190.232.26.249:8082/api/positions'
         s = requests.get(URL_TRACCAR2, json="", auth=('rapitash@gmail.com', 'Krishnna17$'))
         posicion = s.json()
-        #print(posicion)
-        lista =[]
-        #for pos in posicion:
-            #print(pos['id'])
-            #if str(pos['id']) == str(id):
-                #print(pos['id'])
+        # print(posicion)
+        lista = []
+        # for pos in posicion:
+        # print(pos['id'])
+        # if str(pos['id']) == str(id):
+        # print(pos['id'])
         newlist = [x for x in posicion if str(x['id']) == str(id)]
         print(newlist)
         return newlist
@@ -183,15 +183,15 @@ class Cobranza(http.Controller):
             lista.append(a)
         r = requests.get(URL_TRACCAR, json="", auth=('rapitash@gmail.com', 'Krishnna17$'))
         post = r.json()
-        gg=[]
+        gg = []
         for n in post:
             f = n['name'].split()
             for x in lista:
-                if f[0]==x:
-                    valores={
-                        'celular':n['phone'],
-                        'identifier':n['uniqueId'],
-                        'estado':n['status'],
+                if f[0] == x:
+                    valores = {
+                        'celular': n['phone'],
+                        'identifier': n['uniqueId'],
+                        'estado': n['status'],
                     }
                     gg.append(valores)
         print(gg)
@@ -213,8 +213,8 @@ class Cobranza(http.Controller):
                 'licencia': vehicle.x_licencia_final,
                 'tarjeta_propiedad': vehicle.x_fleet_tarjeta_propiedad,
                 'chasis': vehicle.vin_sn,
-                'puerto':vehicle.puerto,
-                'numero_celular':vehicle.numero_celular,
+                'puerto': vehicle.puerto,
+                'numero_celular': vehicle.numero_celular,
             }
             fleet.append(vals)
         contacto = request.env['res.partner'].search([['id', '=', vehicle_rec.driver_id.id]])
@@ -226,7 +226,8 @@ class Cobranza(http.Controller):
         cuenta_rec = request.env['adt.comercial.cuentas'].search([['partner_id.id', '=', vehicle_rec.driver_id.id]])
         estado2 = cuenta_rec[0].state
 
-        captura_rec = request.env['adt.reporte.cobranza.captura'].search([['partner_id.id', '=', vehicle_rec.driver_id.id]])
+        captura_rec = request.env['adt.reporte.cobranza.captura'].search(
+            [['partner_id.id', '=', vehicle_rec.driver_id.id]])
         dias = []
         data = []
         for captura in captura_rec:
@@ -328,3 +329,10 @@ class Cobranza(http.Controller):
             'deudas': data,
         }
         return final
+
+    @http.route('/api/fleetList', type='json', auth='public')
+    def fleetList(self, db, login, password, id):
+        request.session.authenticate(db, login, password)
+        listVehicle = request.env['fleet.vehicle'].search([])
+        # for vehicle in listVehicle:
+        return listVehicle

@@ -70,6 +70,9 @@
                             }
 
                         </style>
+
+                        <img src="sale.order_line.image_small"/>
+                        <!--
                         <div class="page">
                             <h2 style="text-align: center;"><b> COTIZACION DE MOTO</b></h2>
                             <u><h4><b>DATOS DEL CLIENTE:</b></h4></u>
@@ -86,7 +89,7 @@
                                     <ul>
                                     <span>TELEFONO MOVIL: </span> <span class="title_ligth" t-field="sale.partner_id.mobile"/>
                                     </ul>
-                                    <!--<img src="sale.order_line.image_small"/> -->
+
                                 </div>
                             <u><h4><b>DATOS DEL CREDITO:</b></h4></u>
                                 <t t-foreach="sale.order_line" t-as="order">
@@ -135,6 +138,8 @@
                                 <h6><b>DNI:</b> <span t-field="sale.partner_id.vat"/></h6>
                             </div>
                         </div>
+
+                        -->
                     </t>
                 </t>
         </t>
