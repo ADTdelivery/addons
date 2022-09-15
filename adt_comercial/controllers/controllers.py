@@ -337,20 +337,33 @@ class Cobranza(http.Controller):
         URL_TRACCAR = 'http://190.232.26.249:8082/api/devices'
         listVehicle = requests.get(URL_TRACCAR, json="", auth=('rapitash@gmail.com', 'Krishnna17$'))
 
+        dataTraccar = {
+            'groupId': '',
+            'name': '',
+            'status': '',
+            'lastUpdate':''
+        }
+
         for vehicleTraccar in listVehicle.json():
             logging.info(" traccar : "+vehicleTraccar["name"])
-            placa = vehicleTraccar["name"].splitt(" / ")[0].replace("-","")
-            if placa == id:
-                """dataTraccar = {
-                    '' :
-                }"""
+            if vehicleTraccar != False:
+                placa = vehicleTraccar["name"].splitt(" / ")[0].replace("-", "")
+                if placa == id:
+                    dataTraccar = {
+                        'groupId': vehicleTraccar['groupId'],
+                        'name': vehicleTraccar['name'],
+                        'status': vehicleTraccar['status'],
+                        'lastUpdate': vehicleTraccar['lastUpdate']
+                    }
+
 
 
         final = {
             'contacto': val,
             'vehiculos': fleet,
             'deudas': data,
-        }
+            'traccar': dataTraccar
+         }
         return final
 
     @http.route('/api/fleetList', type='json', auth='public')
