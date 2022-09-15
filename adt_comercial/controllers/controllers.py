@@ -2,6 +2,7 @@ from odoo import http
 from odoo.http import request
 import requests
 
+import logging
 
 class Cobranza(http.Controller):
     @http.route('/detalle', type='json', auth='none')
@@ -284,10 +285,12 @@ class Cobranza(http.Controller):
     @http.route('/buscar_placa_total', type='json', auth='public')
     def get_placatotal(self, db, login, password, id):
         request.session.authenticate(db, login, password)
+
+        # Get data fleet
         vehicle_rec = request.env['fleet.vehicle'].search([['license_plate', '=', id]])
         fleet = []
         for vehicle in vehicle_rec:
-            vals = {
+            data = {
                 'id': vehicle.id,
                 'modelo': vehicle.model_id.name,
                 'matricula': vehicle.license_plate,
@@ -300,15 +303,20 @@ class Cobranza(http.Controller):
                 'puerto': vehicle.puerto,
                 'numero_celular': vehicle.numero_celular,
             }
-            fleet.append(vals)
-        contacto = request.env['res.partner'].search([['id', '=', vehicle_rec.driver_id.id]])
+            fleet.append(data)
+
+        # Get data Contact
+        contact = request.env['res.partner'].search([['id', '=', vehicle_rec.driver_id.id]])
         val = {
-            'name': contacto.name,
-            'direccion': contacto.street,
-            'mobile': contacto.mobile,
+            'name': contact.name,
+            'direccion': contact.street,
+            'mobile': contact.mobile,
         }
+
+        #Get dataa ADT Comercial
         cuenta_rec = request.env['adt.comercial.cuentas'].search([['partner_id.id', '=', vehicle_rec.driver_id.id]])
         data = []
+
         cuota_rec = request.env['adt.comercial.cuotas'].search([['cuenta_id.id', '=', cuenta_rec.id]])
         monto_total = 0
         for cuota in cuota_rec:
@@ -323,6 +331,21 @@ class Cobranza(http.Controller):
             if (cuota.state == 'retrasado'):
                 monto_total += cuota.monto
         print(monto_total)
+
+        # Get data Traccar
+        lista = []
+        URL_TRACCAR = 'http://190.232.26.249:8082/api/devices'
+        listVehicle = requests.get(URL_TRACCAR, json="", auth=('rapitash@gmail.com', 'Krishnna17$'))
+
+        for vehicleTraccar in listVehicle.json():
+            logging.info(" traccar : "+vehicleTraccar["name"])
+            placa = vehicleTraccar["name"].splitt(" / ")[0].replace("-","")
+            if placa == id:
+                """dataTraccar = {
+                    '' :
+                }"""
+
+
         final = {
             'contacto': val,
             'vehiculos': fleet,
@@ -333,16 +356,10 @@ class Cobranza(http.Controller):
     @http.route('/api/fleetList', type='json', auth='public')
     def fleetList(self, db, login, password, id):
         request.session.authenticate(db, login, password)
-        listVehicle = request.env['fleet.vehicle'].search([]).read([
+        listVehicle = request.env['fleet.vehicle'].search([('license_plate','ilike',id)]).read([
+            'id',
             'model_id',
             'license_plate',
             'driver_id',
-            'color',
-            'x_soat',
-            'x_licencia_final',
-            'x_fleet_tarjeta_propiedad',
-            'vin_sn',
-            'puerto',
-            'numero_celular'
         ])
         return listVehicle
