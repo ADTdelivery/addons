@@ -194,13 +194,12 @@
                             </div>
 
                             <div class="box_place_date">
-
                                 <p>Número de Participación Lima Norte: 2022-00000000 (Soles)</p>
 
                             </div>
 
                             <div class="box_place_date">
-                                <p>Vigencia: 52 (Semanas)</p>
+                                <p>Vigencia: 56 (Semanas)</p>
                             </div>
 
 
@@ -1549,23 +1548,25 @@
                                     DEL COBERTURADO
                                 </div>
                             </div>
-
-                            <div class="box_row general_body box_bordertop">
-                                <div class="w60p">
-                                    Fecha de Efecto:
-                                    <span>22/06/2022</span>
-                                </div>
-
-
-                                <div class="w40p">
-                                    Fecha de Expiración:
-                                    <span>22/07/2023</span>
-                                </div>
-                            </div>
-
-                            <div class="box_space_heigth"></div>
-
                             <t t-foreach="vehicle.driver_id" t-as="driver">
+
+                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                <div class="box_row general_body box_bordertop">
+                                    <div class="w60p">
+                                        Fecha de Efecto:
+                                        <span class="title_ligth" t-field="cuenta.fecha_entrega"/>
+                                    </div>
+
+
+                                    <div class="w40p">
+                                        Fecha de Expiración:
+                                        <span   t-esc="(cuenta.fecha_entrega + datetime.timedelta(days=365) ).strftime('%d/%m/%Y')"/>
+                                    </div>
+                                </div>
+                                </t>
+
+                                <div class="box_space_heigth"></div>
+
 
                                 <div class="box_row general_body">
                                     <div class="w60p">
@@ -1611,8 +1612,8 @@
                                 <div class="box_row general_body box_bordertop">
                                     <div class="w60p">
                                         Placa de Rodaje :
-                                          <span>EN CURSO
-                                            </span>
+                                        <span>EN CURSO
+                                        </span>
                                     </div>
                                     <div class="w40p">
                                         Marca del Vehículo:
@@ -1679,7 +1680,7 @@
 
                                 <div class="box_row general_body box_borderbi">
                                     <div class="w60p">
-                                        <span>1 año (1) o 52 Semanas</span>
+                                        <span>1 año (1) o 56 Semanas</span>
                                     </div>
                                     <div class="w40p"></div>
                                 </div>
@@ -1707,8 +1708,6 @@
                                     </div>
                                 </div>
                             </div>
-
-
 
 
                             <div class="box_place_date">
