@@ -9,6 +9,9 @@ class ProductAddons(models.Model):
     x_comision = fields.Monetary('Comisión')
     x_line_comision = fields.Monetary(related='')
 
+    product_model_id = fields.Many2one('fleet.vehicle.model', 'Model',
+        tracking=True, required=True, help='Model of the vehicle')
+
 
 #     _name = 'product_addons.product_addons'
 #     _description = 'product_addons.product_addons'
