@@ -187,7 +187,6 @@
 
                         </style>
 
-
                         <div class="header">
                             <img src="/fleet_addons/static/src/img/header_adt.jpg" alt="Not found" height="100"
                                  width="1000"/>
@@ -417,7 +416,7 @@
                                 y el
                                 <span class="indice_negrita">COMPRADOR</span>
                                 convienen a realizar la Compraventa a crédito un
-                                Vehículo Automotor Menor (Moto Lineal), al precio S/. 10 700 tarjeta de propiedad,
+                                Vehículo Automotor Menor (Moto Lineal), al precio S/. <span  t-esc="vehicle.getLines()" />  tarjeta de propiedad,
                                 placa, SOAT la
                                 Positiva, GPS y monitoreo por un año las 24 horas del día y a su vez un seguro interno
                                 siendo
@@ -443,7 +442,7 @@
                                 obligado a
                                 pagar el precio en el momento, de la manera y lugar pactados en el presente contrato,
                                 pactando como
-                                precio la suma de S/. 10 700. (DIEZ MIL SETECIENTOS) nuevos soles.
+                                precio la suma de S/. <span  t-esc="vehicle.getLines()" /> nuevos soles.
                             </div>
                             <br/>
                             <div>
