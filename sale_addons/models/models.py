@@ -13,4 +13,10 @@ class SaleAddons(models.Model):
     def _compute_commission(self):
         if not all(self._ids):
             for order in self:
-                order.total_comision = sum(order.order_line.mapped('x_line_comision'))
+                order.total_comision = sum(order.order_line.mapped('new_comision'))
+
+
+class SaleLineAddons(models.Model):
+    _inherit = "sale.order.line"
+
+    new_comision = fields.Monetary('sale.order.line', related='product_id.x_comision')
