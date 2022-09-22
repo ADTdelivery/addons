@@ -118,12 +118,21 @@ class ADTComercialCuentas(models.Model):
         string="Saldo restante", compute="_compute_pagado_restante")
     cuotas_pagado = fields.Monetary(
         string="Total pagado", compute="_compute_pagado_restante")
+    cuotas_retrasado = fields.Monetary(
+        string="Total retrasado", compute="_compute_pagado_restante")
     qty_cuotas_restantes = fields.Integer(
         string="Cuotas restantes", compute="_compute_qty_cuotas")
     qty_cuotas_pagadas = fields.Integer(
         string="Cuotas pagadas", compute="_compute_qty_cuotas")
+    qty_cuotas_retrasado = fields.Integer(
+        string="Cuotas retrasadas", compute="_compute_qty_cuotas")
 
     recuperado = fields.Boolean(string="Recuperado", readonly=True)
+
+    @api.model
+    def prueba(self):
+        name = "132"
+        self.create(dict(name=name))
 
     @api.depends('cuota_ids')
     def _compute_pagado_restante(self):
@@ -137,6 +146,9 @@ class ADTComercialCuentas(models.Model):
             lambda x: x.state == 'pagado').mapped('monto'))
         # self.cuotas_pagado = (self.monto_financiado - self.monto_inicial)-self.cuotas_saldo
 
+        self.cuotas_retrasado = sum(self.cuota_ids.filtered(
+            lambda x: x.state == 'retrasado').mapped('monto'))
+
     @api.depends('cuota_ids')
     def _compute_qty_cuotas(self):
         self.qty_cuotas_restantes = len(self.cuota_ids.filtered(
@@ -144,6 +156,11 @@ class ADTComercialCuentas(models.Model):
         pagadas = len(self.cuota_ids.filtered(
             lambda x: x.state == 'pagado' and x.type == 'cuota'))
         self.qty_cuotas_pagadas = pagadas
+
+        retrasados = len(self.cuota_ids.filtered(
+            lambda x: x.state == 'retrasado' and x.type == 'cuota'))
+
+        self.qty_cuotas_retrasado = retrasados
 
         if (pagadas > 0) and self.state != 'cancelado':
             self.state = 'en_curso'
@@ -154,6 +171,10 @@ class ADTComercialCuentas(models.Model):
 
     cuota_ids = fields.One2many(
         "adt.comercial.cuotas", "cuenta_id", string="Pagos")
+
+    """cuota2_ids = fields.One2many(
+        "adt.comercial.cuotas", "cuenta_id", string="Pagos 2")"""
+
 
     attachment_ids = fields.Many2many("ir.attachment", string="Adjuntos")
 

@@ -32,6 +32,8 @@ class ADTComercialCuotas(models.Model):
     resumen_observaciones = fields.Html(
         "Resumen observaciones", compute="_compute_resumen_observaciones", store=True)
 
+    real_date = fields.Date(string="Fecha real")
+
     @api.depends('observacion_ids')
     def _compute_resumen_observaciones(self):
         for record in self:

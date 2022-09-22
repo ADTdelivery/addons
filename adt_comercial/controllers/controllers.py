@@ -347,7 +347,7 @@ class Cobranza(http.Controller):
         for vehicleTraccar in listVehicle.json():
             logging.info(" traccar : "+vehicleTraccar["name"])
             if vehicleTraccar != False:
-                placa = vehicleTraccar["name"].splitt(" / ")[0].replace("-", "")
+                placa = vehicleTraccar["name"].split(" / ")[0].replace("-", "")
                 if placa == id:
                     dataTraccar = {
                         'groupId': vehicleTraccar['groupId'],

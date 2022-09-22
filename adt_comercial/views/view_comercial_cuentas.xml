@@ -23,37 +23,47 @@
         <field name="model">adt.comercial.cuentas</field>
         <field name="arch" type="xml">
             <search string="Search Partner">
-                <field name="partner_id" />
+                <field name="partner_id"/>
                 <field name="moto_marca" filter_domain="[('moto_marca', 'ilike', self)]"/>
                 <field name="moto_modelo" filter_domain="[('moto_modelo', 'ilike', self)]"/>
                 <field name="user_id"/>
                 <separator/>
                 <group expand="0" name="group_by" string="Group By">
                     <filter name="salesperson" string="Asesor" domain="[]" context="{'group_by' : 'user_id'}"/>
-                    <filter name="modelo_moto" string="Modelo de moto" domain="[]" context="{'group_by' : 'moto_modelo'}"/>
-                    <filter name="marca_moto" string="Marca de moto" domain="[]" context="{'group_by' : 'moto_marca'}"/>
+                    <filter name="modelo_moto" string="Modelo de moto" domain="[]"
+                            context="{'group_by' : 'moto_modelo'}"/>
+                    <filter name="marca_moto" string="Marca de moto" domain="[]"
+                            context="{'group_by' : 'moto_marca'}"/>
                 </group>
             </search>
         </field>
     </record>
-    
+
     <record id="adt_comercial_cuentas_form" model="ir.ui.view">
         <field name="name">adt.comercial.cuentas.form</field>
         <field name="model">adt.comercial.cuentas</field>
         <field name="arch" type="xml">
             <form string="Cuenta">
                 <header>
-                    <button name="aprobar_cuenta" type="object" string="Aprobar" attrs="{'invisible': [('state', '!=', 'borrador')]}" class="oe_highlight"/>
-                    <button name="cancelar_cuenta" type="object" string="Cancelar" attrs="{'invisible': [('state', 'in', ['borrador', 'cancelado'])]}"/>
-                    <button name="refinanciar_cuotas" type="object" string="Refinanciamiento" attrs="{'invisible': [('state', '!=', 'en_curso')]}" class="oe_highlight"/>
-                    <button name="recuperar_vehiculo" type="object" string="Recuperar" groups="adt_comercial.group_access_adt_comercial_recuperar" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'en_curso')]}"/>
-                    <button name="restablecer_vehiculo" type="object" string="Restablecer" groups="adt_comercial.group_access_adt_comercial_restablecer" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'cancelado')]}"/>
+                    <button name="aprobar_cuenta" type="object" string="Aprobar"
+                            attrs="{'invisible': [('state', '!=', 'borrador')]}" class="oe_highlight"/>
+                    <button name="cancelar_cuenta" type="object" string="Cancelar"
+                            attrs="{'invisible': [('state', 'in', ['borrador', 'cancelado'])]}"/>
+                    <button name="refinanciar_cuotas" type="object" string="Refinanciamiento"
+                            attrs="{'invisible': [('state', '!=', 'en_curso')]}" class="oe_highlight"/>
+                    <button name="recuperar_vehiculo" type="object" string="Recuperar"
+                            groups="adt_comercial.group_access_adt_comercial_recuperar" class="oe_highlight"
+                            attrs="{'invisible': [('state', '!=', 'en_curso')]}"/>
+                    <button name="restablecer_vehiculo" type="object" string="Restablecer"
+                            groups="adt_comercial.group_access_adt_comercial_restablecer" class="oe_highlight"
+                            attrs="{'invisible': [('state', '!=', 'cancelado')]}"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>
                     <group>
                         <group>
-                            <field name="partner_id" required="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                            <field name="partner_id" required="1"
+                                   attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                             <field name="mobile"/>
                         </group>
                         <group>
@@ -64,13 +74,18 @@
                     <notebook>
                         <page string="Moto">
                             <group>
-                                <field name="vehiculo_id" domain="[('driver_id','=', partner_id),('disponible', '=', True)]" options="{'no_create': True}" attrs="{'readonly': [('state', '!=', 'borrador')]}" required="1"/>
+                                <field name="vehiculo_id"
+                                       domain="[('driver_id','=', partner_id),('disponible', '=', True)]"
+                                       options="{'no_create': True}"
+                                       attrs="{'readonly': [('state', '!=', 'borrador')]}"
+                                       required="1"/>
                             </group>
                             <group>
                                 <group>
                                     <field name="moto_marca"/>
                                     <field name="moto_chasis"/>
-                                    <field name="moto_tarjeta" attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
+                                    <field name="moto_tarjeta"
+                                           attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
                                 </group>
                                 <group>
                                     <field name="moto_modelo"/>
@@ -79,11 +94,14 @@
                             </group>
                             <group>
                                 <group>
-                                    <field name="gps_chip" attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
-                                    <field name="gps_activo" attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
+                                    <field name="gps_chip"
+                                           attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
+                                    <field name="gps_activo"
+                                           attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
                                 </group>
                                 <group>
-                                    <field name="soat_activo" attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
+                                    <field name="soat_activo"
+                                           attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
                                 </group>
                             </group>
                         </page>
@@ -91,13 +109,15 @@
                             <separator string="Fechas"/>
                             <group>
                                 <group>
-                                    <field name="fecha_desembolso" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-                                    
+                                    <field name="fecha_desembolso"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+
                                     <field name="fecha_cierre" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                 </group>
                                 <group>
-                                    <field name="fecha_entrega" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-                                    
+                                    <field name="fecha_entrega"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+
                                 </group>
                             </group>
                             <separator string="Montos y cuotas"/>
@@ -105,9 +125,12 @@
                                 <group>
                                     <field name="monto_total" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                     <!-- <field name="monto_financiado" attrs="{'readonly': [('state', '!=', 'borrador')]}"/> -->
-                                    <field name="monto_inicial" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                                    <field name="monto_inicial"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
 
-                                    <field name="monto_fraccionado" attrs="{'readonly': [('state', '!=', 'borrador')]}" required="1"/>
+                                    <field name="monto_fraccionado"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"
+                                           required="1"/>
                                     <field name="cuota_gracia" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                     <field name="fecha_gracia" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                 </group>
@@ -129,10 +152,30 @@
                                     <field name="cuotas_pagado"/>
                                     <field name="qty_cuotas_pagadas"/>
                                 </group>
+
+                                <group>
+                                    <field name="cuotas_retrasado"/>
+                                    <field name="qty_cuotas_retrasado"/>
+                                </group>
+
                             </group>
                             <group>
-                                <button name="agregar_mora" type="object" string="Agregar mora" class="oe_highlight" attrs="{'invisible': [('state', 'in', ['borrador','cancelado'])]}"/>
+                                <button name="agregar_mora" type="object" string="Agregar mora" class="oe_highlight"
+                                        attrs="{'invisible': [('state', 'in', ['borrador','cancelado'])]}"/>
                             </group>
+
+                            <function
+                                    id="id_prueba"
+                                    model="adt.comercial.cuentas"
+                                    name="prueba">
+                            </function>
+
+                            <function
+                                    id="id_prueba"
+                                    model="adt.comercial.cuentas"
+                                    name="prueba">
+                            </function>
+
                             <group>
                                 <field name="cuota_ids">
                                     <!-- <tree delete="0" create="0" limit="120" editable="bottom"> -->
@@ -140,17 +183,23 @@
                                         <field name="name" readonly="1"/>
                                         <field name="monto" readonly="1"/>
                                         <field name="saldo"/>
+                                        <field name="real_date"/>
                                         <field name="type" string="Tipo" optional="hide" readonly="1"/>
                                         <field name="fecha_cronograma" readonly="1"/>
                                         <field name="fecha_compromiso" optional="1"/>
                                         <field name="resumen_observaciones" optional="hide"/>
-                                        <field name="state" widget="badge" decoration-info="state == 'a_cuenta'" decoration-success="state == 'pagado'"/>
-                                        <button string="Pagar" name="action_register_payment" type="object" class="oe_highlight" attrs="{'invisible': [('state', 'in', ['pagado','anulada'])]}" context="{'dont_redirect_to_payments': True}"/>
-                                        <button string="Observaciones" name="registrar_observacion" type="object"  attrs="{'invisible': [('state', 'in', ['anulada'])]}"/>
+                                        <field name="state" widget="badge" decoration-info="state == 'a_cuenta'"
+                                               decoration-success="state == 'pagado'"/>
+                                        <button string="Pagar" name="action_register_payment" type="object"
+                                                class="oe_highlight"
+                                                attrs="{'invisible': [('state', 'in', ['pagado','anulada'])]}"
+                                                context="{'dont_redirect_to_payments': True}"/>
+                                        <button string="Observaciones" name="registrar_observacion" type="object"
+                                                attrs="{'invisible': [('state', 'in', ['anulada'])]}"/>
                                     </tree>
                                     <form string="Cuota" edit="0">
                                         <header>
-                                            <field name="state" widget="statusbar" />
+                                            <field name="state" widget="statusbar"/>
                                         </header>
                                         <group>
                                             <group>
@@ -177,8 +226,11 @@
                                                             <field name="date"/>
                                                             <field name="name"/>
                                                             <field name="journal_id"/>
-                                                            <field name="amount_company_currency_signed" widget="monetary" string="Amount" sum="Total"/>
-                                                            <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'posted'"/>
+                                                            <field name="amount_company_currency_signed"
+                                                                   widget="monetary" string="Amount" sum="Total"/>
+                                                            <field name="state" widget="badge"
+                                                                   decoration-info="state == 'draft'"
+                                                                   decoration-success="state == 'posted'"/>
                                                         </tree>
                                                     </field>
                                                 </group>
@@ -213,7 +265,7 @@
                                 <field name="attachment_ids" widget="many2many_binary"/>
                             </group>
                         </page>
-                        
+
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
@@ -244,11 +296,12 @@
         <field name="view_id" ref="adt_comercial.adt_comercial_cuentas_form"/>
         <field name="act_window_id" ref="action_cuentas"/>
     </record>
-    
+
     <menuitem id="adt_comercial_menu_cuentas"
-        name="Cuentas"
-        action="action_cuentas"
-        parent="menu_adt_comercial"
-        sequence="3"/>
+              name="Cuentas"
+              action="action_cuentas"
+              parent="menu_adt_comercial"
+              sequence="3"/>
+
 
 </odoo>
