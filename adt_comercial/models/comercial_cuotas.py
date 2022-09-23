@@ -2,6 +2,7 @@ from datetime import timedelta, datetime, date
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError, RedirectWarning, UserError
 import xmlrpc.client
+from odoo.http import request
 
 import logging
 
@@ -32,7 +33,31 @@ class ADTComercialCuotas(models.Model):
     resumen_observaciones = fields.Html(
         "Resumen observaciones", compute="_compute_resumen_observaciones", store=True)
 
-    real_date = fields.Date(string="Fecha real")
+    real_date = fields.Char(string="Fecha de pago")
+
+    numero_operacion = fields.Char(string="# Operación")
+
+    @api.model
+    def _change_real_date(self):
+        for data in self:
+            print(str(data.cuota_ids))
+            for cuota in data.cuota_ids:
+                account_payment = request.env['account.payment'].search([('cuota_id', '=', cuota.id)]).read([
+                    'move_id',
+                ])
+                print(account_payment)
+                if len(account_payment) > 0:
+                    account_move = request.env['account.move'].search(
+                        [('id', '=', account_payment[0]['move_id'][0])]).read([
+                        'date',
+                        'ref'
+                    ])
+                    cuota.real_date = str(account_move[0]['date'])
+                    cuota.numero_operacion = str(account_move[0]['ref'])
+
+                else:
+                    cuota.real_date = ""
+                    cuota.numero_operacion = ""
 
     @api.depends('observacion_ids')
     def _compute_resumen_observaciones(self):
@@ -107,6 +132,10 @@ class ADTComercialCuotas(models.Model):
             'target': 'new',
             'type': 'ir.actions.act_window',
         }
+
+    @api.model
+    def prueba_data_2(self):
+        print("Row data")
 
 
 class ADTComercialRegisterPayment(models.TransientModel):

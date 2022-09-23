@@ -149,43 +149,35 @@
                                     <field name="qty_cuotas_restantes"/>
                                 </group>
                                 <group>
+                                    <field name="cuotas_retrasado"/>
+                                    <field name="qty_cuotas_retrasado"/>
+                                </group>
+                                <group>
                                     <field name="cuotas_pagado"/>
                                     <field name="qty_cuotas_pagadas"/>
                                 </group>
 
-                                <group>
-                                    <field name="cuotas_retrasado"/>
-                                    <field name="qty_cuotas_retrasado"/>
-                                </group>
 
                             </group>
                             <group>
                                 <button name="agregar_mora" type="object" string="Agregar mora" class="oe_highlight"
                                         attrs="{'invisible': [('state', 'in', ['borrador','cancelado'])]}"/>
+                                <button string="Mostrar detalle" name="prueba_data" type="object"/>
+
                             </group>
 
-                            <function
-                                    id="id_prueba"
-                                    model="adt.comercial.cuentas"
-                                    name="prueba">
-                            </function>
-
-                            <function
-                                    id="id_prueba"
-                                    model="adt.comercial.cuentas"
-                                    name="prueba">
-                            </function>
 
                             <group>
+
                                 <field name="cuota_ids">
-                                    <!-- <tree delete="0" create="0" limit="120" editable="bottom"> -->
                                     <tree editable="top" delete="false" limit="120" multi_edit="1" create="false">
                                         <field name="name" readonly="1"/>
                                         <field name="monto" readonly="1"/>
                                         <field name="saldo"/>
-                                        <field name="real_date"/>
                                         <field name="type" string="Tipo" optional="hide" readonly="1"/>
                                         <field name="fecha_cronograma" readonly="1"/>
+                                        <field name="real_date"/>
+                                        <field name="numero_operacion"/>
                                         <field name="fecha_compromiso" optional="1"/>
                                         <field name="resumen_observaciones" optional="hide"/>
                                         <field name="state" widget="badge" decoration-info="state == 'a_cuenta'"
@@ -212,9 +204,7 @@
                                         </group>
                                         <notebook>
                                             <page string="Resumen">
-                                                <!-- <group>
-                                                    <field name="resumen_pagos" readonly="1"/>
-                                                </group> -->
+
                                                 <group>
                                                     <field name="resumen_observaciones" readonly="1"/>
                                                 </group>
@@ -243,7 +233,6 @@
                                                         <field name="attachment_ids"/>
                                                     </tree>
                                                     <form string="Observación">
-                                                        <!-- Invisible fields -->
                                                         <field name="cuota_id" readonly="1" invisible="1"/>
                                                         <group>
                                                             <field name="fecha" required="1"/>
@@ -258,7 +247,9 @@
                                         </notebook>
                                     </form>
                                 </field>
+
                             </group>
+
                         </page>
                         <page string="Documentos anexos">
                             <group>

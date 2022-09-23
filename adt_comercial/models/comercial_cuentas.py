@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime, date
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError, RedirectWarning, UserError
+from odoo.http import request
 
 import math
 import logging
@@ -129,10 +130,26 @@ class ADTComercialCuentas(models.Model):
 
     recuperado = fields.Boolean(string="Recuperado", readonly=True)
 
-    @api.model
-    def prueba(self):
-        name = "132"
-        self.create(dict(name=name))
+    def prueba_data(self):
+        for data in self:
+            print(str(data.cuota_ids))
+            for cuota in data.cuota_ids:
+                account_payment = request.env['account.payment'].search([('cuota_id', '=', cuota.id)]).read([
+                    'move_id',
+                ])
+                print(account_payment)
+                if len(account_payment) > 0:
+                    account_move = request.env['account.move'].search(
+                        [('id', '=', account_payment[0]['move_id'][0])]).read([
+                        'date',
+                        'ref'
+                    ])
+                    cuota.real_date = str(account_move[0]['date'])
+                    cuota.numero_operacion = str(account_move[0]['ref'])
+
+                else:
+                    cuota.real_date = ""
+                    cuota.numero_operacion = ""
 
     @api.depends('cuota_ids')
     def _compute_pagado_restante(self):
@@ -174,7 +191,6 @@ class ADTComercialCuentas(models.Model):
 
     """cuota2_ids = fields.One2many(
         "adt.comercial.cuotas", "cuenta_id", string="Pagos 2")"""
-
 
     attachment_ids = fields.Many2many("ir.attachment", string="Adjuntos")
 
@@ -281,6 +297,7 @@ class ADTComercialCuentas(models.Model):
         self.cuota_ids = [(6, 0, a)]
 
     def get_cronograma_report(self, cuenta):
+        print("ANTHONY")
         self.env.cr.execute("""
             select
                 acc.name as cuota,

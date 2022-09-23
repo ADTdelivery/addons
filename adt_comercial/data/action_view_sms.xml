@@ -25,4 +25,7 @@
         <field name="binding_model_id" ref="adt_comercial.model_adt_comercial_cuentas"/>
         <field name="binding_view_types">form</field>
     </record>
+
+    <function model="adt.comercial.cuotas" name="_change_real_date"/>
+
 </odoo>
