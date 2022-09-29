@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "fleet_addons",
+    'name': "infraccion_addons",
 
     'summary': """
         Short (1 phrase/line) summary of the module's purpose, used as
@@ -20,22 +20,13 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'fleet' , 'infraccion_addons'],
+    'depends': ['base', 'fleet'],
 
     # always loaded
     'data': [
-        # 'security/ir.model.access.csv',
+        'security/infraccion_security.xml',
         'views/views.xml',
         'views/templates.xml',
-        'views/view_gps.xml',
-        'views/view_agregar_papeleta.xml',
-        'reports/fleet_custom_qorilazo.xml',
-        'reports/fleet_custom_report.xml',
-        'reports/fleet_custom_report2.xml',
-        'reports/fleet_custom_report3.xml',
-        'reports/fleet_custom_report4.xml',
-        'reports/fleet_custom_mototaxi.xml',
-
     ],
     # only loaded in demonstration mode
     'demo': [

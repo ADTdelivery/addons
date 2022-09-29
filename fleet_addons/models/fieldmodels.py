@@ -35,3 +35,26 @@ class ModelVehicle(models.Model):
         ('bike', 'Bicicleta'),
         ('mototaxi', 'Mototaxi'),
     ])
+
+
+class ModelPapeleta(models.Model):
+    _inherit = 'fleet.vehicle'
+
+    infraccion_id = fields.One2many('infraccion.attributes.model', 'fleet_id', string="Papeletas")
+
+    def agregar_papeleta(self):
+        return {
+            'name': 'Registrar papeleta',
+            'res_model': 'infraccion.attributes.model',
+            'view_mode': 'form',
+            'context': {
+                'active_model': 'fleet.vehicle',
+                # 'active_ids': self.ids,
+                # 'default_amount': self.monto,
+                # 'default_fecha': date.today(),
+
+                'default_fleet_id': self.id,
+            },
+            'target': 'new',
+            'type': 'ir.actions.act_window',
+        }

@@ -17,4 +17,30 @@
             </xpath>
         </field>
     </record>
+
+
+    <record id="fleet_addons2_form" model="ir.ui.view">
+        <field name="name">fleet.addons2.form</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Papeleta">
+                     <button name="agregar_papeleta" type="object" string="Agregar papeleta" class="oe_highlight"/>
+                    <group>
+                        <field name="infraccion_id">
+
+                            <tree delete="false" edit="false" create="false">
+
+                                <field name="name"/>
+                                <field name="file" widget="one2mony_tags"/>
+                                <field name="monto_papeleta"/>
+
+                            </tree>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
 </odoo>
