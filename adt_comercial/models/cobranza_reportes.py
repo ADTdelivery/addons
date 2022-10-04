@@ -2,6 +2,7 @@ from odoo import _, api, fields, models
 from odoo import tools
 
 import logging
+
 _logger = logging.getLogger(__name__)
 
 
@@ -171,6 +172,8 @@ class ADTCobranzaPagosPendientes(models.Model):
             "view_mode": "form",
             "view_id": view.id
         }
+
+
 
 
 class ADTCobranzaCaptura(models.Model):

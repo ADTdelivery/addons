@@ -26,6 +26,11 @@
                         <field name="qty_cuotas"/>
                     </group>
                 </group>
+
+                <group>
+                    <group><field name="periodicidad"/></group>
+                </group>
+
                 <footer>
                     <button string="Registrar" name="action_create_cuotas" type="object" class="oe_highlight"/>
                     <button string="Cancelar" class="btn btn-secondary" special="cancel"/>

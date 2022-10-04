@@ -5,6 +5,7 @@ from odoo.http import request
 
 import math
 import logging
+from math import trunc
 
 _logger = logging.getLogger(__name__)
 
@@ -204,6 +205,9 @@ class ADTComercialCuentas(models.Model):
                 # 'active_ids': self.ids,
                 # 'default_amount': self.monto,
                 # 'default_fecha': date.today(),
+                'default_monto_cuota': self.monto_cuota,
+                'default_qty_cuotas': self.qty_cuotas,
+                'default_periodicidad': self.periodicidad,
                 'default_monto_refinanciado': self.cuotas_saldo,
                 'default_cuenta_id': self.id,
             },
@@ -254,7 +258,7 @@ class ADTComercialCuentas(models.Model):
 
         # ? ASIGNACION DE CUOTAS
         a.append(self.env["adt.comercial.cuotas"].create(
-            {'name': 'Cuota 0', 'monto': cuota_gracia, 'fecha_cronograma': self.fecha_gracia}).id)
+            {'name': 'Cuota 0', 'monto': cuota_gracia, 'fecha_cronograma': self.fecha_gracia,'periodicidad':self.periodicidad}).id)
 
         if monto_cuota == 0:
             monto_cuota_mod = (monto_fraccionado - cuota_gracia) % qty_cuotas
@@ -275,7 +279,7 @@ class ADTComercialCuentas(models.Model):
                     monto_cuota_temp += monto_cuota_mod
 
                 a.append(self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota_temp, 'fecha_cronograma': fecha_inicial}).id)
+                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota_temp, 'fecha_cronograma': fecha_inicial,'periodicidad':self.periodicidad}).id)
 
         else:
             total_temp = qty_cuotas * monto_cuota
@@ -292,7 +296,7 @@ class ADTComercialCuentas(models.Model):
                                      cuota_gracia) - total_temp)
 
                 a.append(self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id)
+                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial,'periodicidad':self.periodicidad}).id)
 
         self.cuota_ids = [(6, 0, a)]
 
@@ -442,8 +446,12 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
 
     cuenta_id = fields.Many2one('adt.comercial.cuentas', string="Id de cuenta")
 
+    periodicidad = fields.Selection(
+        [('semanal', 'Semanal'), ('quincena', 'Quincenal'), ('mensual', 'Mensual')], string="Periodo de pago")
+
     def action_create_cuotas(self):
         global days
+        # pagado , anulada
         for sin_pagar in self.cuenta_id.cuota_ids.filtered(lambda x: x.state in ['pendiente', 'a_cuenta', 'retrasado']):
             if sin_pagar.state == 'a_cuenta':
                 sin_pagar.monto = sum(sin_pagar.payment_ids.mapped('amount'))
@@ -461,12 +469,25 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
         monto_cuota = self.monto_cuota if self.monto_cuota else 0
         total_a_pagar = self.monto_refinanciado + self.monto_adicional
 
-        if self.cuenta_id.periodicidad == 'semanal':
+        if self.periodicidad == 'semanal':
             days = 7
-        if self.cuenta_id.periodicidad == 'quincena':
+        if self.periodicidad == 'quincena':
             days = 15
-        elif self.cuenta_id.periodicidad == 'mensual':
+        elif self.periodicidad == 'mensual':
             days = 30
+
+        # new_qty_cuotas = int(math.floor(self.type_cuota(self.cuenta_id.periodicidad, self.periodicidad, qty_cuotas)))
+
+        new_qty_cuotas = trunc(self.type_cuota(self.cuenta_id.periodicidad, self.periodicidad, qty_cuotas))
+        new_monto_cuota = self.type_monto(self.cuenta_id.periodicidad, self.periodicidad, monto_cuota)
+
+        qty_cuotas = new_qty_cuotas
+        # Dividir el total entre la cantidad total de las cuotas
+        monto_cuota = total_a_pagar / qty_cuotas
+
+        # Actualizar la periodicidad de la cuenta
+        vehicle = self.env['adt.comercial.cuentas'].search([('id', '=', self.cuenta_id.id)])
+        vehicle.write({'periodicidad': self.periodicidad, 'qty_cuotas': qty_cuotas})
 
         a = []
         fecha_inicial = self.fecha_refinanciamiento  # +timedelta(days=days)
@@ -490,9 +511,8 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
                     {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota_temp,
-                     'fecha_cronograma': fecha_inicial}).id
+                     'fecha_cronograma': fecha_inicial,'periodicidad': self.periodicidad}).id
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
-
         elif qty_cuotas == 0:
             qty_cuotas = math.floor(total_a_pagar / monto_cuota)
             total_temp = qty_cuotas * monto_cuota
@@ -507,10 +527,11 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
                     monto_cuota += (total_a_pagar - total_temp)
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id
+                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial, 'periodicidad': self.periodicidad}).id
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
         else:
             total_temp = qty_cuotas * monto_cuota
+            last_cuota = False
             if total_temp > total_a_pagar:
                 raise UserError(
                     'El monto calculado [cuotas * monto] es mayor al saldo a pagar. Por favor corrija la cantidad de cuotas o el monto.')
@@ -519,13 +540,66 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
             for i in range(qty_cuotas):
                 fecha_inicial = fecha_inicial + timedelta(days=days)
 
+                # Restriccion de si llega al final de la cuota y si es una cuota impar
                 if i == (qty_cuotas - 1):
-                    monto_cuota += (total_a_pagar - total_temp)
+                    # monto_cuota += (total_a_pagar - total_temp)
+                    if total_a_pagar - total_temp > 0:
+                        last_cuota = True
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial}).id
+                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial, 'periodicidad': self.periodicidad}).id
 
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
+
+                if last_cuota:
+                    new_cuota = self.env["adt.comercial.cuotas"].create(
+                        {'name': 'Cuota R. - ' + str(i + 2), 'monto': (total_a_pagar - total_temp),
+                         'fecha_cronograma': fecha_inicial + timedelta(days=days), 'periodicidad': self.periodicidad}).id
+
+                    self.cuenta_id.cuota_ids = [(4, new_cuota)]
+
+    def type_cuota(self, old_periodicidad, new_periodicidad, qty_cuotas):
+        new_qty_cuotas = 0.0
+
+        if old_periodicidad == 'semanal' and new_periodicidad == 'quincena':
+            new_qty_cuotas = qty_cuotas / 2.0
+        if old_periodicidad == 'semanal' and new_periodicidad == 'mensual':
+            new_qty_cuotas = qty_cuotas / 4.0
+        if old_periodicidad == 'quincena' and new_periodicidad == 'mensual':
+            new_qty_cuotas = qty_cuotas / 2.0
+
+        if old_periodicidad == 'quincena' and new_periodicidad == 'semanal':
+            new_qty_cuotas = qty_cuotas * 2
+        if old_periodicidad == 'mensual' and new_periodicidad == 'semanal':
+            new_qty_cuotas = qty_cuotas * 4
+        if old_periodicidad == 'mensual' and new_periodicidad == 'quincena':
+            new_qty_cuotas = qty_cuotas * 2
+
+        if (old_periodicidad == 'semanal' and new_periodicidad == 'semanal') or \
+                (old_periodicidad == 'quincena' and new_periodicidad == 'quincena') or \
+                (old_periodicidad == 'mensual' and new_periodicidad == 'mensual'):
+            new_qty_cuotas = qty_cuotas
+
+        return new_qty_cuotas
+
+    def type_monto(self, old_periodicidad, new_periodicidad, monto_cuota):
+        new_monto_cuota = 0.0
+
+        if old_periodicidad == 'semanal' and new_periodicidad == 'quincena':
+            new_monto_cuota = monto_cuota * 2
+        if old_periodicidad == 'semanal' and new_periodicidad == 'mensual':
+            new_monto_cuota = monto_cuota * 4
+        if old_periodicidad == 'quincena' and new_periodicidad == 'mensual':
+            new_monto_cuota = monto_cuota * 2
+
+        if old_periodicidad == 'quincena' and new_periodicidad == 'semanal':
+            new_monto_cuota = monto_cuota / 2
+        if old_periodicidad == 'mensual' and new_periodicidad == 'semanal':
+            new_monto_cuota = monto_cuota / 4
+        if old_periodicidad == 'mensual' and new_periodicidad == 'quincena':
+            new_monto_cuota = monto_cuota / 2
+
+        return new_monto_cuota
 
 
 class ADTComercialCuentasFunction(models.Model):

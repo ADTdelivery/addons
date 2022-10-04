@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+       <record id="view_adt_warning_message_form" model="ir.ui.view">
+        <field name="name">adt.warning.message.model.form</field>
+        <field name="model">adt.warning.message</field>
+        <field name="arch" type="xml">
+            <form string="Pago">
+                <!-- Invisible fields
+                <field name="description" readonly="1" invisible="1"/>
+                <field name="fleet_id" readonly="1" invisible="1"/>-->
+                <group>
+                    <field name="message"/>
+                </group>
+                <footer>
+                    <button string="Eliminar" name="action_delete_payment" type="object" class="oe_highlight"/>
+                    <button string="Cancelar" class="btn btn-secondary" special="cancel"/>
+                </footer>
+
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -37,6 +37,8 @@ class ADTComercialCuotas(models.Model):
 
     numero_operacion = fields.Char(string="# Operación")
 
+    periodicidad = fields.Char(string="Periodo")
+
     @api.model
     def _change_real_date(self):
         for data in self:
@@ -136,6 +138,34 @@ class ADTComercialCuotas(models.Model):
     @api.model
     def prueba_data_2(self):
         print("Row data")
+
+    def action_delete_payment(self):
+        return {
+            'name': _('Delete Payment'),
+            'res_model': 'adt.warning.message',
+            'view_mode': 'form',
+            'context': {
+                'active_model': 'adt.comercial.cuotas',
+                'active_ids': self.ids,
+                'default_amount': self.saldo,
+                'default_communication': self.name,
+                'default_cuota_id': self.id,
+            },
+            'target': 'new',
+            'type': 'ir.actions.act_window',
+        }
+
+
+class ADTComercialWarningMessage(models.TransientModel):
+    _name = "adt.warning.message"
+    _description = "ADT Warning messages"
+
+    message = fields.Text(string="Esta seguro que desea eliminar el pago?", readonly=True, store=True)
+    cuota_id = fields.Many2one('adt.comercial.cuotas', string="Id de cuota")
+
+    def action_delete_payment(self):
+        data = self.env['account.payment'].search([('cuota_id', '=', self.cuota_id.id)])
+        data.unlink()
 
 
 class ADTComercialRegisterPayment(models.TransientModel):
