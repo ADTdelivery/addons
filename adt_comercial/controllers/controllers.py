@@ -1,8 +1,11 @@
 from odoo import http
 from odoo.http import request
 import requests
+from datetime import datetime
+from datetime import date
 
 import logging
+
 
 class Cobranza(http.Controller):
     @http.route('/detalle', type='json', auth='none')
@@ -313,7 +316,7 @@ class Cobranza(http.Controller):
             'mobile': contact.mobile,
         }
 
-        #Get dataa ADT Comercial
+        # Get dataa ADT Comercial
         cuenta_rec = request.env['adt.comercial.cuentas'].search([['partner_id.id', '=', vehicle_rec.driver_id.id]])
         data = []
 
@@ -341,11 +344,11 @@ class Cobranza(http.Controller):
             'groupId': '',
             'name': '',
             'status': '',
-            'lastUpdate':''
+            'lastUpdate': ''
         }
 
         for vehicleTraccar in listVehicle.json():
-            logging.info(" traccar : "+vehicleTraccar["name"])
+            logging.info(" traccar : " + vehicleTraccar["name"])
             if vehicleTraccar != False:
                 placa = vehicleTraccar["name"].split(" / ")[0].replace("-", "")
                 if placa == id:
@@ -356,23 +359,97 @@ class Cobranza(http.Controller):
                         'lastUpdate': vehicleTraccar['lastUpdate']
                     }
 
-
-
         final = {
             'contacto': val,
             'vehiculos': fleet,
             'deudas': data,
             'traccar': dataTraccar
-         }
+        }
         return final
 
     @http.route('/api/fleetList', type='json', auth='public')
     def fleetList(self, db, login, password, id):
         request.session.authenticate(db, login, password)
-        listVehicle = request.env['fleet.vehicle'].search([('license_plate','ilike',id)]).read([
+        listVehicle = request.env['fleet.vehicle'].search([('license_plate', 'ilike', id)]).read([
             'id',
             'model_id',
             'license_plate',
             'driver_id',
         ])
         return listVehicle
+
+    @http.route('/api/report', type='json', auth='public')
+    def report1(self, db, login, password, id):
+        request.session.authenticate(db, login, password)
+
+        list = request.env['adt.comercial.cuentas'].search(
+            [('state', '!=', 'cancelado')]).read([
+            'reference_no',  # Referencia
+            'partner_id',  # Nombre del socio
+            # DNI o CE
+            'vehiculo_id',  # Marca de moto y modelo
+            'user_id',  # Analista de credito
+            # Cobrador
+            'periodicidad',  # Tipo de cuenta
+            'monto_cuota',  # Monto de cuota
+            'fecha_desembolso',  # Fecha de desembolso
+            'monto_fraccionado',  # Monto de deuda total
+            # Dias de atraso
+            # Numero de cuotas pagadas
+            # Numero de cuotas pendientes
+            # Numero de cuota vigente
+        ])
+
+        print(type(list))
+
+        for item in list:
+            cuotas_general = request.env['adt.comercial.cuotas'].search(
+                [('cuenta_id', '=', item['id'])]).read([
+                'fecha_cronograma', 'state'
+            ])
+
+            quanty_pagadas = self.count_cuotas_pagadas(cuotas_general)
+            quanty_pendientes = self.count_cuotas_pendientes(cuotas_general)
+            quanty_retrasadas = self.count_cuotas_retrasadas(cuotas_general)
+            quantity_dias_atraso = self.quantity_dias_atraso(item)
+
+            item['dias_retraso'] = quantity_dias_atraso
+            item['cuotas_pagadas'] = quanty_pagadas
+            item['cuotas_pendientes'] = quanty_pendientes
+            item['cuotas_retrasadas'] = quanty_retrasadas
+
+            print(str(item))
+
+    def quantity_dias_atraso(self, item):
+        cuotas = request.env['adt.comercial.cuotas'].search(
+            [('state', '=', 'retrasado'), ('cuenta_id', '=', item['id'])]).read([
+            'fecha_cronograma'
+        ])
+
+        amount_day1 = cuotas[len(cuotas) - 1]['fecha_cronograma'] - cuotas[0]['fecha_cronograma']
+        amount_day2 = date.today() - cuotas[len(cuotas) - 1]['fecha_cronograma']
+
+        total = int(str(amount_day1).split(' ')[0]) + int(str(amount_day2).split(' ')[0])
+
+        return total
+
+    def count_cuotas_pagadas(self, list):
+        quanty = 0
+        for cuota in list:
+            if cuota['state'] == 'pagado':
+                quanty = quanty + 1
+        return quanty
+
+    def count_cuotas_pendientes(self, list):
+        quanty = 0
+        for cuota in list:
+            if cuota['state'] == 'pendiente':
+                quanty = quanty + 1
+        return quanty
+
+    def count_cuotas_retrasadas(self, list):
+        quanty = 0
+        for cuota in list:
+            if cuota['state'] == 'retrasado':
+                quanty = quanty + 1
+        return quanty
