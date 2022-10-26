@@ -25,7 +25,7 @@
         'reports/external_layout_cronograma.xml',
         # 'reports/paperformat.xml',
         'reports/report.xml',
-        'reports/reporte_cronograma_cuenta.xml',
+        'reports/reporte_cronograma_cuenta.xml'
     ],
     # 'assets': {
     #     'web.report_assets_common': [

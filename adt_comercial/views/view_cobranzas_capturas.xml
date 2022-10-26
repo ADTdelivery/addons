@@ -118,13 +118,12 @@
         <field name="act_window_id" ref="action_cobranzas_recuperado"/>
     </record>
 
+
+
+
+
     <menuitem id="adt_cobranza_menu_capturas" name="Capturas" parent="menu_adt_cobranza" sequence="3"/>
     <menuitem id="adt_cobranza_menu_en_captura" name="En captura" parent="adt_cobranza_menu_capturas" action="action_cobranzas_en_captura" sequence="1"/>
     <menuitem id="adt_cobranza_menu_recuperado" name="Recuperados" parent="adt_cobranza_menu_capturas" action="action_cobranzas_recuperado" sequence="1"/>
-    <!-- <menuitem id="adt_cobranza_menu_pagos_realizados" name="Pagos realizados" parent="adt_cobranza_menu_pagos" action="action_cobranzas_pagos_realizados" sequence="2"/> -->
-
-
-
-
 
 </odoo>

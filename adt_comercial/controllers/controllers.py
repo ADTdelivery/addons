@@ -420,16 +420,22 @@ class Cobranza(http.Controller):
 
             print(str(item))
 
+        return list
+
     def quantity_dias_atraso(self, item):
         cuotas = request.env['adt.comercial.cuotas'].search(
             [('state', '=', 'retrasado'), ('cuenta_id', '=', item['id'])]).read([
             'fecha_cronograma'
         ])
 
-        amount_day1 = cuotas[len(cuotas) - 1]['fecha_cronograma'] - cuotas[0]['fecha_cronograma']
-        amount_day2 = date.today() - cuotas[len(cuotas) - 1]['fecha_cronograma']
+        try:
+            amount_day1 = cuotas[len(cuotas) - 1]['fecha_cronograma'] - cuotas[0]['fecha_cronograma']
+            amount_day2 = date.today() - cuotas[len(cuotas) - 1]['fecha_cronograma']
 
-        total = int(str(amount_day1).split(' ')[0]) + int(str(amount_day2).split(' ')[0])
+            total = int(str(amount_day1).split(' ')[0]) + int(str(amount_day2).split(' ')[0])
+        except:
+
+            total = 0
 
         return total
 

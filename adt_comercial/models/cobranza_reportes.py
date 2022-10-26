@@ -2,6 +2,7 @@ from odoo import _, api, fields, models
 from odoo import tools
 
 import logging
+from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
@@ -174,8 +175,6 @@ class ADTCobranzaPagosPendientes(models.Model):
         }
 
 
-
-
 class ADTCobranzaCaptura(models.Model):
     _name = 'adt.reporte.cobranza.captura'
     _description = 'Cobranza - Captura'
@@ -243,3 +242,5 @@ class ADTCobranzaRecuperado(models.Model):
                 where acc.recuperado = true
             )
         '''.format(self._table))
+
+
