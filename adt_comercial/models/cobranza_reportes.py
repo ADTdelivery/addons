@@ -112,6 +112,9 @@ class ADTCobranzaPagosPendientes(models.Model):
     vat = fields.Char(string="DNI o CE")
     model_id = fields.Many2one('fleet.vehicle', string="Vehiculo modelo")
 
+    numero_pagado = fields.Integer(string="# cuotas pagadas")
+    numero_pendiente = fields.Integer(string="# cuotas pendiente")
+
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute('''
@@ -130,7 +133,10 @@ class ADTCobranzaPagosPendientes(models.Model):
                     rp.phone as phone,
                     rp.vat as vat,
                     fv.model_id as model_id,
-                    acc.monto as monto
+                    acc.monto as monto,
+                    (SELECT count(*) FROM adt_comercial_cuotas AS cuotas WHERE cuotas.state = 'pagado' AND cuotas.cuenta_id = acc.id) AS  numero_pagado ,
+                    (SELECT count(*) FROM adt_comercial_cuotas AS cuotas WHERE cuotas.state = 'retrasado' AND cuotas.cuenta_id = acc.id ) AS numero_pendiente 
+                    
                 from adt_comercial_cuotas acc
                 left join adt_comercial_cuentas acc2 on acc.cuenta_id=acc2.id
                 left join res_partner rp on acc2.partner_id = rp.id

@@ -81,6 +81,9 @@
                 <field name="fecha_desembolso"/>
                 <field name="fecha_cronograma"/>
                 <field name="monto"/>
+                <field name="numero_pagado" />
+                <field name="numero_pendiente" />
+
                 <button name="registrar_pago" type="object" class="oe_highlight" string="Pagar"/>
                 <button name="registrar_observacion" type="object" string="Registrar observación"/>
                 <button name="ver_detalle_cuenta" type="object" string="Ver detalle"/>
