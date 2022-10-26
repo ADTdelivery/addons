@@ -72,6 +72,9 @@
                 <field name="reference_no" string="Cuenta"/>
                 <field name="cuota_id" string="# Cuota"/>
                 <field name="partner_id"/>
+                <field name="vat"/>
+                <field name="model_id"/>
+                <field name="user_id"/>
                 <field name="phone"/>
                 <field name="mobile"/>
                 <field name="dias_retraso"/>

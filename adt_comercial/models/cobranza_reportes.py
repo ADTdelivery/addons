@@ -109,6 +109,8 @@ class ADTCobranzaPagosPendientes(models.Model):
 
     monto = fields.Float(string='Monto')
     dias_retraso = fields.Integer(string="Días de retraso")
+    vat = fields.Char(string="DNI o CE")
+    model_id = fields.Many2one('fleet.vehicle', string="Vehiculo modelo")
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
@@ -126,10 +128,13 @@ class ADTCobranzaPagosPendientes(models.Model):
                     acc2.partner_id as partner_id,
                     rp.mobile as mobile,
                     rp.phone as phone,
+                    rp.vat as vat,
+                    fv.model_id as model_id,
                     acc.monto as monto
                 from adt_comercial_cuotas acc
                 left join adt_comercial_cuentas acc2 on acc.cuenta_id=acc2.id
                 left join res_partner rp on acc2.partner_id = rp.id
+                left join fleet_vehicle fv on acc2.vehiculo_id = fv.id
                 where acc2.state != 'cancelado' and acc.state = 'pendiente'
             )
         '''.format(self._table))
