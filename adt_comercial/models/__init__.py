@@ -7,3 +7,5 @@ from . import cobranza_reportes
 from . import cobranza_config
 from . import fleet_vehicle
 from . import cobranza_deudores
+from . import DeudorXLSX
+
