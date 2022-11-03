@@ -88,12 +88,17 @@ class DeudorXLSX(models.AbstractModel):
             # Numero de cuota vigente
         ])
 
+        last_list = []
+
+        print(type(list))
+
         for item in list:
+            print(type(item))
             cuotas_general = request.env['adt.comercial.cuotas'].search(
                 [('cuenta_id', '=', item['id'])]).read([
                 'fecha_cronograma', 'state', 'name', 'monto'])
 
-            item['dias_retraso'] = self.quantity_dias_atraso2(cuotas_general)
+            """item['dias_retraso'] = self.quantity_dias_atraso2(cuotas_general)
             item['cuotas_pagadas'] = self.count_cuotas_pagadas(cuotas_general)
             item['cuotas_pendientes'] = self.count_cuotas_pendientes(cuotas_general)
             item['cuotas_retrasadas'] = self.count_cuotas_retrasadas(cuotas_general)
@@ -101,8 +106,43 @@ class DeudorXLSX(models.AbstractModel):
             item['amount_cuota_retrasadas'] = self.amount_cuotas_retrasadas(cuotas_general)
             item['vat'] = self.find_identity_document(item['partner_id'][0])
             item['total_cuotas'] = self.total_cuotas(cuotas_general)
+            
+            
+            
+             'reference_no',  # Referencia
+            'partner_id',  # Nombre del socio
+            # DNI o CE
+            'vehiculo_id',  # Marca de moto y modelo
+            'user_id',  # Analista de credito
+            # Cobrador
+            'periodicidad',  # Tipo de cuenta
+            'monto_cuota',  # Monto de cuota
+            'fecha_desembolso',  # Fecha de desembolso
+            'monto_fraccionado',  # Monto de deuda total
+            
+            """
+            new_item = {
+                'reference_no' : item['reference_no'],
+                'partner_id' : item['partner_id'],
+                'vehiculo_id' : item['vehiculo_id'],
+                'user_id' : item['user_id'],
+                'periodicidad' : item['periodicidad'],
+                'monto_cuota' : item['monto_cuota'],
+                'fecha_desembolso' : item['fecha_desembolso'],
+                'monto_fraccionado' : item['monto_fraccionado'],
+                'dias_retraso' : self.quantity_dias_atraso2(cuotas_general),
+                'cuotas_pagadas' : self.count_cuotas_pagadas(cuotas_general),
+                'cuotas_pendientes' : self.count_cuotas_pendientes(cuotas_general),
+                'cuotas_retrasadas' : self.count_cuotas_retrasadas(cuotas_general),
+                'cuota_actual' : self.current_date(cuotas_general),
+                'amount_cuota_retrasadas' : self.amount_cuotas_retrasadas(cuotas_general),
+                'vat' : self.find_identity_document(item['partner_id'][0]),
+                'total_cuotas' : self.total_cuotas(cuotas_general)
+            }
 
-        return list
+            last_list.append(new_item)
+
+        return last_list
 
     def find_identity_document(self, partner_id):
         dni = request.env['res.partner'].search(
@@ -136,7 +176,7 @@ class DeudorXLSX(models.AbstractModel):
         index = 0
         amount_last = 0
         for data in item:
-            if data['state'] == 'retrasado':
+            if data['state'].strip() == 'retrasado':
                 try:
                     # extract amount_day
                     # print('resta : ' + str(item[index + 1]['fecha_cronograma']) + ' - ' + str(data['fecha_cronograma']))
@@ -153,28 +193,28 @@ class DeudorXLSX(models.AbstractModel):
     def count_cuotas_pagadas(self, list):
         quanty = 0
         for cuota in list:
-            if cuota['state'] == 'pagado':
+            if cuota['state'].strip() == 'pagado':
                 quanty = quanty + 1
         return quanty
 
     def count_cuotas_pendientes(self, list):
         quanty = 0
         for cuota in list:
-            if cuota['state'] == 'pendiente':
+            if cuota['state'].strip() == 'pendiente':
                 quanty = quanty + 1
         return quanty
 
     def count_cuotas_retrasadas(self, list):
         quanty = 0
         for cuota in list:
-            if cuota['state'] == 'retrasado':
+            if cuota['state'].strip() == 'retrasado':
                 quanty = quanty + 1
         return quanty
 
     def amount_cuotas_retrasadas(self, list):
         quanty = 0.0
         for cuota in list:
-            if cuota['state'] == 'retrasado':
+            if cuota['state'].strip() == 'retrasado':
                 quanty = quanty + cuota['monto']
         return quanty
 
