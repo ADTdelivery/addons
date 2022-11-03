@@ -95,7 +95,7 @@ class DeudorXLSX(models.AbstractModel):
             quanty_pagadas = self.count_cuotas_pagadas(cuotas_general)
             quanty_pendientes = self.count_cuotas_pendientes(cuotas_general)
             quanty_retrasadas = self.count_cuotas_retrasadas(cuotas_general)
-            quantity_dias_atraso = self.quantity_dias_atraso(item)
+            quantity_dias_atraso = self.quantity_dias_atraso2(item)
             current_cuota = self.current_date(cuotas_general)
 
             item['dias_retraso'] = quantity_dias_atraso
@@ -105,6 +105,10 @@ class DeudorXLSX(models.AbstractModel):
             item['cuota_actual'] = current_cuota
             item['amount_cuota_retrasadas'] = self.amount_cuotas_retrasadas(cuotas_general)
             item['vat'] = self.find_identity_document(item['partner_id'][0])
+
+            #print('cantidad 1 :' + str(self.quantity_dias_atraso(item)))
+            #print('cantidad 2 :' + str(self.quantity_dias_atraso2(cuotas_general)))
+            #print('__________________________________________________')
 
         return list
 
@@ -135,6 +139,24 @@ class DeudorXLSX(models.AbstractModel):
             total = 0
 
         return total
+
+    def quantity_dias_atraso2(self, item):
+        index = 0
+        amount_last = 0
+        for data in item:
+            if data['state'] == 'retrasado':
+                try:
+                    # extract amount_day
+                    #print('resta : ' + str(item[index + 1]['fecha_cronograma']) + ' - ' + str(data['fecha_cronograma']))
+                    amount = item[index + 1]['fecha_cronograma'] - data['fecha_cronograma']
+                    amount_last += int(str(amount).split(' ')[0])
+                except:
+                    amount = date.today() - data['fecha_cronograma']
+                    amount_last += int(str(amount).split(' ')[0])
+
+            index += 1
+
+        return amount_last
 
     def count_cuotas_pagadas(self, list):
         quanty = 0
