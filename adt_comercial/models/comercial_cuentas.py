@@ -530,7 +530,7 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
                     {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial, 'periodicidad': self.periodicidad}).id
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
         else:
-            total_temp = qty_cuotas * monto_cuota
+            total_temp = round(qty_cuotas * monto_cuota , 2)
             last_cuota = False
             if total_temp > total_a_pagar:
                 raise UserError(
