@@ -35,10 +35,11 @@ class DeudorXLSX(models.AbstractModel):
         sheet.write(0, 9, "Fecha de desembolso")
         sheet.write(0, 10, "Monto de deuda total")
         sheet.write(0, 11, "Dias de atraso")
-        sheet.write(0, 12, "Numero de cuotas pagadas")
-        sheet.write(0, 13, "Numero de cuotas pendientes")
-        sheet.write(0, 14, "Numero de cuotas retrasadas")
+        sheet.write(0, 12, "# de cuotas pagadas")
+        sheet.write(0, 13, "# de cuotas pendientes")
+        sheet.write(0, 14, "# de cuotas retrasadas")
         sheet.write(0, 15, "Cuota actual")
+        sheet.write(0, 16, "# total cuotas")
 
         row = 1
 
@@ -55,7 +56,7 @@ class DeudorXLSX(models.AbstractModel):
             sheet.write(row, 8, deudor.get('monto_cuota'))
 
             if type(deudor.get('fecha_desembolso')) != bool:
-                sheet.write(row, 9, deudor.get('fecha_desembolso').strftime("%m/%d/%Y"))
+                sheet.write(row, 9, deudor.get('fecha_desembolso').strftime("%d/%m/%Y"))
             else:
                 sheet.write(row, 9, deudor.get(''))
 
@@ -117,10 +118,13 @@ class DeudorXLSX(models.AbstractModel):
             # Cobrador
             'periodicidad',  # Tipo de cuenta
             'monto_cuota',  # Monto de cuota
-            'fecha_desembolso',  # Fecha de desembolso
+            'fecha_desembolso',  # Fecha de desembolsolox
             'monto_fraccionado',  # Monto de deuda total
             
             """
+            if item['reference_no'] == 'CC00158' or item['reference_no'] == 'CC00165' or item['reference_no'] == 'CC00166' or item['reference_no'] == 'CC00167':
+                logging.info(str(item))
+
             new_item = {
                 'reference_no' : item['reference_no'],
                 'partner_id' : item['partner_id'],
