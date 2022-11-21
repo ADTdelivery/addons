@@ -151,6 +151,16 @@
         </record>
 
 
+        <record model="ir.model.access" id="access_model_report_adt_comercial_clientes_xlsx">
+            <field name="name">acces.model.report.adt_comercial.clientes_xlsx</field>
+            <field name="model_id" ref="adt_comercial.model_report_adt_comercial_clientes_xlsx"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
         <record id="group_access_adt_comercial" model="res.groups">
             <field name="name">Acceso a módulo COMERCIAL</field>
         </record>
