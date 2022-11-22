@@ -16,7 +16,7 @@ class AccountAddons(models.Model):
 
         try:
             # Database connection
-            url = 'http://190.232.26.249:8070'
+            url = 'http://190.238.200.63:8070'
             db = 'odoo'
             username = 'rapitash@gmail.com'
             password = 'Krishnna17'
