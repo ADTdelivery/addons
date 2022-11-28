@@ -4,7 +4,7 @@ from odoo import models, fields, api
 import logging
 
 
-class InfraccionAttributesModel(models.TransientModel):
+class InfraccionAttributesModel(models.Model):
     _name = 'infraccion.attributes.model'
     _description = 'infraccion_addons.infraccion_addons'
 
