@@ -110,7 +110,7 @@ class Cobranza(http.Controller):
         request.session.authenticate(db, login, password)
         captura_rec = request.env['adt.reporte.cobranza.captura'].search([])
         lista = []
-        URL_TRACCAR = 'http://190.232.26.249:8082/api/devices'
+        URL_TRACCAR = 'http://190.238.200.63:8082/api/devices'
         for captura in captura_rec:
             contacto = request.env['res.partner'].search([['id', '=', captura.partner_id.id]])
             data_deudores = {
@@ -158,7 +158,7 @@ class Cobranza(http.Controller):
     @http.route('/posicion', type='json', auth='none')
     def get_posicion(self, db, login, password, id):
         request.session.authenticate(db, login, password)
-        URL_TRACCAR2 = 'http://190.232.26.249:8082/api/positions'
+        URL_TRACCAR2 = 'http://190.238.200.63:8082/api/positions'
         s = requests.get(URL_TRACCAR2, json="", auth=('rapitash@gmail.com', 'Krishnna17$'))
         posicion = s.json()
         # print(posicion)
@@ -175,7 +175,7 @@ class Cobranza(http.Controller):
     def get_filtro(self, db, login, password):
         request.session.authenticate(db, login, password)
         lista = []
-        URL_TRACCAR = 'http://190.232.26.249:8082/api/devices'
+        URL_TRACCAR = 'http://190.238.200.63:8082/api/devices'
         vehicle_rec = request.env['fleet.vehicle'].search([])
         a = ''
         b = ''
@@ -337,7 +337,7 @@ class Cobranza(http.Controller):
 
         # Get data Traccar
         lista = []
-        URL_TRACCAR = 'http://190.232.26.249:8082/api/devices'
+        URL_TRACCAR = 'http://190.238.200.63:8082/api/devices'
         listVehicle = requests.get(URL_TRACCAR, json="", auth=('rapitash@gmail.com', 'Krishnna17$'))
 
         dataTraccar = {
