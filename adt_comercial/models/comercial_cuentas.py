@@ -55,7 +55,7 @@ class ADTComercialCuentas(models.Model):
     partner_id = fields.Many2one("res.partner", "Socio", tracking=2)
     mobile = fields.Char(related="partner_id.phone_sanitized")
     user_id = fields.Many2one(
-        "res.users", string="Asesor", default=lambda self: self.env.user)
+        "res.users", string="Vendedor", default=lambda self: self.env.user)
 
     fecha_desembolso = fields.Date(
         string="Fecha de desembolso", default=fields.Date.today)
@@ -80,6 +80,12 @@ class ADTComercialCuentas(models.Model):
     cuota_gracia = fields.Monetary(string="Cuota de gracia", default=0)
     fecha_gracia = fields.Date(
         string="Fecha de gracia", default=fields.Date.today)
+
+    asesor = fields.Selection([
+        ('1', 'Rogers Héctor Vizarreta Puchuri'),
+        ('2', 'Luis Bullón Aponte '),
+        ('3', 'Jaico Cervera Luna')
+    ],string = 'Asesor')
 
     # @api.depends('monto_financiado', 'monto_inicial')
     # def _compute_monto_total(self):

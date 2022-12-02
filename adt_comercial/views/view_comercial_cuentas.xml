@@ -67,10 +67,12 @@
                             <field name="mobile"/>
                         </group>
                         <group>
+                             <field name="asesor" required="1" />
                             <field name="user_id" required="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-                            <field name="recuperado" readonly="1"/>
+                            <!-- <field name="recuperado" readonly="1"/>-->
                         </group>
                     </group>
+
                     <notebook>
                         <page string="Moto">
                             <group>
