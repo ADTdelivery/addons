@@ -85,7 +85,15 @@ class ADTComercialCuentas(models.Model):
         ('1', 'Rogers Héctor Vizarreta Puchuri'),
         ('2', 'Luis Bullón Aponte '),
         ('3', 'Jaico Cervera Luna')
-    ],string = 'Asesor')
+    ], string='Asesor')
+
+    cuota_inicio_1 = fields.Integer(string="Cuota inicio 1", default=0)
+    cuota_fin_1 = fields.Integer(string="Cuota fin 1", default=0)
+    monto_1 = fields.Monetary(string="Monto 1 ", default=0)
+
+    cuota_inicio_2 = fields.Integer(string="Cuota inicio 2", default=0)
+    cuota_fin_2 = fields.Integer(string="Cuota fin 2", default=0)
+    monto_2 = fields.Monetary(string="Monto 2", default=0)
 
     # @api.depends('monto_financiado', 'monto_inicial')
     # def _compute_monto_total(self):
@@ -264,7 +272,8 @@ class ADTComercialCuentas(models.Model):
 
         # ? ASIGNACION DE CUOTAS
         a.append(self.env["adt.comercial.cuotas"].create(
-            {'name': 'Cuota 0', 'monto': cuota_gracia, 'fecha_cronograma': self.fecha_gracia,'periodicidad':self.periodicidad}).id)
+            {'name': 'Cuota 0', 'monto': cuota_gracia, 'fecha_cronograma': self.fecha_gracia,
+             'periodicidad': self.periodicidad}).id)
 
         if monto_cuota == 0:
             monto_cuota_mod = (monto_fraccionado - cuota_gracia) % qty_cuotas
@@ -285,24 +294,60 @@ class ADTComercialCuentas(models.Model):
                     monto_cuota_temp += monto_cuota_mod
 
                 a.append(self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota_temp, 'fecha_cronograma': fecha_inicial,'periodicidad':self.periodicidad}).id)
+                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota_temp, 'fecha_cronograma': fecha_inicial,
+                     'periodicidad': self.periodicidad}).id)
 
         else:
-            total_temp = qty_cuotas * monto_cuota
-            # if total_temp > monto_financiado:
-            #     raise UserError(
-            #         'El monto calculado [cuotas * monto] es mayor al saldo a pagar. Por favor corrija la cantidad de cuotas o el monto.')
+            if self.cuota_inicio_2 != 0:
+                print("Cuotas extras")
+                #total_temp = qty_cuotas * monto_cuota
+                total_temp = self.cuota_fin_1 * self.monto_1 + (qty_cuotas - self.cuota_fin_1) * self.monto_2
+                # if total_temp > monto_financiado:
+                #     raise UserError(
+                #         'El monto calculado [cuotas * monto] es mayor al saldo a pagar. Por favor corrija la cantidad de cuotas o el monto.')
 
-            # ? ASIGNACION DE CUOTAS
-            for i in range(qty_cuotas):
-                fecha_inicial = fecha_inicial + timedelta(days=days)
+                # ? ASIGNACION DE CUOTAS
+                #print(str(fecha_inicial))
+                for i in range(qty_cuotas):
 
-                if i == (qty_cuotas - 1):
-                    monto_cuota += ((monto_fraccionado -
-                                     cuota_gracia) - total_temp)
+                    fecha_inicial = fecha_inicial + timedelta(days=days)
+                    #print(str(fecha_inicial))
 
-                a.append(self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial,'periodicidad':self.periodicidad}).id)
+                    if i == (qty_cuotas - 1):
+                        monto_cuota += ((monto_fraccionado -
+                                         cuota_gracia) - total_temp)
+
+                    if i < self.cuota_fin_1:
+                        a.append(self.env["adt.comercial.cuotas"].create(
+                            {'name': 'Cuota ' + str(i + 1), 'monto': self.monto_1, 'fecha_cronograma': fecha_inicial,
+                             'periodicidad': self.periodicidad}).id)
+
+                    if (self.cuota_inicio_2 - 1)<= i :
+                        a.append(self.env["adt.comercial.cuotas"].create(
+                            {'name': 'Cuota ' + str(i + 1), 'monto': self.monto_2, 'fecha_cronograma': fecha_inicial,
+                             'periodicidad': self.periodicidad}).id)
+
+            else:
+                print("Cuotas normales")
+                # for i in range(self.cuota_inicio_1,(self.cuota_fin_1 + 1)) :
+
+                total_temp = qty_cuotas * monto_cuota
+                # if total_temp > monto_financiado:
+                #     raise UserError(
+                #         'El monto calculado [cuotas * monto] es mayor al saldo a pagar. Por favor corrija la cantidad de cuotas o el monto.')
+
+                # ? ASIGNACION DE CUOTAS
+                for i in range(qty_cuotas):
+                    fecha_inicial = fecha_inicial + timedelta(days=days)
+
+                    if i == (qty_cuotas - 1):
+                        monto_cuota += ((monto_fraccionado -
+                                         cuota_gracia) - total_temp)
+
+                    # if self.cuota_inicio_1 != 0  and self.cuota_fin_1 != 0 :
+                    a.append(self.env["adt.comercial.cuotas"].create(
+                        {'name': 'Cuota ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial,
+                         'periodicidad': self.periodicidad}).id)
 
         self.cuota_ids = [(6, 0, a)]
 
@@ -517,7 +562,7 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
                     {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota_temp,
-                     'fecha_cronograma': fecha_inicial,'periodicidad': self.periodicidad}).id
+                     'fecha_cronograma': fecha_inicial, 'periodicidad': self.periodicidad}).id
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
         elif qty_cuotas == 0:
             qty_cuotas = math.floor(total_a_pagar / monto_cuota)
@@ -533,10 +578,11 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
                     monto_cuota += (total_a_pagar - total_temp)
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial, 'periodicidad': self.periodicidad}).id
+                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial,
+                     'periodicidad': self.periodicidad}).id
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
         else:
-            total_temp = round(qty_cuotas * monto_cuota , 2)
+            total_temp = round(qty_cuotas * monto_cuota, 2)
             last_cuota = False
             if total_temp > total_a_pagar:
                 raise UserError(
@@ -553,14 +599,16 @@ class ADTRegistrarRefinanciamiento(models.TransientModel):
                         last_cuota = True
 
                 new_cuota = self.env["adt.comercial.cuotas"].create(
-                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial, 'periodicidad': self.periodicidad}).id
+                    {'name': 'Cuota R. - ' + str(i + 1), 'monto': monto_cuota, 'fecha_cronograma': fecha_inicial,
+                     'periodicidad': self.periodicidad}).id
 
                 self.cuenta_id.cuota_ids = [(4, new_cuota)]
 
                 if last_cuota:
                     new_cuota = self.env["adt.comercial.cuotas"].create(
                         {'name': 'Cuota R. - ' + str(i + 2), 'monto': (total_a_pagar - total_temp),
-                         'fecha_cronograma': fecha_inicial + timedelta(days=days), 'periodicidad': self.periodicidad}).id
+                         'fecha_cronograma': fecha_inicial + timedelta(days=days),
+                         'periodicidad': self.periodicidad}).id
 
                     self.cuenta_id.cuota_ids = [(4, new_cuota)]
 
