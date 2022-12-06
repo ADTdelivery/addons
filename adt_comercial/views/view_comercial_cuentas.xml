@@ -62,12 +62,12 @@
                 <sheet>
                     <group>
                         <group>
-                            <field name="partner_id" required="1"
+                            <field name="partner_id"
                                    attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                             <field name="mobile"/>
                         </group>
                         <group>
-                             <field name="asesor" required="1" />
+                            <field name="asesor" required="1"/>
                             <field name="user_id" required="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                             <!-- <field name="recuperado" readonly="1"/>-->
                         </group>
@@ -142,6 +142,35 @@
                                     <field name="monto_cuota" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                 </group>
                             </group>
+
+                            <separator string="Cuotas opcionales"/>
+
+                            <group>
+                                <group>
+                                    <field name="cuota_inicio_1"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+
+                                    <field name="cuota_fin_1"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"
+                                           required="1"/>
+                                    <field name="monto_1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+
+
+                                </group>
+                                <group>
+                                    <field name="cuota_inicio_2"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+
+                                    <field name="cuota_fin_2"
+                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"
+                                           required="1"/>
+                                    <field name="monto_2" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+
+
+                                </group>
+                            </group>
+
+
                         </page>
 
                         <page string="Cuotas">
@@ -180,7 +209,7 @@
                                         <field name="fecha_cronograma" readonly="1"/>
                                         <field name="real_date"/>
                                         <field name="numero_operacion"/>
-                                        <field name="periodicidad" />
+                                        <field name="periodicidad"/>
                                         <field name="fecha_compromiso" optional="1"/>
                                         <field name="resumen_observaciones" optional="hide"/>
                                         <field name="state" widget="badge" decoration-info="state == 'a_cuenta'"
