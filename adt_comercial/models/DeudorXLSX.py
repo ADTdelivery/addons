@@ -7,7 +7,8 @@ log = logging.getLogger(__name__)
 
 
 class Deudor(models.Model):
-    _inherit = "adt.reporte.cobranza.pagos.pendientes"
+    #_inherit = "adt.reporte.cobranza.pagos.pendientes"
+    _inherit = "adt.comercial.cuentas"
 
     def btn_generar_reporte(self):
         report_obj = self.env.ref("adt_comercial.reporte_deudor")
@@ -20,9 +21,11 @@ class DeudorXLSX(models.AbstractModel):
     _description = "Reporte de Cliente en XLSX"
 
     def generate_xlsx_report(self, workbook, data, deudores):
-        list_deudores = self.generate_new_list()
+
+        list_deudores = self.generate_new_list(deudores)
         sheet = workbook.add_worksheet("Data")
         bold = workbook.add_format({"bold": True})
+
 
         sheet.write(0, 1, "Referencia")
         sheet.write(0, 2, "Socio")
@@ -70,31 +73,43 @@ class DeudorXLSX(models.AbstractModel):
 
             row += 1
 
-    def generate_new_list(self):
-        list = request.env['adt.comercial.cuentas'].search(
-            [('state', '!=', 'cancelado')], order="id asc").read([
-            'reference_no',  # Referencia
-            'partner_id',  # Nombre del socio
-            # DNI o CE
-            'vehiculo_id',  # Marca de moto y modelo
-            'user_id',  # Analista de credito
-            # Cobrador
-            'periodicidad',  # Tipo de cuenta
-            'monto_cuota',  # Monto de cuota
-            'fecha_desembolso',  # Fecha de desembolso
-            'monto_fraccionado',  # Monto de deuda total
-            # Dias de atraso
-            # Numero de cuotas pagadas
-            # Numero de cuotas pendientes
-            # Numero de cuota vigente
-        ])
+
+    def generate_new_list(self,cuentas):
+
+        list = []
+
+        for item in cuentas:
+            print(item.id)
+            data = request.env['adt.comercial.cuentas'].search(
+                [('state', '!=', 'cancelado'),('id','=',item.id)], order="id asc").read([
+                'reference_no',  # Referencia
+                'partner_id',  # Nombre del socio
+                # DNI o CE
+                'vehiculo_id',  # Marca de moto y modelo
+                'user_id',  # Analista de credito
+                # Cobrador
+                'periodicidad',  # Tipo de cuenta
+                'monto_cuota',  # Monto de cuota
+                'fecha_desembolso',  # Fecha de desembolso
+                'monto_fraccionado',  # Monto de deuda total
+                # Dias de atraso
+                # Numero de cuotas pagadas
+                # Numero de cuotas pendientes
+                # Numero de cuota vigente
+            ])
+
+            list = list + data
+
+            print(data)
+            #print(type(data))
+            #list.append(data)
 
         last_list = []
 
         print(type(list))
 
         for item in list:
-            print(type(item))
+            #print(type(item))
             cuotas_general = request.env['adt.comercial.cuotas'].search(
                 [('cuenta_id', '=', item['id'])]).read([
                 'fecha_cronograma', 'state', 'name', 'monto'])
