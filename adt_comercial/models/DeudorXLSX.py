@@ -32,7 +32,7 @@ class DeudorXLSX(models.AbstractModel):
         sheet.write(0, 3, "DNI o CE")
         sheet.write(0, 4, "Marca y Modelo")
         sheet.write(0, 5, "Analista de credito")
-        sheet.write(0, 6, "Cobrador")
+        sheet.write(0, 6, "Vendedor")
         sheet.write(0, 7, "Tipo de cuenta")
         sheet.write(0, 8, "Monto de cuota")
         sheet.write(0, 9, "Fecha de desembolso")
@@ -53,8 +53,11 @@ class DeudorXLSX(models.AbstractModel):
             sheet.write(row, 2, deudor.get('partner_id')[1])
             sheet.write(row, 3, deudor.get('vat'))  # DNI o CE
             sheet.write(row, 4, deudor.get('vehiculo_id')[1])
-            sheet.write(row, 5, deudor.get('user_id')[1])
-            sheet.write(row, 6, "")
+
+            print('asesor : '+str(deudor.get('asesor')))
+            sheet.write(row, 5, self.findAsesor(deudor.get('asesor')))
+
+            sheet.write(row, 6, deudor.get('user_id')[1])
             sheet.write(row, 7, deudor.get('periodicidad'))
             sheet.write(row, 8, deudor.get('monto_cuota'))
 
@@ -79,15 +82,15 @@ class DeudorXLSX(models.AbstractModel):
         list = []
 
         for item in cuentas:
-            print(item.id)
+            #print(item.id)
             data = request.env['adt.comercial.cuentas'].search(
                 [('state', '!=', 'cancelado'),('id','=',item.id)], order="id asc").read([
                 'reference_no',  # Referencia
                 'partner_id',  # Nombre del socio
                 # DNI o CE
                 'vehiculo_id',  # Marca de moto y modelo
-                'user_id',  # Analista de credito
-                # Cobrador
+                'asesor',  # Analista de credito
+                'user_id',# Cobrador
                 'periodicidad',  # Tipo de cuenta
                 'monto_cuota',  # Monto de cuota
                 'fecha_desembolso',  # Fecha de desembolso
@@ -100,13 +103,15 @@ class DeudorXLSX(models.AbstractModel):
 
             list = list + data
 
-            print(data)
+
+
+            #print(data)
             #print(type(data))
             #list.append(data)
 
         last_list = []
 
-        print(type(list))
+        print(str(list))
 
         for item in list:
             #print(type(item))
@@ -145,6 +150,7 @@ class DeudorXLSX(models.AbstractModel):
                 'partner_id' : item['partner_id'],
                 'vehiculo_id' : item['vehiculo_id'],
                 'user_id' : item['user_id'],
+                'asesor' : item['asesor'],
                 'periodicidad' : item['periodicidad'],
                 'monto_cuota' : item['monto_cuota'],
                 'fecha_desembolso' : item['fecha_desembolso'],
@@ -162,6 +168,21 @@ class DeudorXLSX(models.AbstractModel):
             last_list.append(new_item)
 
         return last_list
+
+
+
+    def findAsesor(self,index):
+
+        asesor = ''
+        if index == '1':
+            asesor = 'Rogers Héctor Vizarreta Puchuri'
+        if index == '2':
+            asesor = 'Luis Bullón Aponte'
+        if index == '3':
+            asesor = 'Jaico Cervera Luna'
+
+        data = asesor
+        return asesor
 
     def find_identity_document(self, partner_id):
         dni = request.env['res.partner'].search(
