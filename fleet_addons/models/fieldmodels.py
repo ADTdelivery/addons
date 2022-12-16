@@ -4,7 +4,13 @@ from odoo import models, fields, api
 class FieldModels(models.Model):
     _inherit = 'fleet.vehicle'
 
+
+    #tracking=True,
     contrato_vehicular = fields.Binary(string="Contrato vehicular")
+    license_plate = fields.Char(tracking=False,
+                                help='License plate number of the vehicle (i = plate number for a car)')
+
+    tmp_field = fields.Char(string="prueba")
 
 
 class FleetGPS(models.Model):
@@ -35,6 +41,7 @@ class ModelVehicle(models.Model):
         ('bike', 'Bicicleta'),
         ('mototaxi', 'Mototaxi'),
     ])
+
 
 
 class ModelPapeleta(models.Model):
