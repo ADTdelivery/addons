@@ -271,10 +271,12 @@ class DeudorXLSX(models.AbstractModel):
 
                 index += 1
 
-            current_cuota = list[index_retrasado - 1]['name']
+            #current_cuota = list[index_retrasado - 1]['name']
+            current_cuota = "Cuota "+str(index_retrasado)
         except:
             current_cuota = ""
 
+        #self.current_cuota = "Cuota "+str(index_retrasado)
         return current_cuota
 
     def total_cuotas(self, list):
