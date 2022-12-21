@@ -272,7 +272,7 @@ class DeudorXLSX(models.AbstractModel):
                 index += 1
 
             #current_cuota = list[index_retrasado - 1]['name']
-            current_cuota = "Cuota "+str(index_retrasado)
+            current_cuota = "Cuota "+str(index_retrasado+1)
         except:
             current_cuota = ""
 
