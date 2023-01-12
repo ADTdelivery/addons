@@ -54,7 +54,6 @@ class DeudorXLSX(models.AbstractModel):
             sheet.write(row, 3, deudor.get('vat'))  # DNI o CE
             sheet.write(row, 4, deudor.get('vehiculo_id')[1])
 
-            print('asesor : '+str(deudor.get('asesor')))
             sheet.write(row, 5, self.findAsesor(deudor.get('asesor')))
 
             sheet.write(row, 6, deudor.get('user_id')[1])
@@ -82,7 +81,6 @@ class DeudorXLSX(models.AbstractModel):
         list = []
 
         for item in cuentas:
-            #print(item.id)
             data = request.env['adt.comercial.cuentas'].search(
                 [('state', '!=', 'cancelado'),('id','=',item.id)], order="id asc").read([
                 'reference_no',  # Referencia
@@ -105,16 +103,9 @@ class DeudorXLSX(models.AbstractModel):
 
 
 
-            #print(data)
-            #print(type(data))
-            #list.append(data)
-
         last_list = []
 
-        print(str(list))
-
         for item in list:
-            #print(type(item))
             cuotas_general = request.env['adt.comercial.cuotas'].search(
                 [('cuenta_id', '=', item['id'])]).read([
                 'fecha_cronograma', 'state', 'name', 'monto'])
@@ -142,12 +133,16 @@ class DeudorXLSX(models.AbstractModel):
             'monto_fraccionado',  # Monto de deuda total
             
             """
-            if item['reference_no'] == 'CC00158' or item['reference_no'] == 'CC00165' or item['reference_no'] == 'CC00166' or item['reference_no'] == 'CC00167':
-                logging.info(str(item))
+
+
+            res_partner = request.env['res.partner'].search(
+                [('id', '=', item['partner_id'][0])]).read([
+                'name', 'apellido_paterno', 'apellido_materno'])
 
             new_item = {
                 'reference_no' : item['reference_no'],
-                'partner_id' : item['partner_id'],
+                #'partner_id' : item['partner_id'],
+                'partner_id': res_partner[0]['name'] + self.validateString(res_partner[0]['apellido_paterno']) + self.validateString(res_partner[0]['apellido_materno']) ,
                 'vehiculo_id' : item['vehiculo_id'],
                 'user_id' : item['user_id'],
                 'asesor' : item['asesor'],
@@ -218,8 +213,6 @@ class DeudorXLSX(models.AbstractModel):
         for data in item:
             if data['state'].strip() == 'retrasado':
                 try:
-                    # extract amount_day
-                    # print('resta : ' + str(item[index + 1]['fecha_cronograma']) + ' - ' + str(data['fecha_cronograma']))
                     amount = item[index + 1]['fecha_cronograma'] - data['fecha_cronograma']
                     amount_last += int(str(amount).split(' ')[0])
                 except:
@@ -281,3 +274,9 @@ class DeudorXLSX(models.AbstractModel):
 
     def total_cuotas(self, list):
         return len(list)
+
+    def validateString(self,data):
+        if type(data) == bool:
+            return ""
+        else:
+            return data
