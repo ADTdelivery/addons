@@ -142,7 +142,7 @@ class DeudorXLSX(models.AbstractModel):
             new_item = {
                 'reference_no' : item['reference_no'],
                 #'partner_id' : item['partner_id'],
-                'partner_id': res_partner[0]['name'] + self.validateString(res_partner[0]['apellido_paterno']) + self.validateString(res_partner[0]['apellido_materno']) ,
+                'partner_id': self.valuePartner(res_partner) ,
                 'vehiculo_id' : item['vehiculo_id'],
                 'user_id' : item['user_id'],
                 'asesor' : item['asesor'],
@@ -280,3 +280,13 @@ class DeudorXLSX(models.AbstractModel):
             return ""
         else:
             return data
+
+    def valuePartner(self,data):
+        nombre= ""
+
+        if len(data) > 0:
+            nombre = data[0]['name'] + self.validateString(data[0]['apellido_paterno']) + self.validateString(data[0]['apellido_materno'])
+        else:
+            nombre = "sin valor"
+
+        return nombre
