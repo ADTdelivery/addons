@@ -46,8 +46,7 @@ class DeudorXLSX(models.AbstractModel):
 
         sheet.write(0, 17, "Telefono")
         sheet.write(0, 18, "Celular")
-        sheet.write(0, 19, "Referencia 1")
-        sheet.write(0, 20, "Referencia 2")
+
         row = 1
 
         for deudor in list_deudores:
@@ -80,8 +79,6 @@ class DeudorXLSX(models.AbstractModel):
 
             sheet.write(row, 17, deudor.get('phone'))
             sheet.write(row, 18, deudor.get('mobile'))
-            sheet.write(row, 19, deudor.get('xreferencia_1'))
-            sheet.write(row, 20, deudor.get('xreferencia_2'))
 
 
             row += 1
@@ -123,7 +120,7 @@ class DeudorXLSX(models.AbstractModel):
 
             res_partner = request.env['res.partner'].search(
                 [('id', '=', item['partner_id'][0])]).read([
-                'name', 'apellido_paterno', 'apellido_materno' , 'phone' ,'mobile', 'x_referencia1' , 'x_referencia2'  ])
+                'name', 'apellido_paterno', 'apellido_materno' , 'phone' ,'mobile'  ])
 
             #print(str(res_partner))
             #print(str(self.valuePartner(res_partner)))
@@ -132,10 +129,8 @@ class DeudorXLSX(models.AbstractModel):
                 'reference_no' : item['reference_no'],
                 #'partner_id' : item['partner_id'],
                 'partner_id': self.valuePartner(res_partner) ,
-                'celular' : res_partner[0]['phone'],
-                'celular1' : res_partner[0]['mobile'],
-                'xreferencia_1': item[0]['x_referencia1'],
-                'xreferencia_2': item[0]['x_referencia2'],
+                'phone' : self.valuePartnerPhone(res_partner),
+                'mobile' : self.valuePartnerMobile(res_partner),
                 'vehiculo_id' : item['vehiculo_id'],
                 'user_id' : item['user_id'],
                 'asesor' : item['asesor'],
@@ -283,3 +278,19 @@ class DeudorXLSX(models.AbstractModel):
             nombre = "sin valor"
 
         return nombre
+
+    def valuePartnerPhone(self,data):
+        if len(data) > 0:
+            phone = data[0]['phone']
+        else:
+            phone = "-"
+
+        return phone
+
+    def valuePartnerMobile(self,data):
+        if len(data) > 0:
+            phone = data[0]['mobile']
+        else:
+            phone = "-"
+
+        return phone
