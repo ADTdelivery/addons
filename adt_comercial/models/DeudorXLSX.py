@@ -44,14 +44,19 @@ class DeudorXLSX(models.AbstractModel):
         sheet.write(0, 15, "Cuota actual")
         sheet.write(0, 16, "# total cuotas")
 
+        sheet.write(0, 17, "Telefono")
+        sheet.write(0, 18, "Celular")
+        sheet.write(0, 19, "Referencia 1")
+        sheet.write(0, 20, "Referencia 2")
         row = 1
 
         for deudor in list_deudores:
             # dict --> tuple
             # #valores
             sheet.write(row, 1, deudor.get('reference_no'))
-            sheet.write(row, 2, deudor.get('partner_id')[1])
+            sheet.write(row, 2, deudor.get('partner_id'))
             sheet.write(row, 3, deudor.get('vat'))  # DNI o CE
+            sheet.write(row, 4, deudor.get('vehiculo_id')[1])
             sheet.write(row, 4, deudor.get('vehiculo_id')[1])
 
             sheet.write(row, 5, self.findAsesor(deudor.get('asesor')))
@@ -72,6 +77,12 @@ class DeudorXLSX(models.AbstractModel):
             sheet.write(row, 14, deudor.get('cuotas_retrasadas'))
             sheet.write(row, 15, deudor.get('cuota_actual'))
             sheet.write(row, 16, deudor.get('total_cuotas'))
+
+            sheet.write(row, 17, deudor.get('phone'))
+            sheet.write(row, 18, deudor.get('mobile'))
+            sheet.write(row, 19, deudor.get('xreferencia_1'))
+            sheet.write(row, 20, deudor.get('xreferencia_2'))
+
 
             row += 1
 
@@ -110,39 +121,21 @@ class DeudorXLSX(models.AbstractModel):
                 [('cuenta_id', '=', item['id'])]).read([
                 'fecha_cronograma', 'state', 'name', 'monto'])
 
-            """item['dias_retraso'] = self.quantity_dias_atraso2(cuotas_general)
-            item['cuotas_pagadas'] = self.count_cuotas_pagadas(cuotas_general)
-            item['cuotas_pendientes'] = self.count_cuotas_pendientes(cuotas_general)
-            item['cuotas_retrasadas'] = self.count_cuotas_retrasadas(cuotas_general)
-            item['cuota_actual'] = self.current_date(cuotas_general)
-            item['amount_cuota_retrasadas'] = self.amount_cuotas_retrasadas(cuotas_general)
-            item['vat'] = self.find_identity_document(item['partner_id'][0])
-            item['total_cuotas'] = self.total_cuotas(cuotas_general)
-            
-            
-            
-             'reference_no',  # Referencia
-            'partner_id',  # Nombre del socio
-            # DNI o CE
-            'vehiculo_id',  # Marca de moto y modelo
-            'user_id',  # Analista de credito
-            # Cobrador
-            'periodicidad',  # Tipo de cuenta
-            'monto_cuota',  # Monto de cuota
-            'fecha_desembolso',  # Fecha de desembolsolox
-            'monto_fraccionado',  # Monto de deuda total
-            
-            """
-
-
             res_partner = request.env['res.partner'].search(
                 [('id', '=', item['partner_id'][0])]).read([
-                'name', 'apellido_paterno', 'apellido_materno'])
+                'name', 'apellido_paterno', 'apellido_materno' , 'phone' ,'mobile', 'x_referencia1' , 'x_referencia2'  ])
+
+            #print(str(res_partner))
+            #print(str(self.valuePartner(res_partner)))
 
             new_item = {
                 'reference_no' : item['reference_no'],
                 #'partner_id' : item['partner_id'],
                 'partner_id': self.valuePartner(res_partner) ,
+                'celular' : res_partner[0]['phone'],
+                'celular1' : res_partner[0]['mobile'],
+                'xreferencia_1': item[0]['x_referencia1'],
+                'xreferencia_2': item[0]['x_referencia2'],
                 'vehiculo_id' : item['vehiculo_id'],
                 'user_id' : item['user_id'],
                 'asesor' : item['asesor'],

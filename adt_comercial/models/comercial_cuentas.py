@@ -23,7 +23,7 @@ class ADTComercialCuentas(models.Model):
 
     def aprobar_cuenta(self):
         for cuenta in self:
-            cuenta.write({'state': 'aprobado', 'reference_no': self.env['ir.sequence'].next_by_code(
+            cuenta.write({'state': 'en_curso', 'reference_no': self.env['ir.sequence'].next_by_code(
                 'comercial.cuentas')})
             cuenta.vehiculo_id.write({'disponible': False})
             cuenta.generar_cuotas()
