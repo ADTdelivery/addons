@@ -21,7 +21,7 @@ class DeudorXLSX(models.AbstractModel):
     _description = "Reporte de Cliente en XLSX"
 
     def generate_xlsx_report(self, workbook, data, deudores):
-
+        self.updateDataAccount()
         list_deudores = self.generate_new_list(deudores)
         sheet = workbook.add_worksheet("Data")
         bold = workbook.add_format({"bold": True})
@@ -114,6 +114,7 @@ class DeudorXLSX(models.AbstractModel):
         last_list = []
 
         for item in list:
+
             cuotas_general = request.env['adt.comercial.cuotas'].search(
                 [('cuenta_id', '=', item['id'])]).read([
                 'fecha_cronograma', 'state', 'name', 'monto'])
@@ -294,3 +295,25 @@ class DeudorXLSX(models.AbstractModel):
             phone = "-"
 
         return phone
+
+    def updateDataAccount(self):
+        cuotas_general = request.env['adt.comercial.cuotas'].search(
+            [('id', '>', 0)]).read(['id','fecha_cronograma', 'state', 'name', 'monto'])
+
+        for cuota in cuotas_general:
+            account_payment = request.env['account.payment'].search([('cuota_id', '=', cuota.get('id'))]).read([
+                'move_id',
+            ])
+            print(account_payment)
+            if len(account_payment) > 0:
+                account_move = request.env['account.move'].search(
+                    [('id', '=', account_payment[0]['move_id'][0])]).read([
+                    'date',
+                    'ref'
+                ])
+                cuota['real_date'] = str(account_move[0]['date'])
+                cuota['numero_operacion'] = str(account_move[0]['ref'])
+
+            else:
+                cuota['real_date'] = ""
+                cuota['numero_operacion'] = ""
