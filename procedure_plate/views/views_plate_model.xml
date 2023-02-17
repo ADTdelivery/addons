@@ -1,0 +1,118 @@
+<odoo>
+    <record id="procedure_plate_model_tree" model="ir.ui.view">
+        <field name="name">procedure.plate.model.tree</field>
+        <field name="model">procedure.plate.model</field>
+        <field name="arch" type="xml">
+            <tree string="Placas">
+                <field name="num_title"/>
+                <field name="own_name" />
+                <field name="provider_name" />
+                <field name="num_account" />
+                <field name="state_procedure" />
+                <field name="num_plate" />
+                <field name="state_plate" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="procedure_plate_model_search" model="ir.ui.view">
+        <field name="name">procedure.plate.model.search</field>
+        <field name="model">procedure.plate.model</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                <field name="num_title"/>
+                <field name="own_name" />
+                <field name="provider_name" />
+                <field name="num_account" />
+                <field name="state_procedure" />
+                <field name="num_plate" />
+                <field name="state_plate" />
+            </search>
+        </field>
+    </record>
+
+
+    <record id="procedure_plate_model_form" model="ir.ui.view">
+        <field name="name">procedure.plate.model.form</field>
+        <field name="model">procedure.plate.model</field>
+        <field name="arch" type="xml">
+            <form string="Cuenta">
+                <header>
+                    <button name="aprobar_notaria" type="object" string="Aprobar Notaria"
+                            attrs="{'invisible': [('state_procedure', '!=', 'borrador')]}" class="oe_highlight"/>
+
+                    <button name="aprobar_sunarp" type="object" string="Aprobar SUNARP"
+                            attrs="{'invisible': [('state_procedure', 'in', ['borrador', 'inscrito' , 'en_sunarp','tachado' , 'observado'])]}"/>
+
+                    <button name="aprobar_inscrito" type="object" string="Aprobar Inscrito"
+                            attrs="{'invisible': [('state_procedure', 'in', ['borrador' , 'en_notaria' ] )]}" class="oe_highlight"/>
+
+                    <button name="aprobar_observado" type="object" string="Observado" class="oe_highlight"
+                            attrs="{'invisible': [('state_procedure', 'in', ['borrador' , 'inscrito' , 'en_notaria'] )]}"/>
+
+                    <button name="aprobar_tachado" type="object" string="Tachado" class="oe_highlight"
+                            attrs="{'invisible': [('state_procedure', 'in', ['borrador' , 'inscrito' , 'en_notaria'] )]}"/>
+
+                    <field name="state_procedure" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="num_title"/>
+                            <field name="init_date"/>
+                        </group>
+                        <group>
+                            <field name="own_name"/>
+                            <field name="provider_name"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group>
+                            <field name="state_plate" />
+                        </group>
+                    </group>
+
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_plate" model="ir.actions.act_window">
+        <field name="name">Placas</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">procedure.plate.model</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="procedure_plate.procedure_plate_model_search"/>
+    </record>
+
+    <record id="action_plate_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="procedure_plate.procedure_plate_model_tree"/>
+        <field name="act_window_id" ref="action_plate"/>
+    </record>
+
+    <record id="action_plate_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="procedure_plate.procedure_plate_model_form"/>
+        <field name="act_window_id" ref="action_plate"/>
+    </record>
+
+    <menuitem name="Placas" id="menu_procedure_plate" sequence="20"/>
+
+    <!-- groups="group_access_procedure_plate_model" -->
+
+    <menuitem
+            id="procedure_plate_menu_model"
+            name="Placas"
+            action="action_plate"
+            parent="menu_procedure_plate"
+            sequence="1"/>
+</odoo>
