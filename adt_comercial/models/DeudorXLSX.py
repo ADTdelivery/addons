@@ -21,7 +21,6 @@ class DeudorXLSX(models.AbstractModel):
     _description = "Reporte de Cliente en XLSX"
 
     def generate_xlsx_report(self, workbook, data, deudores):
-        self.updateDataAccount()
         list_deudores = self.generate_new_list(deudores)
         sheet = workbook.add_worksheet("Data")
         bold = workbook.add_format({"bold": True})
