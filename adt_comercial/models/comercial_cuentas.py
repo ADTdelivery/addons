@@ -150,6 +150,7 @@ class ADTComercialCuentas(models.Model):
             print(str(data.cuota_ids))
             for cuota in data.cuota_ids:
                 account_payment = request.env['account.payment'].search([('cuota_id', '=', cuota.id)]).read([
+                    'id',
                     'move_id',
                 ])
                 print(account_payment)
@@ -159,13 +160,22 @@ class ADTComercialCuentas(models.Model):
                         'date',
                         'ref'
                     ])
+
+                    print(str(account_payment[0]['id']))
+                    asesora_data = request.env['mail.message'].search(
+                        [('res_id', '=', account_payment[0]['id']), ('model' , '=' ,'account.payment')]).read([
+                        'body',
+                        'author_id'
+                    ])
+                    print(str(asesora_data))
                     cuota.real_date = str(account_move[0]['date'])
                     cuota.numero_operacion = str(account_move[0]['ref'])
+                    cuota.x_asesora = self.emptyList(asesora_data)
 
                 else:
                     cuota.real_date = ""
                     cuota.numero_operacion = ""
-
+                    cuota.x_asesora = ""
     @api.depends('cuota_ids')
     def _compute_pagado_restante(self):
         self.cuotas_saldo = sum(self.cuota_ids.filtered(
@@ -372,6 +382,13 @@ class ADTComercialCuentas(models.Model):
         result = self.env.cr.dictfetchall()
         return result
 
+    def emptyList(self,data):
+        if len(data) > 0 :
+            result = str(data[0]['author_id'][1])
+        else:
+            result = ""
+
+        return result
     # def generar_cuotas(self):
 
     #     if self.monto_financiado <= 0:
