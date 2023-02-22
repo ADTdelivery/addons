@@ -16,7 +16,7 @@ class AccountAddons(models.Model):
         #print(str(vals))
         try:
             # Database connection
-            url = 'http://190.238.200.63:8070/'
+            url = 'http://190.238.200.63:8070'
             db = 'odoo'
             username = 'rapitash@gmail.com'
             password = 'Krishnna17'
@@ -37,7 +37,7 @@ class AccountAddons(models.Model):
                     'active': True,
                     'vin_sn': vals['x_quotation_chasis'],
                     'trailer_hook': False,
-                    'driver_id': vals['x_quotation_driver_id'],
+                    #'driver_id': vals['x_quotation_driver_id'],
                     'model_id': vals['x_quotation_model_id'],
                     'color': vals['x_quotation_color'],
                     'state_id': 3,
