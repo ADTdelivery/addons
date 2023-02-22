@@ -5,12 +5,24 @@
         <field name="arch" type="xml">
             <tree string="Placas">
                 <field name="num_title"/>
-                <field name="own_name" />
-                <field name="provider_name" />
-                <field name="num_account" />
-                <field name="state_procedure" />
-                <field name="num_plate" />
-                <field name="state_plate" />
+                <field name="own_name"/>
+                <field name="provider_id"/>
+                <field name="num_account"/>
+                <field name="state_procedure"
+                       decoration-muted="state_procedure == 'en_notaria'"
+                       decoration-info="state_procedure == 'en_sunarp'"
+                       decoration-success="state_procedure == 'inscrito'"
+                       decoration-warning="state_procedure == 'observado'"
+                       decoration-danger="state_procedure == 'tachado'"
+                       widget="badge" optional="show"/>
+                <field name="num_plate"/>
+
+                <field name="state_plate"
+                       decoration-success="state_plate == 'entregado_cliente'"
+                       decoration-warning="state_plate == 'pagado'"
+                       decoration-muted="state_plate == 'recogido'"
+                       widget="badge" optional="show"/>
+
             </tree>
         </field>
     </record>
@@ -21,12 +33,14 @@
         <field name="arch" type="xml">
             <search string="Search Partner">
                 <field name="num_title"/>
-                <field name="own_name" />
-                <field name="provider_name" />
-                <field name="num_account" />
-                <field name="state_procedure" />
-                <field name="num_plate" />
-                <field name="state_plate" />
+                <field name="own_name"/>
+                <field name="provider_id"/>
+                <field name="num_account"/>
+                <field name="state_procedure"/>
+                <field name="num_plate"/>
+                <field name="state_plate"/>
+                <field name="chasis" />
+
             </search>
         </field>
     </record>
@@ -45,7 +59,8 @@
                             attrs="{'invisible': [('state_procedure', 'in', ['borrador', 'inscrito' , 'en_sunarp','tachado' , 'observado'])]}"/>
 
                     <button name="aprobar_inscrito" type="object" string="Aprobar Inscrito"
-                            attrs="{'invisible': [('state_procedure', 'in', ['borrador' , 'en_notaria' ] )]}" class="oe_highlight"/>
+                            attrs="{'invisible': [('state_procedure', 'in', ['borrador' , 'en_notaria' ] )]}"
+                            class="oe_highlight"/>
 
                     <button name="aprobar_observado" type="object" string="Observado" class="oe_highlight"
                             attrs="{'invisible': [('state_procedure', 'in', ['borrador' , 'inscrito' , 'en_notaria'] )]}"/>
@@ -56,22 +71,51 @@
                     <field name="state_procedure" widget="statusbar"/>
                 </header>
                 <sheet>
-                    <group>
-                        <group>
-                            <field name="num_title"/>
-                            <field name="init_date"/>
-                        </group>
-                        <group>
-                            <field name="own_name"/>
-                            <field name="provider_name"/>
-                        </group>
-                    </group>
 
                     <group>
                         <group>
-                            <field name="state_plate" />
+
+                        <field name="num_title"/>
+                        <field name="init_date"/>
+                        </group>
+                        <group>
+
                         </group>
                     </group>
+
+                    <group string="Factura">
+                        <group>
+
+                        <field name="own_name" readonly="1"/>
+                        <!-- <field name="provider_id"/>-->
+                        <field name="num_account" readonly="1"/>
+                        </group>
+                        <group>
+
+                        </group>
+                    </group>
+
+                    <group string="Placa de vehículo">
+                        <group>
+                            <field name="state_plate"/>
+                        </group>
+                        <group>
+                            <field name="num_plate"/>
+                        </group>
+                    </group>
+
+
+
+                    <notebook>
+                        <page string="Moto">
+                            <group>
+                                <field name="vehiculo_id" readonly="1"/>
+                                <field name="chasis"/>
+                                <field name="tarjeta_propiedad" />
+                            </group>
+                        </page>
+
+                    </notebook>
 
                 </sheet>
                 <div class="oe_chatter">

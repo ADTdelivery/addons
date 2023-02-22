@@ -1,4 +1,5 @@
 <odoo>
+
     <record id="fleet_addons_form" model="ir.ui.view">
         <field name="name">fleet.addons.form</field>
         <field name="model">fleet.vehicle</field>
@@ -26,7 +27,7 @@
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
                 <page string="Papeleta">
-                     <button name="agregar_papeleta" type="object" string="Agregar papeleta" class="oe_highlight"/>
+                    <button name="agregar_papeleta" type="object" string="Agregar papeleta" class="oe_highlight"/>
                     <group>
                         <field name="infraccion_id">
 
@@ -43,4 +44,21 @@
             </xpath>
         </field>
     </record>
+
+
+    <!--<record id="fleet_addons_form2" model="ir.ui.view">
+        <field name="name">fleet.addons.form2</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='driver_id']" position="after">
+                    <field name="asesor" class="oe_inline" placeholder="e.g. PAE 326" groups="adt_comercial.group_access_adt_comercial"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    -->
+
+
 </odoo>

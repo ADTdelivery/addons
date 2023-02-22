@@ -13,10 +13,10 @@ class AccountAddons(models.Model):
 
     @api.model
     def create(self, vals):
-
+        #print(str(vals))
         try:
             # Database connection
-            url = 'http://190.238.200.63:8070'
+            url = 'http://190.238.200.63:8070/'
             db = 'odoo'
             username = 'rapitash@gmail.com'
             password = 'Krishnna17'
@@ -25,18 +25,16 @@ class AccountAddons(models.Model):
             uid = common.authenticate(db, username, password, {})
             models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
             record = super(AccountAddons, self).create(vals)
-            # logging.info("id model  " + str(vals['x_quotation_model_id']))
 
             data_template = models.execute_kw(db, uid, password, 'fleet.vehicle.model', 'search_read',
                                               [[['id', '=', vals['x_quotation_model_id']]]],
                                               {'fields': ['name'], 'limit': 1})
 
-            # Create fleet.vehicle
+
             if vals['x_quotation_model_id'] is not None:
                 fleet_data = {
                     'name': data_template[0]['name'],
                     'active': True,
-                    #'company_id': 1,
                     'vin_sn': vals['x_quotation_chasis'],
                     'trailer_hook': False,
                     'driver_id': vals['x_quotation_driver_id'],
@@ -59,14 +57,39 @@ class AccountAddons(models.Model):
                     'disponible': True,
                     'x_id_facturacion': record.id
                 }
+                logging.info("FLEET _DATA")
+                logging.info(str(fleet_data))
                 id = models.execute_kw(db, uid, password, 'fleet.vehicle', 'create', [fleet_data])
+
+                plate_data = {
+                    'own_name' : 'CORPORACION ADT',
+                    'provider_id' :vals['partner_id'],
+                    'num_account' : self.document_type(vals['l10n_latam_document_type_id'])+" "+vals['l10n_latam_document_number'],
+                    'vehiculo_id' : id,
+                    'account_id' : record.id
+                }
+
+                #logging.info(str(plate_data))
+
+                plate_id = models.execute_kw(db , uid, password, 'procedure.plate.model','create', [plate_data])
 
             logging.info("id de account " + str(record.id) + " and  id partner ")
 
         except Exception as e:
-            logging.info('exception ' + str(e))
+            logging.error('exception ' + str(e))
             logging.info('no data account')
             logging.info(str(vals))
             record = super(AccountAddons, self).create(vals)
 
         return record
+
+    def document_type(self,id):
+        if id == 1 or id == 3 or id == 5:
+            result = "F"
+        if id == 2 or id == 4 or id == 6:
+            result = "B"
+        if id == 7:
+            result = "R"
+        if id == 8:
+            result = "P"
+        return result

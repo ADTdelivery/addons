@@ -25,7 +25,7 @@
     # always loaded
     'data': [
         # 'security/ir.model.access.csv',
-        'views/views.xml',
+        'views/views_plate_model.xml',
         'views/templates.xml',
         'views/view_gps.xml',
         'views/view_agregar_papeleta.xml',
@@ -35,6 +35,7 @@
         'reports/fleet_custom_report3.xml',
         'reports/fleet_custom_report4.xml',
         'reports/fleet_custom_mototaxi.xml',
+        #'views/view_tramite_placa.xml'
 
     ],
     # only loaded in demonstration mode
