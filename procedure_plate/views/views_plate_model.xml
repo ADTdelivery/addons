@@ -149,14 +149,12 @@
         <field name="act_window_id" ref="action_plate"/>
     </record>
 
-    <menuitem name="Placas" id="menu_procedure_plate" sequence="20"/>
-
-    <!-- groups="group_access_procedure_plate_model" -->
+    <menuitem name="Placas" id="menu_procedure_plate" sequence="20" groups="group_access_procedure_plate_model"/>
 
     <menuitem
             id="procedure_plate_menu_model"
             name="Placas"
             action="action_plate"
             parent="menu_procedure_plate"
-            sequence="1"/>
+            sequence="2"/>
 </odoo>

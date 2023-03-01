@@ -18,14 +18,14 @@ class ProcedurePlateModel(models.Model):
           ("borrador","Borrador"),
           ("en_notaria","Notaria"),
           ("en_sunarp","SUNARP"),
+          ("inscrito", "Inscrito"),
           ("observado","Observado"),
           ("tachado","Tachado"),
-          ("inscrito","Inscrito")
      ], default = "borrador" , string= "Estado del tramite", tracking = 1)
      num_plate = fields.Char(string="N° Placa", tracking = 1)
      state_plate = fields.Selection([
           ("pagado","Pagado") ,
-          ("recogido","Recodigo") ,
+          ("recogido","Recogido") ,
           ("entregado_cliente","Entregado Cliente")
      ], string = "Estado de placa" ,tracking = 1)
      information = fields.Char(string="Información")
