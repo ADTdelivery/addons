@@ -450,12 +450,12 @@
                             <tr>
                                 <td>CUOTA INICIAL</td>
                                 <td>
-
-                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                    S/ 2000.00
+                                    <!--<t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                         <t t-if="cuenta.partner_id == vehicle.driver_id">
                                             <span class="title_ligth" t-field="cuenta.monto_inicial" />
                                         </t>
-                                    </t>
+                                    </t>-->
 
                                 </td>
                             </tr>
@@ -470,19 +470,20 @@
 
                             <tr>
                                 <td>
-                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                    <!--<t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                         <t t-if="cuenta.partner_id == vehicle.driver_id">
                                             <span class="title_ligth" t-field="cuenta.qty_cuotas" />
                                         </t>
-                                    </t>
-                                    CUOTAS SEMANALES
+                                    </t> -->
+                                    66 CUOTAS SEMANALES
                                 </td>
                                 <td>
-                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                    S/ 420.00
+                                    <!--<t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                         <t t-if="cuenta.partner_id == vehicle.driver_id">
                                             <span class="title_ligth" t-field="cuenta.monto_cuota" />
                                         </t>
-                                    </t>
+                                    </t>-->
                                 </td>
                             </tr>
 
