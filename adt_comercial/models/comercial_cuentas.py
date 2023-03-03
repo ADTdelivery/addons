@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime, date
+import calendar
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError, RedirectWarning, UserError
 from odoo.http import request
@@ -23,8 +24,8 @@ class ADTComercialCuentas(models.Model):
 
     def aprobar_cuenta(self):
         for cuenta in self:
-            cuenta.write({'state': 'en_curso', 'reference_no': self.env['ir.sequence'].next_by_code(
-                'comercial.cuentas')})
+            cuenta.write({'state': 'en_curso',
+                          'reference_no': self.env['ir.sequence'].next_by_code('comercial.cuentas')})
             cuenta.vehiculo_id.write({'disponible': False})
             cuenta.generar_cuotas()
 
@@ -144,6 +145,62 @@ class ADTComercialCuentas(models.Model):
         string="Cuotas retrasadas", compute="_compute_qty_cuotas")
 
     recuperado = fields.Boolean(string="Recuperado", readonly=True)
+
+    message = fields.Char()
+
+
+    @api.onchange('fecha_desembolso')
+    def fecha_desembolso_change(self):
+        temp_date = int(self.fecha_desembolso.strftime("%d"))
+        general_message = "La fecha de cierre es aproximada,en caso no cumpla puede ser modificado"
+        exception_message = "Ojo : Fecha límite por lo tanto sera pasado para el siguiente cierre"
+
+        year = int(self.fecha_desembolso.strftime("%Y"))
+        month = int(self.fecha_desembolso.strftime("%m"))
+        num_days = calendar.monthrange( year, month)[1]
+
+        CIERRE_1 = 23
+        CIERRE_2 = 5
+        CIERRE_3 = 10
+        CIERRE_4 = 15
+
+        if 1 <= temp_date < 8:
+            self.fecha_cierre = CIERRE_1
+            self.message = general_message
+        if 9 <= temp_date < 15:
+            self.fecha_cierre = CIERRE_2
+            self.message = general_message
+        if 16 <= temp_date < 25:
+            self.fecha_cierre = CIERRE_3
+            self.message = general_message
+        if 26 <= temp_date <= 29:
+            self.fecha_cierre = CIERRE_4
+            self.message = general_message
+
+        if num_days == 30:
+            if temp_date == 30:
+                self.fecha_cierre = CIERRE_1
+
+        if num_days == 31:
+            if temp_date == 30:
+                self.fecha_cierre = 15
+                self.message = general_message
+
+            if temp_date == 31:
+                self.fecha_cierre = CIERRE_1
+                self.message = exception_message
+
+        if temp_date == 8:
+            self.fecha_cierre = CIERRE_2
+            self.message = exception_message
+        if temp_date == 15:
+            self.fecha_cierre = CIERRE_3
+            self.message = exception_message
+        if temp_date == 25:
+            self.fecha_cierre = CIERRE_4
+            self.message = exception_message
+
+
 
     def prueba_data(self):
         for data in self:

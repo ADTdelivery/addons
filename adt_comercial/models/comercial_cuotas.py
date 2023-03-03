@@ -198,11 +198,17 @@ class ADTComercialRegisterPayment(models.TransientModel):
 
     def action_create_payments(self):
         payment_exist = self.env['account.payment'].search(
-            [('ref', '=', self.communication)])
+            [('ref', '=', self.communication)]).read(['cuota_id'])
+        print(str(payment_exist[0]['cuota_id'][0]))
 
         if len(payment_exist) > 0:
+            cuota = self.env['adt.comercial.cuotas'].search(
+                [('id', '=', payment_exist[0]['cuota_id'][0] )]).read(['cuenta_id'])
+            print(str(cuota))
             raise UserError(
-                'Ya existe un pago con el mismo número de operación.')
+                'Ya existe un pago con el mismo número de operación. \n'
+                '\n'
+                'Usuario : '+ cuota[0]['cuenta_id'][1])
 
         logging.info("Data Account Payment")
         logging.info(str(self))
@@ -221,17 +227,6 @@ class ADTComercialRegisterPayment(models.TransientModel):
 
         try:
             logging.info(" data 1 " + str(self._name))
-
-            # Database connection
-            url = 'http://190.238.200.63:8070'
-            db = 'odoo'
-            username = 'rapitash@gmail.com'
-            password = 'Krishnna17'
-
-            common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
-            uid = common.authenticate(db, username, password, {})
-            models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
-
             logging.info("print array data")
 
             payment = self.env['account.payment'].create(data)

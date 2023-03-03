@@ -111,14 +111,13 @@
                             <separator string="Fechas"/>
                             <group>
                                 <group>
-                                    <field name="fecha_desembolso"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                                    <field name="fecha_desembolso"/>
 
-                                    <field name="fecha_cierre" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                                    <field name="fecha_cierre"/>
+                                    <field name="message" readonly="1"/>
                                 </group>
                                 <group>
-                                    <field name="fecha_entrega"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                                    <field name="fecha_entrega"/>
 
                                 </group>
                             </group>
@@ -127,8 +126,7 @@
                                 <group>
                                     <field name="monto_total" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                     <!-- <field name="monto_financiado" attrs="{'readonly': [('state', '!=', 'borrador')]}"/> -->
-                                    <field name="monto_inicial"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                                    <field name="monto_inicial" />
 
                                     <field name="monto_fraccionado"
                                            attrs="{'readonly': [('state', '!=', 'borrador')]}"
