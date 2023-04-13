@@ -1,13 +1,61 @@
 from odoo import http
 from odoo.http import request
 import requests
-from datetime import datetime
 from datetime import date
+from werkzeug.exceptions import NotFound
 
 import logging
 
+def validateField(data):
+    if not data:
+        return ""
+    else:
+        return data
+
+def replaceRaw(data):
+    for value in data[0]:
+        data[0][value] = validateField(data[0][value])
+    return data
 
 class Cobranza(http.Controller):
+
+    @http.route('/api/comercial/planpagos',type ='json' ,auth='none')
+    def planpagos(self,db,login,password,client):
+        request.session.authenticate(db, login, password)
+        try:
+            fleet_vehicle = request.env['fleet.vehicle'].search([['driver_id', '=', client['id']]]) \
+                .read(['id',
+                       'model_id',
+                       'license_plate',
+                       'driver_id',
+                       'color',
+                       'x_motor_sn',
+                       'model_year',
+                       ])
+
+            fleet_vehicle = replaceRaw(fleet_vehicle)
+
+            comercial_cuentas = request.env['adt.comercial.cuentas'].search([['partner_id', '=', client['id']]]) \
+                .read(['id',
+                       'fecha_cierre',
+                       'user_id'
+                       ])
+
+            cuenta_id = comercial_cuentas[0]['id']
+            comercial_cuotas = request.env['adt.comercial.cuotas'].search([['cuenta_id', '=', cuenta_id]]) \
+                .read(['id',
+                       'name', 'monto', 'saldo', 'fecha_cronograma', 'state'])
+
+            data = {
+                "fleet_vehicle" : fleet_vehicle[0],
+                "comercial_cuentas" : comercial_cuentas[0],
+                "comercial_cuotas" : comercial_cuotas
+            }
+
+            return data
+        except:
+            raise NotFound()
+
     @http.route('/detalle', type='json', auth='none')
     def get_nuevo(self, db, login, password, id):
         request.session.authenticate(db, login, password)
@@ -17,7 +65,6 @@ class Cobranza(http.Controller):
             'direccion': contacto.street,
             'mobile': contacto.mobile,
         }
-        # print(val)
         vehicle_rec = request.env['fleet.vehicle'].search([['driver_id.id', '=', id]])
         fleet = []
         for vehicle in vehicle_rec:
@@ -36,7 +83,6 @@ class Cobranza(http.Controller):
 
             }
             fleet.append(vals)
-            # print(fleet)
         cuenta_rec = request.env['adt.comercial.cuentas'].search([['partner_id.id', '=', id]])
         estado2 = cuenta_rec[0].state
 
