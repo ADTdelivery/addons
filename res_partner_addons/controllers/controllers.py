@@ -20,7 +20,7 @@ class ResPartnerAddons(http.Controller):
             .search(
             [['vat','=', credential['number_document'] ]])\
             .read(['id','name','street','l10n_latam_identification_type_id',
-                   'phone','mobile'])
+                   'phone','mobile','vat'])
         try:
             for value in data[0]:
                 data[0][value] = validate(data[0][value])
@@ -29,17 +29,22 @@ class ResPartnerAddons(http.Controller):
             raise NotFound()
 
     @http.route('/api/respartner/register', type='json', auth='none')
-    def register(self, db,login,password,register):
+    def register(self, db,login,password,client):
         request.session.authenticate(db,login,password)
         data = request.env['res.partner'].sudo().create({
-
+            'name' : client['name'],
+            'street' : client['street'],
+            'l10n_latam_identification_type_id' : client['l10n_latam_identification_type_id'],
+            'phone' : client['phone'],
+            'mobile' : client['mobile'],
+            'vat' : client['vat']
         })
-        try:
-            for value in data[0]:
-                data[0][value] = validate(data[0][value])
-            return data
-        except:
-            raise NotFound()
+
+        result = {
+            'message' : 'Order was send successfully',
+            'content' : data
+        }
+        return result
 
 
 

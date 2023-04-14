@@ -40,8 +40,12 @@ class ResPartnerAddons(http.Controller):
     @http.route('/api/ecommerce/createsale', type='json', auth='none')
     def createsale(self, db, login, password, order):
         request.session.authenticate(db, login, password)
+        res_partner = http.request.env['res.partner'].search(
+            [['vat', '=', order['document_client'] ]]) \
+            .read(['id'])
+
         sale = http.request.env['sale.order'].sudo().create({
-            'partner_id': order['client_id'],
+            'partner_id': res_partner[0]['id'],
         })
 
         for product in order['products']:
@@ -60,7 +64,12 @@ class ResPartnerAddons(http.Controller):
     @http.route('/api/ecommerce/sales', type='json', auth='none')
     def sales(self, db, login, password, client):
         request.session.authenticate(db, login, password)
-        sales = http.request.env['sale.order'].search([['partner_id','=',client['id']]]).\
+
+        res_partner = http.request.env['res.partner'].search(
+            [['vat', '=', client['document_client'] ]]) \
+            .read(['id'])
+
+        sales = http.request.env['sale.order'].search([['partner_id','=',res_partner[0]['id']]]).\
             read(['id', 'partner_id'])
 
         result = []
