@@ -114,7 +114,6 @@
                                     <field name="fecha_desembolso"/>
 
                                     <field name="fecha_cierre"/>
-                                    <field name="message" readonly="1"/>
                                 </group>
                                 <group>
                                     <field name="fecha_entrega"/>

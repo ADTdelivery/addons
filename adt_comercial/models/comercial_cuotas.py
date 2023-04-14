@@ -199,12 +199,10 @@ class ADTComercialRegisterPayment(models.TransientModel):
     def action_create_payments(self):
         payment_exist = self.env['account.payment'].search(
             [('ref', '=', self.communication)]).read(['cuota_id'])
-        print(str(payment_exist[0]['cuota_id'][0]))
 
         if len(payment_exist) > 0:
             cuota = self.env['adt.comercial.cuotas'].search(
                 [('id', '=', payment_exist[0]['cuota_id'][0] )]).read(['cuenta_id'])
-            print(str(cuota))
             raise UserError(
                 'Ya existe un pago con el mismo número de operación. \n'
                 '\n'

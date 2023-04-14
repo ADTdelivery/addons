@@ -25,7 +25,6 @@
     # always loaded
     'data': [
         # 'security/ir.model.access.csv',
-        'views/views_plate_model.xml',
         'views/templates.xml',
         'views/view_gps.xml',
         'views/view_agregar_papeleta.xml',
