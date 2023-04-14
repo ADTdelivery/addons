@@ -28,7 +28,7 @@ class ResPartnerAddons(http.Controller):
             raise NotFound()
 
     @http.route('/api/ecommerce/productbycategory', type='json', auth='none')
-    def category(self, db, login, password, category):
+    def productbycategory(self, db, login, password, category):
         request.session.authenticate(db, login, password)
         products = request.env['product.template'] \
             .search(
