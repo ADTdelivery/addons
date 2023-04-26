@@ -1,0 +1,48 @@
+<odoo>
+    <record id="adt_comercial_custom_tree" model="ir.ui.view">
+        <field name="name">adt.comercial.custom.tree</field>
+        <field name="model">adt.comercial.custom</field>
+        <field name="arch" type="xml">
+            <tree string="En captura">
+                <field name="cuenta_id" string="Cuenta"/>
+                <field name="partner_id"/>
+                <field name="vehiculo_id"/>
+                <field name="fecha_cierre" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_comercial_custom_search" model="ir.ui.view">
+        <field name="name">adt.comercial.custom.search</field>
+        <field name="model">adt.comercial.custom</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                <field name="partner_id"/>
+                <field name="cuenta_id"/>
+                <field name="vehiculo_id"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_custom" model="ir.actions.act_window">
+        <field name="name">Custom</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.comercial.custom</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="adt_comercial.adt_comercial_custom_search"/>
+    </record>
+
+    <record id="action_cuentas_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial.adt_comercial_custom_tree"/>
+        <field name="act_window_id" ref="action_custom"/>
+    </record>
+
+    <menuitem id="adt_comercial_menu_custom"
+              name="Custom"
+              action="action_custom"
+              parent="menu_adt_comercial"
+              sequence="4"/>
+
+</odoo>

@@ -3,6 +3,7 @@ import calendar
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError, RedirectWarning, UserError
 from odoo.http import request
+from odoo import tools
 
 import math
 import logging
@@ -96,25 +97,6 @@ class ADTComercialCuentas(models.Model):
     cuota_fin_2 = fields.Integer(string="Cuota fin 2", default=0)
     monto_2 = fields.Monetary(string="Monto 2", default=0)
 
-    # @api.depends('monto_financiado', 'monto_inicial')
-    # def _compute_monto_total(self):
-    #     for record in self:
-    #         record.monto_total = record.monto_financiado + record.monto_inicial
-
-    # @api.onchange('monto_inicial')
-    # def _compute_monto_financiado(self):
-    #     for record in self:
-    #         record.monto_financiado = record.monto_total - record.monto_inicial
-
-    # @api.onchange('monto_financiado')
-    # def _compute_monto_inicial(self):
-    #     for record in self:
-    #         record.monto_inicial = record.monto_total - record.monto_financiado
-
-    # def create(self):
-
-    # def write(self):
-
     qty_cuotas = fields.Integer(string="Total de cuotas", default=24)
     monto_cuota = fields.Monetary(string="Monto de cuota", default=0)
 
@@ -206,7 +188,8 @@ class ADTComercialCuentas(models.Model):
         for data in self:
             print(str(data.cuota_ids))
             for cuota in data.cuota_ids:
-                account_payment = request.env['account.payment'].search([('cuota_id', '=', cuota.id)]).read([
+                account_payment = request.env['account.payment']\
+                    .search([('cuota_id', '=', cuota.id)]).read([
                     'id',
                     'move_id',
                 ])
@@ -419,7 +402,6 @@ class ADTComercialCuentas(models.Model):
         self.cuota_ids = [(6, 0, a)]
 
     def get_cronograma_report(self, cuenta):
-        print("ANTHONY")
         self.env.cr.execute("""
             select
                 acc.name as cuota,
@@ -742,3 +724,50 @@ class ADTComercialCuentasFunction(models.Model):
         vehicle.write({'disponible': True})
 
         return super(ADTComercialCuentasFunction, self).unlink()
+
+
+
+class ADTComercialCustom(models.Model):
+    _name = 'adt.comercial.custom'
+    _inherit = 'res.users'
+    _description = 'Comercial Custom'
+    _auto = False
+    _rec_name = 'cuenta_id'
+    _order = "cuenta_id asc"
+
+
+    reference_no = fields.Char(string='Referencia')
+    cuenta_id = fields.Many2one('adt.comercial.cuentas', string='Cuenta')
+    partner_id = fields.Many2one('res.partner', string='Socio')
+    vehiculo_id = fields.Many2one("fleet.vehicle", string="Moto")
+    fecha_cierre = fields.Integer(string="Fecha de cierre", default=1)
+
+    def init(self):
+        #user_obj = self.env.uuid
+        #data = user_obj
+        context = self._context
+        user = context.get('uid')
+        print(user+"data")
+
+        #res_users = request.env['res.users'].search([['partner_id','=',id_user]])
+        #print(str(res_users[0]['id']))
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute('''
+            CREATE or REPLACE VIEW {} as (
+              SELECT 
+                  acc.id,
+                  acc.partner_id AS partner_id,
+                  acc.reference_no AS reference_no,
+                  acc.user_id AS user_id,
+                  acc.id as cuenta_id,
+                  acc.vehiculo_id as vehiculo_id,
+                  acc.fecha_desembolso AS fecha_desembolso,
+                  acc.fecha_entrega AS fecha_entrega,
+                  acc.vehiculo_id AS moto,
+                  acc.monto_inicial AS monto_inicial,
+                  acc.state AS state,
+                  acc.fecha_cierre AS fecha_cierre
+                  FROM adt_comercial_cuentas AS acc
+                WHERE fecha_cierre = 2
+            )
+        '''.format(self._table))

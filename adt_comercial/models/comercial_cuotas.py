@@ -254,3 +254,4 @@ class ADTRegistrarObservacion(models.TransientModel):
             'fecha': self.fecha,
             'attachment_ids': self.attachment_ids,
         })
+

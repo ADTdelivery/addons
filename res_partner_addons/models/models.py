@@ -10,3 +10,9 @@ class res_partner_addons(models.Model):
     session = fields.Integer(string="Session")
     password = fields.Text(string="Password")
 
+class ResUsers(models.Model):
+    _inherit = 'res.users'
+
+    fecha_cierre = fields.Integer(string="Fecha Cierre")
+
+

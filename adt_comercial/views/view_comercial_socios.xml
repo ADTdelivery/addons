@@ -98,7 +98,11 @@
     </record>
     
     <menuitem name="Comercial" id="menu_adt_comercial" sequence="20" groups="group_access_adt_comercial"/>
-    <menuitem id="adt_comercial_menu_socios" name="Socios" action="action_socios" parent="menu_adt_comercial" sequence="2"/>
+    <menuitem id="adt_comercial_menu_socios"
+              name="Socios"
+              action="action_socios"
+              parent="menu_adt_comercial"
+              sequence="2"/>
     
     <!-- <record id="adt_comercial_partner_form" model="ir.ui.view">
         <field name="name">adt.comercial.partner.form</field>

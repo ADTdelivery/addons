@@ -2,11 +2,13 @@
 
     <record id="res_partner_addons_extra" model="ir.ui.view">
         <field name="name">res.partner.addons.extra</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='type']" position="after">
-                <!-- <field name="session" />-->
+            <xpath expr="//field[@name='login']" position="after">
+                <group>
+                        <field name="fecha_cierre"/>
+                </group>
             </xpath>
         </field>
     </record>
