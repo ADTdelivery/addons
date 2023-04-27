@@ -5,15 +5,31 @@
         <field name="arch" type="xml">
             <tree string="Cuenta">
                 <field name="reference_no"/>
+                <field name="fecha_cierre"/>
+
+                <field name="state_view"
+                       decoration-info="state_view == 'new'"
+                       decoration-success="state_view == 'visto'"
+                       widget="badge" optional="show"/>
+                <field name="fecha_desembolso"/>
+
+                <field name="fecha_entrega"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
-                <field name="fecha_desembolso"/>
-                <field name="fecha_entrega"/>
                 <field name="moto_modelo"/>
                 <field name="moto_marca"/>
                 <field name="moto_tarjeta"/>
                 <field name="monto_inicial"/>
-                <field name="state"/>
+
+
+
+                                <field name="state"
+                       decoration-info="state == 'aprobado'"
+                       decoration-success="state == 'en_curso'"
+                       decoration-warning="state == 'pagado'"
+                       decoration-danger="state == 'cancelado'"
+                       widget="badge" optional="show"/>
+
             </tree>
         </field>
     </record>
@@ -27,6 +43,7 @@
                 <field name="moto_marca" filter_domain="[('moto_marca', 'ilike', self)]"/>
                 <field name="moto_modelo" filter_domain="[('moto_modelo', 'ilike', self)]"/>
                 <field name="user_id"/>
+                <field name="fecha_cierre"/>
                 <separator/>
                 <group expand="0" name="group_by" string="Group By">
                     <filter name="salesperson" string="Asesor" domain="[]" context="{'group_by' : 'user_id'}"/>
@@ -125,7 +142,7 @@
                                 <group>
                                     <field name="monto_total" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                     <!-- <field name="monto_financiado" attrs="{'readonly': [('state', '!=', 'borrador')]}"/> -->
-                                    <field name="monto_inicial" />
+                                    <field name="monto_inicial"/>
 
                                     <field name="monto_fraccionado"
                                            attrs="{'readonly': [('state', '!=', 'borrador')]}"
@@ -205,7 +222,7 @@
                                         <field name="type" string="Tipo" optional="hide" readonly="1"/>
                                         <field name="fecha_cronograma" readonly="1"/>
                                         <field name="real_date"/>
-                                        <field name= "x_asesora" />
+                                        <field name="x_asesora"/>
                                         <field name="numero_operacion"/>
                                         <field name="periodicidad"/>
                                         <field name="fecha_compromiso" optional="1"/>

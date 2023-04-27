@@ -17,11 +17,19 @@ class ADTComercialCuentas(models.Model):
     _description = "ADT Módulo comercial - Cuentas"
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+
     reference_no = fields.Char(
         string='Referencia', required=True, readonly=True, default=lambda self: _('Nuevo'))
     state = fields.Selection(
         [("borrador", "Borrador"), ("aprobado", "Aprobado"), ("en_curso", "En curso"), ("cancelado", "Cancelado"),
          ("pagado", "Pagado")], default="borrador", string="Estado", tracking=1)
+
+    #whether happen when a user see that account
+    state_view = fields.Selection(
+        [
+            ("new","Nuevo") , ("visto","Visto")
+        ] , default = "new" , string = "Asignado" , tracking = 1)
+
 
     def aprobar_cuenta(self):
         for cuenta in self:
@@ -743,14 +751,6 @@ class ADTComercialCustom(models.Model):
     fecha_cierre = fields.Integer(string="Fecha de cierre", default=1)
 
     def init(self):
-        #user_obj = self.env.uuid
-        #data = user_obj
-        context = self._context
-        user = context.get('uid')
-        print(user+"data")
-
-        #res_users = request.env['res.users'].search([['partner_id','=',id_user]])
-        #print(str(res_users[0]['id']))
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute('''
             CREATE or REPLACE VIEW {} as (

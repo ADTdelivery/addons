@@ -22,7 +22,6 @@
         'views/view_cobranzas_config.xml',
         'views/view_vehiculo.xml',
         'views/view_warning_message.xml',
-        'views/view_comercial_custom.xml',
         'reports/external_layout_cronograma.xml',
         # 'reports/paperformat.xml',
         'reports/report.xml',

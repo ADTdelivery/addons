@@ -211,6 +211,11 @@ class ADTComercialRegisterPayment(models.TransientModel):
         logging.info("Data Account Payment")
         logging.info(str(self))
 
+        status_view = self.env['adt.comercial.cuentas'].search(
+            [('id','=', self['cuota_id']['cuenta_id']['id'] )]
+        )
+        status_view.write({'state_view':'visto'})
+
         data = {
             'payment_type': self.payment_type,
             'journal_id': self.journal_id.id,
