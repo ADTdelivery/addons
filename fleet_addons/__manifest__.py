@@ -34,6 +34,7 @@
         'reports/fleet_custom_report3.xml',
         'reports/fleet_custom_report4.xml',
         'reports/fleet_custom_mototaxi.xml',
+        'reports/fleet_custom_new.xml',
         #'views/view_tramite_placa.xml'
 
     ],
