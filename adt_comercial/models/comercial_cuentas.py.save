@@ -157,10 +157,10 @@ class ADTComercialCuentas(models.Model):
         if 1 <= temp_date < 8:
             self.fecha_cierre = CIERRE_1
             self.message = general_message
-        if 9 <= temp_date < 15:
+        if 9 <= temp_date < 20:
             self.fecha_cierre = CIERRE_2
             self.message = general_message
-        if 16 <= temp_date < 25:
+        if 21 <= temp_date < 25:
             self.fecha_cierre = CIERRE_3
             self.message = general_message
         if 26 <= temp_date <= 29:

@@ -88,7 +88,7 @@
             <field name="group_id" ref="base.group_user"/>
         </record>
 
-        <record model="ir.model.access" id="access_model_adt_comercial_custom">
+<!--        <record model="ir.model.access" id="access_model_adt_comercial_custom">
             <field name="name">acces.model.adt.comercial.custom</field>
             <field name="model_id" ref="adt_comercial.model_adt_comercial_custom"/>
             <field name="perm_read">1</field>
@@ -96,7 +96,7 @@
             <field name="perm_unlink">1</field>
             <field name="perm_create">1</field>
             <field name="group_id" ref="base.group_user"/>
-        </record>
+        </record>-->
 
         <record model="ir.model.access" id="access_model_adt_registrar_mora">
             <field name="name">acces.model.adt.registrar.mora</field>

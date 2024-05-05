@@ -1,5 +1,5 @@
 <odoo>
-    <record id="adt_comercial_custom_tree" model="ir.ui.view">
+ <!--   <record id="adt_comercial_custom_tree" model="ir.ui.view">
         <field name="name">adt.comercial.custom.tree</field>
         <field name="model">adt.comercial.custom</field>
         <field name="arch" type="xml">
@@ -44,5 +44,5 @@
               action="action_custom"
               parent="menu_adt_comercial"
               sequence="4"/>
-
+-->
 </odoo>
