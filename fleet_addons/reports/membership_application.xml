@@ -20,19 +20,19 @@
     </record>
 
 
-    <record id="fleet_addons.fleet_custom_report104" model="ir.actions.report">
+    <record id="fleet_addons.fleet_custom_report103" model="ir.actions.report">
         <field name="name">Solicitud de Afiliación</field>
         <field name="model">fleet.vehicle</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">fleet_addons.vehicle_contrato104_report_view</field>
-        <field name="report_file">fleet_addons.vehicle_contrato104_report</field>
+        <field name="report_name">fleet_addons.vehicle_contrato103_report_view</field>
+        <field name="report_file">fleet_addons.vehicle_contrato103_report</field>
         <field name="binding_model_id" ref="model_fleet_vehicle"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
 
     </record>
 
-    <template id="vehicle_contrato104_report_view">
+    <template id="vehicle_contrato103_report_view">
         <t t-call="web.html_container">
             <t t-call="web.external_layout">
                 <t t-foreach="docs" t-as="vehicle">
