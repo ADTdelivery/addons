@@ -20,7 +20,7 @@
         </record>
 
         <record id="fleet_addons.fleet_custom_report101" model="ir.actions.report">
-            <field name="name">Calderon Contrato</field>
+            <field name="name">Contrato de Alquiler Venta</field>
             <field name="model">fleet.vehicle</field>
             <field name="report_type">qweb-pdf</field>
             <field name="report_name">fleet_addons.vehicle_contrato101_report_view</field>

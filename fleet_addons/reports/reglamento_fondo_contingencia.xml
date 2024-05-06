@@ -21,7 +21,7 @@
 
 
     <record id="fleet_addons.fleet_custom_report100" model="ir.actions.report">
-        <field name="name">Proof - Odoo 100</field>
+        <field name="name">Reglamento de Fondo de Contingencia</field>
         <field name="model">fleet.vehicle</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">fleet_addons.vehicle_contrato100_report_view</field>
