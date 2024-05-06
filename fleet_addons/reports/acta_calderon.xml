@@ -1,0 +1,365 @@
+<?xml version="1.0" ?>
+<odoo>
+
+    <record id="paperformat_cronograma_a4" model="report.paperformat">
+        <field name="name">Cronograma A4</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">40</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="fleet_addons.fleet_custom_report102" model="ir.actions.report">
+        <field name="name">Acta Calderón</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fleet_addons.vehicle_contrato102_report_view</field>
+        <field name="report_file">fleet_addons.vehicle_contrato102_report</field>
+        <field name="binding_model_id" ref="model_fleet_vehicle"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
+    </record>
+
+    <template id="vehicle_contrato102_report_view">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="vehicle">
+                    <t t-foreach="vehicle.driver_id" t-as="driver">
+                        <style>
+                            .general_body_xs{
+                            margin: 10px;
+                            font-size: 14px;
+                            }
+
+                            .title_report{
+                            text-align: center;
+                            }
+
+                            table {
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 100%;
+                            font-size: 10px;
+                            }
+
+                            td, th {
+                            border: 1px solid #dddddd;
+                            text-align: left;
+                            padding: 8px;
+                            width: 50%;
+                            }
+
+                            .subrayado{
+                            text-decoration: underline black;
+                            font-weight: bold;
+                            font-size: 14px;
+                            }
+
+                            span{
+                            font-weight: bold;
+                            }
+
+                            .box_clausula{
+                            margin-left: 20px;
+                            }
+
+                            .box_subclausula{
+                            display:flex;
+                            }
+                            .indice_negrita{
+                            font-weight: bold;
+                            margin:0%;
+                            }
+
+                            .table_cuota_inicial{
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 50%;
+                            }
+
+                            .title_ligth{
+                            font-weight: normal;
+                            }
+
+                            .box_firma{
+                            display: -webkit-box;
+                            -webkit-box-pack: center;
+                            justify-content: center;
+                            }
+
+                            .box_line{
+                            width: 100%;
+                            height: 1px;
+                            background-color: black;
+                            }
+
+                            .box_data{
+                            margin-top: 100px;
+                            margin-left: 5px;
+                            height: 60px;
+                            width: 50%;
+                            }
+
+                            .box_place_date{
+                            display: -webkit-box;
+                            -webkit-box-pack: end;
+                            justify-content: end;
+                            }
+
+                            .box_guion{
+                            display: -webkit-box;
+                            }
+
+                            .box_guion_space {
+                            margin-left: 20px;
+                            }
+
+                            .box_italica{
+                            font-style: italic;
+                            }
+                            .box_space{
+                            height: 800px;
+                            }
+
+                            /* table */
+
+                            .general_body {
+                            height: 35px;
+                            width: 100%;
+                            background-color: #C0C0C0;
+                            display: -webkit-box;
+                            -webkit-box-pack: start;
+                            justify-content: end;
+                            }
+
+                            .w60p {
+                            width: 60%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .w40p {
+                            width: 40%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .box_margin {
+                            margin-left: 10px;
+                            }
+
+                            .box_bordertop {
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent transparent transparent;
+                            }
+
+                            .box_borderbottom {
+                            border-bottom: 1.5px;
+                            border-style: solid;
+                            border-color: transparent transparent black transparent;
+                            }
+
+                            .box_borderbi {
+                            border-bottom: 1.5px;
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent black transparent;
+                            }
+                            .box_space_heigth{
+                            height: 15px;
+                            }
+                            .box_justify_space{
+                            display: -webkit-box;
+                            -webkit-box-pack: justify;
+                            justify-content: space-between;
+                            }
+
+                        </style>
+
+
+                        <div class="header">
+                            <img src="/fleet_addons/static/src/img/header_adt.jpg" alt="Not found" height="100"
+                                 width="1000"/>
+                        </div>
+
+                        <div class="footer">
+                            <img src="/fleet_addons/static/src/img/footer_adt.jpg" alt="Not found" height="100"
+                                 width="1000"/>
+                        </div>
+
+                        <div class="general_body_xs">
+
+
+                            <div class="title_report">
+                                <span>ACTA DE ENTREGA VEHICULAR</span>
+
+                            </div>
+
+                            <div class="box_space_heigth"></div>
+
+
+                            <p>
+                                Yo,
+                                <span class="title_ligth" t-field="driver.name"/>
+                                ; identificada con
+                                <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>
+                                :
+                                <span class="title_ligth" t-field="driver.vat"/>
+                                declaro que he recibido de parte
+                                de
+                                <span>CORPORACION ADT S.A.C</span>
+                                , el vehículo (motocicleta) de las siguientes características:
+                                <t t-foreach="vehicle.model_id" t-as="model">
+                                    Marca:
+                                    <span class="title_ligth" t-field="model.brand_id"/>
+                                    ;
+                                    Modelo:
+                                    <span class="title_ligth" t-field="model.name"/>
+                                    ; Color:
+                                    <span class="title_ligth" t-field="vehicle.color"/>
+                                    ; Número de CHASIS:
+                                    <span class="title_ligth" t-field="vehicle.vin_sn"/>
+                                    , Número de PLACA: EN CURSO;
+                                    la cual recibo en perfecto estado de funcionamiento (Nuevo en todas sus partes y
+                                    piezas) y de forma
+                                    correcta.
+                                </t>
+                            </p>
+
+                            <span>GARANTIA</span>
+
+
+                            <div class="box_clausula">
+                                <ul>
+                                    <li>La garantía del vehículo es por un plazo de 12 meses o 18,000 km; lo que ocurra
+                                        primero.
+                                    </li>
+                                    <li>La compra incluye 2 servicios de mantenimiento y obligatorio que es a los 500 km
+                                        y 1500 km y
+                                        luego cada 1500 km (estos mantenimientos serán realizados única y exclusiva
+                                        mente en nuestro
+                                        servicio técnico esto para llevar un adecuado control y garantizar la calidad
+                                        del vehículo).
+                                    </li>
+                                    <li>Los mantenimientos preventivos son únicamente mano de obra, el cliente tendrá
+                                        que adquirir el
+                                        aceite sugerido por el servicio técnico.
+                                    </li>
+                                    <li>El cambio de aceite en la activación lo cubre el cliente la mano de obra la
+                                        empresa.
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <span>CONDICIONES DE LA GARANTIA.</span>
+
+
+                            <div class="box_clausula">
+                                <ul>
+                                    <li>El propietario tendrá que llevar su unidad al taller autorizado designado por el
+                                        establecimiento
+                                        cuando se cumplan los kilómetros sugeridos para que se efectúen los servicios de
+                                        mantenimiento
+                                        requisito indispensable para mantener la garantía vigente
+                                    </li>
+                                    <li>La garantía no cubre los daños en las superficies pintadas y oxidación de las
+                                        partes cromadas o
+                                        metálicas.
+                                    </li>
+                                    <li>La garantía no cubre las fallas del vehículo resultado de negligencias de quien
+                                        lo opere, de
+                                        manejo incorrecta, por la utilización del vehículo en competencias deportivas y
+                                        como vehículo
+                                        para aprendizaje de conductores.
+                                    </li>
+                                    <li>La garantía no cubre daños producto de uso del vehículo fuera de los límites y
+                                        especificaciones
+                                        indicadas
+                                    </li>
+                                    <li>La garantía no cubre las modificaciones o alteraciones en los mecanismos y
+                                        partes y/o accesorios
+                                        del vehículo ocasionados por el uso de repuestos no originales.
+                                    </li>
+                                    <li>La garantía solo cubre fallas de fabricación del motor, previa revisión del
+                                        servicio técnico de
+                                        la empresa.
+                                    </li>
+                                    <li>Los amortiguadores, catalinas, cadenas de arrastre, zapatas de freno, discos de
+                                        embrague,
+                                        llantas, cámaras, rayos de rueda, focos, relays, filtros, fusibles, pernos,
+                                        espárragos, tuercas,
+                                        estructuras
+                                        Metálicas, pedal de arranque, cables; accesorios eléctricos, baterías no están
+                                        cubiertos por la
+                                        garantía, pues la vida útil de estos está sujetos a múltiples factores de uso
+                                        ajenos a cualquier
+                                        control.
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <span>SE PIERDE LA GARANTIA.</span>
+
+                            <p>Se detecta alguna alteración en el kilometraje mediante manipulaciones en el odómetro y/o
+                                cable de
+                                velocímetro.
+                            </p>
+                            <p>Si se detecta que el motor ya ha sido destapado por un mecánico no autorizado.</p>
+
+                            <span>SE RECOMIENDA</span>
+
+                            <p>
+                                La gasolina recomendada para el funcionamiento del vehículo es de 90 octanos como
+                                mínimo, el uso de otro
+                                combustible menor al recomendado perjudica al motor cascabeleo y una carbonización
+                                acelerada por lo cual
+                                perjudica el funcionamiento, produciendo un deterioro prematuro a las partes del motor.
+                            </p>
+
+                            <p>
+                                Firmo en conformidad a todo lo que en este documento se ha expuesto.
+                            </p>
+
+                            <div class="box_margin">
+                                <div>
+                                    <p>Lima ,
+                                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="box_firma">
+                                <div class="box_data"></div>
+                                <div class="box_data">
+                                    <div></div>
+                                    <div class="box_line"></div>
+
+                                    <div class="box_firma box_place_date">
+                                        <span class="title_ligth" t-field="driver.name"/>
+                                    </div>
+                                    <div class="box_firma box_place_date">
+                                        <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>
+                                        :
+                                        <span class="title_ligth" t-field="driver.vat"/>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+
+</odoo>
