@@ -228,7 +228,13 @@
                                     <span class="title_ligth" t-field="vehicle.color"/>
                                     ; Número de CHASIS:
                                     <span class="title_ligth" t-field="vehicle.vin_sn"/>
-                                    , Número de PLACA: EN CURSO,
+                                    , Número de PLACA: 
+                                    <t t-if="vehicle.license_plate">
+                                        <span class="title_ligth" t-field="vehicle.license_plate"/>,
+                                    </t>
+                                    <t t-if="not vehicle.license_plate">
+                                        EN CURSO,
+                                    </t>                                    
                                     la cual recibo en perfecto estado de funcionamiento (Nuevo en todas sus partes y
                                     piezas) y de forma
                                     correcta.
