@@ -223,9 +223,15 @@
                             <span class="title_ligth" t-field="vehicle.color"/>, 
                             Con Chasis:<span class="title_ligth" t-field="vehicle.vin_sn"/>
                             con Placa de Rodaje 
-                            <span class="title_ligth" t-field="vehicle.license_plate"/></p>
-                            <p style="padding-left: 5pt;text-indent: 0pt;line-height: 150%;text-align: justify;">En vista, que se ha suscitado una causal de resolución 
-                            de contrato de alquiler venta de bien mueble a plazo determinado los cuales se expresan en el artículo “décima primera: recuperación del vehículo 
+                            <t t-if="vehicle.license_plate">
+                                <span class="title_ligth" t-field="vehicle.license_plate"/>
+                            </t>
+                            <t t-if="not vehicle.license_plate">
+                                EN CURSO
+                            </t>
+                            <p style="padding-left: 5pt;text-indent: 0pt;line-height: 150%;text-align: justify;">
+                            En vista, que se ha suscitado una causal de resolución de contrato de alquiler venta de bien 
+                            mueble a plazo determinado los cuales se expresan en el artículo “décima primera: recuperación del vehículo 
                             por incumplimiento de pago o resolución de contrato”; entre algunas de las causales tenemos:</p>
                             <ol id="l1">
                                 <li data-list-text="1."><p style="padding-left: 34pt;text-indent: -28pt;line-height: 199%;text-align: left;">
