@@ -185,15 +185,7 @@
                             display: -webkit-box;
                             -webkit-box-pack: justify;
                             justify-content: space-between;
-                            }
-                            .h1 { color: black; font-family:Arial, 
-                                sans-serif; font-style: normal; font-weight: bold; 
-                                text-decoration: none; font-size: 11pt; }
-                            .p { color: black; font-family:Arial, sans-serif; 
-                            font-style: normal; font-weight: normal; 
-                            text-decoration: none; font-size: 11pt; margin:0pt; }
-                            .li {display: block; }
-                            #l1 {padding-left: 0pt;counter-reset: c1 1; }
+                            }                            
 
                         </style>
 
