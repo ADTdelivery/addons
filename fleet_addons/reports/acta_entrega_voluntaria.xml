@@ -201,51 +201,45 @@
 
                         <div class="general_body_xs">
 
-                            <div class="title_report">
-                                <span>ACTA DE RESPONSABILIDAD</span>
-
-                                <div class="box_space_heigth"></div>
-                            </div>
-
-                            <p>
-                                Se da de conocimiento que la SR.
-                                <span class="title_ligth" t-field="driver.name"/>
-                                con
-                                <span class="title_ligth"
-                                      t-field="driver.l10n_latam_identification_type_id"/>
-                                :
-                                <span class="title_ligth"
-                                      t-field="driver.vat"/>
-                                se le hace la
-                                entrega de la moto
-                                <t t-foreach="vehicle.model_id" t-as="model">Marca
-                                    <span class="title_ligth" t-field="model.brand_id"/>
-                                    modelo:
-                                    <span class="title_ligth" t-field="model.name"/>
-                                    Color
-                                    <span class="title_ligth" t-field="vehicle.color"/>
-                                    NUMERO DE CHASIS:
-                                    <span class="title_ligth" t-field="vehicle.vin_sn"/>
-                                    con PLACA EN TRAMITE , se le hace la entrega de la moto sin GPS, este equipo se le
-                                    hará la instalación
-                                    del GPS en cuanto el vehículo recorra sus primeros 500 km o a la entrega de la
-                                    documentación, en ese
-                                    plazo el vehículo queda en única responsabilidad del cliente ya que no tendrá que
-                                    ser expuesto en la vía
-                                    pública por no contar con la documentación en regla y el equipo GPS instalado, una
-                                    vez instalado el
-                                    equipo este quedara bajo el monitoreo de la empresa.
-                                </t>
-                            </p>
-
-
-                            <div class="box_margin">
-                                <div>
-                                    <p>Lima ,
-                                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/>
-                                    </p>
-                                </div>
-                            </div>
+                            <h1 style="padding-top: 3pt;text-indent: 0pt;text-align: center;">
+                            ACTA DE ENTREGA VOLUNTARIA POR RESOLUCION DE CONTRATO</h1>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 5pt;text-indent: 0pt;line-height: 199%;text-align: center;">
+                            Yo DUEÑAS CALDERÓN FLORA identificado con DNI: 41060981, y domiciliado en SANTO DOMINGO B 10 APV CARIBE DEL NARANJAL, SAN MARTÍN DÉ PORRES ,</p>
+                            <p style="padding-left: 5pt;text-indent: 0pt;line-height: 200%;text-align: justify;">Entrego de manera voluntaria la trimoto, de marca TVS, 
+                            color AZUL CON BLANCO, Con Chasis:MD6M1LLH3S4AY0158con Placa de Rodaje N° 4329-RC</p>
+                            <p style="padding-left: 5pt;text-indent: 0pt;line-height: 150%;text-align: justify;">En vista, que se ha suscitado una causal de resolución 
+                            de contrato de alquiler venta de bien mueble a plazo determinado los cuales se expresan en el artículo “décima primera: recuperación del vehículo 
+                            por incumplimiento de pago o resolución de contrato”; entre algunas de las causales tenemos:</p>
+                            <ol id="l1">
+                                <li data-list-text="1."><p style="padding-left: 34pt;text-indent: -28pt;line-height: 199%;text-align: left;">
+                                El traslado del Vehículo automotor menor fuera de la jurisdicción de Lima- Metropolitana. Sin poner en conocimiento a EL ARRENDADOR.</p>
+                                </li>
+                                <li data-list-text="2."><p style="padding-left: 34pt;text-indent: -28pt;line-height: 202%;text-align: left;">El incumplimiento por parte 
+                                del <b>ARRENDATARIO </b>de 2 (DOS) rentas más la mitad de la siguiente, de conformidad al cronograma de pago.</p>
+                                </li>
+                                <li data-list-text="3."><p style="padding-left: 34pt;text-indent: -28pt;line-height: 200%;text-align: left;">El traspaso, transferencia 
+                                o cesión a terceras personas, sin conocimiento de EL ARRENDADOR.</p>
+                                </li>
+                                <li data-list-text="4."><p style="padding-left: 34pt;text-indent: -28pt;line-height: 199%;text-align: justify;">La utilización del vehículo
+                                 menor para realizar actividades ilícitas de cualquier índole (Robo, Violaciones ID y otros).</p>
+                                </li>
+                                <li data-list-text="5."><p style="padding-left: 34pt;text-indent: -28pt;text-align: justify;">La manipulación o desinstalación del GPS 
+                                 ubicado en el vehículo menor</p>
+                                </li>
+                                <li data-list-text="6."><p style="padding-top: 12pt;padding-left: 34pt;text-indent: -28pt;line-height: 200%;text-align: justify;">Las papeletas,
+                                  multas, e infracciones en general serán de responsabilidad de EL ARRENDATARIO, y de estar estas impagas por más de dos meses será causal de 
+                                  resolución de contrato.</p>
+                                </li>
+                                <li data-list-text="7."><p style="padding-left: 34pt;text-indent: -28pt;line-height: 13pt;text-align: justify;">Y demás causales previstas en 
+                                  el contrato o en la Ley.</p>
+                                </li>
+                            </ol>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 5pt;text-indent: 0pt;line-height: 115%;text-align: left;">Por consiguiente hago entrega voluntaria del vehículo en mención 
+                            por incurrir en causales de resolución del contrato</p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 27pt;text-indent: 0pt;text-align: left;">Arrendador                       Arrendatario</p>
 
 
                         </div>
