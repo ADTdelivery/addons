@@ -189,16 +189,6 @@
 
                         </style>
 
-                        <div class="header">
-                            <img src="/fleet_addons/static/src/img/header_adt.jpg" alt="Not found" height="100"
-                                 width="1000"/>
-                        </div>
-
-                        <div class="footer">
-                            <img src="/fleet_addons/static/src/img/footer_adt.jpg" alt="Not found" height="50"
-                                 width="1000"/>
-                        </div>
-
                         <div class="general_body_xs">
 
                             <h1 style="padding-top: 3pt;text-indent: 0pt;text-align: center;">
@@ -256,7 +246,6 @@
                             <p style="padding-left: 5pt;text-indent: 0pt;line-height: 115%;text-align: left;">Por consiguiente hago entrega voluntaria del vehículo en mención 
                             por incurrir en causales de resolución del contrato</p>
                             <p style="text-indent: 0pt;text-align: left;"><br/></p>
-                            <p style="padding-left: 27pt;text-indent: 0pt;text-align: left;">Arrendador                       Arrendatario</p>
                             <div class="box_firma">
                                 <div class="box_data">
                                     <div></div>
