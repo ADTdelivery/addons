@@ -38,154 +38,26 @@
                 <t t-foreach="docs" t-as="vehicle">
                     <t t-foreach="vehicle.driver_id" t-as="driver">
                         <style>
-                            .general_body_xs{
-                            margin: 10px;
-                            font-size: 14px;
-                            }
-
-                            .title_report{
-                            text-align: center;
-                            }
-
-                            table {
-                            font-family: arial, sans-serif;
-                            border-collapse: collapse;
-                            width: 100%;
-                            font-size: 10px;
-                            }
-
-                            td, th {
-                            border: 1px solid #dddddd;
-                            text-align: left;
-                            padding: 8px;
-                            width: 50%;
-                            }
-
-                            .subrayado{
-                            text-decoration: underline black;
-                            font-weight: bold;
-                            font-size: 14px;
-                            }
-
-                            span{
-                            font-weight: bold;
-                            }
-
-                            .box_clausula{
-                            margin-left: 20px;
-                            }
-
-                            .box_subclausula{
-                            display:flex;
-                            }
-                            .indice_negrita{
-                            font-weight: bold;
-                            margin:0%;
-                            }
-
-                            .table_cuota_inicial{
-                            font-family: arial, sans-serif;
-                            border-collapse: collapse;
-                            width: 50%;
-                            }
-
-                            .title_ligth{
-                            font-weight: normal;
-                            }
-
-                            .box_firma{
-                            display: -webkit-box;
-                            -webkit-box-pack: center;
-                            justify-content: center;
-                            }
-
-                            .box_line{
-                            width: 100%;
-                            height: 1px;
-                            background-color: black;
-                            }
-
-                            .box_data{
-                            margin-top: 100px;
-                            margin-left: 5px;
-                            height: 60px;
-                            width: 50%;
-                            }
-
-                            .box_place_date{
-                            display: -webkit-box;
-                            -webkit-box-pack: end;
-                            justify-content: end;
-                            }
-
-                            .box_guion{
-                            display: -webkit-box;
-                            }
-
-                            .box_guion_space {
-                            margin-left: 20px;
-                            }
-
-                            .box_italica{
-                            font-style: italic;
-                            }
-                            .box_space{
-                            height: 800px;
-                            }
-
-                            /* table */
-
-                            .general_body {
-                            height: 35px;
-                            width: 100%;
-                            background-color: #C0C0C0;
-                            display: -webkit-box;
-                            -webkit-box-pack: start;
-                            justify-content: end;
-                            }
-
-                            .w60p {
-                            width: 60%;
-                            margin-left: 10px;
-                            margin-top: 5px;
-                            }
-
-                            .w40p {
-                            width: 40%;
-                            margin-left: 10px;
-                            margin-top: 5px;
-                            }
-
-                            .box_margin {
-                            margin-left: 10px;
-                            }
-
-                            .box_bordertop {
-                            border-top: 1.5px;
-                            border-style: solid;
-                            border-color: black transparent transparent transparent;
-                            }
-
-                            .box_borderbottom {
-                            border-bottom: 1.5px;
-                            border-style: solid;
-                            border-color: transparent transparent black transparent;
-                            }
-
-                            .box_borderbi {
-                            border-bottom: 1.5px;
-                            border-top: 1.5px;
-                            border-style: solid;
-                            border-color: black transparent black transparent;
-                            }
-                            .box_space_heigth{
-                            height: 15px;
-                            }
-                            .box_justify_space{
-                            display: -webkit-box;
-                            -webkit-box-pack: justify;
-                            justify-content: space-between;
-                            }
+                        <style type="text/css"> * {margin:0; padding:0; text-indent:0; }
+                            .s1 { color: black; font-family:"Times New Roman", serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 12.5pt; }
+                            h1 { color: black; font-family:Calibri, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 12pt; }
+                            p { color: black; font-family:"Microsoft Sans Serif", sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 11pt; margin:0pt; }
+                            h2 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
+                            .s2 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
+                            .s3 { color: black; font-family:"Microsoft Sans Serif", sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 11pt; }
+                            li {display: block; }
+                            #l1 {padding-left: 0pt;counter-reset: c1 1; }
+                            #l1> li>*:first-child:before {counter-increment: c1; content: counter(c1, upper-roman)". "; color: black; font-family:Calibri, sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 12pt; }
+                            #l1> li:first-child>*:first-child:before {counter-increment: c1 0;  }
+                            li {display: block; }
+                            #l2 {padding-left: 0pt; }
+                            #l2> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 11pt; }
+                            li {display: block; }
+                            #l3 {padding-left: 0pt;counter-reset: e1 1; }
+                            #l3> li>*:first-child:before {counter-increment: e1; content: counter(e1, decimal)". "; color: black; font-family:"Microsoft Sans Serif", sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 11pt; }
+                            #l3> li:first-child>*:first-child:before {counter-increment: e1 0;  }
+                            table, tbody {vertical-align: top; overflow: visible; }
+                        </style>
 
                         </style>
 
@@ -815,10 +687,14 @@
                                 así como el daño ocasionado a los animales.
                             </p>
                             <p style="text-indent: 0pt;text-align: left;"><br/></p>
-                            <p style="padding-left: 6pt;text-indent: 0pt;line-height: 200%;text-align: left;">DAÑO PERSONAL .- Lesión corporal – excluyendo enfermedades – o muerte causadas a personas naturales. TERCEROS .- Cualquier persona, natural o jurídica, distinta de:</p><p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">EL COBERTURADO- Persona afiliada al fondo de contingencia</p><p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">VALOR COMERCIAL .- Es el valor de mercado de un vehículo de la misma marca, año, modelo y estado de conservación que el vehículo coberturado en mercado peruano en el momento que se especifique en las presentes Condiciones Generales u otra parte del contrato.</p>
-
-
-
+                            <p style="padding-left: 6pt;text-indent: 0pt;line-height: 200%;text-align: left;">DAÑO PERSONAL .- Lesión corporal – excluyendo 
+                                enfermedades – o muerte causadas a personas naturales. TERCEROS .- Cualquier persona, natural o jurídica, distinta de:
+                            </p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">EL COBERTURADO- Persona afiliada al fondo de contingencia</p>
+                            <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">VALOR COMERCIAL .- Es el valor de mercado de un vehículo 
+                                de la misma marca, año, modelo y estado de conservación que el vehículo coberturado en mercado peruano en el momento que se especifique 
+                                en las presentes Condiciones Generales u otra parte del contrato.
+                            </p>
                         </div>
                     </t>
                 </t>
