@@ -194,7 +194,7 @@
                             <h1 style="padding-top: 3pt;text-indent: 0pt;text-align: center;">
                             ACTA DE ENTREGA VOLUNTARIA POR RESOLUCION DE CONTRATO</h1>
                             <p style="text-indent: 0pt;text-align: left;"><br/></p>
-                            <p style="padding-left: 5pt;text-indent: 0pt;line-height: 199%;text-align: center;">
+                            <p style="padding-top: 3pt; text-indent: 0pt; text-align: justify;">
                               Yo <span class="title_ligth" t-field="driver.name"/>
                               identificado con 
                               <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>:
