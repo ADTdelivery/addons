@@ -200,52 +200,623 @@
                         </div>
 
                         <div class="general_body_xs">
-
-                            <div class="title_report">
-                                <span>ACTA DE RESPONSABILIDAD</span>
-
-                                <div class="box_space_heigth"></div>
-                            </div>
-
-                            <p>
-                                Se da de conocimiento que la SR.
-                                <span class="title_ligth" t-field="driver.name"/>
-                                con
-                                <span class="title_ligth"
-                                      t-field="driver.l10n_latam_identification_type_id"/>
-                                :
-                                <span class="title_ligth"
-                                      t-field="driver.vat"/>
-                                se le hace la
-                                entrega de la moto
-                                <t t-foreach="vehicle.model_id" t-as="model">Marca
-                                    <span class="title_ligth" t-field="model.brand_id"/>
-                                    modelo:
-                                    <span class="title_ligth" t-field="model.name"/>
-                                    Color
-                                    <span class="title_ligth" t-field="vehicle.color"/>
-                                    NUMERO DE CHASIS:
-                                    <span class="title_ligth" t-field="vehicle.vin_sn"/>
-                                    con PLACA EN TRAMITE , se le hace la entrega de la moto sin GPS, este equipo se le
-                                    hará la instalación
-                                    del GPS en cuanto el vehículo recorra sus primeros 500 km o a la entrega de la
-                                    documentación, en ese
-                                    plazo el vehículo queda en única responsabilidad del cliente ya que no tendrá que
-                                    ser expuesto en la vía
-                                    pública por no contar con la documentación en regla y el equipo GPS instalado, una
-                                    vez instalado el
-                                    equipo este quedara bajo el monitoreo de la empresa.
-                                </t>
+                            <p style="padding-top: 6pt;text-indent: 0pt;text-align: left;"><br/></p>
+                            <p class="s1" style="padding-left: 100pt;text-indent: -89pt;text-align: left;">REGLAMENTO DE FONDO DE CONTINGENCIA 
+                                INTERNA ADMINISTRADO POR LA EMPRESA CORPORACION ADT SAC Y CORPORACION ADT DKIRJM SAC</p>
+                            <p style="padding-top: 13pt;text-indent: 0pt;text-align: left;"><br/></p>
+                            <ol id="l1">
+                                <li data-list-text="I."><h1 style="padding-left: 43pt;text-indent: -23pt;text-align: left;">ALCANCE</h1>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p><p style="padding-left: 26pt;text-indent: 0pt;text-align: left;">
+                                    Todo el personal de la Corporación ADT DKIRJM SAC y participantes del Fondo de Contingencia Interna</p>
+                                </li>
+                                <li data-list-text="II."><h1 style="padding-top: 12pt;padding-left: 43pt;text-indent: -27pt;text-align: left;">DOCUMENTOS 
+                                    NORMATIVOS RELACIONADOS</h1><h2 style="padding-top: 14pt;padding-left: 43pt;text-indent: 0pt;text-align: left;">Interno</h2>
+                                    <p style="padding-top: 1pt;text-indent: 0pt;text-align: left;"><br/></p>
+                                    <table style="border-collapse:collapse;margin-left:27.87pt" cellspacing="0">
+                                        <tr style="height:28pt">
+                                            <td style="width:118pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                                <p class="s2" style="padding-top: 7pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Nombre</p>
+                                            </td>
+                                            <td style="width:301pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                                <p class="s2" style="padding-top: 7pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Descripción</p>
+                                            </td>
+                                        </tr>
+                                        <tr style="height:30pt">
+                                            <td style="width:118pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s3" style="padding-top: 8pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">MOF</p>
+                                            </td>
+                                            <td style="width:301pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s3" style="padding-top: 8pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Manual de organización y Funciones</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <h2 style="padding-top: 12pt;padding-left: 43pt;text-indent: 0pt;text-align: left;">Externo</h2>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <table style="border-collapse:collapse;margin-left:27.87pt" cellspacing="0">
+                                        <tr style="height:28pt">
+                                            <td style="width:118pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                                <p class="s2" style="padding-top: 7pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Nombre</p>
+                                            </td>
+                                            <td style="width:301pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                                <p class="s2" style="padding-top: 7pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Descripción</p>
+                                            </td>
+                                        </tr>
+                                        <tr style="height:37pt">
+                                            <td style="width:118pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s3" style="padding-top: 12pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Decreto</p>
+                                            </td>
+                                            <td style="width:301pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s3" style="padding-top: 12pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Decreto Legislativo 295 - Código Civil Peruano</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <p style="padding-top: 11pt;text-indent: 0pt;text-align: left;"><br/></p>
+                                </li>
+                                <li data-list-text="III."><h1 style="padding-left: 43pt;text-indent: -30pt;text-align: left;">DOCUMENTOS NORMATIVOS ANULADOS 
+                                    (POR REEMPLAZO O CADUCIDAD)</h1>
+                                </li>
+                            </ol>
+                            <p style="padding-top: 5pt;text-indent: 0pt;text-align: left;"><br/></p>
+                            <table style="border-collapse:collapse;margin-left:27.87pt" cellspacing="0">
+                                <tr style="height:22pt">
+                                    <td style="width:101pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                        <p class="s2" style="padding-top: 4pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Código</p>
+                                    </td>
+                                    <td style="width:309pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                        <p class="s2" style="padding-top: 4pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Nombre</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:26pt">
+                                    <td style="width:101pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    </td>
+                                    <td style="width:309pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s3" style="padding-top: 6pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">No Aplica</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <h1 style="padding-left: 8pt;text-indent: 0pt;text-align: left;">IV CONTROL DE VERSIONES Y/O CAMBIOS DEL DOCUMENTO NORMATIVO</h1>
+                            <p style="padding-top: 2pt;text-indent: 0pt;text-align: left;"><br/></p>
+                            <table style="border-collapse:collapse;margin-left:27.8575pt" cellspacing="0">
+                                <tr style="height:26pt">
+                                    <td style="width:90pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                        <p class="s2" style="padding-top: 6pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Versión</p>
+                                    </td>
+                                    <td style="width:101pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                        <p class="s2" style="padding-top: 6pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Inicio de vigencia</p>
+                                    </td>
+                                    <td style="width:220pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
+                                        <p class="s2" style="padding-top: 6pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Motivo</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:38pt">
+                                    <td style="width:90pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s3" style="padding-top: 12pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">001</p>
+                                    </td>
+                                    <td style="width:101pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s3" style="padding-top: 12pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">01-01-2022</p>
+                                    </td>
+                                    <td style="width:220pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s3" style="padding-left: 5pt;padding-right: 4pt;text-indent: 0pt;line-height: 13pt;text-align: justify;">Parametrizacion, Publicación y Difusión del Reglamento de Fondo de Contingencia Interna</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="padding-top: 10pt;text-indent: 0pt;text-align: left;"><br/></p>
+                            <h1 style="padding-left: 44pt;text-indent: 0pt;text-align: left;">V OBJETIVO</h1>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">Establecer los parámetros del fondo de contingencia interna, 
+                                para realizar una administración, transparente, oportuna y objetiva, por parte de la empresa Corporación ADT SAC y Corporacion 
+                                ADT DKIRJM SAC, ante los de los vehículos
                             </p>
-
-
-                            <div class="box_margin">
-                                <div>
-                                    <p>Lima ,
-                                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/>
+                            <p style="padding-top: 4pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">que se encuentran coberturados por el fondo de 
+                                contingencia.
+                            </p>
+                            <p style="padding-top: 12pt;text-indent: 0pt;text-align: left;"><br/>
+                            </p>
+                            <h2 style="padding-left: 6pt;text-indent: 0pt;text-align: left;">VI REGLAMENTO DE FONDO DE CONTINGENCIA INTERNA</h2>
+                            <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTICULO N º 1 PARTICIPACION Y VIGENCIA EN EL 
+                                FONDO DE CONTINGENCIA INTERNA
+                            </p>
+                            <p style="padding-top: 4pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">Los participantes del fondo son los arrendatarios 
+                                de los vehículos menores (trimotos), que cuentan con un contrato de arrendamiento con cualquiera de las empresas (Corporacion ADT SAC 
+                                y/o Corporación ADT DKIRJM)
+                            </p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">Para participar en el fondo deberán aportar el monto de S/1,000.00 
+                                (Mil con 00/100 Soles), y firmar la solicitud de adhesión al fondo de contingencia; el tiempo de la vigencia de cobertura será por 
+                                el tiempo del contrato de arrendamiento.</p><p style="padding-top: 12pt;text-indent: 0pt;text-align: left;"><br/>
+                            </p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTICULO N º 2 COBERTURAS</p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;line-height: 12pt;text-align: justify;">Cobertura Daños Materiales y Daños propios</p>
+                            <ul id="l2">
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 107%;text-align: left;">Por choque, vuelco, incendio, o cualquier 
+                                        otro tipo de siniestro ocurrido en la ciudad de LIMA.
                                     </p>
-                                </div>
-                            </div>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Daños derivados de desastres naturales 
+                                        como terremotos, huaycos, etc.
+                                    </p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">Todo siniestro será valorizado por parte de 
+                                        cualquiera de las empresas, y solo se coberturaran siniestros que valoricen más de Un mil con 00/100 Soles (S/1,000.00)
+                                    </p>
+                                    <p style="padding-top: 12pt;text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTÍCULO Nº 3 - CESE DE COBERTURA</p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">La cobertura otorgada para cada vehículo cesa por Resolución 
+                                        Automática antes de la terminación de la vigencia del presente Contrato, en el momento mismo en que el vehículo coberturado, 
+                                        incurre en lo siguiente:
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Pasa a poder o control o custodia de otras personas por haber 
+                                        sido embargado, confiscado o cedido con intervención de las Partes (Vehículo Capturado por Corporación ADT SAC o Corporación 
+                                        ADT DKIRJM)
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Cambio de Arrendatario (Recolocación).</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Por no encontrarse al día en los pagos de la 
+                                        renta, de conformidad al cronograma de pago
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Por tener papeletas o infracciones impagas.</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Desactivar el gps o no avisar que su gps se 
+                                        encuentra averiado.
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTÍCULO Nº 4 - SUMAS ASEGURADAS, DEDUCIBLE Y VALORES DE REPOSICION</p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">Cobertura de Daño Propio y Daño de Materiales.</p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">La suma asegurada máxima por trimoto es de S/21,500.00 (Veinte Un Mil 
+                                        Quinientos con 00/100 Soles). El importe coberturado, podrá ser diferente al valor pactado en el Contrato de Arrendamiento con Opcion 
+                                        de Compra y la Cotización, firmados entre EL COBERTURADO y LA EMPRESA.
+                                    </p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: justify;">La suma asegurada, es el valor comercial del 
+                                        vehículo adquirido.
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">El deducible, es la parte que se “sustrae” del pago que hace el 
+                                        administrador del
+                                    </p>
+                                    <p style="padding-top: 4pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">fondo de contingencia por la pérdida sufrida por el 
+                                        asociado al fondo. El deducible se fija en un 10% del valor presupuestado del siniestro accidente con daños materiales del 
+                                        vehículo y debe ser abonado en un plazo máximo de treinta (30) días, para que se ejecute la cobertura de no abonar el deducible 
+                                        pasado el periodo informado, se procederá a la liquidación de la deuda que mantiene EL COBERTURADO con la EMPRESA, según el 
+                                        contrato de arrendamiento.</p><p style="text-indent: 0pt;text-align: left;"><br/>
+                                    </p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">Siniestro o Perdida Parcial</p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 8pt;text-indent: 0pt;text-align: justify;">En caso de siniestro o perdida parcial, el vehículo será reparado, 
+                                        una vez que el asociado al fondo haya abonado su deducicle 10% del valor presupuestado del siniestro
+                                    </p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: justify;">Perdida Total:</p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">En el caso de pérdida total del bien por (Siniestro Total); una 
+                                        nueva unidad será entregada al asociado al fondo de contingencia, y estas unidades deben ser valorizada según el siguiente cuadro 
+                                        de reposición sensibilizados a la depreciación y los meses usados
+                                    </p>
+                                    <p style="padding-top: 4pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">1– 3 meses el 15% (S/18,275.00, Dieciocho 
+                                        mil doscientos setenta y cinco con 00/100 Soles) 3 – 6 meses el 30% (S/15,050.00, Quince mil cincuenta con 00/100 Soles)
+                                    </p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">6 – 9 meses el 45% (S/11,825.00, Once Mil ochocientos veinte 
+                                        y cinco con 00/100 Soles) 9 – 12 meses el 60% (S/8,600.00, Ocho mil seiscientos con 00/100 Soles)
+                                    </p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">12 a más meses el 75% (S/5,375.00, Cinco mil trescientos 
+                                        setenta y cinco con 00/100 Soles)
+                                    </p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">La reposición de la unidad será en un plazo 
+                                        no mayor a los 35 días, una vez pagado el deducible por parte del coberturado, de esta manera el coberturado continuara 
+                                        pagando las rentas que faltasen.
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">Si el coberturado no pagase el deducible, la cobertura cubrirá 
+                                        en base al valor de reposición las rentas faltantes según el contrato de arrendamiento, de tener algún saldo a favor el 
+                                        coberturado, se le entregara en efectivo.
+                                    </p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">.</p>
+                                    <p style="padding-top: 12pt;text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">ARTÍCULO Nº 5 – EXCLUSIONES</p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">El fondo no cubre:</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-top: 12pt;padding-left: 44pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Daños Materiales a 
+                                        terceros Pérdidas Daños físicos del coberturado
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 44pt;text-indent: -18pt;line-height: 106%;text-align: left;">Responsabilidades Hospitalarias o 
+                                        curaciones a terceros Daños Personales a terceros
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 44pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Pérdidas de objetos 
+                                        personales Robos de Accesorios del vehículo.
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">El fondo no coberturara los siniestros, cuando se presenten, 
+                                        surjan o resulten de, o que sean causados directa o indirectamente por:
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-top: 12pt;padding-left: 42pt;text-indent: -18pt;text-align: justify;">Actos de naturaleza fraudulenta o 
+                                        dolosa, o acto intencional, o negligencia inexcusable del COBERTURADO o CONTRATANTE o BENEFICIARIO o ENDOSATARIO, o de 
+                                        los familiares de cualquiera de ellos, o de cualquier persona que estuviera a cargo del, o conduciendo el, vehículo 
+                                        coberturado.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-top: 4pt;padding-left: 42pt;text-indent: -18pt;text-align: justify;">Guerra,  conflictos  armados,  
+                                        invasión,  acto  de  enemigo  extranjero, hostilidades u operaciones de guerra, sea que la guerra haya sido declarada o 
+                                        no; guerra civil, sublevación, insurgencia, insubordinación, rebelión, revolución, conspiración, insurrección, sedición, 
+                                        asonada, huelga, motín, conmoción civil, daño malicioso, sabotaje, vandalismo, alboroto popular, cierre patronal 
+                                        (lock- out), levantamiento popular, levantamiento militar, y, en general, hechos de carácter político social que alteren 
+                                        el orden público o constitucional;  confiscación,  requisa,  expropiación,  o  nacionalización; destrucción de bienes por 
+                                        orden de cualquier autoridad; poder militar o usurpación del poder; o cualquier evento o causa que determine la proclamación 
+                                        de estado de sitio.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 41pt;text-indent: -17pt;line-height: 13pt;text-align: justify;">Cualquier Acto de Terrorismo.</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">Material para armas nucleares o material nuclear; reacción 
+                                        nuclear o radiación nuclear o contaminación radioactiva o emisión de radiaciones ionizantes; contaminación por la 
+                                        radioactividad de cualquier combustible nuclear o de cualquier desperdicio proveniente de la combustión de dicho combustible 
+                                        nuclear.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 41pt;text-indent: -17pt;line-height: 13pt;text-align: justify;">Uso indebido del vehículo coberturado y/o 
+                                        sobrecarga del mismo.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">Instalación defectuosa o incorrecta o indebida de cables 
+                                        eléctricos y/o componentes eléctricos y/o componentes electrónicos y/o accesorios de cualquier tipo, así como el uso indebido 
+                                        del cableado eléctrico del vehículo coberturado.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: justify;">No respetar los límites máximo y mínimo 
+                                        de velocidad establecidos.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: justify;">No detenerse al llegar a un cruce 
+                                        ferroviario a nivel.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Circular en sentido contrario al tránsito 
+                                        autorizado o invadiendo el carril contrario.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Cruzar una intersección o girar, estando el 
+                                        semáforo con luz roja y no existiendo
+                                    </p>
+                                    <p style="padding-left: 42pt;text-indent: 0pt;text-align: left;">la indicación en contrario.</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Desobedecer las indicaciones del efectivo 
+                                        de la Policía Nacional asignado al control del tránsito.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Circular sobre aceras, áreas verdes, pasos 
+                                        peatonales y demás lugares prohibidos.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Conducir un vehículo cuyo sistema de frenos y/o sistema de 
+                                        dirección y/o sistema de luces, se encuentre en mal estado de funcionamiento.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Voltear en U sobre la misma calzada, en las proximidades de 
+                                        curvas, puentes, túneles, estructuras elevadas, cima de cuesta, cruce ferroviario a nivel u otros lugares de riesgo para la 
+                                        seguridad.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 107%;text-align: left;">Estacionar en carreteras sin señalizar el 
+                                        lugar colocando los dispositivos de seguridad reglamentarios
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Estacionar o detener el vehículo en el 
+                                        carril de circulación, en carreteras o
+                                    </p>
+                                    <p style="padding-left: 42pt;text-indent: 0pt;text-align: left;">caminos donde existe berma</p>
+                                    <p style="padding-top: 8pt;padding-left: 42pt;text-indent: 0pt;text-align: left;">lateral.</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Estacionar o detener el vehículo en el carril de circulación, 
+                                        en carreteras o caminos donde existe berma lateral.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">No llevar puesto el casco de seguridad.</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Estacionar un vehículo en vías con pendientes 
+                                        pronunciadas sin asegurar su inmovilización.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">La Responsabilidad Civil derivada de Daños Materiales 
+                                        causados a bienes o de  Terceros  que,  por  cualquier  motivo  (depósito,  uso,  préstamo, manipulación, transporte, u otro), 
+                                        se hallen en poder o custodia o control del COBERTURADO o de persona de quien éste sea responsable o de sus contratistas o 
+                                        subcontratistas o del conductor del vehículo coberturado.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">Pérdidas por interrupción de la explotación comercial o 
+                                        industrial; pérdidas por la suspensión o paralización o cesación, total o parcial, del negocio; pérdidas por incumplimiento o 
+                                        resoluciones de contratos.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -17pt;line-height: 106%;text-align: justify;">Desgaste o deterioro paulatino o fatiga, 
+                                        causado por, o resultante de, el uso o funcionamiento.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">Deterioro debido a condiciones atmosféricas o ambientales; 
+                                        rasgaduras o ralladuras en superficies pintadas o pulidas.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">Daños en el vehículo coberturado, por quemaduras causadas 
+                                        por brasa o ceniza de tabaco, encendedores de cualquier tipo, fósforos, artefactos eléctricos, a menos que se produzca incendio 
+                                        que esté debidamente amparado por este fondo y, en ese caso, sólo los daños en el vehículo coberturado causado por ese incendio.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -17pt;line-height: 107%;text-align: justify;">Pérdidas por la reparación o rehabilitación 
+                                        cuando haya sido alquilado sin la autorización de la Empresa.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Daños o pérdidas en el vehículo coberturado causados por bienes 
+                                        de cualquier tipo que caigan o escapen o se desprendan o se suelten, de dicho vehículo coberturado.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Responsabilidad Penal de ningún tipo, ni gasto 
+                                        alguno relacionado con responsabilidades Penales.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Los costos de cualquier reparación provisional.</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Todo costo incurrido para implementar modificaciones o mejoras o 
+                                        por mantenimiento o para hacer otras reparaciones o arreglos en el vehículo coberturado.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Circulando por vías o lugares no autorizados para 
+                                        el tránsito
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Tomando parte en carreras, competencias, apuestas o ensayos, pruebas 
+                                        de asistencia, de resistencia o de velocidad u otro uso arriesgado
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Siendo conducido por una persona que no cuente con la licencia de 
+                                        conducir vigente y auténtica que corresponda al tipo de vehículo, o cuya licencia de conducir esté suspendida o cancelada o vencida.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 107%;text-align: left;">Siendo remolcado o auxiliado por otro medio de 
+                                        auxilio que no sea una empresa de auxilio mecanico.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Siendo conducido por una persona en estado de ebriedad y/o que esté 
+                                        bajo los efectos o Influencia de estupefacientes, narcóticos y/o alucinógenos.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Cuando el vehículo sea utilizado para operaciones 
+                                        delictivas, Robos Secuestros etc.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 13pt;text-align: left;">Cuando contravengan con los valores de nuestra 
+                                        sociedad.
+                                    </p>
+                                    <p style="padding-top: 11pt;padding-left: 8pt;text-indent: 0pt;text-align: justify;">Para efectos de este reglamento, se entiende que 
+                                        una persona se encuentra en estado de ebriedad, cuando al practicársele el examen de alcoholemia u otro que corresponda, éste 
+                                        arroje un resultado igual o superior a 0.50 gramos de alcohol por litro de sangre al momento del accidente.
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">Para determinar la cantidad de alcohol por litro de sangre que 
+                                        corresponde al
+                                    </p>
+                                    <p style="padding-top: 4pt;padding-left: 6pt;text-indent: 0pt;text-align: justify;">momento del accidente, se considerará que la 
+                                        cantidad de alcohol en la sangre en una persona desciende, cada hora, 0.11 gramos de alcohol por litro de sangre; consecuentemente, 
+                                        a la cifra que arroje el resultado del examen de alcoholemia, se le añadirá 0.0018334 gramos de alcohol por litro de sangre, por 
+                                        cada minuto transcurrido desde el momento del accidente hasta el momento en que se practicó el examen.
+                                    </p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: justify;">Si el conductor se niega y/o no se somete 
+                                        oportunamente al examen de alcoholemia o al examen toxicológico u otro que corresponda, se presumirá que, al momento del accidente, 
+                                        estaba en estado de ebriedad y/o bajo los efectos o influencia de estupefacientes, narcóticos y/o alucinógenos; consecuentemente se 
+                                        aplicará la presente exclusión.
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">ARTÍCULO Nº 6 – GARANTÍAS</p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">El Contrato está sujeto al cumplimiento por parte del COBERTURADO.</p>
+                                    <p style="padding-top: 4pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">La EMPRESA queda liberada de toda responsabilidad por 
+                                        las pérdidas o destrucción o daños o responsabilidades o Daños Materiales o Daños Personales que, en su origen o extensión, sean 
+                                        causados o agravados por la inobservancia o incumplimiento de las garantías indicadas en el contrato
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTÍCULO Nº 7 - CARGAS Y OBLIGACIONES</p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                    <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">EL COBERTURADO y/o el  conductor o persona a cargo del vehículo 
+                                        coberturado, está obligado a cumplir con las siguientes cargas y obligaciones:
+                                    </p>
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Mantener el vehículo coberturado en buen estado de funcionamiento, 
+                                        dándole el mantenimiento indicado por el fabricante o proveedor.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;line-height: 106%;text-align: left;">Observar las prescripciones legales sobre 
+                                        condiciones de seguridad y prevención de accidentes.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Conducir el vehículo cumpliendo con las restricciones especificadas 
+                                        en su licencia de conducir.
+                                    </p>
+                                    <p style="padding-top: 11pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">En caso de incumplimiento de cualquiera de estas 
+                                        cargas y obligaciones, se perderá todo derecho de Indemnización en la medida en que el incumplimiento haya causado, o contribuido 
+                                        de alguna manera a causar y/o agravar, el daño o pérdida o accidente.
+                                    </p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">Asimismo, en caso de siniestro, el coberturado deberá:</p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-top: 12pt;padding-left: 42pt;text-indent: -18pt;text-align: justify;">Denunciar el hecho ante las autoridades 
+                                        policiales de la jurisdicción y a la EMPRESA en el plazo máximo de una hora después de ocurrido el siniestro, y solicitar a las 
+                                        autoridades policiales la constatación de los daños. El incumplimiento de esta obligación dará lugar a la pérdida de los derechos 
+                                        de indemnización.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">El conductor del vehículo coberturado deberá someterse 
+                                        oportunamente, dentro de un plazo máximo de tres (3) horas de ocurrido el Accidente de Tránsito, al examen de alcoholemia y/o a 
+                                        los exámenes toxicológicos que corresponda. Si el conductor se niega y/o no se somete oportunamente al examen de alcoholemia o al 
+                                        examen toxicológico u otro que corresponda, se presumirá que, al momento del Accidente de Tránsito, estaba en estado de ebriedad 
+                                        y/o bajo los efectos o influencia de estupefacientes, narcóticos y/o
+                                    </p>
+                                    <p style="padding-top: 4pt;padding-left: 42pt;text-indent: 0pt;text-align: left;">alucinógenos. El incumplimiento de esta obligación 
+                                        dará lugar a la pérdida de los derechos de indemnización.
+                                    </p>
+                                    <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">Asimismo de producirse un accidente que pudiera dar 
+                                        lugar a cualquier tipo de responsabilidad civil extracontractual del COBERTURADO, o en caso de recibir alguna reclamación sea que 
+                                        ésta haya sido hecha en forma verbal o escrita, o en caso de tomar conocimiento de cualquier tipo de información que pudiere 
+                                        derivar en la presentación de una reclamación, EL COBERTURADO está obligado a cumplir con las siguientes obligaciones:
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-top: 12pt;padding-left: 42pt;text-indent: -18pt;text-align: left;">Informar y remitir dicho documento a la EMPRESA, 
+                                        dentro de un (01) día hábil siguiente de haberlo recibido.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Asimismo, deberá transmitir dentro del mismo plazo, cualquier 
+                                        información verbal o escrita de la que tome conocimiento.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Previa coordinación con la EMPRESA, contestar oportunamente toda 
+                                        notificación o emplazamiento notarial, administrativo, policial.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: left;">Abstenerse de incurrir en gasto alguno o comprometerse a hacer algún 
+                                        pago comprometiendo a LA EMPRESA
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -17pt;line-height: 106%;text-align: justify;">Colaborar activamente en la defensa, asistir a 
+                                        todas las diligencias administrativas y/o policiales.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">Mantener permanente y periódicamente informada a la EMPRESA, 
+                                        respecto al accidente o reclamación de tercero de un accidente.
+                                    </p>
+                                </li>
+                                <li data-list-text="">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">El incumplimiento del COBERTURADO de cualquiera de estas 
+                                        obligaciones, dará lugar a la pérdida de los derechos de indemnización. No obstante, la pérdida de ese derecho estará limitada al 
+                                        perjuicio causado a los intereses de la EMPRESA.
+                                    </p>
+                                </li>
+                            </ul>
+                            <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">Por otro lado, ningún siniestro podrá ser consentido por 
+                                la EMPRESA, si es que EL COBERTURADO no cumple con las siguientes obligaciones:
+                            </p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <ol id="l3">
+                                <li data-list-text="1.">
+                                    <p style="padding-left: 42pt;text-indent: -18pt;text-align: justify;">Entregar Denuncias policiales y/o fiscales y/o judiciales, 
+                                        así como copia de partes policiales y/o atestados policiales y, en general, cualquier tipo de documento o informe que la 
+                                        EMPRESA le solicite.
+                                    </p>
+                                </li>
+                                <li data-list-text="2.">
+                                    <p style="padding-top: 4pt;padding-left: 41pt;text-indent: -17pt;line-height: 12pt;text-align: justify;">Licencia de Conducir</p>
+                                </li>
+                                <li data-list-text="3.">
+                                    <p style="padding-left: 41pt;text-indent: -17pt;line-height: 12pt;text-align: justify;">Copia del DOI del participante del fondo.</p>
+                                </li>
+                                <li data-list-text="4.">
+                                    <p style="padding-left: 41pt;text-indent: -17pt;text-align: justify;">Copia de la Tarjeta de Propiedad</p>
+                                </li>
+                                <li data-list-text="5.">
+                                    <p style="padding-left: 41pt;text-indent: -17pt;text-align: justify;">AFOCAT O SOAT vigente</p>
+                                </li>
+                            </ol>
+                            <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">.</p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTÍCULO Nº 8 - FACULTADES DE LA EMPRESA – COBERTURA DE RESPONSABILIDAD CIVIL</p>
+                            <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">Este fondo no cobertura gastos de responsabilidad civil, 
+                                no obstante, LA EMPRESA Esta en la facultad de apoyar al COBERTURADO en los siguientes casos:
+                            </p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">En cualquier procedimiento judicial que se derive de una reclamación 
+                                amparada por el reglamento, la EMPRESA podrá, asesorar al COBERTURADO frente a la reclamación de un Tercero.
+                            </p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTÍCULO Nº 9 - TERRITORIALIDAD Y LEY APLICABLE – RESPONSABILIDAD CIVIL</p>
+                            <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">En concordancia en el ARTÍCULO 2 – COBERTURAS, derivadas 
+                                de accidentes ocurridos durante la vigencia del contrato de arrendamiento y que ocurran en
+                            </p>
+                            <p style="padding-top: 4pt;padding-left: 6pt;text-indent: 0pt;text-align: justify;">territorio de Lima Metropolitana.</p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ARTÍCULO Nº 10 – DEFINICIONES</p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p><p style="padding-left: 6pt;text-indent: 0pt;text-align: justify;">Complementando 
+                                las definiciones de las Condiciones Generales de Contratación, queda convenido entre las partes que el significado de las palabras más 
+                                adelante indicadas es el siguiente:
+                            </p>
+                            <p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">ACCIDENTE DE TRÁNSITO .- Choque, atropello, vuelco, o 
+                                despeño que ocasione daños al vehículo coberturado y/o a personas o cosas que se encuentren fuera del vehículo coberturado y/o a los 
+                                ocupantes del vehículo coberturado</p><p style="text-indent: 0pt;text-align: left;"><br/>
+                            </p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">ACTO DE TERRORISMO .- Es el acto de cualquier persona o grupo (s) de 
+                                personas, actuando sola por su cuenta o a favor de, o en conexión con, o en nombre de, cualquier organización u organizaciones o 
+                                gobiernos, cometido por razones políticas, religiosas, ideológicas o por cualquier otra razón, incluyendo, pero no limitado a, 
+                                actividades dirigidas a destituir por la fuerza al gobierno "de jure" o "de facto", o para intentar influenciarlo, y/o con la finalidad 
+                                de desestabilizar el sistema político establecido, o causar temor e inseguridad en el medio social en que se produce.
+                            </p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">DAÑO MATERIAL .- El daño, deterioro, pérdida o destrucción de un bien, 
+                                así como el daño ocasionado a los animales.
+                            </p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 6pt;text-indent: 0pt;line-height: 200%;text-align: left;">DAÑO PERSONAL .- Lesión corporal – excluyendo enfermedades – o muerte causadas a personas naturales. TERCEROS .- Cualquier persona, natural o jurídica, distinta de:</p><p style="padding-left: 6pt;text-indent: 0pt;text-align: left;">EL COBERTURADO- Persona afiliada al fondo de contingencia</p><p style="padding-top: 12pt;padding-left: 6pt;text-indent: 0pt;text-align: left;">VALOR COMERCIAL .- Es el valor de mercado de un vehículo de la misma marca, año, modelo y estado de conservación que el vehículo coberturado en mercado peruano en el momento que se especifique en las presentes Condiciones Generales u otra parte del contrato.</p>
+
 
 
                         </div>
