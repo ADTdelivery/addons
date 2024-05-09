@@ -187,15 +187,15 @@
                             }
 
                         </style>
-
-                        <u class="subrayado">CONTRATO DE ALQUILER VENTA DE BIEN MUEBLE A PLAZO DETERMINADO</u>
-
+                        <div style="text-indent: 0pt;text-align: center;">
+                            <u class="subrayado">CONTRATO DE ALQUILER VENTA DE BIEN MUEBLE A PLAZO DETERMINADO</u>
+                        </div>
 
                         <div>
                             <br/>
                             <br/>
                             <p>
-                                Conste por el presente documento, el<span>CONTRATO DE ALQUILER VENTA</span>que, celebran de una parte la
+                                Conste por el presente documento, el <span>CONTRATO DE ALQUILER VENTA</span> que, celebran de una parte la
                                 empresa denominada CORPORACION ADT DKIRJM S.A.C, con RUC 20611324830
                                 , con domicilio fiscal En MZA. 55 LOTE. 11 A.H. BUENOS MILAGROS LIMA - LIMA - SAN JUAN DE MIRAFLORES, 
                                 debidamente representada por el señora Ayte Cueva Dalia Rubi, identificado con DNI N° 48565333, con domicilio 
@@ -227,8 +227,12 @@
                         <br/>
 
                         <div>
-                            <u class="subrayado"> ANTECEDENTES:</u>
-                            <u class="subrayado"> PRIMERA: FINES DEL ARRENDADOR COMPRADOR</u>
+                            <p>
+                              <u class="subrayado"> ANTECEDENTES:</u>
+                            </p>
+                            <p>
+                              <u class="subrayado"> PRIMERA: FINES DEL ARRENDADOR COMPRADOR</u>
+                            </p>
                             <p>
                                 <span>EL ARRENDADOR</span>, es una empresa que cuenta con respaldo crediticio para la adquisición de diversos 
                                 vehículos, los mismos que son adquiridos a requerimiento de nuestros clientes, de modo tal que para su adquisición 
@@ -310,7 +314,8 @@
                                         Soles y el resto que asciende a S/ será cancelado en un periodo de 
                                         <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                             <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                                <span class="title_ligth" t-field="cuenta.monto_cuota"/>
+                                                <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                <t t-esc="counter"/>
                                             </t>
                                         </t>
                                         Cuotas, en calidad de renta, tal como se describe 
@@ -361,7 +366,8 @@
                                         <td>
                                             <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                                 <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                                    <span class="title_ligth" t-field="cuenta.monto_cuota"/>
+                                                    <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                    <t t-esc="counter"/>
                                                 </t>
                                             </t>
                                         </td>
@@ -422,8 +428,12 @@
                                 del precio o de las cuotas pagadas.
                             </p>
 
-                            <u class="subrayado"> OBLIGACIONES DE LAS PARTES:</u>
-                            <u class="subrayado"> OCTAVA. OBLIGACIONES DEL ARRENDADOR</u>
+                            <p>
+                              <u class="subrayado"> OBLIGACIONES DE LAS PARTES:</u>
+                            </p>
+                            <p>
+                              <u class="subrayado"> OCTAVA. OBLIGACIONES DEL ARRENDADOR</u>
+                            </p>
                             <p>
                                 <span>EL ARRENDADOR,</span> se obliga a realizar la entrega del vehículo automotor descrito en el presente contrato, en perfecto estado mecánico, 
                                 interiores, accesorios y de carrocería, con cero Km. (1) de recorrido, con un dispositivo GPS, tal y como lo faculta <span>EL ARTÍCULO N° 1550° 
@@ -484,33 +494,36 @@
 
                             <div class="box_clausula">
                                 <p>
-                                    1. 
+                                    <span class="indice_negrita">1. </span> 
                                     <span class="indice_negrita">EL ARRENDADOR,</span> procurara ubicar a EL ARRENDATARIO, vía llamadas telefónicas o por cualquier otro medio 
                                     de comunicación y/o visitas domiciliarias durante las siguientes <span class="indice_negrita">24 Horas.</span>                                    
                                 </p>
                                 <p>
-                                    2. Transcurridas las <span class="indice_negrita">24 Horas,</span> se ubicará el vehículo mediante el sistema de GPS, por lo que se 
+                                    <span class="indice_negrita">2. </span>
+                                    Transcurridas las <span class="indice_negrita">24 Horas,</span> se ubicará el vehículo mediante el sistema de GPS, por lo que se 
                                     procederá con el apagado del equipo y con ello la captura del vehículo, asimismo, si en el transcurso de dicho procedimiento,                                    
                                     <span class="indice_negrita">EL ARRENDATARIO</span> hace algún acuerdo con <span class="indice_negrita">EL ARRENDADOR</span>
                                     se podrá paralizar la cobranza correctiva.
                                 </p>
                                 <p>
-                                    3. 
+                                    <span class="indice_negrita">3. </span> 
                                     <span class="indice_negrita">El ARRENDATARIO</span> hará un pago de <span class="indice_negrita">S/. 50.00 (CINCUENTA Y 00/100 
                                     SOLES)</span> por concepto de captura, cada vez que el vehículo menor sea intervenido por el equipo de captura de EL ARRENDADOR.                                    
                                 </p>
                                 <p>
-                                    4. El vehículo menor luego de la cancelación de las rentas atrasadas por parte de EL ARRENDATARIO, será liberado y entregado; 
+                                    <span class="indice_negrita">4. </span>
+                                    El vehículo menor luego de la cancelación de las rentas atrasadas por parte de EL ARRENDATARIO, será liberado y entregado; 
                                     entiéndase que este deberá estar al día con el cronograma de rentas.
                                 </p>
                                 <p>
-                                    5.
+                                    <span class="indice_negrita">5. </span>
                                     <span class="indice_negrita">EL SISTEMA GPS y EL ARRENDADOR,</span> se eximen de cualquier responsabilidad civil, por cualquier 
                                     hecho ocurrido que afecte <span class="indice_negrita"> AL ARRENDATARIO,</span> desde la aplicación del inicio del procedimiento 
                                     de cobranza correctiva.
                                 </p>
                                 <p>
-                                    6. En caso de que el <span class="indice_negrita">ARRENDATARIO</span> se rehusara a la entrega del vehículo menor conforme lo 
+                                    <span class="indice_negrita">6. </span> 
+                                    En caso de que el <span class="indice_negrita">ARRENDATARIO</span> se rehusara a la entrega del vehículo menor conforme lo 
                                     establece el procedimiento de cobranza correctiva, inmediatamente EL ARRENDADOR, dará por resuelto el contrato y con ello vencidas 
                                     todas las cuotas pendientes, por lo que habilitara para que inicie las acciones legales para recuperar el vehículo, así como para 
                                     poder cobrar las obligaciones de las rentas atrasadas y los gastos que haya generado la recuperación del bien. Así mismo se solicitará 
@@ -524,30 +537,34 @@
                             </p>
                             <div class="box_clausula">
                                 <p>
-                                    1. 
+                                    <span class="indice_negrita">1. </span> 
                                     El traslado del Vehículo automotor menor fuera de la jurisdicción de Lima-Metropolitana. Sin poner en conocimiento a EL ARRENDADOR.                                    
                                 </p>
                                 <p>
-                                    2. El incumplimiento por parte del <span class="indice_negrita">ARRENDATARIO</span> de 2 (DOS) rentas más la mitad de la siguiente, 
+                                    <span class="indice_negrita">2. </span> 
+                                    El incumplimiento por parte del <span class="indice_negrita">ARRENDATARIO</span> de 2 (DOS) rentas más la mitad de la siguiente, 
                                     de conformidad al cronograma de pago.
                                 </p>
                                 <p>
-                                    3. 
+                                    <span class="indice_negrita">3. </span> 
                                     El traspaso, transferencia o cesión a terceras personas, sin conocimiento de EL ARRENDADOR.                                   
                                 </p>
                                 <p>
-                                    4. La utilización del vehículo menor para realizar actividades ilícitas de cualquier índole (Robo, Violaciones ID y otros).
+                                    <span class="indice_negrita">4. </span> 
+                                    La utilización del vehículo menor para realizar actividades ilícitas de cualquier índole (Robo, Violaciones ID y otros).
                                 </p>
                                 <p>
-                                    5.
+                                    <span class="indice_negrita">5. </span>
                                     La manipulación o desinstalación del GPS ubicado en el vehículo menor
                                 </p>
                                 <p>
-                                    6. Las papeletas, multas, e infracciones en general serán de responsabilidad de EL ARRENDATARIO, y de estar estas impagas por más de
+                                    <span class="indice_negrita">6. </span> 
+                                    Las papeletas, multas, e infracciones en general serán de responsabilidad de EL ARRENDATARIO, y de estar estas impagas por más de
                                     dos meses será causal de resolución de contrato.
                                 </p>  
                                 <p>
-                                    7. Y demás causales previstas en el contrato o en la Ley.
+                                    <span class="indice_negrita">7. </span> 
+                                    Y demás causales previstas en el contrato o en la Ley.
                                 </p>                                                        
                             </div>
                             <p>
@@ -576,8 +593,12 @@
                                 ARRENDADOR en caso se suscite inconvenientes sobre este tema.
                             </p>
 
-                            <u class="subrayado"> DECIMA TERCERA: MEJORAS DEL BIEN Y TRAMITES DE INSCRPCION DEL BIEN.</u>
-                            <u class="subrayado"> MEJORAS DEL BIEN</u>
+                            <p>
+                              <u class="subrayado"> DECIMA TERCERA: MEJORAS DEL BIEN Y TRAMITES DE INSCRPCION DEL BIEN.</u>
+                            </p>
+                            <p>
+                              <u class="subrayado"> MEJORAS DEL BIEN</u>
+                            </p>
                             <p>
                                 Las mejoras que realice el ARRENDATARIO sobre el bien materia del presente contrato, obligatoriamente tendrán que ser autorizadas de manera
                                 expresa y formal por parte del ARRENDADOR.
