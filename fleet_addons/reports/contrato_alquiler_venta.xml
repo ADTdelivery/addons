@@ -314,8 +314,12 @@
                                         <span class="title_ligth" t-field="cuenta.monto_inicial"/>
                                         Soles y el resto que asciende a S/ será cancelado en un periodo de 
                                         
-                                        <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
-                                        <t t-esc="counter"/>
+                                        <div class="box_cuota_data">
+                                            <p>
+                                                <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                <t t-esc="counter"/>
+                                            </p>
+                                        </div>
                                             
                                         
                                         Cuotas, en calidad de renta, tal como se describe 
@@ -366,8 +370,12 @@
                                         <td>
                                             <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                                 <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                                    <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
-                                                    <t t-esc="counter"/>
+                                                    <div class="box_cuota_data">
+                                                        <p>
+                                                            <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                            <t t-esc="counter"/>
+                                                        </p>
+                                                    </div>
                                                 </t>
                                             </t>
                                         </td>
