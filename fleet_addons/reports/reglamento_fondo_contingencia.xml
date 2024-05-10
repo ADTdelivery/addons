@@ -61,8 +61,8 @@
 
                         </style>
 
-                        <div class="header" style="position: relative;">
-                            <div style="position: absolute; top: 50%; transform: translateY(-50%); right: 0; border: 2px solid orange; color: black; padding: 5px;">
+                        <div class="header" style="position: relative; height: 40px;">
+                            <div style="position: absolute; top: 50%; transform: translateY(-50%); right: 7px; border: 2px solid orange; color: black; padding: 5px;">
                                 RCAFDC V.001-2024
                             </div>
                         </div>
