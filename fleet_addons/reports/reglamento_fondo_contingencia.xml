@@ -62,7 +62,7 @@
                         </style>
 
                         <div class="header" style="position: relative;">
-                            <div style="position: absolute; top: 0; right: 0; border: 2px solid orange; color: orange; padding: 5px;">
+                            <div style="position: absolute; top: 50%; transform: translateY(-50%); right: 0; border: 2px solid orange; color: black; padding: 5px;">
                                 RCAFDC V.001-2024
                             </div>
                         </div>
@@ -72,7 +72,7 @@
                             <p class="s1" style="padding-left: 100pt;text-indent: -89pt;text-align: left;">REGLAMENTO DE FONDO DE CONTINGENCIA 
                                 INTERNA ADMINISTRADO POR LA EMPRESA CORPORACION ADT SAC Y CORPORACION ADT DKIRJM SAC</p>
                             <p style="padding-top: 13pt;text-indent: 0pt;text-align: left;"><br/></p>
-                            <ol>
+                            <ol id="l1">
                                 <li data-list-text="I.">
                                 <h1 style="padding-left: 43pt;text-indent: -23pt;text-align: left;">ALCANCE</h1>
                                 <p style="text-indent: 0pt;text-align: left;"><br/></p>
