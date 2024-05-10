@@ -38,19 +38,37 @@
                 <t t-foreach="docs" t-as="vehicle">
                     <t t-foreach="vehicle.driver_id" t-as="driver">
                         <style type="text/css"> * {margin:0; padding:0; text-indent:0; }
-                           h1 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
-                           p { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 11pt; margin:0pt; }
-                           li {display: block; }
-                           #l1 {padding-left: 0pt;counter-reset: c1 1; }
-                           #l1> li>*:first-child:before {counter-increment: c1; content: counter(c1, decimal)". "; color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
-                           #l1> li:first-child>*:first-child:before {counter-increment: c1 0;  }
+                            .box_firma{
+                                display: -webkit-box;
+                                -webkit-box-pack: center;
+                                justify-content: center;
+                            }
+
+                            .box_line{
+                                width: 100%;
+                                height: 1px;
+                                background-color: black;
+                            }
+
+                            .box_data{
+                                margin-top: 100px;
+                                margin-left: 5px;
+                                height: 60px;
+                                width: 50%;
+                            }
+                            h1 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
+                            p { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 11pt; margin:0pt; }
+                            li {display: block; }
+                            #l1 {padding-left: 0pt;counter-reset: c1 1; }
+                            #l1> li>*:first-child:before {counter-increment: c1; content: counter(c1, decimal)". "; color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
+                            #l1> li:first-child>*:first-child:before {counter-increment: c1 0;  }
                         </style>
 
                         <div class="general_body_xs">
 
                             <h1 style="padding-top: 3pt;text-indent: 0pt;text-align: center;">ACTA DE ENTREGA VOLUNTARIA POR RESOLUCION DE CONTRATO</h1>
                           <p style="text-indent: 0pt;text-align: left;"><br/></p>
-                          <p style="padding-left: 5pt;text-indent: 0pt;line-height: 199%;text-align: center;">
+                          <p style="padding-left: 5pt;text-indent: 0pt;line-height: 199%;text-align: justify;">
                                 Yo <span class="title_ligth" t-field="driver.name"/>
                                 identificado con 
                                 <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>:
