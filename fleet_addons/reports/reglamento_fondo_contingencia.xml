@@ -61,14 +61,10 @@
 
                         </style>
 
-                        <div class="header">
-                            <img src="/fleet_addons/static/src/img/header_adt.jpg" alt="Not found" height="100"
-                                 width="1000"/>
-                        </div>
-
-                        <div class="footer">
-                            <img src="/fleet_addons/static/src/img/footer_adt.jpg" alt="Not found" height="50"
-                                 width="1000"/>
+                        <div class="header" style="position: relative;">
+                            <div style="position: absolute; top: 0; right: 0; border: 2px solid orange; color: orange; padding: 5px;">
+                                RCAFDC V.001-2024
+                            </div>
                         </div>
 
                         <div class="general_body_xs">
@@ -76,7 +72,7 @@
                             <p class="s1" style="padding-left: 100pt;text-indent: -89pt;text-align: left;">REGLAMENTO DE FONDO DE CONTINGENCIA 
                                 INTERNA ADMINISTRADO POR LA EMPRESA CORPORACION ADT SAC Y CORPORACION ADT DKIRJM SAC</p>
                             <p style="padding-top: 13pt;text-indent: 0pt;text-align: left;"><br/></p>
-                            <ol id="l1">
+                            <ol>
                                 <li data-list-text="I.">
                                 <h1 style="padding-left: 43pt;text-indent: -23pt;text-align: left;">ALCANCE</h1>
                                 <p style="text-indent: 0pt;text-align: left;"><br/></p>
@@ -89,7 +85,7 @@
                                     <h2 style="padding-top: 14pt;padding-left: 43pt;text-indent: 0pt;text-align: left;">Interno</h2>
                                     <p style="padding-top: 1pt;text-indent: 0pt;text-align: left;"><br/></p>
                                     <table style="border-collapse:collapse;margin-left:27.87pt" cellspacing="0">
-                                        <tr style="height:28pt">
+                                        <tr style="height:28pt; background-color: #808080;">
                                             <td style="width:118pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
                                                 <p class="s2" style="padding-top: 7pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Nombre</p>
                                             </td>
@@ -109,7 +105,7 @@
                                     <h2 style="padding-top: 12pt;padding-left: 43pt;text-indent: 0pt;text-align: left;">Externo</h2>
                                     <p style="text-indent: 0pt;text-align: left;"><br/></p>
                                     <table style="border-collapse:collapse;margin-left:27.87pt" cellspacing="0">
-                                        <tr style="height:28pt">
+                                        <tr style="height:28pt; background-color: #808080;">
                                             <td style="width:118pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
                                                 <p class="s2" style="padding-top: 7pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Nombre</p>
                                             </td>
@@ -133,7 +129,7 @@
                                     (POR REEMPLAZO O CADUCIDAD)</h1>
                                     <p style="padding-top: 1pt;text-indent: 0pt;text-align: left;"><br/></p>
                                     <table style="border-collapse:collapse;margin-left:27.87pt" cellspacing="0">
-                                        <tr style="height:22pt">
+                                        <tr style="height:28pt; background-color: #808080;">
                                             <td style="width:101pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
                                                 <p class="s2" style="padding-top: 4pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Código</p>
                                             </td>
@@ -153,10 +149,10 @@
                                     <p style="padding-top: 11pt;text-indent: 0pt;text-align: left;"><br/></p>
                                 </li>
                                 <li data-list-text="IV">
-                                    <h1 style="padding-left: 8pt;text-indent: 0pt;text-align: left;">IV CONTROL DE VERSIONES Y/O CAMBIOS DEL DOCUMENTO NORMATIVO</h1>
+                                    <h1 style="padding-left: 8pt;text-indent: 0pt;text-align: left;"> CONTROL DE VERSIONES Y/O CAMBIOS DEL DOCUMENTO NORMATIVO</h1>
                                     <p style="padding-top: 1pt;text-indent: 0pt;text-align: left;"><br/></p>
                                     <table style="border-collapse:collapse;margin-left:27.8575pt" cellspacing="0">
-                                        <tr style="height:26pt">
+                                        <tr style="height:26pt; background-color: #808080;">
                                             <td style="width:90pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" bgcolor="#808080">
                                                 <p class="s2" style="padding-top: 6pt;padding-left: 5pt;text-indent: 0pt;text-align: left;">Versión</p>
                                             </td>
