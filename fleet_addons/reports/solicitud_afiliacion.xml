@@ -87,7 +87,7 @@
                                 <tr style="height:9pt">
                                     <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Paterno:
-                                        <span class="title_ligth" t-field="driver.paterno"/>
+                                        <span class="title_ligth" t-field="driver.apellido_paterno"/>
                                         </p>
                                     </td>
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
