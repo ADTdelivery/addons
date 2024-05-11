@@ -96,10 +96,14 @@
                                 </tr>
                                 <tr style="height:9pt">
                                     <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Paterno:</p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Paterno:
+                                        <span class="title_ligth" t-field="driver.paterno"/>
+                                        </p>
                                     </td>
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Materno:</p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Materno:
+                                        <span class="title_ligth" t-field="driver.apellido_materno"/>
+                                        </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Edad</p>
@@ -107,13 +111,18 @@
                                 </tr>
                                 <tr style="height:9pt">
                                     <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Nombres:</p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Nombres:
+                                        <span class="title_ligth" t-field="driver.name"/>
+                                        </p>
                                     </td>
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">DNI I C.E.:</p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">DNI I C.E.:
+                                        <span class="title_ligth" t-field="driver.vat"/>
+                                        </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Licencia de Conducir:</p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Licencia de Conducir:
+                                        <span class="title_ligth" t-field="driver.x_licencia_final"/></p>
                                     </td>
                                 </tr>
                                 <tr style="height:13pt"><td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
@@ -128,10 +137,14 @@
                             </tr>
                             <tr style="height:19pt">
                                 <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Teléfono fijo:</p>
+                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Teléfono fijo:
+                                    <span class="title_ligth" t-field="driver.phone"/>
+                                    </p>
                                 </td>
                                 <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Celular:</p>
+                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Celular:
+                                    <span class="title_ligth" t-field="driver.mobile"/>
+                                    </p>
                                 </td>
                                 <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                     <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 8pt;text-align: left;">Valor de Infracciones Vigentes de Transito</p>
@@ -139,10 +152,14 @@
                             </tr>
                             <tr style="height:9pt">
                                 <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" rowspan="5">
-                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 9pt;text-align: left;">Domicilio:</p>
+                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 9pt;text-align: left;">Domicilio:
+                                    <span class="title_ligth" t-field="driver.street"/>
+                                    </p>
                                 </td>
                                 <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Distrito:</p>
+                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Distrito:
+                                    <span class="title_ligth" t-field="driver.l10n_pe_district"/>
+                                    </p>
                                 </td>
                                 <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                     <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Actividad Económica:</p>
@@ -150,7 +167,9 @@
                             </tr>
                             <tr style="height:9pt">
                                 <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Provincia:</p>
+                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Provincia:
+                                    <span class="title_ligth" t-field="driver.city_id"/>
+                                    </p>
                                 </td>
                                 <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                     <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Conyugue:</p>
@@ -158,7 +177,9 @@
                             </tr>
                             <tr style="height:9pt">
                                 <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
-                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Departamento:</p>
+                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Departamento:
+                                    <span class="title_ligth" t-field="driver.city_id"/>
+                                    </p>
                                 </td>
                                 <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                     <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Celular Conyugue</p>
@@ -174,7 +195,8 @@
                             </tr>
                             <tr style="height:9pt">
                                 <td style="width:259pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" colspan="2">
-                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Fecha</p>
+                                    <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Fecha
+                                    <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/></p>
                                 </td>
                             </tr>
                             <tr style="height:46pt">
