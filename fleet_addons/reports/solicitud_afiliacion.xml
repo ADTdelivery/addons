@@ -87,12 +87,16 @@
                                 <tr style="height:9pt">
                                     <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Paterno:
-                                        <span class="title_ligth" t-field="driver.apellido_paterno"/>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.apellido_paterno"/> 
                                         </p>
+                                        
                                     </td>
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Materno:
-                                        <span class="title_ligth" t-field="driver.apellido_materno"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.apellido_materno"/> 
                                         </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
@@ -102,12 +106,16 @@
                                 <tr style="height:9pt">
                                     <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Nombres:
-                                        <span class="title_ligth" t-field="driver.name"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.name"/> 
                                         </p>
                                     </td>
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">DNI I C.E.:
-                                        <span class="title_ligth" t-field="driver.vat"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.vat"/>
                                         </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
@@ -129,12 +137,16 @@
                                 <tr style="height:19pt">
                                     <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Teléfono fijo:
-                                        <span class="title_ligth" t-field="driver.phone"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.phone"/>
                                         </p>
                                     </td>
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Celular:
-                                        <span class="title_ligth" t-field="driver.mobile"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.mobile"/>
                                         </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
@@ -144,12 +156,16 @@
                                 <tr style="height:9pt">
                                     <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" rowspan="5">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 9pt;text-align: left;">Domicilio:
-                                        <span class="title_ligth" t-field="driver.street"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.street"/>
                                         </p>
                                     </td>
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Distrito:
-                                        <span class="title_ligth" t-field="driver.l10n_pe_district"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.l10n_pe_district"/>
                                         </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
@@ -159,7 +175,9 @@
                                 <tr style="height:9pt">
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Provincia:
-                                        <span class="title_ligth" t-field="driver.city_id"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.city_id"/>
                                         </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
@@ -169,7 +187,9 @@
                                 <tr style="height:9pt">
                                     <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
                                         <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Departamento:
-                                        <span class="title_ligth" t-field="driver.city_id"/>
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.city_id"/>
                                         </p>
                                     </td>
                                     <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
