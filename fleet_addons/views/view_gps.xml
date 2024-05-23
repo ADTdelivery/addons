@@ -45,7 +45,7 @@
         </field>
     </record>
 
-    <record id="fleet_addons3_form" model="ir.ui.view">
+    <!--<record id="fleet_addons3_form" model="ir.ui.view">
         <field name="name">fleet.addons3.form</field>
         <field name="model">fleet.vehicle</field>
         <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
@@ -60,7 +60,7 @@
                 </page>
             </xpath>
         </field>
-    </record>
+    </record>-->
 
 
     <!--<record id="fleet_addons_form2" model="ir.ui.view">
