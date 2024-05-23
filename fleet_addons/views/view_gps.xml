@@ -66,7 +66,7 @@
         <record id="fleet_addons3_form" model="ir.ui.view">
             <field name="name">fleet.addons3.form</field>
             <field name="model">fleet.vehicle</field>
-            <field name="inherit_id" ref="base.view_form"/>
+            <field name="inherit_id" ref="fleet.vehicle.form"/>
             <field name="arch" type="xml">
                 <!-- Aquí comienza la definición de la vista heredada -->
                 <xpath expr="//page[@name='Model']" position="inside">
