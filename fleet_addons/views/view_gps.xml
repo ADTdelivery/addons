@@ -50,7 +50,7 @@
         <field name="model">fleet.vehicle</field>
         <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//page[@string='Model']/group[@string='Model']" position="inside">
+            <xpath expr="//page[@name='Model']/group[@name='Model']" position="inside">
                 <field name="x_fleet_tarjeta_propiedad" style="width:30%"/>
                 <field name="x_soat" style="width:30%"/>
                 <field name="x_licencia_final" style="width:30%"/>
