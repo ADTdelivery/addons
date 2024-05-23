@@ -51,8 +51,8 @@
         <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="Modelo">
-                    <group>
+                <page string="Model">
+                    <group string="Model">
                         <field name="x_fleet_tarjeta_propiedad" style="width:30%"/>
                         <field name="x_soat" style="width:30%"/>
                         <field name="x_licencia_final" style="width:30%"/>
