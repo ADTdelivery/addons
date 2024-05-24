@@ -77,13 +77,12 @@
     </data>-->
 
     <data>
-        <!-- Vista que hereda de fleet.vehicle.form -->
         <record id="fleet_vehicle_form_view_gps" model="ir.ui.view">
             <field name="name">fleet.vehicle.form.inherit.gps</field>
             <field name="model">fleet.vehicle</field>
-            <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+            <field name="inherit_id" ref="fleet.fleet_vehicle_form"/>
             <field name="arch" type="xml">
-                <xpath expr="//page[@string='Model']" position="inside">
+                <xpath expr="//page[@name='model_page']" position="inside">
                     <!-- Aquí van tus cambios -->
                     <group>
                         <field name="x_fleet_tarjeta_propiedad" style="width:30%"/>
