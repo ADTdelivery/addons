@@ -20,7 +20,7 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'fleet' , 'infraccion_addons'],
+    'depends': ['base', 'fleet' , 'infraccion_addons','hr_fleet'],
 
     # always loaded
     'data': [
