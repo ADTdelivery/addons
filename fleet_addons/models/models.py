@@ -14,7 +14,7 @@ class FleetAddons(models.Model):
         try:
             logging.info(vals['driver_id'])
             # Database connection
-            url = 'http://52.15.86.160/:8070'
+            url = 'http://52.15.86.160:8070'
             db = 'postgresadt'
             username = 'admin'
             password = 'adtDelivery2024'

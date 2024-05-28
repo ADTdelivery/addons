@@ -17,9 +17,9 @@ class AccountAddons(models.Model):
         try:
             # Database connection
             url = 'http://52.15.86.160:8070'
-            db = 'odoo'
-            username = 'rapitash@gmail.com'
-            password = 'Krishnna17'
+            db = 'postgresadt'
+            username = 'admin'
+            password = 'adtDelivery2024'
 
             common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
             uid = common.authenticate(db, username, password, {})
