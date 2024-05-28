@@ -11,6 +11,9 @@ class FieldModels(models.Model):
                                 help='License plate number of the vehicle (i = plate number for a car)')
 
     tmp_field = fields.Char(string="prueba")
+    x_fleet_tarjeta_propiedad = fields.Binary(string="Tarjeta de propiedad")
+    x_soat = fields.Binary(string="Tarjeta SOAT")
+    x_licencia_final = fields.Binary(string="Licencia")
 
 
 class FleetGPS(models.Model):

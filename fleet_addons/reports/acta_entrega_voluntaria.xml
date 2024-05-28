@@ -1,0 +1,155 @@
+<?xml version="1.0"?>
+<odoo>
+
+
+    <record id="paperformat_cronograma_a4" model="report.paperformat">
+        <field name="name">Cronograma A4</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">40</field>
+
+        <field name="dpi">90</field>
+    </record>
+
+
+    <record id="fleet_addons.fleet_custom_report102" model="ir.actions.report">
+        <field name="name">Acta de Entrega Voluntaria</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fleet_addons.vehicle_contrato102_report_view</field>
+        <field name="report_file">fleet_addons.vehicle_contrato102_report</field>
+        <field name="binding_model_id" ref="model_fleet_vehicle"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
+
+    </record>
+
+    <template id="vehicle_contrato102_report_view">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="vehicle">
+                    <t t-foreach="vehicle.driver_id" t-as="driver">
+                        <style type="text/css"> * {margin:0; padding:0; text-indent:0; }
+                            .box_firma{
+                                display: -webkit-box;
+                                -webkit-box-pack: center;
+                                justify-content: center;
+                            }
+
+                            .box_line{
+                                width: 100%;
+                                height: 1px;
+                                background-color: black;
+                            }
+
+                            .box_data{
+                                margin-top: 100px;
+                                margin-left: 5px;
+                                height: 60px;
+                                width: 50%;
+                            }
+                            h1 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
+                            p { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 11pt; margin:0pt; }
+                            li {display: block; }
+                            #l1 {padding-left: 0pt;counter-reset: c1 1; }
+                            #l1> li>*:first-child:before {counter-increment: c1; content: counter(c1, decimal)". "; color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 11pt; }
+                            #l1> li:first-child>*:first-child:before {counter-increment: c1 0;  }
+                        </style>
+
+                        <div class="general_body_xs">
+
+                            <h1 style="padding-top: 3pt;text-indent: 0pt;text-align: center;">ACTA DE ENTREGA VOLUNTARIA POR RESOLUCION DE CONTRATO</h1>
+                          <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                          <p style="padding-left: 5pt;text-indent: 0pt;line-height: 199%;text-align: justify;">
+                                Yo <span class="title_ligth" t-field="driver.name"/>
+                                identificado con 
+                                <span class="title_ligth" t-field="driver.l10n_latam_identification_type_id"/>:
+                                <span class="title_ligth" t-field="driver.vat"/>, 
+                                y domiciliado en 
+                                <span class="title_ligth" t-field="driver.street"/> ,
+                                Entrego de manera voluntaria la trimoto, 
+                                <t t-foreach="vehicle.model_id" t-as="model">
+                                    de marca <span class="title_ligth" t-field="model.brand_id"/>,
+                                    color 
+                                    <span class="title_ligth" t-field="vehicle.color"/>,
+                                    Con Chasis:<span class="title_ligth" t-field="vehicle.vin_sn"/>
+                                    con Placa de Rodaje
+                                    <t t-if="vehicle.license_plate">
+                                    <span class="title_ligth" t-field="vehicle.license_plate"/>,
+                                    </t>
+                                    <t t-if="not vehicle.license_plate">
+                                    EN CURSO,
+                                    </t>
+                                </t>
+                         </p>
+                          <p style="padding-left: 5pt;text-indent: 0pt;line-height: 150%;text-align: justify;">En vista, que se ha suscitado una causal 
+                            de resolución de contrato de alquiler venta de bien mueble a plazo determinado los cuales se expresan en el artículo “décima 
+                            primera: recuperación del vehículo por incumplimiento de pago o resolución de contrato”; entre algunas de las causales tenemos:</p>
+                          <ol id="l1">
+                            <li data-list-text="1.">
+                              <p style="padding-left: 34pt;text-indent: -28pt;line-height: 199%;text-align: left;">El traslado del Vehículo automotor menor fuera 
+                                de la jurisdicción de Lima- Metropolitana. Sin poner en conocimiento a EL ARRENDADOR.</p>
+                            </li>
+                            <li data-list-text="2.">
+                              <p style="padding-left: 34pt;text-indent: -28pt;line-height: 202%;text-align: left;">El incumplimiento por parte 
+                                del <b>ARRENDATARIO </b>de 2 (DOS) rentas más la mitad de la siguiente, de conformidad al cronograma de pago.</p>
+                            </li>
+                            <li data-list-text="3.">
+                              <p style="padding-left: 34pt;text-indent: -28pt;line-height: 200%;text-align: left;">El traspaso, transferencia o cesión a terceras personas, 
+                                sin conocimiento de EL ARRENDADOR.</p>
+                            </li>
+                            <li data-list-text="4.">
+                              <p style="padding-left: 34pt;text-indent: -28pt;line-height: 199%;text-align: justify;">La utilización del vehículo menor para realizar 
+                                actividades ilícitas de cualquier índole (Robo, Violaciones ID y otros).</p>
+                            </li>
+                            <li data-list-text="5.">
+                              <p style="padding-left: 34pt;text-indent: -28pt;text-align: justify;">La manipulación o desinstalación del GPS ubicado en el vehículo menor</p>
+                            </li>
+                            <li data-list-text="6.">
+                              <p style="padding-top: 12pt;padding-left: 34pt;text-indent: -28pt;line-height: 200%;text-align: justify;">Las papeletas, multas, e infracciones 
+                                en general serán de responsabilidad de EL ARRENDATARIO, y de estar estas impagas por más de dos meses será causal de resolución de contrato.</p>
+                            </li>
+                            <li data-list-text="7.">
+                              <p style="padding-left: 34pt;text-indent: -28pt;line-height: 13pt;text-align: justify;">Y demás causales previstas en el contrato o en la Ley.</p>
+                            </li>
+                          </ol>
+                          <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                          <p style="padding-left: 5pt;text-indent: 0pt;line-height: 115%;text-align: left;">Por consiguiente hago entrega voluntaria del vehículo en mención 
+                            por incurrir en causales de resolución del contrato</p>
+                          <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                          <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                          <div class="box_firma">
+                                <div class="box_data">
+                                    <div></div>
+                                    <div class="box_line"></div>
+                                    <div class="box_firma">
+                                        <p>Arrendador</p>
+                                    </div>
+                                </div>
+                                <div class="box_data">
+                                    <div></div>
+                                    <div class="box_line"></div>
+                                    <div class="box_firma">
+                                        <p>Arrendatario </p>
+                                    </div>                                    
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+
+</odoo>

@@ -20,7 +20,7 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'fleet' , 'infraccion_addons'],
+    'depends': ['base', 'fleet' , 'infraccion_addons','hr_fleet'],
 
     # always loaded
     'data': [
@@ -34,7 +34,10 @@
         'reports/fleet_custom_report3.xml',
         'reports/fleet_custom_report4.xml',
         'reports/fleet_custom_mototaxi.xml',
-        'reports/fleet_custom_new.xml',
+        'reports/reglamento_fondo_contingencia.xml',
+        'reports/contrato_alquiler_venta.xml',
+        'reports/acta_entrega_voluntaria.xml',
+        'reports/solicitud_afiliacion.xml',
         #'views/view_tramite_placa.xml'
 
     ],

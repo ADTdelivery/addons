@@ -1,0 +1,710 @@
+<?xml version="1.0" ?>
+<odoo>
+    <data>
+
+
+        <record id="paperformat_cronograma_a4" model="report.paperformat">
+            <field name="name">Cronograma A4</field>
+            <field name="default" eval="True"/>
+            <field name="format">A4</field>
+            <field name="page_height">0</field>
+            <field name="page_width">0</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">40</field>
+            <field name="margin_bottom">10</field>
+            <field name="margin_left">7</field>
+            <field name="margin_right">7</field>
+            <field name="header_line" eval="False"/>
+            <field name="header_spacing">40</field>
+            <field name="dpi">90</field>
+        </record>
+
+        <record id="fleet_addons.fleet_custom_report101" model="ir.actions.report">
+            <field name="name">Contrato de Alquiler Venta</field>
+            <field name="model">fleet.vehicle</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">fleet_addons.vehicle_contrato101_report_view</field>
+            <field name="report_file">fleet_addons.vehicle_contrato101_report</field>
+            <field name="binding_model_id" ref="model_fleet_vehicle"/>
+            <field name="binding_type">report</field>
+            <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
+        </record>
+
+        <template id="vehicle_contrato101_report_view">
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <t t-foreach="docs" t-as="vehicle">
+                        <style>
+
+                            .general_body_xs{
+
+                            font-size: 14px;
+                            }
+
+                            .title_report{
+                            text-align: center;
+                            }
+
+                            table {
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 100%;
+                            font-size: 10px;
+                            }
+
+                            td, th {
+                            border: 1px solid #dddddd;
+                            text-align: left;
+                            padding: 8px;
+                            width: 50%;
+                            }
+
+                            .subrayado{
+                            text-decoration: underline black;
+                            font-weight: bold;
+                            font-size: 14px;
+                            }
+
+                            span{
+                            font-weight: bold;
+                            }
+
+                            .box_clausula{
+                            margin-left: 20px;
+                            }
+
+                            .box_subclausula{
+                            display:flex;
+                            }
+                            .indice_negrita{
+                            font-weight: bold;
+                            margin:0%;
+                            }
+
+                            .table_cuota_inicial{
+                            font-family: arial, sans-serif;
+                            border-collapse: collapse;
+                            width: 50%;
+                            margin: 0 auto;
+                            }
+
+                            .title_ligth{
+                            font-weight: normal;
+                            }
+
+                            .box_firma{
+                            display: -webkit-box;
+                            -webkit-box-pack: center;
+                            justify-content: center;
+                            }
+
+                            .box_line{
+                            width: 100%;
+                            height: 1px;
+                            background-color: black;
+                            }
+
+                            .box_data{
+                            margin-top: 100px;
+                            margin-left: 5px;
+                            height: 60px;
+                            width: 50%;
+                            }
+
+                            .box_place_date{
+                            display: -webkit-box;
+                            -webkit-box-pack: end;
+                            justify-content: end;
+                            }
+
+                            .box_guion{
+                            display: -webkit-box;
+                            }
+
+                            .box_guion_space {
+                            margin-left: 20px;
+                            }
+
+                            .box_italica{
+                            font-style: italic;
+                            }
+                            .box_space{
+                            height: 800px;
+                            }
+
+                            /* table */
+
+                            .general_body {
+                            height: 35px;
+                            width: 100%;
+                            background-color: #C0C0C0;
+                            display: -webkit-box;
+                            -webkit-box-pack: start;
+                            justify-content: end;
+                            }
+
+                            .w60p {
+                            width: 60%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .w40p {
+                            width: 40%;
+                            margin-left: 10px;
+                            margin-top: 5px;
+                            }
+
+                            .box_margin {
+                            margin-left: 10px;
+                            }
+
+                            .box_bordertop {
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent transparent transparent;
+                            }
+
+                            .box_borderbottom {
+                            border-bottom: 1.5px;
+                            border-style: solid;
+                            border-color: transparent transparent black transparent;
+                            }
+
+                            .box_borderbi {
+                            border-bottom: 1.5px;
+                            border-top: 1.5px;
+                            border-style: solid;
+                            border-color: black transparent black transparent;
+                            }
+                            .box_space_heigth{
+                            height: 15px;
+                            }
+                            .box_justify_space{
+                            display: -webkit-box;
+                            -webkit-box-pack: justify;
+                            justify-content: space-between;
+                            }
+
+                        </style>
+                        <div style="text-indent: 0pt;text-align: center;">
+                            <u class="subrayado">CONTRATO DE ALQUILER VENTA DE BIEN MUEBLE A PLAZO DETERMINADO</u>
+                        </div>
+
+                        <div>
+                            <br/>
+                            <br/>
+                            <p>
+                                Conste por el presente documento, el <span>CONTRATO DE ALQUILER VENTA</span> que, celebran de una parte la
+                                empresa denominada CORPORACION ADT DKIRJM S.A.C, con RUC 20611324830
+                                , con domicilio fiscal En MZA. 55 LOTE. 11 A.H. BUENOS MILAGROS LIMA - LIMA - SAN JUAN DE MIRAFLORES, 
+                                debidamente representada por el señora Ayte Cueva Dalia Rubi, identificado con DNI N° 48565333, con domicilio 
+                                fiscal en MZA. 55 LOTE. 11 A.H. BUENOS MILAGROS LIMA - LIMA - SAN JUAN DE MIRAFLORES , con poderes inscritos 
+                                en la Partida Registral No 15357036, de los Registros Públicos de Lima, a quien en adelante se le denominará
+                                <span>EL ARRENDADOR
+                                </span>;
+                                y de la otra parte al señor
+                                <t t-foreach="vehicle.driver_id" t-as="driver">
+                                    <span class="title_ligth" t-field="vehicle.driver_id"/>
+                                    <span>con DNI o CARNET N°
+                                    </span>;
+                                    <span>
+                                    <span class="title_ligth" t-field="driver.vat"/>
+                                    </span>,con domicilio real
+                                    <span class="title_ligth" t-field="driver.street"/>,
+                                    Distrito
+                                    <span class="title_ligth" t-field="driver.l10n_pe_district"/>-
+                                    Provincia y Departamento de
+                                    <span class="title_ligth" t-field="driver.city_id"/>,
+                                    a quien en lo sucesivo se lo denominará
+                                    <span>EL ARRENDATARIO
+                                    </span>;
+                                    en los términos contenidos en las cláusulas siguientes:
+                                </t>
+                            </p>
+                        </div>
+
+                        <br/>
+
+                        <div>
+                            <p>
+                              <u class="subrayado"> ANTECEDENTES:</u>
+                            </p>
+                            <p>
+                              <u class="subrayado"> PRIMERA: FINES DEL ARRENDADOR COMPRADOR</u>
+                            </p>
+                            <p>
+                                <span>EL ARRENDADOR</span>, es una empresa que cuenta con respaldo crediticio para la adquisición de diversos 
+                                vehículos, los mismos que son adquiridos a requerimiento de nuestros clientes, de modo tal que para su adquisición 
+                                se cuenta con el respaldo de una Financiera, quien nos otorga el financiamiento para poder adquirir estos bienes y 
+                                luego poder venderlos o darlos en alquiler venta, de modo tal que podamos cumplir con nuestras obligaciones crediticias 
+                                con dicha entidad financiera.
+                            </p>
+                            <p>
+                                La principal actividad es la Distribución y Comercialización de trimotos, otorgando ventas al contado, créditos directos 
+                                o través de una financiera, en las condiciones más favorables de acuerdo a su normatividad vigente. Su principal objetivo 
+                                es el apoyo a la renovación del Parque Automotor de Vehículos Menores a través de créditos accesibles, con garantía y 
+                                trayectoria para lograr un desarrollo económico, social y ambiental sostenible que respalda dicha función.
+                            </p>
+                            <p>
+                                <span>EL ARRENDATARIO</span>, es persona natural, dedicada a la actividad de Transporte de Vehículos Menores (Trimoto), 
+                                acreditado a través de la documentación presentada para su evaluación, no teniendo inconvenientes o impedimentos legales 
+                                para poder realizar un contrato, ni multas o mandatos de otra naturaleza que le impidan realizar el Acto Jurídico, 
+                                establecido en el artículo 140o del código civil.
+                            </p>
+                            <p>
+                                <span>EL ARRENDADOR</span>, es titular del bien mueble consistente en una trimoto,
+                                <t t-foreach="docs" t-as="vehicle">
+                                    <t t-foreach="vehicle.driver_id" t-as="driver">
+                                        <t t-foreach="vehicle.model_id" t-as="model">
+                                            de marca 
+                                            <span class="title_ligth" t-field="model.brand_id"/>,
+                                            color 
+                                            <span class="title_ligth" t-field="vehicle.color"/>,
+                                            Con Chasis N°
+                                            <span class="title_ligth" t-field="vehicle.vin_sn"/>
+                                            con Placa de Rodaje
+                                            <t t-if="vehicle.license_plate">
+                                            <span class="title_ligth" t-field="vehicle.license_plate"/>,
+                                            </t>
+                                            <t t-if="not vehicle.license_plate">
+                                            EN CURSO,
+                                            </t>
+                                        </t>
+                                    </t>
+                                </t>
+                                la misma que ha sido adquirida por un financiamiento con la entidad Coopac Qorilazo, es por ello que obra inscrita 
+                                una Garantía Mobiliaria a favor de dicha entidad, hasta por la suma de S/ 19,000.00 Soles, sin embargo, según el
+                                contrato de Garantía Mobiliaria estamos autorizados para poder vender o dar en alquiler venta este vehículo, para 
+                                lo cual a la cancelación total de su precio del bien se coordinará con este acreedor para el levantamiento de dicho 
+                                gravamen y así poder transferir sin ninguna carga o gravamen al comprador o al Arrendatario Comprador.
+                            </p>
+
+                            <u class="subrayado"> SEGUNDA: CONDICIONES DEL VEHICULO</u>
+                            <p>
+                                LAS PARTES dejan constancia que el bien descrito en la cláusula precedente, es nuevo y está operativo en todas sus 
+                                dimensiones, según la marca y modelo, el cual será destinado para fines de transporte en sus diferentes modalidades, 
+                                de acuerdo al tipo de vehículo y categoría, siempre y cuando sean de actividad lícita, para ello el ARRENDATARIO está 
+                                obligado, bajo causal de resolución de contrato, de adquirir los permisos, pólizas de seguro y otros documentos que 
+                                requiera el vehículo, por lo que el ARRENDATARIO no está autorizado a dar otro tipo de uso sin previa autorización
+                                del ARRENDADOR, bajo apercibimiento de resolución de contrato.
+                            </p>
+
+                            <u class="subrayado"> OBJETO DEL CONTRATO:</u>
+                            <p>
+                                <span>TERCERA:</span> Por el presente contrato, <span>EL ARRENDADOR,</span> se obliga a ceder el uso del bien descrito 
+                                en la cláusula primera a favor del <span>EL ARRENDATARIO,</span> a título de arrendamiento, el mismo que recién al concluir
+                                con el pago de la totalidad del precio pactado, se otorgara a título de venta. Por su parte,<span>EL ARRENDATARIO,</span>
+                                se obliga a pagar al <span>EL ARRENDADOR,</span> el monto total del precio, como renta pactada y por el plazo correspondiente, 
+                                detallado en las cláusulas siguientes, en la forma y oportunidad convenidas.
+                            </p>
+
+                            <u class="subrayado"> RENTA: PRECIO DEL BIEN, FORMA Y OPORTUNIDAD DE PAGO:</u>
+                            <p>
+                                <span>CUARTA:</span> Las partes acuerdan que el monto total del Vehículo descrito líneas abajo, en el que esta incluido los 
+                                gastos por la obtención de la tarjeta de propiedad, placa de rodaje, SOAT, GPS, fondo de contingencia y monitoreo por un año, 
+                                las 24 horas del día; así como también incluye un fondo interno de contingencias, el mismo que será administrado por 
+                                <span>EL ARRENDADOR,</span> condición claramente aceptada y autorizada por <span>EL ARRENDATARIO.</span>
+                            </p>
+                            <p>
+                                Ambas partes acuerdan que, el total del precio del bien, descrito precedentemente será cancelado con una inicial de S/
+                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                    <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                        <span class="title_ligth" t-field="cuenta.monto_inicial"/>
+                                        Soles y el resto que asciende a 
+                                        <span class="title_ligth" t-field="cuenta.monto_fraccionado"/> 
+                                        será cancelado en un periodo de 
+                                        <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                            <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                                <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                <t t-esc="counter"/>
+                                            </t>
+                                        </t>
+                                        Cuotas, en calidad de renta, tal como se describe 
+                                        a continuación:
+                                    </t>
+                                </t>
+                                
+                            </p>
+
+                            <table class="table_cuota_inicial">
+
+
+                                <tbody>
+                                    <tr>
+                                        <td>DETALLES DEL PRECIO DEL VEHICULO</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>CUOTA INICIAL</td>
+                                        <td>
+
+                                            <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                                <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                                    <span class="title_ligth" t-field="cuenta.monto_inicial"/>
+                                                </t>
+                                            </t>
+
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>MONTO A FRACCIONAR EN CUOTAS</td>
+                                        <td>
+                                            <t t-foreach="vehicle.driver_id" t-as="driver">
+                                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                                    <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                                        <span class="title_ligth" t-field="cuenta.monto_cuota"/>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                        </td>
+                                    </tr>
+
+
+                                    <tr>
+                                        <td>                                            
+                                            NUMERO DE CUOTAS 
+                                        </td>
+                                        <td>
+                                            <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                                <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                                    <t t-set="counter" t-value="cuenta.qty_cuotas + 1"/>
+                                                    <t t-esc="counter"/>
+                                                </t>
+                                            </t>
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>PERIODO A CANCELAR</td>
+                                        <td>
+                                            <t t-foreach="vehicle.driver_id" t-as="driver">
+                                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                                    <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                                        <span class="title_ligth" t-field="cuenta.periodicidad"/>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>FECHAS DE PAGO</td>
+                                        <td></td>
+                                    </tr>
+
+                                </tbody>
+
+
+                            </table>
+
+                            <u class="subrayado"> QUINTA: FORMA DE PAGO</u>
+                            <p>
+                                La forma de pago de la cuota inicial y de las rentas fraccionadas serán de acuerdo a las fechas previstas en el cronograma 
+                                de pago, el mismo que formara parte de este contrato, por tanto, estas serán canceladas en la fecha pactada y el monto acordado 
+                                y descrito en el cronograma, precisando que el incumplimiento de dos cuotas y la mitad del plazo para vencer la tercera, ya sea 
+                                correlativa o alternativa, faculta al ARRENDADOR, de poder resolver el contrato y dar por vencidas todas las demás cuotas pendientes, 
+                                así como exigir la devolución y entrega del bien en las condiciones entregadas.
+                            </p>
+                            <p>
+                                Ambas partes acuerdan que, el monto inicial y el monto fraccionado, es a título de arrendamiento, por tanto, este será cancelado en 
+                                dinero y depositado a la cuenta de ahorros N° 194-9937830019 del Banco de Crédito del Perú (BCP), a nombre de la empresa denomina 
+                                Corporación ADT DKIRJM S.A.C., la misma que para efectos del presente documento, EL ARRENDADOR, autoriza expresamente para que esta 
+                                cobre y recaude dichos montos, ello debido a que entre ella y el ARRENDADOR, existe una cesión de derechos crediticios, por lo que el 
+                                incumplimiento por parte del ARRENDATARIO implica una transgresión a las obligaciones de las partes, por lo que de persistir en dos o 
+                                más cuotas, ya sea correlativas o alternativas, será causal de resolución de contrato.
+                            </p>
+
+                            <u class="subrayado"> SEXTA: PLAZO DEL CONTRATO Y GARANTIA:</u>
+                            <p>
+                                Las partes convienen fijar un plazo de duración determinada para el presente contrato, equivalente a ( ...24...meses según el tiempo 
+                                del cronograma de pago), el mismo que tendrá vigencia desde el 18 de Abril de 2024 hasta el 24 de ABRIL de 2026, pudiendo prorrogar el 
+                                plazo previo acuerdo de las partes.
+                            </p>
+                            <p>
+                                Asimismo, las partes han establecido, en el caso que el ARRENDATARIO no cumpla con cancelar oportunamente la renta y se resuelva el contrato
+                                por su responsabilidad, el monto cancelado como inicial y renta mensual, serán adjudicadas en su totalidad por el ARRENDADOR, por concepto de
+                                alquiler del vehículo, no estando obligado a devolver ningún monto, por lo que el ARRENDATARIO acepta esta condición y asume la responsabilidad;
+                                Asimismo, se acuerda que frente a una resolución de contrato por causa imputable al ARRENDADOR este se obligada de asumir los costos y gastos
+                                que implique la recuperación del vehículo en el estado óptimo que deberá entregar el ARRENDATARIO, no dando lugar a la devolución de la inicial
+                                del precio o de las cuotas pagadas.
+                            </p>
+
+                            <p>
+                              <u class="subrayado"> OBLIGACIONES DE LAS PARTES:</u>
+                            </p>
+                            <p>
+                              <u class="subrayado"> OCTAVA. OBLIGACIONES DEL ARRENDADOR</u>
+                            </p>
+                            <p>
+                                <span>EL ARRENDADOR,</span> se obliga a realizar la entrega del vehículo automotor descrito en el presente contrato, en perfecto estado mecánico, 
+                                interiores, accesorios y de carrocería, con cero Km. (1) de recorrido, con un dispositivo GPS, tal y como lo faculta <span>EL ARTÍCULO N° 1550° 
+                                DEL CÓDIGO CIVIL,</span> de igual forma se obliga a realizar el seguimiento sobre la ubicación y seguridad del bien, que esté libre de multas, 
+                                impuestos, pactos de reserva de dominio, por tal razón, la trimoto, estará a nombre del ARRENDADOR, hasta la cancelación del presente contrato.
+                            </p>
+                            <p>
+                                <span>EL ARRENDADOR,</span> se obliga a realizar las gestiones pertinentes ante los organismos competentes, a efectos de que se emita la respectiva 
+                                tarjeta de propiedad vehicular y las placas de rodaje correspondiente conforme a lo establecido en el <span>ARTÍCULO N° 1511° DEL CÓDIGO CIVIL.</span> 
+                            </p>
+                            <p>
+                                <span>EL ARRENDADOR,</span> se compromete a que el bien mueble sea entregado en el lugar pactado al momento de celebrarse el contrato, de conformidad 
+                                con el <span>ARTÍCULO N°1553° DEL CÓDIGO CIVIL.</span> 
+                            </p>
+
+                            <u class="subrayado"> NOVENA: OBLIGACIONES DEL ARRENDATARIO</u>
+                            <p>
+                                <span>EL ARRENDATARIO,</span> se obliga a pagar puntualmente el monto de la renta y demás obligaciones pactados, en la forma, oportunidad y lugar 
+                                pactados, con sujeción a lo convenido en las cláusulas cuarta, quinta y demás de este documento.
+                            </p>
+                            <p>
+                                <span>EL ARRENDATARIO,</span> se obliga a destinar el bien arrendado única y exclusivamente para fines o giros lícitos, por lo que, en caso de 
+                                hacer otro giro comercial o actividad ilícita, EL ARRENDADOR, sin trámite alguno recuperara el vehículo y se exigirá el pago de las obligaciones 
+                                o responsabilidades que su accionar inadecuado o ilícito haya generado al ARRENDADOR y a terceros de ser el caso. De otro lado, <span>EL 
+                                ARRENDATARIO,</span> está obligado a permitir la inspección del bien arrendado por parte del <span>EL ARRENDADOR,</span> para cuyo efecto éste 
+                                deberá comunicar telefónicamente, para que el bien sea traído al domicilio del ARRENDADOR o al lugar requerido, con una anticipación de no menos 
+                                de 2 días calendario, salvo acuerdo de las partes, ello con el fin de verificar, el estado del vehículo, las condiciones mecánicas, su estructura, 
+                                pintura y también para verificar si no cuenta con multas o infracciones de tránsito, en el caso de existir observaciones, el vehículo quedara bajo 
+                                custodia del ARRENDADOR hasta que el ARRENDATARIO cumpla con levanta la integridad de las observaciones, en caso de no cumplirlas dentro del plazo 
+                                otorgado, se dará por resuelto el contrato y se aplicara las penalidades y demás condiciones atribuibles al ARRENDATARIO.
+                            </p>
+
+                            <u class="subrayado"> DECIMA. FONDO DE CONTIGENCIA</u>
+                            <p>
+                                Las partes han acordado, habilitar un fondo de contingencia, el mismo que será pagado por el ARRENDATARIO, pero administrado por <span>EL 
+                                ARRENDADOR,</span> fondo que cobertura en lo posible daños sobre el bien o frente a terceros, por lo que, este fondo equivale a la suma de
+                                <span>S/1,000.00 (Un mil con 00/100 SOLES),</span> el mismo que forma parte del precio total del vehículo descrito en la cláusula cuarta.
+                            </p>
+                            <p>
+                                EL FONDO INTERNO DE CONTINGENCIA, se regirá por el reglamento de fondo de contingencia interna administrado por la empresa corporacion
+                                adt sac y corporacion adt dkirjm sac - RCAFDC V.001-2023, será utilizado por EL ARRENDATARIO solo si se encuentran al día en sus rentas.
+                            </p>
+                            <p>
+                                Finalmente, ambas partes acuerdan que, al cumplir con el contrato de arrendamiento, y que el ARRENDATARIO este al día en la totalidad de sus
+                                cuotas y demás obligaciones, este fondo será adjudicado por el ARRENDADOR por haber asumido el riesgo en la entrega del vehículo y también
+                                por los futuros daños que se pudiesen haber ocasionado, por lo que el ARRENDATARIO acepta y autoriza la adjudicación de este fondo.
+                            </p>
+
+                            <u class="subrayado"> DÉCIMA PRIMERA: RECUPERACION DEL VEHICULO POR INCUMPLIMIENTO DE PAGO O RESOLUCION DE CONTRATO</u>
+                            <p>
+                                El procedimiento de cobranza correctivo, se iniciará cuando <span>EL ARRENDATARIO,</span> incumpla los pagos consecutivos o alternados de dos 
+                                cuotas y la mitad de la siguiente, establecidos en el <span>CRONOGRAMA DE PAGO</span> señalados en la <span>CUARTA CLAUSULA DEL PRESENTE 
+                                CONTRATO.</span>
+                            </p>
+                            <p>
+                                La cobranza correctiva comprende las siguientes etapas:
+                            </p>
+
+                            <div class="box_clausula">
+                                <p>
+                                    <span class="indice_negrita">1. </span> 
+                                    <span class="indice_negrita">EL ARRENDADOR,</span> procurara ubicar a EL ARRENDATARIO, vía llamadas telefónicas o por cualquier otro medio 
+                                    de comunicación y/o visitas domiciliarias durante las siguientes <span class="indice_negrita">24 Horas.</span>                                    
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">2. </span>
+                                    Transcurridas las <span class="indice_negrita">24 Horas,</span> se ubicará el vehículo mediante el sistema de GPS, por lo que se 
+                                    procederá con el apagado del equipo y con ello la captura del vehículo, asimismo, si en el transcurso de dicho procedimiento,                                    
+                                    <span class="indice_negrita">EL ARRENDATARIO</span> hace algún acuerdo con <span class="indice_negrita">EL ARRENDADOR</span>
+                                    se podrá paralizar la cobranza correctiva.
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">3. </span> 
+                                    <span class="indice_negrita">El ARRENDATARIO</span> hará un pago de <span class="indice_negrita">S/. 50.00 (CINCUENTA Y 00/100 
+                                    SOLES)</span> por concepto de captura, cada vez que el vehículo menor sea intervenido por el equipo de captura de EL ARRENDADOR.                                    
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">4. </span>
+                                    El vehículo menor luego de la cancelación de las rentas atrasadas por parte de EL ARRENDATARIO, será liberado y entregado; 
+                                    entiéndase que este deberá estar al día con el cronograma de rentas.
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">5. </span>
+                                    <span class="indice_negrita">EL SISTEMA GPS y EL ARRENDADOR,</span> se eximen de cualquier responsabilidad civil, por cualquier 
+                                    hecho ocurrido que afecte <span class="indice_negrita"> AL ARRENDATARIO,</span> desde la aplicación del inicio del procedimiento 
+                                    de cobranza correctiva.
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">6. </span> 
+                                    En caso de que el <span class="indice_negrita">ARRENDATARIO</span> se rehusara a la entrega del vehículo menor conforme lo 
+                                    establece el procedimiento de cobranza correctiva, inmediatamente EL ARRENDADOR, dará por resuelto el contrato y con ello vencidas 
+                                    todas las cuotas pendientes, por lo que habilitara para que inicie las acciones legales para recuperar el vehículo, así como para 
+                                    poder cobrar las obligaciones de las rentas atrasadas y los gastos que haya generado la recuperación del bien. Así mismo se solicitará 
+                                    el auxilio de la Policía Nacional del Perú, a efectos de ejecutarse la entrega inmediata.
+                                </p>                                                          
+                            </div>
+                            <p>
+                                EL ARRENDADOR podrá realizar la Resolución del Contrato, aplicando lo establecido en el <span class="indice_negrita">ARTÍCULO N° 1429° 
+                                DEL CÓDIGO CIVIL VIGENTE,</span> por lo que, EL ARRENDATARIO, renuncia a toda comunicación o notificación de resolución de contrato, en 
+                                las siguientes causales:
+                            </p>
+                            <div class="box_clausula">
+                                <p>
+                                    <span class="indice_negrita">1. </span> 
+                                    El traslado del Vehículo automotor menor fuera de la jurisdicción de Lima-Metropolitana. Sin poner en conocimiento a EL ARRENDADOR.                                    
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">2. </span> 
+                                    El incumplimiento por parte del <span class="indice_negrita">ARRENDATARIO</span> de 2 (DOS) rentas más la mitad de la siguiente, 
+                                    de conformidad al cronograma de pago.
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">3. </span> 
+                                    El traspaso, transferencia o cesión a terceras personas, sin conocimiento de EL ARRENDADOR.                                   
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">4. </span> 
+                                    La utilización del vehículo menor para realizar actividades ilícitas de cualquier índole (Robo, Violaciones ID y otros).
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">5. </span>
+                                    La manipulación o desinstalación del GPS ubicado en el vehículo menor
+                                </p>
+                                <p>
+                                    <span class="indice_negrita">6. </span> 
+                                    Las papeletas, multas, e infracciones en general serán de responsabilidad de EL ARRENDATARIO, y de estar estas impagas por más de
+                                    dos meses será causal de resolución de contrato.
+                                </p>  
+                                <p>
+                                    <span class="indice_negrita">7. </span> 
+                                    Y demás causales previstas en el contrato o en la Ley.
+                                </p>                                                        
+                            </div>
+                            <p>
+                                <span class="indice_negrita">El ARRENDATARIO</span> no podrá ceder a terceros el bien materia del presente contrato bajo ningún título, ni 
+                                subarrendarlo, total o parcialmente, ni ceder su posición contractual, salvo que cuente con el consentimiento expreso y por escrito del
+                                <span class="indice_negrita"> ARRENDADOR,</span> en cuyo caso se suscribirán los documentos que fuesen necesarios.
+                            </p>
+
+                            <u class="subrayado"> DECIMA SEGUNDA: INOPONIBILIDAD DE RESPONSABILIDADES Y PAGO DE OBLIGACIONES DEL ARRENDATARIO</u>
+                            <p>
+                                EL ARRENDADOR mediante el presente documento deja establecido de manera expresa que no es responsable por ningún tipo de obligaciones
+                                que EL ARRENDATARIO genere a nombre de él o del bien para el cual se arrienda el bien mueble, ya sea con entidades públicas o privadas, por lo
+                                que el ARRENDATARIO no está autorizado para generar algún título posesorio o real sobre el vehículo, salvo autorización del Arrendador.
+                            </p>
+                            <p>
+                                EL ARRENDATARIO se obliga a pagar de manera oportuna todas las obligaciones que genere el con el vehículo, ya sea por la actividad que le da
+                                o por infracciones de tránsito, ello durante la vigencia del contrato, en caso de incumplimiento, será causal de resolución de contrato. Asimismo,
+                                pagara íntegramente a las entidades públicas los tributos u obligaciones que su acción con el vehículo genere, ya sea por multas, sanciones de
+                                fiscalización u otros.
+                            </p>
+                            <p>
+                                EL ARRENDADOR no asume responsabilidad alguna por ningún tipo de pérdida o robo de algún objeto o bien que se encuentre en el bien mueble,
+                                materia del presente contrato, por lo que el ARRENDATARIO deberá tomar todas las acciones de seguridad para evitar este tipo de circunstancias.
+                                EL ARRENDATARIO se obliga a gestionar todas las licencias o permisos que requiera el uso del bien arrendado, asumiendo todas las
+                                responsabilidades sobre multas u otras acciones impuestas en caso de su incumplimiento, por ende, se libera de toda responsabilidad al
+                                ARRENDADOR en caso se suscite inconvenientes sobre este tema.
+                            </p>
+
+                            <p>
+                              <u class="subrayado"> DECIMA TERCERA: MEJORAS DEL BIEN Y TRAMITES DE INSCRPCION DEL BIEN.</u>
+                            </p>
+                            <p>
+                              <u class="subrayado"> MEJORAS DEL BIEN</u>
+                            </p>
+                            <p>
+                                Las mejoras que realice el ARRENDATARIO sobre el bien materia del presente contrato, obligatoriamente tendrán que ser autorizadas de manera
+                                expresa y formal por parte del ARRENDADOR.
+                            </p>
+                            <p>
+                                En el caso que el ARRENDADOR no haya autorizado realizar las mejoras, estas quedaran para beneficio del ARRENDADOR, el mismo que no
+                                reconocerá ningún monto por haber realizado esta mejora, así haya sido necesaria para el bien.
+                            </p>
+                            <p>
+                                En caso que el ARRENDADOR haya autorizado las mejoras, solo se valorizara y devolverá lo invertido cuando se traten de mejoras necesarias y
+                                útiles para beneficio del bien, no cuando sean necesarias y útiles para el giro del negocio o el uso del bien por parte del ARRENDATARIO, en dicho
+                                supuesto no se reconocerá ningún monto.
+                            </p>
+
+                            <u class="subrayado"> TRAMITES E INSCRIPCION</u>
+                            <p>
+                                La inscripción al Registro de Propiedad Vehicular, así como los gastos de prenda vehicular que origine la compra - venta, así como la resolución del
+                                mismo, de producirse serán asumidos por EL ARRENDADOR. Los gastos que demande la transferencia a la cancelación total de las rentas del
+                                vehículo serán exclusividad de EL ARRENDATARIO.
+                            </p>
+                            <p>
+                                EL ARRENDADOR se reserva el derecho de inscribir el presente Contrato en los Registros Públicos de Propiedad de Lima, registro fiscal de Ventas
+                                a Créditos y/o direcciones el Parque Automotor de Circulación Vial y registro de Ministerio de transporte y comunicaciones.
+                            </p>
+                            <p>
+                                El Presente Contrato de Alquiler de Venta está enmarcado por las normas contenidas en los ARTÍCULOS N° 1666° AL 1712° CÓDIGO CIVIL y las
+                                normas vigentes estipuladas sobre la presente materia por el Código Procesal Civil.
+                            </p>
+                            <p>
+                                EL ARRENDATARIO se RESPONSABILIZA a partir de la fecha de suscripción del presente contrato, a asumir personalmente cualquier problema
+                                judicial o extrajudicial que pudiera ocurrir en el vehículo. Asimismo, EL ARRENDATARIO declara como domicilio el indicado en la introducción del
+                                presente documento, así como tener capacidad para celebrar el presente contrato y asumir sus obligaciones, garantizado desde ya el fiel
+                                cumplimiento del mismo.
+                            </p>
+
+                            <u class="subrayado"> DECIMA CUARTA: APLICACIÓN SUPLETORIA DE LA LEY</u>
+                            <p>
+                                En todo lo no previsto por las partes en el presente contrato, ambas partes se someten a lo establecido por las normas relati vas al contrato de
+                                arrendamiento contenidas en el Código Civil y demás normas legales que resulten aplicables.
+                            </p>
+
+                            <u class="subrayado"> DECIMA QUINTA: SOLUCION DE CONTROVERCIAS</u>
+                            <p>
+                                Las partes acuerdan que en caso de alguna controversia que no pueda ser solucionada por el trato directo, estas se someten al fuero de la
+                                conciliación extrajudicial y en última instancia al fuero judicial, para lo cual ambas renuncian al fuero de su domicilio y se someten al fuero del distrito
+                                judicial de Lima.
+                            </p>
+
+                            <u class="subrayado"> DECIMA SEXTA: CLAUSULA ESPECIAL</u>
+                            <p>
+                                Ambas partes señalan que, al cumplimiento de la totalidad del precio del vehículo, EL ARRENDADOR transferirá al ARRENDATARIO, el bien materia
+                                del presente contrato, a título de COMPRA VENTA, por lo que a partir de ello, este será el titular del bien y podrá gozar de todas las prerrogativas
+                                que por ley le corresponde, por tanto el ARRENDADOR deberá coordinar con quien corresponda para levantar todas las cargas o gravámenes que
+                                pese sobre el bien a fin de entregarle libre de todas estas.
+                            </p>
+                            <p>
+                                EL ARRENDADOR, señala que el vehículo dado en alquiler, cuenta con un gravamen inscrito, como es una Garantía Mobiliaria, la misma que está
+                                inscrita a favor de COOPAC Qorilazo, hasta por el monto de S/19,000.00, gravamen que es de conocimiento del ARRENDATARIO, el mismo que
+                                acepta y no se opone, por lo que en caso que se genere cualquier obligación sobre este vehículo, durante la vigencia del contrato de arrendamiento,
+                                en primer orden se cobertura el monto garantizado, y, si hay un excedente se cobertura las demás obligaciones de acuerdo al orden de los
+                                acreedores. Asimismo, EL ARRENDADOR señala que una vez cumplido el pago de todas las rentas del ARRENDATARIO, esta garantía Mobiliaria
+                                será levantada por el ARRENDADOR, para lo cual coordinara con el CONSTITUYENTE/ACREEDOR de la Garantía Mobiliaria para el trámite y
+                                levantamiento correspondiente, de modo tal que se haga la transferencia del bien al ARRENDATARIO, el cual debe estar sin ninguna carga o
+                                gravamen, es así que el ARRENDATARIO declara conocer este aspecto y acepta las condiciones.
+                            </p>
+                            <p>
+                                Finalmente, EL ARRENDATARIO, declara bajo juramento y deja expresa constancia en caso de ocurrencia de algún siniestro, tales como Robo,
+                                Accidente e infracciones de tránsito (PAPELETAS) donde implique responsabilidad civil y/o pecuniarios causados a terceros y derivados directa o
+                                indirectamente de la posesión, transporte u operación del bien objeto del presente contrato, tocará única y exclusivamente a EL ARRENDATARIO
+                                la responsabilidad relativa a esta ocurrencia. En tal sentido, ante cualquier incumplimiento de las obligaciones descritas pr ecedentemente o ante
+                                cualquier daño que el arrendatario ocasione por el uso del bien ya sea de manera adecuada o no, así como en el caso que con el uso del bien se
+                                cometa alguna infracción o delito que determine perdida o incomodidad para el arrendador, el Arrendatario será responsable por estas acciones, por
+                                lo que el arrendador queda autorizado para interponer las acciones legales correspondientes.
+                            </p>
+                            <p>
+                                En señal de conformidad, las partes declaran haber leído el contenido del presente documento e indican que no existe ningún error, dolo o violencia
+                                que conlleve a la nulidad o anulabilidad del acto jurídico, por lo que proceden a suscribir este documento en la ciudad de Lima, 
+                                <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/>
+                            </p>
+
+
+                        </div> 
+                        <div class="box_firma">
+                            <div class="box_data">
+                                <div></div>
+                                <div class="box_line"></div>
+                                <div class="box_firma">
+                                    <p>EL ARRENDADOR</p>
+                                </div>
+                            </div>
+                            <div class="box_data">
+                                <div></div>
+                                <div class="box_line"></div>
+                                <div class="box_firma">
+                                    <p>ARRENDATARIO</p>    
+                                </div>                                
+                            </div>
+                        </div>                        
+
+                    </t>
+                </t>
+            </t>
+        </template>
+
+    </data>
+</odoo>

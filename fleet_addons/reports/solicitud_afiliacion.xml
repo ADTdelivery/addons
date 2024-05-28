@@ -1,0 +1,772 @@
+<?xml version="1.0"?>
+<odoo>
+
+
+    <record id="paperformat_cronograma_a4" model="report.paperformat">
+        <field name="name">Cronograma A4</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">40</field>
+
+        <field name="dpi">90</field>
+    </record>
+
+
+    <record id="fleet_addons.fleet_custom_report103" model="ir.actions.report">
+        <field name="name">Solicitud de Afiliación</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fleet_addons.vehicle_contrato103_report_view</field>
+        <field name="report_file">fleet_addons.vehicle_contrato103_report</field>
+        <field name="binding_model_id" ref="model_fleet_vehicle"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
+
+    </record>
+
+    <template id="vehicle_contrato103_report_view">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-foreach="docs" t-as="vehicle">
+                    <t t-foreach="vehicle.driver_id" t-as="driver">
+                        <style type="text/css"> * {margin:0; padding:0; text-indent:0; }
+                            h1 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 8pt; }
+                            .s1 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            .s2 { color: black; font-family:Arial, sans-serif; font-style: italic; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            .s4 { color: black; font-family:Arial, sans-serif; font-style: italic; font-weight: bold; text-decoration: none; font-size: 8pt; }
+                            .s5 { color: black; font-family:Arial, sans-serif; font-style: italic; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            .p, p { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; margin:0pt; }
+                            .s6 { color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 8pt; }
+                            .s7 { color: black; font-family:"Courier New", monospace; font-style: italic; font-weight: normal; text-decoration: none; font-size: 7pt; }
+                            h2 { color: black; font-family:"Courier New", monospace; font-style: normal; font-weight: bold; text-decoration: none; font-size: 7pt; }
+                            .s8 { color: black; font-family:"Courier New", monospace; font-style: normal; font-weight: normal; text-decoration: none; font-size: 7pt; }
+                            li {display: block; }
+                            #l1 {padding-left: 0pt;counter-reset: c1 1; }
+                            #l1> li>*:first-child:before {counter-increment: c1; content: counter(c1, decimal)". "; color: black; font-family:Arial, sans-serif; font-style: normal; font-weight: bold; text-decoration: none; font-size: 8pt; }
+                            #l1> li:first-child>*:first-child:before {counter-increment: c1 0;  }
+                            #l2 {padding-left: 0pt; }
+                            #l2> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l3 {padding-left: 0pt; }
+                            #l3> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l4 {padding-left: 0pt; }
+                            #l4> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l5 {padding-left: 0pt; }
+                            #l5> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l6 {padding-left: 0pt; }
+                            #l6> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l7 {padding-left: 0pt; }
+                            #l7> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l8 {padding-left: 0pt; }
+                            #l8> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l9 {padding-left: 0pt; }
+                            #l9> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            #l10 {padding-left: 0pt; }
+                            #l10> li>*:first-child:before {content: " "; color: black; font-family:Symbol, serif; font-style: normal; font-weight: normal; text-decoration: none; font-size: 8pt; }
+                            table, tbody {vertical-align: top; overflow: visible; }
+                        </style>                
+
+                        <div class="general_body_xs">
+                            <h1 style="padding-top: 3pt;text-indent: 0pt;text-align: center;">FORMATO DE SOLICITUD DE AFILIACION Y ADHESION 
+                                EL FONDO DE CONTINGENCIA
+                            </h1>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                <tr style="height:9pt">
+                                    <td style="width:419pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" colspan="3">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Datos del Socio</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:9pt">
+                                    <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Paterno:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.apellido_paterno"/> 
+                                        </p>                                        
+                                    </td>
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Apellido Materno:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.apellido_materno"/> 
+                                        </p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Edad</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:9pt">
+                                    <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Nombres:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.name"/> 
+                                        </p>
+                                    </td>
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">DNI I C.E.:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.vat"/>
+                                        </p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Licencia de Conducir:
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr style="height:13pt">
+                                    <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-top: 3pt;padding-left: 3pt;text-indent: 0pt;line-height: 8pt;text-align: left;">Fecha de nacimiento:</p>
+                                    </td>
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-top: 3pt;padding-left: 3pt;text-indent: 0pt;line-height: 8pt;text-align: left;">Sexo:</p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-top: 3pt;padding-left: 3pt;text-indent: 0pt;line-height: 8pt;text-align: left;">Tiempo de Licencia de Conducir:</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:19pt">
+                                    <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Teléfono fijo:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.phone"/>
+                                        </p>
+                                    </td>
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">Celular:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.mobile"/>
+                                        </p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 8pt;text-align: left;">Valor de Infracciones Vigentes de Transito</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:9pt">
+                                    <td style="width:160pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" rowspan="5">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 9pt;text-align: left;">Domicilio:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.street"/>
+                                        </p>
+                                    </td>
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Distrito:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.l10n_pe_district"/>
+                                        </p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Actividad Económica:</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:9pt">
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Provincia:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.city_id"/>
+                                        </p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Conyugue:</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:9pt">
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Departamento:
+                                        </p>
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: center;">
+                                         <span class="title_ligth" t-field="driver.city_id"/>
+                                        </p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Celular Conyugue</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:9pt">
+                                    <td style="width:112pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Nacionalidad:</p>
+                                    </td>
+                                    <td style="width:147pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Dependientes Menores de edad:</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:9pt">
+                                    <td style="width:259pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" colspan="2">
+                                        <p class="s1" style="padding-left: 3pt;text-indent: 0pt;line-height: 7pt;text-align: left;">Fecha
+                                        <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y')"/></p>
+                                    </td>
+                                </tr>
+                                <tr style="height:46pt">
+                                    <td style="width:419pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" colspan="3">
+                                        <p class="s2" style="padding-left: 3pt;text-indent: 0pt;text-align: left;">DECLARO HABER RECIBIDO EL REGLAMENTO DE FONDO DE 
+                                            CONTINENGENCIA INTERNA, Y HABER REVISADO EL MISMO, ADEMAS DE HABERSIDO INFORMADO A CABALIDAD POR PARTE DE LA EMPRESA ADMINISTRADORA 
+                                            DEL FONDO; POR LO TANTO TENGO CONOCIMIENTO DEL FONDO
+                                        </p>
+                                        <p class="s2" style="padding-left: 3pt;text-indent: 0pt;line-height: 9pt;text-align: left;">DE CONTINGENCIA (coberturas, ceses de 
+                                            coberturas, suma asegurada y exclusiones, entre otros) Y MEDIANTE ESTE FORMATO SOLCITO AFILIACION Y ADHESION AL FONDO DE CONTINGENCIA
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <ol id="l1">
+                                <li data-list-text="1.">
+                                    <h1 style="padding-left: 105pt;text-indent: -21pt;line-height: 9pt;text-align: left;">VIGENCIA:</h1>
+                                    <ul id="l2">
+                                        <li data-list-text="">
+                                            <p class="s4" style="padding-left: 157pt;text-indent: -18pt;text-align: left;">
+                                                <u> Inicio de Vigencia:</u> 
+                                                <span class="s5">La cobertura se inicia, a la firma de la solicitud de afiliación y adhesión al fondo de contingencia</span>
+                                            </p>
+                                        </li>
+                                        <li data-list-text="">
+                                            <p class="s4" style="padding-left: 157pt;text-indent: -18pt;text-align: left;">
+                                                <u>Fin de Vigencia:</u> 
+                                                <span class="s5">La cobertura se otorga por el plazo de duración y vigencia original del al contrato de 
+                                                    alquiler venta
+                                                </span>
+                                            </p>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li data-list-text="2.">
+                                    <h1 style="padding-left: 102pt;text-indent: -18pt;text-align: left;">	CUOTA ÚNICA: 
+                                        <span class="p">La únicuota será pagada en su integridad por el cliente / socio, al momento del desembolso. Y el monto será por 
+                                            S/1.000.00 (Un mil 00/100 Soles)
+                                        </span>
+                                    </h1>
+                                    <p style="padding-top: 6pt;text-indent: 0pt;text-align: left;"><br/></p>
+                                    <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                        <tr style="height:111pt">
+                                            <td style="width:78pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s6" style="padding-top: 8pt;padding-left: 10pt;text-indent: 0pt;text-align: left;">COBERTURAS</p>
+                                            </td>
+                                            <td style="width:106pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s6" style="padding-top: 8pt;padding-left: 9pt;text-indent: 0pt;text-align: left;">CESE DE COBERTURA</p>
+                                            </td>
+                                            <td style="width:107pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s6" style="padding-top: 8pt;padding-left: 29pt;padding-right: 5pt;text-indent: -23pt;text-align: left;">SUMA ASEGURADORA / DEDUCICLE</p>
+                                            </td>
+                                            <td style="width:128pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s6" style="padding-top: 7pt;padding-left: 116pt;padding-right: 5pt;text-indent: 0pt;line-height: 9pt;text-align: left;">E X C L U S I O N E S</p>
+                                            </td>
+                                        </tr>
+                                        <tr style="height:13pt">
+                                            <td style="width:78pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" rowspan="2">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                                <p class="s1" style="padding-left: 3pt;padding-right: 2pt;text-indent: 0pt;text-align: justify;">Por choque, vuelco, incendio, o 
+                                                    cualquier otro tipo de siniestro ocurrido en la ciudad de LIMA.
+                                                </p>
+                                            </td>
+                                            <td style="width:106pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" rowspan="2">
+                                                <p style="padding-top: 8pt;text-indent: 0pt;text-align: left;"><br/></p>
+                                                <p class="s1" style="padding-left: 3pt;padding-right: 2pt;text-indent: 0pt;text-align: justify;">Pasa a poder o control o custodia de 
+                                                    otras personas por haber sido embargado, confiscado o cedido con intervención de las Partes (Vehículo Capturado por Corporación ADT 
+                                                    SAC o Corporación ADT DKIRJM)
+                                                </p>                                                   
+                                            </td>
+                                            <td style="width:107pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt" rowspan="2">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                                <p class="s1" style="padding-left: 1pt;padding-right: 5pt;text-indent: 0pt;text-align: left;">La suma asegurada máxima: es de 
+                                                    S/21,500.00 (Veinte y un mil Quinientos 00/100 Soles)
+                                                </p>
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                                <p class="s1" style="padding-left: 1pt;padding-right: 2pt;text-indent: 0pt;text-align: left;">Deducible: Es la parte que se “sustrae” 
+                                                    del pago que hace el administrador del fondo de contingencia por la pérdida sufrida por el asociado al fondo. El deducible se fija 
+                                                    en un 10% del valor presupuestado del siniestro (accidente con daños materiales del
+                                                </p>
+                                            </td>
+                                            <td style="width:128pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s1" style="padding-left: 1pt;text-indent: 0pt;line-height: 8pt;text-align: left;">. El fondo no cubre:</p>
+                                                <ul id="l3">
+                                                    <li>
+                                                        <p class="s1" style="padding-top: 4pt;padding-left: 39pt;text-indent: -18pt;line-height: 106%;text-align: left;">Daños 
+                                                            Materiales a terceros Pérdidas Daños físicos del coberturado
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 39pt;padding-right: 9pt;text-indent: -18pt;text-align: left;">Responsabilidades 
+                                                            Hospitalarias o curaciones a terceros DañosPersonales a terceros
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 39pt;padding-right: 2pt;text-indent: -18pt;text-align: left;">Pérdidas de objetos 
+                                                            personales Robos de Accesorios del vehículo.
+                                                        </p>
+                                                    </li>
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                        <tr style="height:166pt">
+                                            <td style="width:128pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s1" style="padding-top: 8pt;padding-left: 1pt;text-indent: 0pt;text-align: left;">El fondo no coberturara los siniestros, 
+                                                    cuando se presenten, surjan o resulten de,o que sean causados directa o indirectamente por:
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>                                                
+                                    <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                        <tr style="height:462pt">
+                                            <td style="width:78pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                                <p class="s1" style="padding-left: 3pt;padding-right: 2pt;text-indent: 0pt;text-align: justify;">Daños derivados 
+                                                    de desastres naturales como terremotos, huaycos, etc.
+                                                </p>
+                                            </td>
+                                            <td style="width:106pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s1" style="padding-left: 3pt;padding-right: 2pt;text-indent: 0pt;text-align: justify;">Cambio de 
+                                                    Arrendatario (Recolocación).
+                                                </p>
+                                                <p style="padding-top: 9pt;text-indent: 0pt;text-align: left;"><br/></p>
+                                                <p class="s1" style="padding-left: 3pt;padding-right: 2pt;text-indent: 0pt;text-align: justify;">Por no 
+                                                    encontrarse al día en los pagos de la renta, de conformidad al cronograma de pago
+                                                </p>
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                                <p class="s1" style="padding-left: 3pt;padding-right: 2pt;text-indent: 0pt;text-align: justify;">Por tener 
+                                                    papeletas o infracciones impagas.</p><p style="text-indent: 0pt;text-align: left;"><br/>
+                                                </p>
+                                                <p class="s1" style="padding-left: 3pt;padding-right: 2pt;text-indent: 0pt;text-align: justify;">Desactivar 
+                                                    el gps o no avisar que su gps se encuentra averiado.
+                                                </p>
+                                            </td>
+                                            <td style="width:107pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s1" style="padding-left: 1pt;padding-right: 5pt;text-indent: 0pt;text-align: left;">vehículo y debe 
+                                                    ser abonado en un plazo máximo de treinta (30)
+                                                </p>
+                                                <p class="s1" style="padding-left: 1pt;padding-right: 2pt;text-indent: 0pt;text-align: left;">días, para que 
+                                                    se ejecute la cobertura de no abonar el deducible pasado el periodo informado, se procederá a la liquidación 
+                                                    de la deuda que mantiene ELCOBERTURADO con
+                                                </p>
+                                                <p class="s1" style="padding-left: 1pt;padding-right: 7pt;text-indent: 0pt;text-align: left;">la EMPRESA, según 
+                                                    el contrato de Arrendamiento.
+                                                </p>
+                                            </td>
+                                            <td style="width:128pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">fraudulenta o 
+                                                        dolosa, o acto intencional, o negligencia inexcusable del COBERTURADO o CONTRATANTE o BENEFICIARIO o 
+                                                        ENDOSATARIO, o de los familiares de cualquiera de ellos, o de cualquier persona que estuviera a cargo del, 
+                                                        o conduciendo el, vehículo coberturado.
+                                                    </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">Guerra, conflictos 
+                                                        armados, invasión, acto de enemigo extranjero, hostilidades u operaciones de guerra, sea que la guerra haya sido 
+                                                        declarada o no; guerra civil, sublevación, insurgencia, insubordinación, rebelión, revolución, conspiración, 
+                                                        insurrección, sedición, asonada, huelga, motín, conmoción civil, daño malicioso, sabotaje, vandalismo, alboroto popular, 
+                                                        cierre patronal (lock-      out), levantamiento 
+                                                        popular, levantamiento militar, y, en general, hechos de carácter político social que alteren el orden 
+                                                        público o constitucional; confiscación, requisa, expropiación, o nacionalización; destrucción de bienes 
+                                                        por orden de cualquier autoridad; poder militar o usurpación del poder; o cualquier 
+                                                        evento o causa que determine la proclamación de estado de sitio.
+                                                    </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">Cualquier Acto de Terrorismo.</p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">Material para armas 
+                                                        nucleares o material nuclear; reacción nuclear o radiación nuclear o contaminación radioactiva o emisión de radiaciones 
+                                                        ionizantes; contaminación por la radioactividad de cualquier combustible nuclear o de cualquier desperdicio proveniente 
+                                                        de la combustión de dicho combustible nuclear.
+                                                    </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">Uso  indebido  del vehículo coberturado y/o 
+                                                        sobrecarga del mismo.
+                                                    </p>
+                                                </li>
+                                            </td>
+                                        </tr>                                                    
+                                        <tr style="height:10pt">
+                                            <td style="width:78pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:106pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:107pt;border-left-style:solid;border-left-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>                                                        
+                                        </tr>                                            
+                                    </table> 
+                                    <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                        <tr style="height:380pt">
+                                            <td style="width:78pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:106pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:107pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:128pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">                                                
+                                                <li>
+                                                <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;"> Instalación defectuosa o incorrecta o indebida de 
+                                                    cables eléctricos y/o componentes eléctricos y/o componentes electrónicos y/o accesorios de cualquier tipo, así como el 
+                                                    uso indebido del cableado eléctrico del vehículo coberturado.
+                                                </p>
+                                                </li>
+                                                <li>
+                                                <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">No respetar los límites máximo y mínimo de 
+                                                    velocidad establecidos.
+                                                </p>
+                                                </li>
+                                                <li>
+                                                <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">No detenerse al llegar a 
+                                                    un cruce ferroviario a nivel.
+                                                </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 6pt;text-indent: -18pt;text-align: left;">Circular en sentido contrario 
+                                                        al tránsito autorizado o invadiendo el carrilcontrario.
+                                                    </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 5pt;text-indent: -18pt;text-align: left;">Cruzar una intersección o girar, 
+                                                        estando el semáforo con luz roja y noexistiendo la indicación en contrario.
+                                                    </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 15pt;text-indent: -18pt;text-align: left;">Desobedecer las indicaciones 
+                                                        del efectivo de la Policía Nacionalasignado al control del tránsito.
+                                                    </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 14pt;text-indent: -18pt;text-align: left;">Circular sobre aceras, áreas 
+                                                        verdes, pasos peatonales y demás lugaresprohibidos.
+                                                    </p>
+                                                </li>
+                                                <li>
+                                                    <p class="s1" style="padding-left: 37pt;padding-right: 4pt;text-indent: -18pt;line-height: 9pt;text-align: left;">Conducir un 
+                                                        vehículo cuyo sistema de frenos y/o sistema de dirección y/o sistema de luces, se encuentre en mal estado de funcionamiento.
+                                                    </p>
+                                                </li>
+                                            </td>
+                                        </tr>
+                                    </table>                                                
+                                    <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                        <tr style="height:645pt">
+                                            <td style="width:78pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:106pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:107pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:128pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <ul id="l8">
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Voltear en U sobre la misma 
+                                                            calzada, en las proximidades de curvas, puentes, túneles, estructuras elevadas, cima de cuesta, cruce ferroviario a nivel u 
+                                                            otros lugares de riesgo para la seguridad.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Estacionar en carreteras sin 
+                                                            señalizar el lugar colocando los dispositivos de seguridad reglamentarios
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Estacionar o detener el vehículo 
+                                                            en el carril de circulación, en carreteras o caminos donde existe berma lateral.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Estacionar o detener el vehículo 
+                                                            en el carril de circulación, en carreteras o caminos donde existe berma lateral.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;text-indent: -18pt;text-align: justify;">No llevar puesto el casco de seguridad.</p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Estacionar un vehículo en vías 
+                                                            con pendientes pronunciadas sin asegurar su inmovilización.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">La Responsabilidad Civil 
+                                                            derivada de Daños Materiales causados a bienes o de Terceros que, por cualquier motivo (depósito, uso, préstamo, manipulación, 
+                                                            transporte, u otro), se hallen en poder o custodia o control del COBERTURADO o de persona de quien éste
+                                                            sea responsable o de sus contratistas o subcontratistas o del conductor del vehículo coberturado.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Pérdidas por interrupción de 
+                                                            la explotación comercial o industrial; pérdidas por la suspensión o paralización o cesación, total o parcial, del negocio; 
+                                                            pérdidas por incumplimiento o resoluciones de contratos.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Desgaste o deterioro 
+                                                            paulatino o fatiga, causado por, o resultante de, el uso o funcionamiento.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;line-height: 9pt;text-align: left;">Deterioro 
+                                                            debido a condiciones atmosféricas    o
+                                                        </p>
+                                                    </li>
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    </table>                                                
+                                    <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                        <tr style="height:646pt">
+                                            <td style="width:78pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:106pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:107pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:128pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p class="s1" style="padding-left: 37pt;text-indent: 0pt;line-height: 9pt;text-align: left;">ambientales; rasgaduras o ralladuras 
+                                                    en superficies pintadas o pulidas.
+                                                </p> 
+                                                <ul id="l9">
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Daños en el vehículo 
+                                                            coberturado, por quemaduras causadas por brasa o ceniza de tabaco, encendedores de cualquier tipo, fósforos, artefactos 
+                                                            eléctricos, a menos que se produzca incendio que esté debidamente amparado por este fondo y, en ese caso, sólo los daños 
+                                                            en el vehículo coberturado causado por ese incendio.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Pérdidas por la reparación o 
+                                                        rehabilitación cuando haya sido alquilado sin la autorización de la Empresa.</p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Daños o pérdidas en el vehículo 
+                                                            coberturado causados por bienes de cualquier tipo que caigan o escapen o se desprendan o se suelten, de dicho vehículo 
+                                                            coberturado.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: left;">Responsabilidad Penal de ningún 
+                                                            tipo, ni gasto alguno relacionado con responsabilidades Penales.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;text-indent: -18pt;text-align: left;">Los costos de cualquier reparación provisional.</p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Todo costo incurrido para 
+                                                            implementar modificaciones o mejoras o por mantenimiento o para hacer otras reparaciones o arreglos en 
+                                                            el vehículo coberturado.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;text-indent: -18pt;text-align: justify;">Circulando por vías o lugares no autorizados 
+                                                            para el tránsito
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Tomando parte en carreras, 
+                                                            competencias, apuestas o ensayos, pruebas de asistencia, de resistencia o de velocidad u otro uso arriesgado
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Siendo conducido por una 
+                                                            persona que no cuente con la licencia de conducir vigente y auténtica que corresponda al tipo de vehículo, o cuya licencia 
+                                                            de conducir esté suspendida o cancelada o vencida.
+                                                        </p>
+                                                    </li>
+                                                </ul>   
+                                            </td>
+                                        </tr>
+                                    </table>                                                
+                                    <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                        <tr style="height:546pt">
+                                            <td style="width:78pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:106pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:107pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                            </td>
+                                            <td style="width:128pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                                <ul id="l10">
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Siendo remolcado o auxiliado 
+                                                            por otro medio de auxilio que no sea una empresa de auxilio mecanico.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Siendo conducido por una 
+                                                            persona en estado de ebriedad y/o que esté bajo los efectos o Influencia de estupefacientes, narcóticos 
+                                                            y/o alucinógenos.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;padding-right: 2pt;text-indent: -18pt;text-align: justify;">Cuando el vehículo sea 
+                                                            utilizado para operaciones delictivas, Robos Secuestros etc.
+                                                        </p>
+                                                    </li>
+                                                    <li>
+                                                        <p class="s1" style="padding-left: 37pt;text-indent: -18pt;text-align: justify;">Cuando contravengan con los valores de nuestra 
+                                                            sociedad.
+                                                        </p>
+                                                    </li>
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    </table>                                                
+                                    <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                                </li>
+                                <li data-list-text="3.">
+                                    <p style="padding-left: 102pt;text-indent: -18pt;text-align: justify;">Siniestro o Pérdida Parcial: En caso de siniestro o pérdida 
+                                        parcial, el vehículo será reparado, una vez que el asociado al fondo haya abonado su deducible 10% del presupuesto del siniestro.
+                                    </p>
+                                </li>
+                                <li data-list-text="4.">
+                                    <p style="padding-top: 8pt;padding-left: 102pt;text-indent: -18pt;text-align: justify;">Pérdida Total: En el caso de pérdida total 
+                                        del bien por (Siniestro Total - accidente); una nueva unidad será entregada al asociado al fondo de contingencia, y estas unidades 
+                                        deben ser valorizada según el siguiente cuadro de reposición sensibilizados a la depreciación y los meses usados, los cuales se 
+                                        detallan a continuación:
+                                    </p>
+                                </li>
+                            </ol>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <table style="border-collapse: collapse; margin: 0 auto; vertical-align: middle;" cellspacing="0">
+                                <tr style="height:35pt">
+                                    <td style="width:171pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s6" style="padding-left: 67pt;text-indent: -53pt;text-align: left;">Valor de Reposición (Devaluación del Vehículo)</p>
+                                    </td>
+                                    <td style="width:102pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s6" style="padding-left: 30pt;padding-right: 29pt;text-indent: 0pt;text-align: center;">Porcentual mente</p>
+                                        <p class="s6" style="padding-left: 29pt;padding-right: 28pt;text-indent: 0pt;line-height: 9pt;text-align: center;">Devaluacio n</p>
+                                    </td>
+                                    <td style="width:94pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s6" style="padding-left: 21pt;padding-right: 20pt;text-indent: 0pt;text-align: center;">Monto Asegurable Sensibilizado</p>
+                                    </td>
+                                    <td style="width:108pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s6" style="padding-left: 23pt;text-indent: 0pt;line-height: 9pt;text-align: left;">Deducible (10%)</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:17pt">
+                                    <td style="width:171pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 1pt;padding-right: 1pt;text-indent: 0pt;line-height: 8pt;text-align: center;">&gt;0 - 3 MESES</p>
+                                    </td>
+                                    <td style="width:102pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 29pt;padding-right: 29pt;text-indent: 0pt;line-height: 8pt;text-align: center;">15.00%</p>
+                                    </td>
+                                    <td style="width:94pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 19pt;text-indent: 0pt;line-height: 8pt;text-align: left;">18,275.00</p>
+                                    </td>
+                                    <td style="width:108pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">1,82</p>
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">7.50</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:17pt">
+                                    <td style="width:171pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 1pt;text-indent: 0pt;line-height: 8pt;text-align: center;">&gt;3 - 6 MESES</p>
+                                    </td>
+                                    <td style="width:102pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 29pt;padding-right: 29pt;text-indent: 0pt;line-height: 8pt;text-align: center;">30.00%</p>
+                                    </td>
+                                    <td style="width:94pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 19pt;text-indent: 0pt;line-height: 8pt;text-align: left;">15,050.00</p>
+                                    </td>
+                                    <td style="width:108pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">1,50</p>
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">5.00</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:18pt">
+                                    <td style="width:171pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 1pt;text-indent: 0pt;line-height: 9pt;text-align: center;">&gt;6 - 9 MESES</p>
+                                    </td>
+                                    <td style="width:102pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 29pt;padding-right: 29pt;text-indent: 0pt;line-height: 9pt;text-align: center;">45.00%</p>
+                                    </td>
+                                    <td style="width:94pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 19pt;text-indent: 0pt;line-height: 9pt;text-align: left;">11,825.00</p>
+                                    </td>
+                                    <td style="width:108pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="text-indent: 0pt;line-height: 9pt;text-align: center;">1,18</p>
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">2.50</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:17pt">
+                                    <td style="width:171pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 1pt;text-indent: 0pt;line-height: 8pt;text-align: center;">&gt;9 - 12 MESES</p>
+                                    </td>
+                                    <td style="width:102pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 29pt;padding-right: 29pt;text-indent: 0pt;line-height: 8pt;text-align: center;">60.00%</p>
+                                    </td>
+                                    <td style="width:94pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 21pt;text-indent: 0pt;line-height: 8pt;text-align: left;">8,600.00</p>
+                                    </td>
+                                    <td style="width:108pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">860.</p>
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">00</p>
+                                    </td>
+                                </tr>
+                                <tr style="height:17pt">
+                                    <td style="width:171pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 1pt;text-indent: 0pt;line-height: 8pt;text-align: center;">&gt;12 MESES a mas</p>
+                                    </td>
+                                    <td style="width:102pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 29pt;padding-right: 29pt;text-indent: 0pt;line-height: 8pt;text-align: center;">75.00%</p>
+                                    </td>
+                                    <td style="width:94pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="padding-left: 21pt;text-indent: 0pt;line-height: 8pt;text-align: left;">5.375.00</p>
+                                    </td>
+                                    <td style="width:108pt;border-top-style:solid;border-top-width:1pt;border-left-style:solid;border-left-width:1pt;border-bottom-style:solid;border-bottom-width:1pt;border-right-style:solid;border-right-width:1pt">
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">537.</p>
+                                        <p class="s1" style="text-indent: 0pt;line-height: 8pt;text-align: center;">50</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 22pt;text-indent: 0pt;text-align: left;">La reposición de la unidad será en un plazo no mayor a los 35 días, 
+                                una vez pagado el deducible por parte del coberturado, de esta manera el coberturado continuara pagando las rentas que faltasen.
+                            </p>
+                            <p style="padding-top: 9pt;padding-left: 22pt;text-indent: 0pt;text-align: left;">Si el coberturado no pagase el deducible, la cobertura 
+                                cubrirá en base al valor de reposición las rentas faltantessegún el contrato de arrendamiento, de tener algún saldo a favor el 
+                                coberturado, se le entregara en efectivo.
+                            </p>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <p style="padding-left: 28pt;text-indent: 0pt;text-align: left;">...................................</p>
+                            <p style="padding-left: 28pt;text-indent: 0pt;text-align: left;">...................................</p>
+                            <p style="padding-left: 30pt;text-indent: 0pt;text-align: left;">.................................</p>
+                            <p class="s7" style="padding-left: 32pt;text-indent: 0pt;text-align: left;">Firma del Titular</p>
+                            <p style="padding-top: 7pt;text-indent: 0pt;text-align: left;"><br/></p>
+                            <h2 style="padding-left: 28pt;text-indent: 0pt;text-align: left;">Nombre y Apellidos o Denominación: <span class="title_ligth" t-field="driver.name"/></h2>
+                            <p style="text-indent: 0pt;text-align: left;"><br/></p>
+                            <h2 style="padding-left: 28pt;text-indent: 0pt;text-align: left;">DNI o RUC Nº: <span class="title_ligth" t-field="driver.vat"/></h2>
+                            <h2 style="padding-top: 7pt;padding-left: 28pt;text-indent: 0pt;text-align: left;">Dirección: <span class="title_ligth" t-field="driver.street"/></h2>
+
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+
+</odoo>
