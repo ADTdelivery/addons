@@ -38,6 +38,8 @@ class ADTComercialCuotas(models.Model):
     numero_operacion = fields.Char(string="# Operación")
 
     periodicidad = fields.Char(string="Periodo")
+    
+    x_asesora = fields.Char(string='Asesora')
 
     @api.model
     def _change_real_date(self):
