@@ -222,7 +222,7 @@
                                         <field name="type" string="Tipo" optional="hide" readonly="1"/>
                                         <field name="fecha_cronograma" readonly="1"/>
                                         <field name="real_date"/>
-                                        <!--<field name="x_asesora"/>-->
+                                        <field name="x_asesora"/>
                                         <field name="numero_operacion"/>
                                         <field name="periodicidad"/>
                                         <field name="fecha_compromiso" optional="1"/>
