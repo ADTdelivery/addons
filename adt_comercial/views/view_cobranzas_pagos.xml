@@ -102,7 +102,8 @@
                 <separator/>
                 <filter string="Fecha de cronograma" name="filter_fecha_cronograma" date="fecha_cronograma"/>
                 <separator/>
-                <filter string="DNI" name="vat" />
+                <field name="vat"/> <!-- Añade el campo VAT aquí -->
+                <filter string="DNI" name="filter_vat" domain="[('vat', 'ilike', 'VAT_VALUE')]"/>
                 <separator/>
                 <group expand="0" name="group_by" string="Group By">
                     <filter name="salesperson" string="Asesor" domain="[]" context="{'group_by' : 'user_id'}"/>
