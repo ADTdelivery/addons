@@ -26,4 +26,15 @@
             </form>
         </field>
     </record>
+
+     <record id="view_fleet_vehicle_search" model="ir.ui.view">
+        <field name="name">fleet.vehicle.search</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='group_by_vehicle']" position="before">
+                <filter string="Driver DNI" name="driver_vat" domain="[('driver_vat', 'ilike', self)]"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
