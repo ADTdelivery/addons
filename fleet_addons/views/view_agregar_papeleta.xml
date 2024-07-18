@@ -32,7 +32,8 @@
         <field name="model">fleet.vehicle</field>
         <field name="arch" type="xml">
             <search string="All vehicles">
-                <filter string="Driver DNI" name="driver_vat" domain="[('driver_vat', 'ilike', self)]"/>
+                <field name="driver_vat"/> 
+                <filter string="DNI" name="filter_vat" domain="[('driver_vat', 'ilike', 'VAT_VALUE')]"/>
             </search>
         </field>
     </record>

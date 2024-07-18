@@ -223,8 +223,6 @@
                         <div class="header">
                             <img src="/fleet_addons/static/src/img/header_adt.jpg" alt="Not found" height="100"
                                  width="1000"/>
-                            <div>AGENTE _ CORPORACION ADT DKIRJM SAC _ AUTOS Y MAQUINARIAS</div>
-                            <div>MOVIL _ PAGO POR SERVICIOS _ CORPORACION ADT DKIRJM SAC_ COBRANZA ADT</div>
                         </div>
 
 
@@ -258,7 +256,9 @@
                                 <div class="box_justify_space">
                                     <div>ASESOR DE COBRANZA: 908 861 016</div>
                                     <div>EMERGENCIAS: 934 587 816</div>
-                                </div>
+                                </div>                                
+                                <div>AGENTE _ CORPORACION ADT DKIRJM SAC _ AUTOS Y MAQUINARIAS</div>
+                                <div>MOVIL _ PAGO POR SERVICIOS _ CORPORACION ADT DKIRJM SAC_ COBRANZA ADT</div>
                             </div>
 
 
