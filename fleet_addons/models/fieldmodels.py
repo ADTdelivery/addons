@@ -14,6 +14,7 @@ class FieldModels(models.Model):
     x_fleet_tarjeta_propiedad = fields.Binary(string="Tarjeta de propiedad")
     x_soat = fields.Binary(string="Tarjeta SOAT")
     x_licencia_final = fields.Binary(string="Licencia")
+    driver_vat = fields.Char(string='Driver DNI', related='driver_id.vat', store=True)
 
 
 class FleetGPS(models.Model):
