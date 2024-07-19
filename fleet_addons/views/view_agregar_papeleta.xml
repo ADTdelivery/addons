@@ -27,7 +27,7 @@
         </field>
     </record>
 
-    <!--<record id="fleet_vehicle_search" model="ir.ui.view">
+    <record id="fleet_vehicle_search" model="ir.ui.view">
         <field name="name">fleet.vehicle.search</field>
         <field name="model">fleet.vehicle</field>
         <field name="arch" type="xml">
@@ -36,5 +36,5 @@
                 <filter string="DNI" name="filter_vat" domain="[('vat', 'ilike', 'VAT_VALUE')]"/>
             </search>
         </field>
-    </record>-->
+    </record>
 </odoo>
