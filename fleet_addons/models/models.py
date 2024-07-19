@@ -47,4 +47,3 @@ class FleetAddons(models.Model):
             res = super(FleetAddons, self).write(vals)
 
             
-    driver_vat = fields.Char(string='Driver DNI', related='driver_id.vat', store=True)
