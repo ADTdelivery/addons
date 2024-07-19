@@ -14,7 +14,7 @@ class FieldModels(models.Model):
     x_fleet_tarjeta_propiedad = fields.Binary(string="Tarjeta de propiedad")
     x_soat = fields.Binary(string="Tarjeta SOAT")
     x_licencia_final = fields.Binary(string="Licencia")
-    vat = fields.Many2one('res.partner', string="DNI o CE", related='vat', store=True)
+    vat = fields.Many2one('res.partner', string="DNI o CE")
 
 
 class FleetGPS(models.Model):
