@@ -486,10 +486,14 @@
                                 </tr>
                                 <tr>
                                     <td style="width:50%;text-align: center;">
-                                        <span class="title_ligth" t-esc="first_date"/>
+                                        <span class="title_ligth">
+                                            <t t-esc="format_date(first_date, format='dd-MM-yyyy')"/>
+                                        </span>
                                     </td>
                                     <td style="width:50%;text-align: center;">
-                                        <span class="title_ligth" t-esc="last_date"/>
+                                        <span class="title_ligth">
+                                            <t t-esc="format_date(last_date, format='dd-MM-yyyy')"/>
+                                        </span>
                                     </td>
                                 </tr>
                             </table>    
