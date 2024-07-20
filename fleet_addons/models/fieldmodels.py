@@ -14,7 +14,6 @@ class FieldModels(models.Model):
     x_fleet_tarjeta_propiedad = fields.Binary(string="Tarjeta de propiedad")
     x_soat = fields.Binary(string="Tarjeta SOAT")
     x_licencia_final = fields.Binary(string="Licencia")
-    vat = fields.Char(related='driver_id.vat', string="DNI o CE", store=True)
 
     num_months_between_dates = fields.Integer(string='Number of Months', compute='_compute_num_months_between_dates')
 
