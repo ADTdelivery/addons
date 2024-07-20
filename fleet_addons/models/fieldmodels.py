@@ -15,9 +15,6 @@ class FieldModels(models.Model):
     x_soat = fields.Binary(string="Tarjeta SOAT")
     x_licencia_final = fields.Binary(string="Licencia")
 
-    
-
-
 class FleetGPS(models.Model):
     _inherit = 'fleet.vehicle'
 
