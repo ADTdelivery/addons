@@ -465,8 +465,8 @@
 
                             </table>
 
-                            <t t-set="first_date" t-value="False"/>
-                            <t t-set="last_date" t-value="False"/>
+                            <t t-set="first_date" t-value="''"/>
+                            <t t-set="last_date" t-value="''"/>
                             
                                     
                                 
