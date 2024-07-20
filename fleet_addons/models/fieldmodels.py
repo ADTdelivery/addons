@@ -16,6 +16,26 @@ class FieldModels(models.Model):
     x_licencia_final = fields.Binary(string="Licencia")
     vat = fields.Char(related='driver_id.vat', string="DNI o CE", store=True)
 
+    num_months_between_dates = fields.Integer(string='Number of Months', compute='_compute_num_months_between_dates')
+
+    @api.depends('cuenta_ids.cuota_ids.fecha_cronograma')
+    def _compute_num_months_between_dates(self):
+        for vehicle in self:
+            first_date = last_date = None
+            for cuenta in vehicle.cuenta_ids:
+                if cuenta.partner_id == vehicle.driver_id:
+                    cuota_dates = cuenta.cuota_ids.mapped('fecha_cronograma')
+                    if cuota_dates:
+                        cuota_dates.sort()
+                        first_date = cuota_dates[0]
+                        last_date = cuota_dates[-1]
+                        break
+            if first_date and last_date:
+                num_months = relativedelta(last_date, first_date).years * 12 + relativedelta(last_date, first_date).months
+                vehicle.num_months_between_dates = num_months
+            else:
+                vehicle.num_months_between_dates = 0
+
 
 class FleetGPS(models.Model):
     _inherit = 'fleet.vehicle'
