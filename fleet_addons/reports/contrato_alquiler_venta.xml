@@ -426,26 +426,28 @@
                                     <t t-set="last_date" t-value="False"/>
                                     <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                         <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                            <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma').sorted()"/>
-                                            <t t-if="cuota_dates">
-                                                <t t-set="first_date" t-value="cuota_dates[0]"/>
-                                                <t t-set="last_date" t-value="cuota_dates[-1]"/>
-                                            </t>
+                                            <t t-foreach="cuenta.cuota_ids" t-as="cuota">
+                                                <t t-set="cuota_dates" t-value="cuota.mapped('fecha_cronograma').sorted()"/>
+                                                <t t-if="cuota_dates">
+                                                    <t t-set="first_date" t-value="cuota_dates[0]"/>
+                                                    <t t-set="last_date" t-value="cuota_dates[-1]"/>
+                                                </t>
+                                            </t>                                            
                                         </t>
                                     </t>
                                 </t>
                                 
 
-                                <tr>
-                                    <td style="width:20%;text-align: center;">
-                                        <span class="title_ligth">Primera Fecha:</span>
-                                        <span class="title_ligth" t-esc="first_date"/>
-                                    </td>
-                                    <td style="width:20%;text-align: center;">
-                                        <span class="title_ligth">Última Fecha:</span>
-                                        <span class="title_ligth" t-esc="last_date"/>
-                                    </td>
-                                </tr>
+                                
+                                    
+                                <span class="title_ligth">Primera Fecha:</span>
+                                <span class="title_ligth" t-esc="first_date"/>
+                                    
+                                    
+                                <span class="title_ligth">Última Fecha:</span>
+                                <span class="title_ligth" t-esc="last_date"/>
+                                    
+                                
                             </p>
                             <p>
                                 Asimismo, las partes han establecido, en el caso que el ARRENDATARIO no cumpla con cancelar oportunamente la renta y se resuelva el contrato
