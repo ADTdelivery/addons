@@ -469,12 +469,12 @@
                             <t t-set="last_date" t-value="''"/>
                             <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
                                 <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                    <t t-log="cuenta.cuota_ids.mapped('fecha_cronograma')"/>
-                                    <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma').sorted()"/>
-                                    <t t-log="cuota_dates"/>
-                                    <t t-if="cuota_dates">
-                                        <t t-set="first_date" t-value="cuota_dates[0]"/>
-                                        <t t-set="last_date" t-value="cuota_dates[-1]"/>
+                                    <t t-if="cuenta.cuota_ids">
+                                        <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma').sorted()"/>
+                                        <t t-if="cuota_dates">
+                                            <t t-set="first_date" t-value="cuota_dates[0]"/>
+                                            <t t-set="last_date" t-value="cuota_dates[-1]"/>
+                                        </t>
                                     </t>
                                 </t>
                             </t>
