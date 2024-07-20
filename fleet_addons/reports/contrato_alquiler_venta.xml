@@ -426,23 +426,18 @@
                             </p>
 
                             <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
-                                    <t t-if="cuenta.partner_id.id == vehicle.driver_id.id">
-                                        <t t-log="cuenta.cuota_ids"/>
-                                        <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma').sorted()"/>
-                                        <t t-log="cuota_dates"/>
-                                        <t t-if="cuota_dates">
-                                            <t t-set="first_date" t-value="cuota_dates[0]"/>
-                                        </t>
+                                <t t-if="cuenta.partner_id.id == vehicle.driver_id.id">
+                                    <t t-log="cuenta.cuota_ids"/>
+                                    <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma').sorted()"/>
+                                    <t t-log="cuota_dates"/>
+                                    <t t-if="cuota_dates">
+                                        <t t-set="first_date" t-value="cuota_dates[0]"/>
                                     </t>
                                 </t>
-
-                                
-                                    
-                                <span class="title_ligth">Primera Fecha:</span>
-                                <span class="title_ligth" t-esc="first_date"/>
-                                    
-                                    
-                                
+                            </t>
+   
+                            <span class="title_ligth">Primera Fecha:</span>
+                            <span class="title_ligth" t-esc="first_date"/>
                                     
                                 
                             <p>
