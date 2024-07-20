@@ -487,12 +487,12 @@
                                 <tr>
                                     <td style="width:50%;text-align: center;">
                                         <span class="title_ligth">
-                                            <t t-esc="format_date(first_date, format='dd-MM-yyyy')"/>
+                                            <t t-esc="first_date.strftime('%d-%m-%Y') if first_date else ''"/>
                                         </span>
                                     </td>
                                     <td style="width:50%;text-align: center;">
                                         <span class="title_ligth">
-                                            <t t-esc="format_date(last_date, format='dd-MM-yyyy')"/>
+                                            <t t-esc="last_date.strftime('%d-%m-%Y') if last_date else ''"/>
                                         </span>
                                     </td>
                                 </tr>
