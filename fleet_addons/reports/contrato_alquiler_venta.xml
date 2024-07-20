@@ -447,78 +447,10 @@
                                 
                             </p>
 
-                            <table style="width:100%">
-                                <tr>
-                                    <th style="width:10%;text-align: center;">N°</th>
-                                    <th style="width:20%;text-align: center;">Fecha de pago</th>
-                                    <th style="width:20%;text-align: center;">Cuota</th>
-                                </tr>
+                            
 
-                                <t t-set="counter" t-value="0"/>
-                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
-
-
-                                    <t t-if="cuenta.partner_id == vehicle.driver_id">
-
-                                        <t t-foreach="cuenta.cuota_ids" t-as="cuota">
-
-                                            <tr>
-                                                <td style="width:10%;text-align: center;">
-                                                    <t t-set="counter" t-value="counter + 1"/>
-                                                    <t t-esc="counter"/>
-                                                </td>
-                                                <td style="width:20%;text-align: center;">
-                                                    <span class="title_ligth" t-field="cuota.fecha_cronograma"/>
-                                                </td>
-
-
-                                                <td style="width:40%;text-align: center;">
-                                                    <span class="title_ligth" t-field="cuota.monto"/>
-                                                </td>
-                                            </tr>
-
-                                        </t>
-
-                                    </t>
-
-
-                                </t>
-
-
-                            </table>
-
-                            <t t-set="first_date" t-value="''"/>
-                            <t t-set="last_date" t-value="''"/>
-                            <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
-                                <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                    <t t-if="cuenta.cuota_ids">
-                                        <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma')"/>
-                                        <t t-if="cuota_dates">
-                                            <t t-set="sorted_cuota_dates" t-value="sorted(cuota_dates)"/>
-                                            <t t-set="first_date" t-value="sorted_cuota_dates[0]"/>
-                                            <t t-set="last_date" t-value="sorted_cuota_dates[-1]"/>
-                                        </t>                                        
-                                    </t>
-                                </t>
-                            </t>
-                            <table style="width:100%">
-                                <tr>
-                                    <th style="width:50%;text-align: center;">Primera Fecha del Cronograma</th>
-                                    <th style="width:50%;text-align: center;">Última Fecha del Cronograma</th>
-                                </tr>
-                                <tr>
-                                    <td style="width:50%;text-align: center;">
-                                        <span class="title_ligth">
-                                            <t t-esc="first_date.strftime('%d-%m-%Y') if first_date else ''"/>
-                                        </span>
-                                    </td>
-                                    <td style="width:50%;text-align: center;">
-                                        <span class="title_ligth">
-                                            <t t-esc="last_date.strftime('%d-%m-%Y') if last_date else ''"/>
-                                        </span>
-                                    </td>
-                                </tr>
-                            </table>    
+                            
+                              
                                 
                             <p>
                                 Asimismo, las partes han establecido, en el caso que el ARRENDATARIO no cumpla con cancelar oportunamente la renta y se resuelva el contrato
