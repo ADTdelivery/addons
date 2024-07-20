@@ -421,17 +421,20 @@
                                 Las partes convienen fijar un plazo de duración determinada para el presente contrato, equivalente a ( ...24...meses según el tiempo 
                                 del cronograma de pago), el mismo que tendrá vigencia desde el 18 de Abril de 2024 hasta el 24 de ABRIL de 2026, pudiendo prorrogar el 
                                 plazo previo acuerdo de las partes.
-                                <t t-set="first_date" t-value="False"/>
-                                <t t-set="last_date" t-value="False"/>
-                                <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
-                                    <t t-if="cuenta.partner_id == vehicle.driver_id">
-                                        <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma').sorted()"/>
-                                        <t t-if="cuota_dates">
-                                            <t t-set="first_date" t-value="cuota_dates[0]"/>
-                                            <t t-set="last_date" t-value="cuota_dates[-1]"/>
+                                <t t-foreach="vehicle.driver_id" t-as="driver">
+                                    <t t-set="first_date" t-value="False"/>
+                                    <t t-set="last_date" t-value="False"/>
+                                    <t t-foreach="vehicle.cuenta_ids" t-as="cuenta">
+                                        <t t-if="cuenta.partner_id == vehicle.driver_id">
+                                            <t t-set="cuota_dates" t-value="cuenta.cuota_ids.mapped('fecha_cronograma').sorted()"/>
+                                            <t t-if="cuota_dates">
+                                                <t t-set="first_date" t-value="cuota_dates[0]"/>
+                                                <t t-set="last_date" t-value="cuota_dates[-1]"/>
+                                            </t>
                                         </t>
                                     </t>
                                 </t>
+                                
 
                                 <tr>
                                     <td style="width:20%;text-align: center;">
