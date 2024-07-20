@@ -442,6 +442,9 @@
                                 </span>
                                 , pudiendo prorrogar el 
                                 plazo previo acuerdo de las partes.
+                                <span class="title_ligth">
+                                    <t t-esc="vehicle.num_months_between_dates"/>
+                                </span>
                                                                    
                                 
                             </p>
