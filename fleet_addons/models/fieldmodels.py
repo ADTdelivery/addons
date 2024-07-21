@@ -14,6 +14,8 @@ class FieldModels(models.Model):
     x_soat = fields.Binary(string="Tarjeta SOAT")
     x_licencia_final = fields.Binary(string="Licencia")
 
+    num_months_between_dates = fields.Integer(string='Number of Months', compute='_compute_num_months_between_dates')
+
 class FleetGPS(models.Model):
     _inherit = 'fleet.vehicle'
 
