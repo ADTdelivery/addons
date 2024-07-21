@@ -16,6 +16,8 @@ class FieldModels(models.Model):
 
     num_months_between_dates = fields.Integer(string='Number of Months', compute='_compute_num_months_between_dates')
 
+    @api.depends('cuenta_ids.cuota_ids.fecha_cronograma')
+
 class FleetGPS(models.Model):
     _inherit = 'fleet.vehicle'
 
