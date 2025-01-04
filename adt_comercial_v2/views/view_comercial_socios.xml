@@ -97,7 +97,7 @@
         <field name="act_window_id" ref="action_socios"/>
     </record>
     
-    <menuitem name="Comercial" id="menu_adt_comercial" sequence="20" groups="group_access_adt_comercial"/>
+    <menuitem name="Comercial" id="menu_adt_comercial" sequence="20" groups="group_access_adt_comercial_v2"/>
     <menuitem id="adt_comercial_menu_socios"
               name="Socios"
               action="action_socios"
