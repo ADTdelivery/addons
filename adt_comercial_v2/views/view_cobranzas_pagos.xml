@@ -236,7 +236,7 @@
     </record>
 
 
-    <menuitem name="Cobranzas" id="menu_adt_cobranza" sequence="10" groups="group_access_adt_cobranzas"/>
+    <menuitem name="Cobranzas" id="menu_adt_cobranza" sequence="10" groups="group_access_adt_cobranzas_v2"/> 
     <menuitem id="adt_cobranza_menu_pagos" name="Pagos" parent="menu_adt_cobranza" sequence="2"/>
 
     <menuitem id="adt_cobranza_menu_pagos_pendientes" name="Pagos pendientes" parent="adt_cobranza_menu_pagos"
