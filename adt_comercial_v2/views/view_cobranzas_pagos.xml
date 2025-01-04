@@ -240,10 +240,10 @@
     <menuitem id="adt_cobranza_menu_pagos" name="Pagos" parent="menu_adt_cobranza" sequence="2"/>
 
     <menuitem id="adt_cobranza_menu_pagos_pendientes" name="Pagos pendientes" parent="adt_cobranza_menu_pagos"
-              action="action_cobranzas_pagos_pendientes" sequence="1"/>
+              action="action_cobranzas_pagos_pendientes_v2" sequence="1"/>
 
     <menuitem id="adt_cobranza_menu_pagos_realizados" name="Pagos realizados" parent="adt_cobranza_menu_pagos"
-              action="action_cobranzas_pagos_realizados" sequence="2"/>
+              action="action_cobranzas_pagos_realizados_v2" sequence="2"/>
 
     <!--
     <menuitem id="adt_cobranza_menu_pagos_reporte" name="Reporte" parent="adt_cobranza_menu_pagos"
