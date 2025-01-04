@@ -5,7 +5,7 @@
     <field name="inherit_id" ref="fleet.fleet_vehicle_v2_view_form" />
     <field name="arch" type="xml">
         <xpath expr="//notebook" position="inside">
-            <page string="Cuentas">
+            <page string="Cuentas v2">
                 <field name="disponible" invisible="1"/>
                 <field name="cuenta_ids">
                     <tree delete="false" edit="false" create="false">

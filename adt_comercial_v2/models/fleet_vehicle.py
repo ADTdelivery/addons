@@ -4,7 +4,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-class ADTFleetVehicle(models.Model):
+class ADTFleetVehicleV2(models.Model):
     _inherit = 'fleet.vehicle'
 
     cuenta_ids = fields.One2many(
