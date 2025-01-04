@@ -158,7 +158,7 @@ class ADTComercialCuotasV2(models.Model):
         }
 
 
-class ADTComercialWarningMessage(models.TransientModel):
+class ADTComercialWarningMessageV2(models.TransientModel):
     _name = "adt.warning.message.v2"
     _description = "ADT Warning messages"
 
@@ -170,7 +170,7 @@ class ADTComercialWarningMessage(models.TransientModel):
         data.unlink()
 
 
-class ADTComercialRegisterPayment(models.TransientModel):
+class ADTComercialRegisterPaymentV2(models.TransientModel):
     _name = "adt.register.payment.v2"
     _description = "ADT Registro de pagos"
 
@@ -244,7 +244,7 @@ class ADTComercialRegisterPayment(models.TransientModel):
             )
 
 
-class ADTRegistrarObservacion(models.TransientModel):
+class ADTRegistrarObservacionV2(models.TransientModel):
     _name = "adt.registrar.observacion.v2"
     _description = "ADT Registro de observaciones"
 
