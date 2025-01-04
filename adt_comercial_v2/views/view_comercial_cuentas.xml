@@ -326,7 +326,7 @@
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">adt.comercial.cuentas.v2</field>
         <field name="view_mode">tree,form</field>
-        <field name="search_view_id" ref="adt_comercia_v2.adt_comercial_cuentas_v2_search"/>
+        <field name="search_view_id" ref="adt_comercial_v2.adt_comercial_cuentas_v2_search"/>
     </record>
 
     <record id="action_cuentas_view_tree" model="ir.actions.act_window.view">
