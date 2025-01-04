@@ -20,10 +20,12 @@
         <field name="name">Imprimir cronograma</field>
         <field name="model">adt.comercial.cuentas.v2</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">adt_comercial.reporte_cronograma_cuenta</field>
-        <field name="report_file">adt_comercial.reporte_cronograma_cuenta</field>
-        <field name="binding_model_id" ref="model_adt_comercial_cuentas"/>
+        <field name="report_name">adt_comercial_v2.reporte_cronograma_cuenta</field>
+        <field name="report_file">adt_comercial_v2.reporte_cronograma_cuenta</field>
+        <field name="binding_model_id" ref="model_adt_comercial_cuentas_v2"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
     </record>
 </odoo>
+
+adt_comercial_v2.model_adt_comercial_cuentas
