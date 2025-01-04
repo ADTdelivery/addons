@@ -1,13 +1,13 @@
-<odoo>
+<!--<odoo>
     <record id="adt_fleet_vehicle_v2_form" model="ir.ui.view">
         <field name="name">adt.fleet.vehicle.v2.form</field>
         <field name="model">fleet.vehicle</field>
-        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form" /> <!-- Correct reference -->
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form" /> 
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
                 <page string="Cuentas v2">
                     <field name="disponible" invisible="1"/>
-                    <field name="cuentas_v2_ids"> <!-- Corrected field name -->
+                    <field name="cuentas_v2_ids"> 
                         <tree delete="false" edit="false" create="false">
                             <field name="reference_no"/>
                             <field name="partner_id"/>
@@ -27,3 +27,4 @@
         </field>
     </record>
 </odoo>
+-->
