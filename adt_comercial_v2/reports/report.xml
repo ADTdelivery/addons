@@ -27,5 +27,3 @@
         <field name="paperformat_id" ref="paperformat_cronograma_a4"/>
     </record>
 </odoo>
-
-adt_comercial_v2.model_adt_comercial_cuentas
