@@ -6,7 +6,7 @@ from datetime import date
 log = logging.getLogger(__name__)
 
 
-class Deudor(models.Model):
+class DeudorV2(models.Model):
     #_inherit = "adt.reporte.cobranza.pagos.pendientes"
     _inherit = "adt.comercial.cuentas.v2"
 
@@ -15,8 +15,8 @@ class Deudor(models.Model):
         return report_obj.report_action([], {})
 
 
-class DeudorXLSX(models.AbstractModel):
-    _name = "report.adt_comercial.clientes_xlsx"
+class Deudorv2XLSX(models.AbstractModel):
+    _name = "report.adt_comercial.clientes_xlsxv2"
     _inherit = "report.report_xlsx.abstract"
     _description = "Reporte de Cliente en XLSX"
 
