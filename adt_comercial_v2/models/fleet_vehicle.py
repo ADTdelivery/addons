@@ -7,11 +7,11 @@ _logger = logging.getLogger(__name__)
 class ADTFleetVehicleV2(models.Model):
     _inherit = 'fleet.vehicle'
 
-    cuenta_ids = fields.One2many(
+    cuenta_v2_ids = fields.One2many(
         'adt.comercial.cuentas.v2', 'vehiculo_id', string="Cuentas")
 
     # disponible = fields.Boolean(string='Disponible', compute="_compute_vehiculo_disponible", store=True)
-    disponible = fields.Boolean(string='Disponible', default=True)
+    disponible2 = fields.Boolean(string='Disponible', default=True)
 
     # @api.depends('cuenta_ids')
     # def _compute_vehiculo_disponible(self):

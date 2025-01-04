@@ -1,27 +1,29 @@
 <odoo>
-<record id="adt_fleet_vehicle_v2_form" model="ir.ui.view">
-    <field name="name">adt.fleet.vehicle.v2.form</field>
-    <field name="model">fleet.vehicle</field>
-    <field name="inherit_id" ref="fleet.fleet_vehicle_v2_view_form" />
-    <field name="arch" type="xml">
-        <xpath expr="//notebook" position="inside">
-            <page string="Cuentas v2">
-                <field name="disponible" invisible="1"/>
-                <field name="cuenta_ids">
-                    <tree delete="false" edit="false" create="false">
-                        <field name="reference_no"/>
-                        <field name="partner_id"/>
-                        <field name="user_id" optional="hide"/>
-                        <field name="fecha_desembolso"/>
-                        <field name="fecha_entrega" optional="hide"/>
-                        <field name="monto_inicial" />
-                        <field name="recuperado"/>
-                        <field name="create_date" invisible="1"/>
-                        <field name="state" widget="badge" decoration-info="state == 'en_curso'" decoration-success="state == 'pagado'"/>
-                    </tree>
-                </field>
-            </page>
-        </xpath>
-    </field>
-</record>
+    <record id="adt_fleet_vehicle_v2_form" model="ir.ui.view">
+        <field name="name">adt.fleet.vehicle.v2.form</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form" /> <!-- Correct reference -->
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Cuentas v2">
+                    <field name="disponible" invisible="1"/>
+                    <field name="cuentas_v2_ids"> <!-- Corrected field name -->
+                        <tree delete="false" edit="false" create="false">
+                            <field name="reference_no"/>
+                            <field name="partner_id"/>
+                            <field name="user_id" optional="hide"/>
+                            <field name="fecha_desembolso"/>
+                            <field name="fecha_entrega" optional="hide"/>
+                            <field name="monto_inicial" />
+                            <field name="recuperado"/>
+                            <field name="create_date" invisible="1"/>
+                            <field name="state" widget="badge" 
+                                decoration-info="state == 'en_curso'" 
+                                decoration-success="state == 'pagado'"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
 </odoo>
