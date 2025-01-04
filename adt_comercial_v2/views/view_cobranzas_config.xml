@@ -1,0 +1,30 @@
+<odoo>
+
+    <record id="adt_cobranza_config_recuperacion_v2_tree" model="ir.ui.view">
+        <field name="name">adt.cobranza.config.recuperacion.v2.tree</field>
+        <field name="model">adt.cobranza.config.recuperacion.v2</field>
+        <field name="arch" type="xml">
+            <tree string="Reglas de recuperación" create="false" editable="top" multi_edit="1">
+                <field name="dias_retraso"/>
+                <field name="periodicidad" readonly="1"/>
+            </tree>
+        </field>
+    </record>
+    
+    <record id="action_cobranzas_config_recuperacion_v2" model="ir.actions.act_window">
+        <field name="name">Cobranzas - Configuración - Reglas de recuperación</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.cobranza.config.recuperacion.v2</field>
+        <field name="view_mode">tree</field>
+    </record>
+
+    <record id="action_cobranzas_config_recuperacion_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial_v2.adt_cobranza_config_recuperacion_v2_tree"/>
+        <field name="act_window_id" ref="action_cobranzas_config_recuperacion_v2"/>
+    </record>
+
+    <menuitem id="adt_cobranza_menu_config" name="Configuración" parent="menu_adt_cobranza" sequence="20"/>
+    <menuitem id="adt_cobranza_menu_config_recuperacion" name="Reglas de configuración" parent="adt_cobranza_menu_config" action="action_cobranzas_config_recuperacion_v2" sequence="1"/>
+</odoo>

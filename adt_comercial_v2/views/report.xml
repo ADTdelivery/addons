@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <report
+    id="reporte_deudor"
+    model="adt.comercial.cuentas.v2"
+    string="Reporte de deudores"
+    report_type="xlsx"
+    name="adt_comercial.clientes_xlsx_v2"
+    file="clientes_xlsx"
+    attachment_use="False"/>
+
+</odoo>
+
+
+<!-- model="adt.reporte.cobranza.pagos.pendientes"-->

@@ -1,0 +1,190 @@
+<odoo>
+    <data>
+        <record model="ir.model.access" id="access_model_adt_comercial_cuentas_v2">
+            <field name="name">acces.model.adt.comercial.cuentas.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_comercial_cuentas_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+        <record model="ir.model.access" id="access_model_adt_comercial_cuotas_v2">
+            <field name="name">acces.model.adt.comercial.cuotas.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_comercial_cuotas_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+        <record model="ir.model.access" id="access_model_adt_comercial_observaciones_v2">
+            <field name="name">acces.model.adt.comercial.observaciones.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_comercial_observaciones_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record model="ir.model.access" id="access_model_adt_register_payment_v2">
+            <field name="name">acces.model.adt.register.payment.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_register_payment_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record model="ir.model.access" id="access_model_adt_reporte_cobranza_pagos_realizados_v2">
+            <field name="name">acces.model.adt.reporte.cobranza.pagos.realizados.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_reporte_cobranza_pagos_realizados_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+        <record model="ir.model.access" id="access_model_adt_reporte_cobranza_pagos_pendientes_v2">
+            <field name="name">acces.model.adt.reporte.cobranza.pagos.pendientes.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_reporte_cobranza_pagos_pendientes_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+
+        <record model="ir.model.access" id="access_model_adt_cobranza_config_recuperacion_v2">
+            <field name="name">acces.model.adt.cobranza.config.recuperacion.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_cobranza_config_recuperacion_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record model="ir.model.access" id="access_model_adt_reporte_cobranza_captura_v2">
+            <field name="name">acces.model.adt.reporte.cobranza.captura.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_reporte_cobranza_captura_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record model="ir.model.access" id="access_model_adt_reporte_cobranza_recuperado_v2">
+            <field name="name">acces.model.adt.reporte.cobranza.recuperado.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_reporte_cobranza_recuperado_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+<!--        <record model="ir.model.access" id="access_model_adt_comercial_custom">
+            <field name="name">acces.model.adt.comercial.custom</field>
+            <field name="model_id" ref="adt_comercial.model_adt_comercial_custom"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>-->
+
+        <record model="ir.model.access" id="access_model_adt_registrar_mora_v2">
+            <field name="name">acces.model.adt.registrar.mora.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_registrar_mora_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record model="ir.model.access" id="access_model_adt_registrar_observacion_v2">
+            <field name="name">acces.model.adt.registrar.observacion.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_registrar_observacion_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record model="ir.model.access" id="access_model_adt_registrar_refinanciamiento_v2">
+            <field name="name">acces.model.adt.registrar.refinanciamiento.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_registrar_refinanciamiento_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record model="ir.model.access" id="access_model_adt_warning_message_v2">
+            <field name="name">acces.model.adt.warning.message.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_warning_message_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+
+        <record model="ir.model.access" id="access_model_adt_reporte_cobranza_deudores_v2">
+            <field name="name">acces.model.adt.reporte.cobranza.deudores.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_reporte_cobranza_deudores_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+
+        <record model="ir.model.access" id="access_model_adt_reporte_cobranza_pagos_pendientes1_v2">
+            <field name="name">acces.model.adt.reporte.cobranza.pagos.pendientes1.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_adt_reporte_cobranza_pagos_pendientes1_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+
+        <record model="ir.model.access" id="access_model_report_adt_comercial_clientes_xlsx_v2">
+            <field name="name">acces.model.report.adt_comercial.clientes_xlsx.v2</field>
+            <field name="model_id" ref="adt_comercial_v2.model_report_adt_comercial_clientes_xlsx_v2"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
+
+        <record id="group_access_adt_comercial_v2" model="res.groups">
+            <field name="name">Acceso a módulo COMERCIAL v2</field>
+        </record>
+        <record id="group_access_adt_cobranzas_v2" model="res.groups">
+            <field name="name">Acceso a módulo COBRANZAS v2</field>
+        </record>
+
+        <record id="group_access_adt_comercial_recuperar_v2" model="res.groups">
+            <field name="name">Permitir recuperación de vehículo v2</field>
+        </record>
+        <record id="group_access_adt_comercial_restablecer_v2" model="res.groups">
+            <field name="name">Permitir restablecer cuentas canceladas/recuperadas v2</field>
+        </record>
+
+
+    </data>
+</odoo>

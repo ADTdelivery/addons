@@ -1,0 +1,256 @@
+<odoo>
+    <record id="adt_reporte_cobranza_pagos_realizados_v2_tree" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.pagos.realizados.v2.tree</field>
+        <field name="model">adt.reporte.cobranza.pagos.realizados.v2</field>
+        <field name="arch" type="xml">
+            <tree string="Pagos realizados" create="0">
+                <field name="payment_id" invisible="1"/>
+                <field name="cuota_id" string="# Cuota"/>
+                <field name="vehicle_id"/>
+                <field name="partner_id"/>
+                <field name="user_id" optional="hide"/>
+                <field name="phone"/>
+                <field name="mobile"/>
+                <field name="fecha_desembolso"/>
+                <field name="fecha_cronograma"/>
+                <field name="monto"/>
+                <field name="fecha"/>
+                <field name="journal_id"/>
+                <button name="ver_detalle_cuenta" type="object" string="Ver detalle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_reporte_cobranza_pagos_realizados_v2_search" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.pagos.realizados.v2.search</field>
+        <field name="model">adt.reporte.cobranza.pagos.realizados.v2</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                <field name="partner_id"/>
+                <field name="vehicle_id"/>
+                <field name="cuenta_id"/>
+                <field name="user_id"/>
+                <separator/>
+                <filter string="Fecha de cronograma" name="filter_fecha_cronograma" date="fecha_cronograma"/>
+                <separator/>
+                <group expand="0" name="group_by" string="Group By">
+                    <filter name="salesperson" string="Asesor" domain="[]" context="{'group_by' : 'user_id'}"/>
+                    <filter name="cuenta" string="Cuenta" domain="[]" context="{'group_by' : 'cuenta_id'}"/>
+                    <filter name="forma_pago" string="Forma de pago" domain="[]" context="{'group_by' : 'journal_id'}"/>
+                    <filter name="vehiculo" string="Moto" domain="[]" context="{'group_by' : 'vehicle_id'}"/>
+                    <filter name="partner" string="Socio" domain="[]" context="{'group_by' : 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cobranzas_pagos_realizados_v2" model="ir.actions.act_window">
+        <field name="name">Cobranzas - Pagos realizados</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.reporte.cobranza.pagos.realizados.v2</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="adt_comercial_v2.adt_reporte_cobranza_pagos_realizados_v2_search"/>
+        <!-- <field name="context">{'default_is_company': True}</field> -->
+    </record>
+
+    <record id="action_cobranzas_pagos_realizados_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial_v2.adt_reporte_cobranza_pagos_realizados_v2_tree"/>
+        <field name="act_window_id" ref="action_cobranzas_pagos_realizados_v2"/>
+    </record>
+
+    <record id="adt_reporte_cobranza_pagos_pendientes_v2_tree" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.pagos.pendientes.v2.tree</field>
+        <field name="model">adt.reporte.cobranza.pagos.pendientes.v2</field>
+        <field name="arch" type="xml">
+            <tree string="Pagos pendientes" decoration-danger="dias_retraso &gt; 0"
+                  decoration-warning="dias_retraso &lt; 0 and dias_retraso &gt;= -7"
+                  decoration-info="dias_retraso &lt; -7 and dias_retraso &gt;= -30"
+                  decoration-muted="dias_retraso &lt;-30" create="0">
+                <field name="cuenta_id" invisible="1"/>
+                <field name="reference_no" string="Cuenta"/>
+                <field name="cuota_id" string="# Cuota"/>
+                <field name="partner_id"/>
+                <field name="vat"/>
+                <field name="model_id"/>
+                <field name="user_id"/>
+                <field name="phone"/>
+                <field name="mobile"/>
+                <field name="dias_retraso"/>
+                <field name="fecha_desembolso"/>
+                <field name="fecha_cronograma"/>
+                <field name="monto"/>
+                <field name="numero_pagado" />
+                <field name="numero_pendiente" />
+
+                <button name="registrar_pago" type="object" class="oe_highlight" string="Pagar"/>
+                <button name="registrar_observacion" type="object" string="Registrar observación"/>
+                <button name="ver_detalle_cuenta" type="object" string="Ver detalle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_reporte_cobranza_pagos_pendientes_v2_search" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.pagos.pendientes.v2.search</field>
+        <field name="model">adt.reporte.cobranza.pagos.pendientes.v2</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                <field name="partner_id"/>
+                <field name="cuenta_id"/>
+                <field name="user_id"/>
+                <separator/>
+                <filter string="Fecha de cronograma" name="filter_fecha_cronograma" date="fecha_cronograma"/>
+                <separator/>
+                <field name="vat"/> 
+                <filter string="DNI" name="filter_vat" domain="[('vat', 'ilike', 'VAT_VALUE')]"/>
+                <separator/>
+                <group expand="0" name="group_by" string="Group By">
+                    <filter name="salesperson" string="Asesor" domain="[]" context="{'group_by' : 'user_id'}"/>
+                    <filter name="cuenta" string="Cuenta" domain="[]" context="{'group_by' : 'cuenta_id'}"/>
+                    <filter name="partner" string="Socio" domain="[]" context="{'group_by' : 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cobranzas_pagos_pendientes_v2" model="ir.actions.act_window">
+        <field name="name">Cobranzas - Pagos pendientes</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.reporte.cobranza.pagos.pendientes.v2</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="adt_comercial_v2.adt_reporte_cobranza_pagos_pendientes_v2_search"/>
+        <!-- <field name="context">{'default_is_company': True}</field> -->
+    </record>
+
+    <record id="action_cobranzas_pagos_pendientes_v2_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial_v2.adt_reporte_cobranza_pagos_pendientes_v2_tree"/>
+        <field name="act_window_id" ref="action_cobranzas_pagos_pendientes_v2"/>
+    </record>
+
+
+    <!-- Report -->
+    <!--
+    <record id="adt_reporte_cobranza_deudores_tree" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.deudores.tree</field>
+        <field name="model">adt.reporte.cobranza.deudores</field>
+        <field name="arch" type="xml">
+            <tree string="Pagos pendientes">
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_reporte_cobranza_deudores_search" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.deudores.search</field>
+        <field name="model">adt.reporte.cobranza.deudores</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cobranzas_pagos_reporte" model="ir.actions.act_window">
+        <field name="name">Cobranzas - Pagos reporte</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.reporte.cobranza.deudores</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="adt_comercial.adt_reporte_cobranza_deudores_search"/>
+    </record>
+
+    <record id="action_cobranzas_pagos_reporte_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial.adt_reporte_cobranza_deudores_tree"/>
+        <field name="act_window_id" ref="action_cobranzas_pagos_reporte"/>
+    </record>
+    -->
+
+
+    <record id="adt_reporte_cobranza_pagos_pendientes1_v2_tree" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.pagos.pendientes1.v2.tree</field>
+        <field name="model">adt.reporte.cobranza.pagos.pendientes1.v2</field>
+        <field name="arch" type="xml">
+            <tree string="Pagos pendientes1" >
+                 <field name="cuenta_id" invisible="1"/>
+                <field name="reference_no" string="Cuenta"/>
+                <field name="cuota_id" string="# Cuota"/>
+                <field name="partner_id"/>
+                <field name="vat"/>
+                <field name="model_id"/>
+                <field name="user_id"/>
+                <field name="periodicidad" />
+                <field name="monto"/>
+                <field name="fecha_desembolso"/>
+                <field name="monto_fraccionado" />
+                <field name="numero_pagado" />
+                <field name="numero_pendiente" />
+                <!--<field name="phone"/>
+                <field name="mobile"/>
+                <field name="dias_retraso"/>
+                <field name="fecha_cronograma"/>
+-->
+
+
+                <!--<button name="registrar_pago" type="object" class="oe_highlight" string="Pagar"/>
+                <button name="registrar_observacion" type="object" string="Registrar observación"/>
+                <button name="ver_detalle_cuenta" type="object" string="Ver detalle"/>-->
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_reporte_cobranza_pagos_pendientes1_v2_search" model="ir.ui.view">
+        <field name="name">adt.reporte.cobranza.pagos.pendientes1.v2.search</field>
+        <field name="model">adt.reporte.cobranza.pagos.pendientes1.v2</field>
+        <field name="arch" type="xml">
+            <search string="Search Partner">
+                    <field name="partner_id"/>
+                <field name="cuenta_id"/>
+                <field name="user_id"/>
+                <separator/>
+                <filter string="Fecha de cronograma" name="filter_fecha_cronograma" date="fecha_cronograma"/>
+                <separator/>
+                <!--<group expand="0" name="group_by" string="Group By">
+                    <filter name="salesperson" string="Asesor" domain="[]" context="{'group_by' : 'user_id'}"/>
+                    <filter name="cuenta" string="Cuenta" domain="[]" context="{'group_by' : 'cuenta_id'}"/>
+                    <filter name="partner" string="Socio" domain="[]" context="{'group_by' : 'partner_id'}"/>
+                </group>-->
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cobranzas_pagos_pendientes1_v2" model="ir.actions.act_window">
+        <field name="name">Cobranzas - Reporte general</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.reporte.cobranza.pagos.pendientes1.v2</field>
+        <field name="view_mode">tree</field>
+        <field name="search_view_id" ref="adt_comercial_v2.adt_reporte_cobranza_pagos_pendientes1_v2_search"/>
+    </record>
+
+    <record id="action_cobranzas_pagos_pendientes1_v2_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial_v2.adt_reporte_cobranza_pagos_pendientes1_v2_tree"/>
+        <field name="act_window_id" ref="action_cobranzas_pagos_pendientes1_v2"/>
+    </record>
+
+
+    <menuitem name="Cobranzas" id="menu_adt_cobranza" sequence="10" groups="group_access_adt_cobranzas"/>
+    <menuitem id="adt_cobranza_menu_pagos" name="Pagos" parent="menu_adt_cobranza" sequence="2"/>
+
+    <menuitem id="adt_cobranza_menu_pagos_pendientes" name="Pagos pendientes" parent="adt_cobranza_menu_pagos"
+              action="action_cobranzas_pagos_pendientes" sequence="1"/>
+
+    <menuitem id="adt_cobranza_menu_pagos_realizados" name="Pagos realizados" parent="adt_cobranza_menu_pagos"
+              action="action_cobranzas_pagos_realizados" sequence="2"/>
+
+    <!--
+    <menuitem id="adt_cobranza_menu_pagos_reporte" name="Reporte" parent="adt_cobranza_menu_pagos"
+              action="action_cobranzas_pagos_reporte" sequence="3"/>-->
+
+    <menuitem id="adt_cobranza_menu_pagos_pendientes1" name="Reporte general" parent="adt_cobranza_menu_pagos"
+              action="action_cobranzas_pagos_pendientes1_v2" sequence="3"/>
+
+
+</odoo>

@@ -1,0 +1,14 @@
+<odoo noupdate="1">
+    <record id="adt_cobranza_config_recuperacion_quicena" model="adt.cobranza.config.recuperacion">
+        <field name="dias_retraso">7</field>
+        <field name="periodicidad" eval="'quincena'"/>
+    </record>
+    <record id="adt_cobranza_config_recuperacion_mensual" model="adt.cobranza.config.recuperacion">
+        <field name="dias_retraso">7</field>
+        <field name="periodicidad" eval="'mensual'"/>
+    </record>
+    <record id="adt_cobranza_config_recuperacion_semanal" model="adt.cobranza.config.recuperacion">
+        <field name="dias_retraso">7</field>
+        <field name="periodicidad" eval="'semanal'"/>
+    </record>
+</odoo>
