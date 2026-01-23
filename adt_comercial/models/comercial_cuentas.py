@@ -138,6 +138,17 @@ class ADTComercialCuentas(models.Model):
 
     message = fields.Char()
 
+    mora_pendiente = fields.Float(
+        string="Mora pendiente por cobrar",
+        compute="_compute_mora_total",
+        store=True
+    )
+
+    mora_dias_total = fields.Integer(
+        string="Días de mora por cobrar",
+        compute="_compute_mora_total",
+        store=True
+    )
 
     @api.onchange('fecha_desembolso')
     def fecha_desembolso_change(self):
@@ -289,7 +300,7 @@ class ADTComercialCuentas(models.Model):
 
     def agregar_mora(self):
         return {
-            'name': 'Registrar mora',
+            'name': 'Registrar cuota',
             'res_model': 'adt.registrar.mora',
             'view_mode': 'form',
             'context': {
@@ -436,6 +447,57 @@ class ADTComercialCuentas(models.Model):
             result = ""
 
         return result
+
+    @api.depends('cuota_ids', 'cuota_ids.mora_total','cuota_ids.mora_pendiente', 'cuota_ids.mora_estado_texto', 'cuota_ids.mora_dias')
+    def _compute_mora_total(self):
+        for record in self:
+            mora_pendiente = 0.0
+            total_dias = 0
+
+            for cuota in record.cuota_ids:
+            
+                # Si la cuota tiene mora pendiente
+                if cuota.mora_estado_texto == 'Pendiente':
+                    mora_pendiente += cuota.mora_pendiente or 0.0
+                    total_dias += cuota.mora_dias or 0
+
+            record.mora_pendiente = mora_pendiente
+            record.mora_dias_total = total_dias
+
+    def action_open_moras_wizard(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Pagar moras',
+            'res_model': 'adt.moras.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_line_ids': self._prepare_moras_lines(),
+                'pagar_todo_ctx': False
+            }
+        }
+
+    def _prepare_moras_lines(self):
+        lines = []
+
+        moras_pendientes = self.cuota_ids.filtered(
+            lambda c: c.mora_total > 0 and c.mora_pendiente > 0
+        )
+
+        for cuota in moras_pendientes:
+            lines.append((0, 0, {
+                'cuota_id': cuota.id,
+                'monto': cuota.mora_pendiente,
+                'dias': cuota.mora_dias,
+                'seleccionado': True,
+            }))
+
+        return lines
+
+
+
+
+
     # def generar_cuotas(self):
 
     #     if self.monto_financiado <= 0:
@@ -527,6 +589,8 @@ class ADTRegistrarMora(models.TransientModel):
         string="Fecha de cronograma", default=fields.Date.today)
     amount = fields.Monetary(currency_field='currency_id', readonly=False)
     cuenta_id = fields.Many2one('adt.comercial.cuentas', string="Id de cuenta")
+    name = fields.Char(string="Nombre", required=True)
+
 
     def action_create_mora(self):
         if self.amount <= 0:
@@ -539,7 +603,7 @@ class ADTRegistrarMora(models.TransientModel):
             'cuenta_id': self.cuenta_id.id,
             'monto': self.amount,
             'fecha_cronograma': self.fecha_cronograma,
-            'name': 'Mora'
+            'name': self.name
         })
 
 
@@ -772,3 +836,60 @@ class ADTComercialCustom(models.Model):
             )
         '''.format(self._table))
 """
+
+class AdtMorasWizard(models.TransientModel):
+    _name = 'adt.moras.wizard'
+
+    pagar_todo = fields.Boolean(string="Pagar todo")
+    operacion_global = fields.Char(string="N° operación global")
+
+    line_ids = fields.One2many('adt.moras.wizard.line', 'wizard_id')
+
+    @api.onchange('pagar_todo', 'operacion_global')
+    def _onchange_pagar_todo(self):
+        for wizard in self:
+            if wizard.pagar_todo and wizard.operacion_global:
+                for line in wizard.line_ids:
+                    line.operacion = wizard.operacion_global
+
+    @api.onchange('pagar_todo')
+    def _onchange_context_flag(self):
+        self = self.with_context(pagar_todo_ctx=self.pagar_todo)
+
+    def action_pagar_moras(self):
+        self.ensure_one()
+
+        if self.pagar_todo and not self.operacion_global:
+            raise UserError("Ingrese el número de operación global.")
+
+        lineas = self.line_ids if self.pagar_todo else self.line_ids.filtered(lambda l: l.seleccionado)
+
+        if not lineas:
+            raise UserError("No hay moras seleccionadas.")
+
+        for line in lineas:
+            oper = self.operacion_global if self.pagar_todo else line.operacion
+
+            if not oper:
+                raise UserError("Todas las moras deben tener número de operación.")
+
+            line.cuota_id.write({
+                'mora_pendiente': 0,
+                'mora_estado_texto': 'Pagado',
+                'mora_operacion': oper,
+            })
+
+        return {'type': 'ir.actions.act_window_close'}
+
+
+
+class AdtMorasWizardLine(models.TransientModel):
+    _name = 'adt.moras.wizard.line'
+
+    wizard_id = fields.Many2one('adt.moras.wizard')
+    cuota_id = fields.Many2one('adt.comercial.cuotas')
+    monto = fields.Float()
+    dias = fields.Integer()
+    seleccionado = fields.Boolean()
+    operacion = fields.Char()
+

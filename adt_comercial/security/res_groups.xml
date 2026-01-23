@@ -185,6 +185,48 @@
             <field name="name">Permitir restablecer cuentas canceladas/recuperadas</field>
         </record>
 
+        <record model="ir.model.access" id="access_model_adt_pagar_mora_wizard">
+            <field name="name">access.model.adt.pagar.mora.wizard</field>
+            <field name="model_id" ref="adt_comercial.model_adt_pagar_mora_wizard"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_unlink">1</field>
+            <field name="perm_create">1</field>
+            <field name="group_id" ref="base.group_user"/>
+        </record>
 
+        <record id="access_adt_moras_wizard_user" model="ir.model.access">
+            <field name="name">access.adt.moras.wizard.user</field>
+            <field name="model_id" ref="model_adt_moras_wizard"/>
+            <field name="group_id" ref="base.group_user"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="1"/>
+        </record>
+
+
+            <!-- Acceso al wizard principal -->
+    <record id="access_adt_moras_wizard" model="ir.model.access">
+        <field name="name">access.adt.moras.wizard</field>
+        <field name="model_id" ref="model_adt_moras_wizard"/>
+        <field name="group_id" ref="base.group_user"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+
+    <!-- Acceso a las líneas del wizard -->
+    <record id="access_adt_moras_wizard_line" model="ir.model.access">
+        <field name="name">access.adt.moras.wizard.line</field>
+        <field name="model_id" ref="model_adt_moras_wizard_line"/>
+        <field name="group_id" ref="base.group_user"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+    
     </data>
 </odoo>

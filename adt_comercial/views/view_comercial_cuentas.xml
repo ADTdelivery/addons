@@ -202,12 +202,24 @@
                                     <field name="qty_cuotas_pagadas"/>
                                 </group>
 
+                                <group string="Moras por cobrar">
+                                    <field name="mora_pendiente"/>
+                                    <field name="mora_dias_total"/>
+
+
+                                     <button name="action_open_moras_wizard"
+                                    string="Pagar moras"
+                                    type="object"
+                                    class="oe_highlight"
+                                    attrs="{'invisible': [('mora_pendiente', '=', 0)]}"/>
+                                </group>
+
 
                             </group>
                             <group>
-                                <button name="agregar_mora" type="object" string="Agregar mora" class="oe_highlight"
+                                <button name="agregar_mora" type="object" string="Agregar Cuota" class="oe_highlight"
                                         attrs="{'invisible': [('state', 'in', ['borrador','cancelado'])]}"/>
-                                <button string="Mostrar detalle" name="prueba_data" type="object"/>
+                                <button string="Actualizar" name="prueba_data" type="object"/>
 
                             </group>
 
@@ -215,7 +227,7 @@
                             <group>
 
                                 <field name="cuota_ids">
-                                    <tree editable="top" delete="false" limit="120" multi_edit="1" create="false">
+                                    <tree editable="top" delete="false" limit="120" multi_edit="1" create="false" >
                                         <field name="name" readonly="1"/>
                                         <field name="monto" readonly="1"/>
                                         <field name="saldo"/>
@@ -238,6 +250,21 @@
                                                 class="oe_highlight"
                                                 attrs="{'invisible': [('state', 'in', ['retrasado','anulada','pendiente'])]}"
                                                 context="{'dont_redirect_to_payments': True}"/>
+                                                
+                                        <field name="mora_total"/>
+                                        <field name="mora_pendiente"/>
+                                        <field name="mora_operacion"/>
+                                        <field name="mora_dias" readonly="1"/>
+                                        <field name="mora_estado_texto" widget="badge"
+                                        decoration-danger="mora_estado_texto == 'Pendiente'"
+                                        decoration-success="mora_estado_texto == 'Pagado'"/>
+
+                                        <button name="action_pagar_mora"
+                                                string="Pagar mora"
+                                                type="object"
+                                                class="oe_highlight"
+                                                attrs="{'invisible': [('mora_pendiente', '=', 0)]}"/>
+
 
                                         <button string="Observaciones" name="registrar_observacion" type="object"
                                                 attrs="{'invisible': [('state', 'in', ['anulada'])]}"/>
