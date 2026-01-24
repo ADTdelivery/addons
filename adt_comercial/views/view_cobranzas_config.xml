@@ -27,4 +27,52 @@
 
     <menuitem id="adt_cobranza_menu_config" name="Configuración" parent="menu_adt_cobranza" sequence="20"/>
     <menuitem id="adt_cobranza_menu_config_recuperacion" name="Reglas de configuración" parent="adt_cobranza_menu_config" action="action_cobranzas_config_recuperacion" sequence="1"/>
+
+
+    <!-- append these records inside the existing <odoo> in adt_comercial/views/view_cobranzas_config.xml -->
+    <record id="adt_cobranza_config_factor_tree" model="ir.ui.view">
+        <field name="name">adt.cobranza.config.factor.tree</field>
+        <field name="model">adt.cobranza.config.factor</field>
+        <field name="arch" type="xml">
+            <tree string="Cobranza Configuration">
+                <field name="company_id"/>
+                <field name="name"/>
+                <field name="factor_mora"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_cobranza_config_form" model="ir.ui.view">
+        <field name="name">adt.cobranza.config.factor.form</field>
+        <field name="model">adt.cobranza.config.factor</field>
+        <field name="arch" type="xml">
+            <form string="Cobranza Configuration">
+                <sheet>
+                    <group>
+                        <field name="company_id" readonly="1"/>
+                        <field name="name"/>
+                        <field name="factor_mora"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Save" class="oe_highlight" special="save"/>
+                    <button string="Discard" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cobranzas_config_factor_mora" model="ir.actions.act_window">
+        <field name="name">Cobranzas - Configuración</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.cobranza.config.factor</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="adt_cobranza_menu_config_factor_mora"
+              name="Factor Mora"
+              parent="adt_cobranza_menu_config"
+              action="action_cobranzas_config_factor_mora"
+              sequence="10"/>
+
 </odoo>

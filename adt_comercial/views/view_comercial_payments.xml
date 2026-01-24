@@ -5,25 +5,40 @@
         <field name="model">adt.register.payment</field>
         <field name="arch" type="xml">
             <form string="Register Payment">
-                <!-- Invisible fields -->
-                <field name="company_id" readonly="1" invisible="1"/>
-                <field name="cuota_id" readonly="1" invisible="1"/>
-                <field name="payment_type" readonly="1" invisible="1"/>
-                <group>
-                    <group name="group1">
-                        <field name="journal_id" string="Diario" options="{'no_open': True, 'no_create': True}" required="1"/>
+                <header>
+                    <field name="company_id" invisible="1"/>
+                    <field name="cuota_id" invisible="1"/>
+                    <field name="payment_type" invisible="1"/>
+                </header>
+
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="journal_id" string="Diario"
+                                   options="{'no_open': True, 'no_create': True}" required="1"/>
+                            <field name="payment_date" string="Fecha"/>
+                        </group>
+
+                        <group>
+                            <field name="amount" string="Monto" />
+                            <field name="communication" string="# Operación"/>
+                        </group>
                     </group>
-                    <group name="group2">
-                        <field name="amount" string="Monto"/>
-                        <field name="payment_date" string="Fecha"/>
-                        <field name="communication" string="# Operación"/>
-                        <field name="mora"/>
-                        <field name="mora_dias"/>
-                        <field name="mora_state"/>
+
+                    <group string="Mora" attrs="{'invisible':[('mora','=',0),('mora','=',False)]}">
+                        <group>
+                            <field name="mora" string="Mora"/>
+                            <field name="mora_dias" string="Días mora" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="mora_state" string="Estado mora"/>
+                        </group>
                     </group>
-                </group>
+
+                </sheet>
+
                 <footer>
-                    <button string="Crear pago" name="action_create_payments" type="object" class="oe_highlight"/>
+                    <button string="Crear pago" name="action_create_payments" type="object" class="oe_highlight btn-primary"/>
                     <button string="Cancelar" class="btn btn-secondary" special="cancel"/>
                 </footer>
             </form>
@@ -66,6 +81,7 @@
                 <group>
                     <field name="pagar_todo"/>
                     <field name="operacion_global" attrs="{'invisible':[('pagar_todo','=',False)]}"/>
+                    <field name="payment_date"/>
                 </group>
 
                 <field name="line_ids">

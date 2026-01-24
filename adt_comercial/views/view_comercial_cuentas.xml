@@ -113,6 +113,7 @@
                             </group>
                             <group>
                                 <group>
+                                    <field name="is_available_pay_mora"/>
                                     <field name="gps_chip"
                                            attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
                                     <field name="gps_activo"
@@ -157,34 +158,6 @@
                                 </group>
                             </group>
 
-                            <separator string="Cuotas opcionales"/>
-
-                            <group>
-                                <group>
-                                    <field name="cuota_inicio_1"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-
-                                    <field name="cuota_fin_1"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"
-                                           required="1"/>
-                                    <field name="monto_1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-
-
-                                </group>
-                                <group>
-                                    <field name="cuota_inicio_2"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-
-                                    <field name="cuota_fin_2"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"
-                                           required="1"/>
-                                    <field name="monto_2" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-
-
-                                </group>
-                            </group>
-
-
                         </page>
 
                         <page string="Cuotas">
@@ -224,10 +197,10 @@
                             </group>
 
 
-                            <group>
+                            <group col="1">
 
-                                <field name="cuota_ids">
-                                    <tree editable="top" delete="false" limit="120" multi_edit="1" create="false" >
+                                <field name="cuota_ids" nolabel="1" colspan="4">
+                                    <tree editable="top" delete="false" limit="120" multi_edit="1" create="false">
                                         <field name="name" readonly="1"/>
                                         <field name="monto" readonly="1"/>
                                         <field name="saldo"/>
@@ -255,6 +228,7 @@
                                         <field name="mora_pendiente"/>
                                         <field name="mora_operacion"/>
                                         <field name="mora_dias" readonly="1"/>
+                                        <field name="mora_last_payment_date" readonly="1"/>
                                         <field name="mora_estado_texto" widget="badge"
                                         decoration-danger="mora_estado_texto == 'Pendiente'"
                                         decoration-success="mora_estado_texto == 'Pagado'"/>

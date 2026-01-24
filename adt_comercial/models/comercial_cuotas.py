@@ -20,7 +20,7 @@ class AccountPayment(models.Model):
     )
     mora_operacion = fields.Char(string="# Operación")
     mora_dias = fields.Integer(string="Días de mora")  # 👈 NUEVO
-
+    mora_payment_date = fields.Date(string="Fecha pago de mora")  # <-- new field
 
 class ADTComercialCuotas(models.Model):
     _name = "adt.comercial.cuotas"
@@ -351,6 +351,7 @@ class ADTComercialRegisterPayment(models.TransientModel):
             'mora_state': self.mora_state,
             'mora_operacion': self.communication if self.mora_state == 'paid' else False,
             'mora_dias': self.mora_dias,
+            'mora_payment_date': self.payment_date if self.mora_state == 'paid' else False,  # <-- set here
         }
 
         _logger.info("Datos payment: %s", data)
@@ -394,7 +395,7 @@ class ADTComercialRegisterPayment(models.TransientModel):
                     'cuenta_id': cuota.cuenta_id.id,
                     'monto': restante,
                     'saldo': restante,
-                    'fecha_cronograma': fields.Date.context_today(self),  # 👈 fecha actual
+                    'fecha_cronograma': self.payment_date,  # 👈 fecha actual
                     'periodicidad': cuota.periodicidad,
                     'parent_id': parent.id,
                     'type': 'cuota',
@@ -423,24 +424,45 @@ class ADTComercialRegisterPayment(models.TransientModel):
             _logger.exception("ERROR registrando pago")
             raise
 
-    @api.depends('payment_date', 'cuota_id.fecha_cronograma')
+    @api.depends('payment_date', 'cuota_id.fecha_cronograma', 'cuota_id.payment_ids.mora')
     def _compute_mora(self):
-        factor = float(self.env['ir.config_parameter'].sudo()
-              .get_param('adt_comercial.mora_factor', 2))
-        
+        default_factor = float(self.env['ir.config_parameter'].sudo()
+                               .get_param('adt_comercial.mora_factor', 2))
         for record in self:
             record.mora = 0.0
             record.mora_dias = 0
 
-            if record.payment_date and record.cuota_id and record.cuota_id.fecha_cronograma:
-                fecha_pago = record.payment_date
-                fecha_cronograma = record.cuota_id.fecha_cronograma
+            if not (record.payment_date and record.cuota_id and record.cuota_id.fecha_cronograma):
+                continue
 
-                diff_days = (fecha_pago - fecha_cronograma).days
+            fecha_pago = record.payment_date
+            fecha_cronograma = record.cuota_id.fecha_cronograma
+            diff_days = (fecha_pago - fecha_cronograma).days
 
-                if diff_days > 0:
-                    record.mora_dias = diff_days
-                    record.mora = diff_days * factor      
+            if diff_days <= 0:
+                continue
+
+            # load up to two factor records for the company, ordered deterministically by id
+            factors = self.env['adt.cobranza.config.factor'].sudo().search(
+                [('company_id', '=', record.company_id.id)],
+                order='id asc',
+                limit=2
+            )
+
+            # count previous payments on the cuota that already had mora (> 0)
+            # ensure we count only actual stored payments (not the transient wizard)
+            previous_mora_payments = record.cuota_id.cuenta_id.cuota_ids.filtered(lambda p: p.mora_total > 0.0)
+            previous_mora_count = len(previous_mora_payments)
+
+            # choose factor by occurrence: 0 -> first factor, 1 -> second factor, etc.
+            if not factors:
+                factor = default_factor
+            else:
+                index = min(previous_mora_count, len(factors) - 1)
+                factor = float(factors[index].factor_mora)
+
+            record.mora_dias = diff_days
+            record.mora = diff_days * factor
 
 
 class ADTRegistrarObservacion(models.TransientModel):
@@ -484,7 +506,7 @@ class ADTPagarMoraWizard(models.TransientModel):
             raise UserError("No hay mora pendiente para pagar.")
             
         # Marcar como pagada (NO crear nuevo payment)
-        pagos_pendientes.write({'mora_state': 'paid', 'mora_operacion': self.mora_operacion})
+        pagos_pendientes.write({'mora_state': 'paid', 'mora_operacion': self.mora_operacion,'mora_payment_date': self.payment_date})
         
         # Forzar recálculo en cuota
         self.cuota_id.invalidate_cache()
@@ -519,3 +541,23 @@ class ResConfigSettings(models.TransientModel):
             mora_factor=float(param)
         )
         return res
+# python
+class ADTComercialCuotas(models.Model):
+    _inherit = "adt.comercial.cuotas"
+
+    mora_last_payment_date = fields.Date(
+        string="Fecha de pago",
+        compute="_compute_mora_last_payment_date",
+        store=True,
+    )
+
+    @api.depends('payment_ids.mora', 'payment_ids.mora_payment_date')
+    def _compute_mora_last_payment_date(self):
+        for rec in self:
+            pagos = rec.payment_ids.filtered(lambda p: p.mora > 0 and p.mora_payment_date)
+            if not pagos:
+                rec.mora_last_payment_date = False
+                continue
+            # pick the latest date (ISO string comparison is safe here)
+            dates = pagos.mapped('mora_payment_date')
+            rec.mora_last_payment_date = max(dates)

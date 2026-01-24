@@ -150,6 +150,8 @@ class ADTComercialCuentas(models.Model):
         store=True
     )
 
+    is_available_pay_mora = fields.Boolean(string="¿Paga Mora?")
+
     @api.onchange('fecha_desembolso')
     def fecha_desembolso_change(self):
         temp_date = int(self.fecha_desembolso.strftime("%d"))
@@ -266,9 +268,21 @@ class ADTComercialCuentas(models.Model):
         if (pagadas > 0) and self.state != 'cancelado':
             self.state = 'en_curso'
 
-        if (len(self.cuota_ids) > 0) and (
-                len(self.cuota_ids.filtered(lambda x: x.state == 'pagado')) == len(self.cuota_ids)):
-            self.state = 'pagado'
+        for rec in self:
+            # ... existing code above ...
+
+            pagadas_all = len(rec.cuota_ids.filtered(lambda x: x.state == 'pagado')) == len(rec.cuota_ids)
+            no_mora_pending = not rec.cuota_ids.filtered(lambda x: (x.mora_pendiente or 0) > 0)
+
+            if pagadas_all:
+                rec.state = 'pagado'
+
+                if rec.is_available_pay_mora:
+                    if no_mora_pending:
+                        rec.state = 'pagado'
+                    else:
+                        rec.state = 'en_curso'
+
 
     cuota_ids = fields.One2many(
         "adt.comercial.cuotas", "cuenta_id", string="Pagos")
@@ -844,6 +858,7 @@ class AdtMorasWizard(models.TransientModel):
     operacion_global = fields.Char(string="N° operación global")
 
     line_ids = fields.One2many('adt.moras.wizard.line', 'wizard_id')
+    payment_date = fields.Date(string="Fecha pago mora", default=fields.Date.context_today)
 
     @api.onchange('pagar_todo', 'operacion_global')
     def _onchange_pagar_todo(self):
@@ -877,6 +892,7 @@ class AdtMorasWizard(models.TransientModel):
                 'mora_pendiente': 0,
                 'mora_estado_texto': 'Pagado',
                 'mora_operacion': oper,
+                'mora_last_payment_date': self.payment_date,
             })
 
         return {'type': 'ir.actions.act_window_close'}
