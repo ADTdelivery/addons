@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_adt_report_tree" model="ir.ui.view">
+        <field name="name">adt.report.tree</field>
+        <field name="model">adt.report</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="date"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_report_form" model="ir.ui.view">
+        <field name="name">adt.report.form</field>
+        <field name="model">adt.report</field>
+        <field name="arch" type="xml">
+            <form string="ADT Report">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="date"/>
+                    </group>
+                    <group>
+                        <field name="note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_report" model="ir.actions.act_window">
+        <field name="name">ADT Reports</field>
+        <field name="res_model">adt.report</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_adt_report_root" name="ADT"/>
+    <menuitem id="menu_adt_report" name="Reports" parent="menu_adt_report_root" action="action_adt_report"/>
+</odoo>

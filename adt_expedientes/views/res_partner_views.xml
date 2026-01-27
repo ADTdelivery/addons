@@ -1,0 +1,48 @@
+<odoo>
+
+    <record id="view_partner_form_adt_expedientes" model="ir.ui.view">
+        <field name="name">res.partner.form.adt.expedientes</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//notebook" position="inside">
+
+                <page string="Expedientes">
+
+                    <field name="expediente_ids" nolabel="1">
+                        <tree>
+                            <field name="id" string="#"/>
+                            <field name="fecha"/>
+                            <field name="asesora_id"/>
+                            <field name="state"
+                                   widget="badge"
+                                   decoration-info="state == 'por_revisar'"
+                                   decoration-warning="state == 'incompleto'"
+                                   decoration-success="state == 'completo'"
+                                   decoration-danger="state == 'rechazado'"/>
+                            <button name="action_open_expediente"
+                                    type="object"
+                                    string="Abrir"
+                                    icon="fa-external-link"
+                                    class="btn-primary"/>
+                        </tree>
+
+                        <form>
+                            <group>
+                                <field name="cliente_id" readonly="1"/>
+                                <field name="asesora_id"/>
+                                <field name="fecha"/>
+                                <field name="state"/>
+                            </group>
+                        </form>
+                    </field>
+
+                </page>
+
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

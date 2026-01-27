@@ -1,0 +1,9 @@
+<odoo>
+    <record id="group_expediente_user" model="res.groups">
+        <field name="name">Usuario Expedientes</field>
+    </record>
+
+    <record id="group_expediente_supervisor" model="res.groups">
+        <field name="name">Supervisor Expedientes</field>
+    </record>
+</odoo>

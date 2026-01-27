@@ -1,0 +1,364 @@
+<odoo>
+
+    <!-- POPUP FOTO -->
+    <record id="view_foto_vivienda_popup" model="ir.ui.view">
+        <field name="name">foto.vivienda.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Foto de vivienda">
+                <sheet>
+                    <group>
+                        <field name="foto_vivienda" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <!-- POPUP FOTO INGRESOS -->
+    <record id="view_foto_ingresos_popup" model="ir.ui.view">
+        <field name="name">foto.ingresos.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Fotos de ingresos">
+                <sheet>
+                    <group>
+                        <field name="foto_ingresos" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP FOTO LICENCIA -->
+    <record id="view_foto_licencia_popup" model="ir.ui.view">
+        <field name="name">foto.licencia.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Foto licencia de conducir">
+                <sheet>
+                    <group>
+                        <field name="foto_licencia" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <!-- POPUP FOTO ENTREGA -->
+    <record id="view_foto_entrega_popup" model="ir.ui.view">
+        <field name="name">foto.entrega.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Foto con el cliente">
+                <sheet>
+                    <group>
+                        <field name="foto_entrega" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <!-- FORM VIEW -->
+    <record id="view_adt_expediente_form" model="ir.ui.view">
+        <field name="name">adt.expediente.form</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+
+            <form string="Expediente">
+
+                <header>
+                    <button string="Rechazar" name="action_rechazar" type="object" class="btn-danger"/>
+
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="por_revisar,incompleto,completo,rechazado"/>
+                </header>
+
+                <sheet>
+
+                    <group col="4">
+                        <field name="cliente_id"/>
+                        <field name="asesora_id"/>
+                        <field name="fecha"/>
+                    </group>
+
+                    <separator string="REQUISITOS DEL EXPEDIENTE"/>
+
+                    <!-- FOTO VIVIENDA -->
+                    <group>
+                        <group col="1">
+                            <div class="o_form_label">
+                                <strong>1. Foto de vivienda</strong>
+                            </div>
+
+                            <field name="foto_vivienda" widget="binary" nolabel="1"/>
+
+                            <div attrs="{'invisible': [('foto_vivienda','=',False)]}" class="text-success">
+                                ✔ Imagen cargada
+                            </div>
+                            <div attrs="{'invisible': [('foto_vivienda','!=',False)]}" class="text-danger">
+                                ✘ Sin imagen
+                            </div>
+
+                            <button name="action_ver_foto_vivienda"
+                                    type="object"
+                                    string="Ver imagen"
+                                    class="btn-primary"
+                                    attrs="{'invisible': [('foto_vivienda','=',False)]}"/>
+                        </group>
+
+                        <group col="2">
+                            <field name="estado_foto_vivienda" string="Estado"/>
+
+                            <field name="obs_foto_vivienda"
+                                   placeholder="Motivo del rechazo..."
+                                   nolabel="1"
+                                   attrs="{'invisible': [('estado_foto_vivienda','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- INGRESOS -->
+                    <group>
+                        <group col="1">
+                            <div class="o_form_label">
+                                <strong>2. Fotos de ingresos</strong>
+                            </div>
+
+                            <field name="foto_ingresos" widget="binary" nolabel="1"/>
+
+                            <div attrs="{'invisible': [('foto_ingresos','=',False)]}" class="text-success">
+                                ✔ Imagen cargada
+                            </div>
+                            <div attrs="{'invisible': [('foto_ingresos','!=',False)]}" class="text-danger">
+                                ✘ Sin imagen
+                            </div>
+
+                            <button name="action_ver_foto_ingresos"
+                                    type="object"
+                                    string="Ver imagen"
+                                    class="btn-primary"
+                                    attrs="{'invisible': [('foto_ingresos','=',False)]}"/>
+                        </group>
+
+                        <group col="2">
+                            <field name="estado_foto_ingresos" string="Estado"/>
+
+                            <field name="obs_foto_ingresos"
+                                   placeholder="Motivo del rechazo..."
+                                   nolabel="1"
+                                   attrs="{'invisible': [('estado_foto_ingresos','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+
+                    <!-- DIRECCION -->
+                    <group>
+                        <group col="1">
+                            <div class="o_form_label">
+                                <strong>3. Dirección del cliente</strong>
+                            </div>
+
+                            <field name="direccion_cliente" colspan="2"  nolabel="1"/>
+
+                            <div attrs="{'invisible': [('direccion_cliente','=',False)]}" class="text-success">
+                                ✔ Dirección registrada
+                            </div>
+                            <div attrs="{'invisible': [('direccion_cliente','!=',False)]}" class="text-danger">
+                                ✘ Sin dirección
+                            </div>
+                        </group>
+
+                        <group col="2">
+                            <field name="estado_direccion"  string="Estado"/>
+
+                            <field name="obs_direccion"
+                                   placeholder="Motivo del rechazo..."
+                                   nolabel="1"
+                                   attrs="{'invisible': [('estado_direccion','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+
+
+                    <!-- LICENCIA -->
+                    <group>
+                        <group col="1">
+                            <div class="o_form_label">
+                                <strong>4. Foto licencia de conducir</strong>
+                            </div>
+
+                            <field name="foto_licencia" widget="binary" nolabel="1"/>
+
+                            <div attrs="{'invisible': [('foto_licencia','=',False)]}" class="text-success">
+                                ✔ Imagen cargada
+                            </div>
+                            <div attrs="{'invisible': [('foto_licencia','!=',False)]}" class="text-danger">
+                                ✘ Sin imagen
+                            </div>
+
+                            <button name="action_ver_foto_licencia"
+                                    type="object"
+                                    string="Ver imagen"
+                                    class="btn-primary"
+                                    attrs="{'invisible': [('foto_licencia','=',False)]}"/>
+                        </group>
+
+                        <group col="2">
+                            <field name="estado_foto_licencia" string="Estado"/>
+
+                            <field name="obs_foto_licencia"
+                                   placeholder="Motivo del rechazo..."
+                                   nolabel="1"
+                                   attrs="{'invisible': [('estado_foto_licencia','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+
+                    <separator string="FASE FINAL"/>
+
+                    <group col="3">
+
+                        <!-- COLUMNA 1: FOTO ENTREGA -->
+                        <group>
+                            <div class="o_form_label">📸 Foto con cliente</div>
+
+                            <field name="foto_entrega" widget="binary"/>
+
+                            <div attrs="{'invisible': [('foto_entrega','=',False)]}" class="text-success">
+                                ✔ Imagen registrada
+                            </div>
+                            <div attrs="{'invisible': [('foto_entrega','!=',False)]}" class="text-danger">
+                                ✘ Sin imagen
+                            </div>
+
+                            <button name="action_ver_foto_entrega"
+                                    type="object"
+                                    string="Ver imagen"
+                                    class="btn-primary"
+                                    attrs="{'invisible': [('foto_entrega','=',False)]}"/>
+                        </group>
+
+                        <!-- COLUMNA 2: PLACA -->
+                        <group>
+                            <field name="placa" string="🚗 Placa"/>
+                        </group>
+
+                        <!-- COLUMNA 3: CHASIS -->
+                        <group>
+                            <field name="chasis" string="🔩 Chasis"/>
+                        </group>
+
+                    </group>
+
+                    <group string="MOTIVOS DE RECHAZO"
+                           attrs="{'invisible': [('state', '!=', 'rechazado')]}">
+
+                        <field name="fecha_rechazo" readonly="1"/>
+                        <field name="motivo_rechazo" readonly="1"/>
+
+                    </group>
+
+
+                </sheet>
+
+            </form>
+        </field>
+    </record>
+
+    <!-- TREE -->
+    <record id="view_adt_expediente_tree" model="ir.ui.view">
+        <field name="name">adt.expediente.tree</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="id" string="Expediente #"/>
+                <field name="cliente_id"/>
+                <field name="asesora_id"/>
+                <field name="fecha"/>
+
+                <field name="state"
+                       widget="badge"
+                       decoration-info="state == 'por_revisar'"
+                       decoration-warning="state == 'incompleto'"
+                       decoration-success="state == 'completo'"
+                       decoration-danger="state == 'rechazado'"/>
+
+            </tree>
+        </field>
+    </record>
+
+
+
+    <!-- ACTION -->
+    <record id="action_adt_expediente" model="ir.actions.act_window">
+        <field name="name">Expedientes</field>
+        <field name="res_model">adt.expediente</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+
+    <record id="action_adt_expediente_por_revisar" model="ir.actions.act_window">
+        <field name="name">Expedientes - Por revisar</field>
+        <field name="res_model">adt.expediente</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state','=','por_revisar')]</field>
+    </record>
+
+    <record id="action_adt_expediente_incompletos" model="ir.actions.act_window">
+        <field name="name">Expedientes - Incompletos</field>
+        <field name="res_model">adt.expediente</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state','=','incompleto')]</field>
+    </record>
+
+    <record id="action_adt_expediente_completos" model="ir.actions.act_window">
+        <field name="name">Expedientes - Completos</field>
+        <field name="res_model">adt.expediente</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state','=','completo')]</field>
+    </record>
+
+    <record id="action_adt_expediente_rechazados" model="ir.actions.act_window">
+        <field name="name">Expedientes - Rechazados</field>
+        <field name="res_model">adt.expediente</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state','=','rechazado')]</field>
+    </record>
+
+
+    <!-- MENU -->
+    <!-- MENU ROOT -->
+    <menuitem id="menu_adt_root" name="Expedientes"/>
+
+    <menuitem id="menu_adt_expedientes_todos"
+              name="Todos"
+              parent="menu_adt_root"
+              action="action_adt_expediente"/>
+
+    <menuitem id="menu_adt_expedientes_por_revisar"
+              name="Por revisar"
+              parent="menu_adt_root"
+              action="action_adt_expediente_por_revisar"/>
+
+    <menuitem id="menu_adt_expedientes_incompletos"
+              name="Incompletos"
+              parent="menu_adt_root"
+              action="action_adt_expediente_incompletos"/>
+
+    <menuitem id="menu_adt_expedientes_completos"
+              name="Completos"
+              parent="menu_adt_root"
+              action="action_adt_expediente_completos"/>
+
+    <menuitem id="menu_adt_expedientes_rechazados"
+              name="Rechazados"
+              parent="menu_adt_root"
+              action="action_adt_expediente_rechazados"/>
+
+
+
+</odoo>

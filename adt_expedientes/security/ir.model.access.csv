@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id,perm_read,perm_write,perm_create,perm_unlink
+access_adt_expediente,access_adt_expediente,model_adt_expediente,,1,1,1,1
+access_adt_expediente_rechazo_wizard,access_adt_expediente_rechazo_wizard,model_adt_expediente_rechazo_wizard,,1,1,1,1
+
