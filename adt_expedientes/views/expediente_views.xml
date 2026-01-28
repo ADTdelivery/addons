@@ -31,6 +31,52 @@
         </field>
     </record>
 
+    <!-- POPUP RECIBO 1 -->
+    <record id="view_foto_recibo_popup" model="ir.ui.view">
+        <field name="name">foto.recibo.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Recibo - Foto">
+                <sheet>
+                    <group>
+                        <field name="foto_recibo" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP SENTINEL 1 -->
+    <record id="view_foto_sentinel_1_popup" model="ir.ui.view">
+        <field name="name">foto.sentinel.1.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Sentinel - Score">
+                <sheet>
+                    <group>
+                        <field name="foto_sentinel_1" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP SENTINEL 2 -->
+    <record id="view_foto_sentinel_2_popup" model="ir.ui.view">
+        <field name="name">foto.sentinel.2.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Sentinel - Deudas">
+                <sheet>
+                    <group>
+                        <field name="foto_sentinel_2" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
     <!-- POPUP FOTO LICENCIA -->
     <record id="view_foto_licencia_popup" model="ir.ui.view">
         <field name="name">foto.licencia.popup</field>
@@ -62,6 +108,94 @@
         </field>
     </record>
 
+    <!-- POPUP DOCUMENTOS -->
+    <record id="view_foto_dni_frente_popup" model="ir.ui.view">
+        <field name="name">foto.dni.frente.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="DNI - Anverso">
+                <sheet>
+                    <group>
+                        <field name="foto_dni_frente" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_foto_dni_reverso_popup" model="ir.ui.view">
+        <field name="name">foto.dni.reverso.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="DNI - Reverso">
+                <sheet>
+                    <group>
+                        <field name="foto_dni_reverso" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <!-- CE front/reverse popups -->
+    <record id="view_foto_ce_frente_popup" model="ir.ui.view">
+        <field name="name">foto.ce.frente.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="CE - Anverso">
+                <sheet>
+                    <group>
+                        <field name="foto_ce_frente" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_foto_ce_reverso_popup" model="ir.ui.view">
+        <field name="name">foto.ce.reverso.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="CE - Reverso">
+                <sheet>
+                    <group>
+                        <field name="foto_ce_reverso" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Passport front/reverse popups -->
+    <record id="view_foto_pasaporte_frente_popup" model="ir.ui.view">
+        <field name="name">foto.pasaporte.frente.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Pasaporte - Anverso">
+                <sheet>
+                    <group>
+                        <field name="foto_pasaporte_frente" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_foto_pasaporte_reverso_popup" model="ir.ui.view">
+        <field name="name">foto.pasaporte.reverso.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Pasaporte - Reverso">
+                <sheet>
+                    <group>
+                        <field name="foto_pasaporte_reverso" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
 
     <!-- FORM VIEW -->
     <record id="view_adt_expediente_form" model="ir.ui.view">
@@ -82,11 +216,247 @@
 
                     <group col="4">
                         <field name="cliente_id"/>
+                        <!-- hidden field so attrs referencing cliente_nationality validate correctly -->
+                        <field name="cliente_nationality"/>
+                        <field name="cliente_occupation"/>
                         <field name="asesora_id"/>
                         <field name="fecha"/>
                     </group>
 
+
+                    <separator string="VEHICULO"/>
+
+                    <group>
+                        <field name="vehiculo"/>
+                    </group>
+
+                    <group>
+
+                        <!-- DNI (Peruano) -->
+                        <div attrs="{'invisible': [('cliente_nationality','!=','peruana')]}">
+                            <div class="o_form_label">
+                                <strong>1. Documento de identidad</strong>
+                            </div>
+                            <separator/>
+
+                            <div class="o_form_label">
+                                <strong>DNI</strong>
+                            </div>
+                            <group>
+                                <group col="1">
+
+                                    <div class="o_form_label">DNI Anverso</div>
+                                    <field name="foto_dni_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','peruana')]}"/>
+                                    <div attrs="{'invisible': [('foto_dni_frente','=',False)]}" class="text-success">
+                                        ✔ Imagen cargada
+                                    </div>
+                                    <div attrs="{'invisible': [('foto_dni_frente','!=',False)]}" class="text-danger">
+                                        ✘ Sin imagen
+                                    </div>
+                                    <button name="action_ver_foto_dni_frente" type="object" string="Ver anverso" class="btn-primary" attrs="{'invisible': [('foto_dni_frente','=',False)]}"/>
+
+
+                                    <div class="o_form_label">DNI Reverso</div>
+                                    <field name="foto_dni_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','peruana')]}"/>
+
+                                    <div attrs="{'invisible': [('foto_dni_reverso','=',False)]}" class="text-success">
+                                        ✔ Imagen cargada
+                                    </div>
+                                    <div attrs="{'invisible': [('foto_dni_reverso','!=',False)]}" class="text-danger">
+                                        ✘ Sin imagen
+                                    </div>
+                                    <button name="action_ver_foto_dni_reverso" type="object" string="Ver reverso" class="btn-primary" attrs="{'invisible': [('foto_dni_reverso','=',False)]}"/>
+                                </group>
+
+                                <group col="2">
+
+                                    <field name="estado_foto_dni" attrs="{'invisible': [('cliente_nationality','!=','peruana')]}"/>
+                                    <field name="obs_foto_dni" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_dni','!=','rechazado')]}"/>
+                                </group>
+                            </group>
+                        </div>
+
+                    </group>
+
                     <separator string="REQUISITOS DEL EXPEDIENTE"/>
+
+                    <group>
+
+
+                        <!-- EXTRANJERO: CE o Pasaporte -->
+                        <div attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}">
+
+                            <div class="o_form_label">
+                                <strong>1. Documento de identidad</strong>
+                            </div>
+                            <separator/>
+
+                            <div class="o_form_label">
+                                <strong>Carnet de Extranjería</strong>
+                            </div>
+                            <group >
+                                <group col="1">
+
+                                    <div class="o_form_label">Anverso</div>
+                                    <field name="foto_ce_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <div attrs="{'invisible': [('foto_ce_frente','=',False)]}" class="text-success">
+                                        ✔ Imagen cargada
+                                    </div>
+                                    <div attrs="{'invisible': [('foto_ce_frente','!=',False)]}" class="text-danger">
+                                        ✘ Sin imagen
+                                    </div>
+                                    <button name="action_ver_foto_ce_frente" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_ce_frente','=',False)]}"/>
+
+
+                                    <div class="o_form_label">Reverso</div>
+                                    <field name="foto_ce_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <div attrs="{'invisible': [('foto_ce_reverso','=',False)]}" class="text-success">
+                                        ✔ Imagen cargada
+                                    </div>
+                                    <div attrs="{'invisible': [('foto_ce_reverso','!=',False)]}" class="text-danger">
+                                        ✘ Sin imagen
+                                    </div>
+                                    <button name="action_ver_foto_ce_reverso" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_ce_reverso','=',False)]}"/>
+
+                                </group>
+
+                                <group col="2">
+                                    <field name="estado_foto_ce" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="obs_foto_ce" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_ce','!=','rechazado')]}"/>
+                                </group>
+
+                            </group>
+
+
+                            <div class="o_form_label">
+                                <strong>Pasaporte</strong>
+                            </div>
+                            <separator/>
+
+                            <group>
+                                <group col="1">
+                                    <div class="o_form_label">Anverso</div>
+                                    <field name="foto_pasaporte_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <div attrs="{'invisible': [('foto_pasaporte_frente','=',False)]}" class="text-success">
+                                        ✔ Imagen cargada
+                                    </div>
+                                    <div attrs="{'invisible': [('foto_pasaporte_frente','!=',False)]}" class="text-danger">
+                                        ✘ Sin imagen
+                                    </div>
+                                    <button name="action_ver_foto_pasaporte_frente" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_pasaporte_frente','=',False)]}"/>
+
+
+                                    <div class="o_form_label">Reverso</div>
+                                    <field name="foto_pasaporte_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <div attrs="{'invisible': [('foto_pasaporte_reverso','=',False)]}" class="text-success">
+                                        ✔ Imagen cargada
+                                    </div>
+                                    <div attrs="{'invisible': [('foto_pasaporte_reverso','!=',False)]}" class="text-danger">
+                                        ✘ Sin imagen
+                                    </div>
+                                    <button name="action_ver_foto_pasaporte_reverso" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_pasaporte_reverso','=',False)]}"/>
+
+                                </group>
+
+                                <group  col="2">
+                                    <field name="estado_foto_pasaporte" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="obs_foto_pasaporte" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_pasaporte','!=','rechazado')]}"/>
+                                </group>
+                            </group>
+
+                        </div>
+
+                    </group>
+
+                    <!-- LICENCIA -->
+                    <group>
+                        <group col="1">
+                            <div class="o_form_label">
+                                <strong>2. Licencia</strong>
+                            </div>
+
+                            <field name="foto_licencia" widget="binary" nolabel="1"/>
+
+                            <div attrs="{'invisible': [('foto_licencia','=',False)]}" class="text-success">
+                                ✔ Imagen cargada
+                            </div>
+                            <div attrs="{'invisible': [('foto_licencia','!=',False)]}" class="text-danger">
+                                ✘ Sin imagen
+                            </div>
+
+                            <button name="action_ver_foto_licencia"
+                                    type="object"
+                                    string="Ver imagen"
+                                    class="btn-primary"
+                                    attrs="{'invisible': [('foto_licencia','=',False)]}"/>
+                        </group>
+
+                        <group col="2">
+                            <field name="estado_foto_licencia" string="Estado"/>
+
+                            <field name="obs_foto_licencia"
+                                   placeholder="Motivo del rechazo..."
+                                   nolabel="1"
+                                   attrs="{'invisible': [('estado_foto_licencia','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- RECIBO LUZ/AGUA -->
+                    <group>
+                        <group col="1">
+                            <div class="o_form_label">
+                                <strong>3. Recibo de luz o agua (últimos 2 meses)</strong>
+                            </div>
+
+                            <group col="2">
+                                <group>
+                                    <field name="foto_recibo" widget="binary" nolabel="1"/>
+                                    <div attrs="{'invisible': [('foto_recibo','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                                    <div attrs="{'invisible': [('foto_recibo','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                                    <button name="action_ver_foto_recibo" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_recibo','=',False)]}"/>
+                                </group>
+
+                            </group>
+
+                        </group>
+
+                        <group col="2">
+                            <field name="estado_foto_recibo" string="Estado"/>
+                            <field name="obs_foto_recibo" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_recibo','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- SENTINEL / SCORE -->
+                    <group>
+
+                        <div class="o_form_label">
+                            <strong>4. Sentinel - Score / Deudas</strong>
+                        </div>
+
+                        <group col="1">
+
+                            <div class="o_form_label">Score (Imagen)</div>
+                            <field name="foto_sentinel_1" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_sentinel_1','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_sentinel_1','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_sentinel_1" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_sentinel_1','=',False)]}"/>
+
+                            <div class="o_form_label">Deudas / Servicios (Imagen)</div>
+                            <field name="foto_sentinel_2" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_sentinel_2','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_sentinel_2','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_sentinel_2" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_sentinel_2','=',False)]}"/>
+
+
+                        </group>
+
+                        <group col="2">
+                            <field name="estado_foto_sentinel" string="Estado"/>
+                            <field name="obs_foto_sentinel" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_sentinel','!=','rechazado')]}"/>
+                            <button name="action_ver_foto_sentinel" type="object" string="Ver todas" class="btn-secondary"/>
+                        </group>
+                    </group>
+
 
                     <!-- FOTO VIVIENDA -->
                     <group>
@@ -155,6 +525,8 @@
                     </group>
 
 
+
+
                     <!-- DIRECCION -->
                     <group>
                         <group col="1">
@@ -179,41 +551,6 @@
                                    placeholder="Motivo del rechazo..."
                                    nolabel="1"
                                    attrs="{'invisible': [('estado_direccion','!=','rechazado')]}"/>
-                        </group>
-                    </group>
-
-
-
-                    <!-- LICENCIA -->
-                    <group>
-                        <group col="1">
-                            <div class="o_form_label">
-                                <strong>4. Foto licencia de conducir</strong>
-                            </div>
-
-                            <field name="foto_licencia" widget="binary" nolabel="1"/>
-
-                            <div attrs="{'invisible': [('foto_licencia','=',False)]}" class="text-success">
-                                ✔ Imagen cargada
-                            </div>
-                            <div attrs="{'invisible': [('foto_licencia','!=',False)]}" class="text-danger">
-                                ✘ Sin imagen
-                            </div>
-
-                            <button name="action_ver_foto_licencia"
-                                    type="object"
-                                    string="Ver imagen"
-                                    class="btn-primary"
-                                    attrs="{'invisible': [('foto_licencia','=',False)]}"/>
-                        </group>
-
-                        <group col="2">
-                            <field name="estado_foto_licencia" string="Estado"/>
-
-                            <field name="obs_foto_licencia"
-                                   placeholder="Motivo del rechazo..."
-                                   nolabel="1"
-                                   attrs="{'invisible': [('estado_foto_licencia','!=','rechazado')]}"/>
                         </group>
                     </group>
 
