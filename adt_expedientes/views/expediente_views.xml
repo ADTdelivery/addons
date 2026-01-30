@@ -399,6 +399,7 @@
                         <field name="cliente_id"/>
                         <!-- hidden field so attrs referencing cliente_nationality validate correctly -->
                         <field name="cliente_nationality"/>
+                        <field name="cliente_nationality_code" invisible="1"/>
                         <!-- hidden field so attrs referencing cliente_occupation_code validate correctly -->
                         <field name="cliente_occupation_code" invisible="1"/>
                         <field name="cliente_occupation"/>
@@ -418,7 +419,7 @@
                     <group>
 
                         <!-- DNI (Peruano) -->
-                        <div attrs="{'invisible': [('cliente_nationality','!=','peruana')]}">
+                        <div attrs="{'invisible': [('cliente_nationality_code','!=','peruana')]}">
                             <div class="o_form_label">
                                 <strong>1. Documento de identidad</strong>
                             </div>
@@ -431,7 +432,7 @@
                                 <group col="1">
 
                                     <div class="o_form_label">DNI Anverso</div>
-                                    <field name="foto_dni_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','peruana')]}"/>
+                                    <field name="foto_dni_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','!=','peruana')]}"/>
                                     <div attrs="{'invisible': [('foto_dni_frente','=',False)]}" class="text-success">
                                         ✔ Imagen cargada
                                     </div>
@@ -442,7 +443,7 @@
 
 
                                     <div class="o_form_label">DNI Reverso</div>
-                                    <field name="foto_dni_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','peruana')]}"/>
+                                    <field name="foto_dni_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','!=','peruana')]}"/>
 
                                     <div attrs="{'invisible': [('foto_dni_reverso','=',False)]}" class="text-success">
                                         ✔ Imagen cargada
@@ -455,7 +456,7 @@
 
                                 <group col="2">
 
-                                    <field name="estado_foto_dni" attrs="{'invisible': [('cliente_nationality','!=','peruana')]}"/>
+                                    <field name="estado_foto_dni" attrs="{'invisible': [('cliente_nationality_code','!=','peruana')]}"/>
                                     <field name="obs_foto_dni" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_dni','!=','rechazado')]}"/>
                                 </group>
                             </group>
@@ -467,7 +468,7 @@
 
 
                         <!-- EXTRANJERO: CE o Pasaporte -->
-                        <div attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}">
+                        <div attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}">
 
                             <div class="o_form_label">
                                 <strong>1. Documento de identidad</strong>
@@ -481,7 +482,7 @@
                                 <group col="1">
 
                                     <div class="o_form_label">Anverso</div>
-                                    <field name="foto_ce_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="foto_ce_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
                                     <div attrs="{'invisible': [('foto_ce_frente','=',False)]}" class="text-success">
                                         ✔ Imagen cargada
                                     </div>
@@ -492,7 +493,7 @@
 
 
                                     <div class="o_form_label">Reverso</div>
-                                    <field name="foto_ce_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="foto_ce_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
                                     <div attrs="{'invisible': [('foto_ce_reverso','=',False)]}" class="text-success">
                                         ✔ Imagen cargada
                                     </div>
@@ -504,7 +505,7 @@
                                 </group>
 
                                 <group col="2">
-                                    <field name="estado_foto_ce" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="estado_foto_ce" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
                                     <field name="obs_foto_ce" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_ce','!=','rechazado')]}"/>
                                 </group>
 
@@ -519,7 +520,7 @@
                             <group>
                                 <group col="1">
                                     <div class="o_form_label">Anverso</div>
-                                    <field name="foto_pasaporte_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="foto_pasaporte_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
                                     <div attrs="{'invisible': [('foto_pasaporte_frente','=',False)]}" class="text-success">
                                         ✔ Imagen cargada
                                     </div>
@@ -530,7 +531,7 @@
 
 
                                     <div class="o_form_label">Reverso</div>
-                                    <field name="foto_pasaporte_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="foto_pasaporte_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
                                     <div attrs="{'invisible': [('foto_pasaporte_reverso','=',False)]}" class="text-success">
                                         ✔ Imagen cargada
                                     </div>
@@ -542,7 +543,7 @@
                                 </group>
 
                                 <group  col="2">
-                                    <field name="estado_foto_pasaporte" attrs="{'invisible': [('cliente_nationality','!=','extranjera')]}"/>
+                                    <field name="estado_foto_pasaporte" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
                                     <field name="obs_foto_pasaporte" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_pasaporte','!=','rechazado')]}"/>
                                 </group>
                             </group>
@@ -840,6 +841,13 @@
                             <field name="estado_foto_contrato" string="Estado"/>
                             <field name="obs_foto_contrato" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_contrato','!=','rechazado')]}"/>
                         </group>
+                    </group>
+
+
+                    <group>
+                        <div class="o_form_label">
+                            <strong>7. Referencias (hasta 4)</strong>
+                        </div>
                     </group>
 
 

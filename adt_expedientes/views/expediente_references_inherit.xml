@@ -1,0 +1,66 @@
+<odoo>
+    <record id="view_adt_expediente_form_references_inherit" model="ir.ui.view">
+        <field name="name">adt.expediente.form.references.inherit</field>
+        <field name="model">adt.expediente</field>
+        <field name="inherit_id" ref="adt_expedientes.view_adt_expediente_form"/>
+        <field name="arch" type="xml">
+            <!-- Insert references section after the Sentinel group -->
+            <xpath expr="//group[div/strong[normalize-space(.)='7. Referencias (hasta 4)']]"
+                   position="after">
+
+                <!-- Reference 1 -->
+                <group>
+
+                    <group col="1">
+                        <group>
+                            <div class="o_form_label">Referencia 1</div>
+                            <field name="ref_1_name"  placeholder="Nombres y Apellidos"/>
+                            <field name="ref_1_phone"   placeholder="Celular"/>
+                            <field name="ref_1_vinculo"  />
+                        </group>
+
+
+                        <!-- Reference 2 -->
+
+                        <group>
+                            <div class="o_form_label">Referencia 2</div>
+                            <field name="ref_2_name"   placeholder="Nombres y Apellidos"/>
+                            <field name="ref_2_phone"   placeholder="Celular"/>
+                            <field name="ref_2_vinculo"  />
+                        </group>
+
+
+                        <!-- Reference 3 -->
+                        <group>
+                            <div class="o_form_label">Referencia 3</div>
+                            <field name="ref_3_name"    placeholder="Nombres y Apellidos"/>
+                            <field name="ref_3_phone"   placeholder="Celular"/>
+                            <field name="ref_3_vinculo"  />
+                        </group>
+
+
+                        <!-- Reference 4 -->
+
+                        <group>
+                            <div class="o_form_label">Referencia 4</div>
+                            <field name="ref_4_name"   placeholder="Nombres y Apellidos"/>
+                            <field name="ref_4_phone"   placeholder="Celular"/>
+                            <field name="ref_4_vinculo"  />
+                        </group>
+
+
+                    </group>
+
+                    <group col="2">
+                        <field name="estado_referencias" string="Estado referencias"/>
+                        <field name="obs_referencias" placeholder="Motivo del rechazo..." nolabel="1"
+                               attrs="{'invisible': [('estado_referencias','!=','rechazado')]}"/>
+                    </group>
+
+
+                </group>
+
+            </xpath>
+        </field>
+    </record>
+</odoo>

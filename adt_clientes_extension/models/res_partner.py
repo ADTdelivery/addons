@@ -12,7 +12,31 @@ class ResPartner(models.Model):
 
     nationality = fields.Selection([
         ('peruana', 'Peruana'),
-        ('extranjera', 'Extranjera')
+        ('argentina', 'Argentina'),
+        ('bolivia', 'Bolivia'),
+        ('brasil', 'Brasil'),
+        ('chile', 'Chile'),
+        ('colombia', 'Colombia'),
+        ('costa_rica', 'Costa Rica'),
+        ('cuba', 'Cuba'),
+        ('republica_dominicana', 'República Dominicana'),
+        ('ecuador', 'Ecuador'),
+        ('el_salvador', 'El Salvador'),
+        ('guatemala', 'Guatemala'),
+        ('honduras', 'Honduras'),
+        ('mexico', 'México'),
+        ('nicaragua', 'Nicaragua'),
+        ('panama', 'Panamá'),
+        ('paraguay', 'Paraguay'),
+        ('puerto_rico', 'Puerto Rico'),
+        ('uruguay', 'Uruguay'),
+        ('venezuela', 'Venezuela'),
+        ('belice', 'Belice'),
+        ('haiti', 'Haití'),
+        ('guyana', 'Guyana'),
+        ('suriname', 'Surinam'),
+        ('guayana_francesa', 'Guayana Francesa'),
+        ('otro', 'Otro'),
     ], string="Nacionalidad")
 
     document_number = fields.Char(string="Documento de identidad", required=True)
@@ -33,13 +57,41 @@ class ResPartner(models.Model):
         ('4+', '4 o más')
     ], string="Cantidad de hijos")
 
-    occupation = fields.Selection([
-        ('mototaxista', 'Mototaxista'),
-        ('empleado', 'Empleado'),
-        ('independiente', 'Independiente'),
-        ('comerciante', 'Comerciante'),
-        ('otro', 'Otro')
-    ], string="Ocupación", required=True)
+    occupation = fields.Selection(
+        [
+            # Mototaxi / Transporte
+            ('mototaxista', 'Mototaxista'),
+            ('mototaxista_empleado', 'Chofer de mototaxi (empleado)'),
+            ('delivery', 'Repartidor / Delivery'),
+            ('conductor_informal', 'Conductor de transporte informal (taxi, combi)'),
+
+            # Comercio
+            ('comerciante_ambulante', 'Comerciante ambulante'),
+            ('tiendecista', 'Pequeño comerciante / Tiendecista'),
+            ('microempresario', 'Microempresario'),
+
+            # Construcción / Oficios
+            ('obrero_construccion', 'Trabajador de construcción'),
+            ('obrero_general', 'Obrero general'),
+            ('electricista', 'Electricista'),
+            ('plomero', 'Plomero'),
+            ('carpintero', 'Carpintero'),
+            ('mecanico', 'Mecánico'),
+            ('soldador', 'Soldador'),
+            ('cerrajero', 'Cerrajero'),
+
+            # Servicios / Otros trabajos
+            ('empleado_servicios', 'Empleado de servicios (hotel, retail, atención al cliente)'),
+            ('jornalero', 'Trabajador por días / Jornalero'),
+            ('agricultor', 'Agricultor / Campesino'),
+            ('estudiante_trabajador', 'Estudiante con trabajo informal'),
+
+            # Otros
+            ('otro', 'Otro'),
+        ],
+        string="Ocupación",
+        required=True
+    )
 
     reference_ids = fields.One2many(
         'res.partner.reference',

@@ -1,0 +1,67 @@
+"""
+    # ======================
+    # ESTADO AUTOMÁTICO
+    # ======================
+
+    @api.depends(
+        'foto_vivienda', 'foto_ingresos', 'direccion_cliente', 'foto_licencia',
+        'foto_entrega', 'placa', 'chasis',
+        'estado_foto_vivienda', 'estado_foto_ingresos',
+        'estado_direccion', 'estado_foto_licencia',
+        'foto_dni_frente', 'foto_dni_reverso', 'estado_foto_dni',
+        'foto_ce_frente', 'foto_ce_reverso', 'estado_foto_ce',
+        'foto_pasaporte_frente', 'foto_pasaporte_reverso', 'estado_foto_pasaporte', 'cliente_id',
+        'foto_recibo', 'estado_foto_recibo'
+    )
+    def _compute_state(self):
+        for rec in self:
+
+            # Mantener rechazado
+            if rec.state == 'rechazado':
+                continue
+
+            # Registro nuevo
+            if not rec.id:
+                rec.state = 'por_revisar'
+                continue
+
+            # Documento de identidad valid depending on nationality
+            doc_ok = True
+            if rec.cliente_id:
+                nat = getattr(rec.cliente_id, 'nationality', False)
+                # If nationality is Peruana, require DNI front+back accepted. Otherwise (any other country) require CE or Passport.
+                if nat == 'peruana':
+                    doc_ok = bool(rec.foto_dni_frente and rec.foto_dni_reverso and rec.estado_foto_dni == 'aceptado')
+                elif nat and nat != 'peruana':
+                    # require both front and reverse for CE and passport
+                    ce_ok = bool(rec.foto_ce_frente and rec.foto_ce_reverso and rec.estado_foto_ce == 'aceptado')
+                    pas_ok = bool(rec.foto_pasaporte_frente and rec.foto_pasaporte_reverso and rec.estado_foto_pasaporte == 'aceptado')
+                    doc_ok = bool(ce_ok or pas_ok)
+
+            requisitos_ok = all([
+                rec.foto_vivienda,
+                rec.foto_ingresos,
+                rec.direccion_cliente,
+                rec.foto_licencia,
+                rec.foto_recibo,
+                doc_ok,
+                rec.estado_foto_vivienda == 'aceptado',
+                rec.estado_foto_ingresos == 'aceptado',
+                rec.estado_direccion == 'aceptado',
+                rec.estado_foto_licencia == 'aceptado',
+                rec.estado_foto_recibo == 'aceptado',
+            ])
+
+            fase_final_ok = all([
+                rec.foto_entrega,
+                rec.placa,
+                rec.chasis,
+            ])
+
+            if requisitos_ok and fase_final_ok:
+                rec.state = 'completo'
+            elif requisitos_ok or fase_final_ok:
+                rec.state = 'incompleto'
+            else:
+                rec.state = 'por_revisar'
+"""

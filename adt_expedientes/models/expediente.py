@@ -40,10 +40,33 @@ class AdtExpediente(models.Model):
 
     cliente_nationality = fields.Char(string='Nacionalidad', compute='_compute_cliente_nationality', store=False, readonly=True)
 
+    # Raw nationality code from partner (use this in attrs checks)
+    cliente_nationality_code = fields.Char(string='Nacionalidad (code)', compute='_compute_cliente_nationality_code', store=False, readonly=True)
+
+    @api.depends('cliente_id')
+    def _compute_cliente_nationality_code(self):
+        for rec in self:
+            rec.cliente_nationality_code = getattr(rec.cliente_id, 'nationality', False) or ''
+
     @api.depends('cliente_id')
     def _compute_cliente_nationality(self):
         for rec in self:
-            rec.cliente_nationality = getattr(rec.cliente_id, 'nationality', False) or False
+            # Get the raw selection key from partner
+            nat_key = getattr(rec.cliente_id, 'nationality', False) or False
+            if not nat_key:
+                rec.cliente_nationality = False
+                continue
+            # Try to resolve the selection label (display value)
+            try:
+                field = rec.cliente_id._fields.get('nationality')
+                selection = field.selection if field else False
+                if callable(selection):
+                    selection = selection(rec.env)
+                # selection is a list of tuples [(key,label), ...]
+                rec.cliente_nationality = dict(selection).get(nat_key, nat_key)
+            except Exception:
+                # Fallback to the raw key if anything goes wrong
+                rec.cliente_nationality = nat_key
 
     # Copy occupation from res.partner (display-only) like cliente_nationality
     cliente_occupation = fields.Char(string='Ocupación', compute='_compute_cliente_occupation', store=False, readonly=True)
@@ -268,70 +291,53 @@ class AdtExpediente(models.Model):
     placa = fields.Char()
     chasis = fields.Char()
 
-    # ======================
-    # ESTADO AUTOMÁTICO
-    # ======================
+    # ----------------------
+    # REFERENCES (4) - ADDED FIELDS (non-destructive)
+    # ----------------------
+    # For each reference: name, phone, vínculo, two photos
+    ref_1_name = fields.Char(string='Nombre')
+    ref_1_phone = fields.Char(string='Teléfono')
+    ref_1_vinculo = fields.Selection([
+        ('familiar', 'Familiar'),
+        ('amigo', 'Amigo'),
+        ('colega', 'Colega'),
+        ('otro', 'Otro'),
+    ], string='Vínculo')
 
-    @api.depends(
-        'foto_vivienda', 'foto_ingresos', 'direccion_cliente', 'foto_licencia',
-        'foto_entrega', 'placa', 'chasis',
-        'estado_foto_vivienda', 'estado_foto_ingresos',
-        'estado_direccion', 'estado_foto_licencia',
-        'foto_dni_frente', 'foto_dni_reverso', 'estado_foto_dni',
-        'foto_ce_frente', 'foto_ce_reverso', 'estado_foto_ce',
-        'foto_pasaporte_frente', 'foto_pasaporte_reverso', 'estado_foto_pasaporte', 'cliente_id',
-        'foto_recibo', 'estado_foto_recibo'
-    )
-    def _compute_state(self):
-        for rec in self:
 
-            # Mantener rechazado
-            if rec.state == 'rechazado':
-                continue
+    ref_2_name = fields.Char(string='Nombre')
+    ref_2_phone = fields.Char(string='Teléfono')
+    ref_2_vinculo = fields.Selection([
+        ('familiar', 'Familiar'),
+        ('amigo', 'Amigo'),
+        ('colega', 'Colega'),
+        ('otro', 'Otro'),
+    ], string='Vínculo')
 
-            # Registro nuevo
-            if not rec.id:
-                rec.state = 'por_revisar'
-                continue
+    ref_3_name = fields.Char(string='Nombre')
+    ref_3_phone = fields.Char(string='Teléfono')
+    ref_3_vinculo = fields.Selection([
+        ('familiar', 'Familiar'),
+        ('amigo', 'Amigo'),
+        ('colega', 'Colega'),
+        ('otro', 'Otro'),
+    ], string='Vínculo ')
 
-            # Documento de identidad valid depending on nationality
-            doc_ok = True
-            if rec.cliente_id:
-                nat = getattr(rec.cliente_id, 'nationality', False)
-                if nat == 'peruana':
-                    doc_ok = bool(rec.foto_dni_frente and rec.foto_dni_reverso and rec.estado_foto_dni == 'aceptado')
-                elif nat == 'extranjera':
-                    # require both front and reverse for CE and passport
-                    ce_ok = bool(rec.foto_ce_frente and rec.foto_ce_reverso and rec.estado_foto_ce == 'aceptado')
-                    pas_ok = bool(rec.foto_pasaporte_frente and rec.foto_pasaporte_reverso and rec.estado_foto_pasaporte == 'aceptado')
-                    doc_ok = bool(ce_ok or pas_ok)
+    ref_4_name = fields.Char(string='Nombre')
+    ref_4_phone = fields.Char(string=' Teléfono')
+    ref_4_vinculo = fields.Selection([
+        ('familiar', 'Familiar'),
+        ('amigo', 'Amigo'),
+        ('colega', 'Colega'),
+        ('otro', 'Otro'),
+    ], string='Vínculo')
 
-            requisitos_ok = all([
-                rec.foto_vivienda,
-                rec.foto_ingresos,
-                rec.direccion_cliente,
-                rec.foto_licencia,
-                rec.foto_recibo,
-                doc_ok,
-                rec.estado_foto_vivienda == 'aceptado',
-                rec.estado_foto_ingresos == 'aceptado',
-                rec.estado_direccion == 'aceptado',
-                rec.estado_foto_licencia == 'aceptado',
-                rec.estado_foto_recibo == 'aceptado',
-            ])
-
-            fase_final_ok = all([
-                rec.foto_entrega,
-                rec.placa,
-                rec.chasis,
-            ])
-
-            if requisitos_ok and fase_final_ok:
-                rec.state = 'completo'
-            elif requisitos_ok or fase_final_ok:
-                rec.state = 'incompleto'
-            else:
-                rec.state = 'por_revisar'
+    # Single state for the whole references section
+    estado_referencias = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado'),
+    ], default='aceptado', string='Estado referencias')
+    obs_referencias = fields.Text(string='Observaciones referencias')
 
     # ======================
     # RECHAZAR CON WIZARD
@@ -481,12 +487,13 @@ class AdtExpediente(models.Model):
             if not rec.cliente_id:
                 continue
             nat = getattr(rec.cliente_id, 'nationality', False)
+            # treat any nationality that is not 'peruana' as foreign
             if nat == 'peruana':
                 if not (rec.foto_dni_frente and rec.foto_dni_reverso):
                     raise ValidationError("Cliente peruano: debe subir ambas caras del DNI (anverso y reverso).")
                 if rec.estado_foto_dni != 'aceptado':
                     raise ValidationError("El DNI debe estar en estado 'Aceptado'.")
-            elif nat == 'extranjera':
+            elif nat and nat != 'peruana':
                 # require CE front+back OR passport front+back, and the provided doc must be accepted
                 ce_present = bool(rec.foto_ce_frente and rec.foto_ce_reverso)
                 pas_present = bool(rec.foto_pasaporte_frente and rec.foto_pasaporte_reverso)
@@ -496,4 +503,3 @@ class AdtExpediente(models.Model):
                     raise ValidationError("El Carnet de Extranjería debe estar en estado 'Aceptado'.")
                 if pas_present and rec.estado_foto_pasaporte != 'aceptado':
                     raise ValidationError("El Pasaporte debe estar en estado 'Aceptado'.")
-
