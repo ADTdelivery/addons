@@ -48,6 +48,9 @@ class AdtExpediente(models.Model):
     # Copy occupation from res.partner (display-only) like cliente_nationality
     cliente_occupation = fields.Char(string='Ocupación', compute='_compute_cliente_occupation', store=False, readonly=True)
 
+    # Raw occupation code from partner (use this in attrs checks)
+    cliente_occupation_code = fields.Char(string='Ocupación (code)', compute='_compute_cliente_occupation_code', store=False, readonly=True)
+
     @api.depends('cliente_id')
     def _compute_cliente_occupation(self):
         for rec in self:
@@ -71,6 +74,11 @@ class AdtExpediente(models.Model):
                 # fallback: try to read partner.occupation_display (if using compute) or raw value
                 rec.cliente_occupation = occ or ''
 
+    @api.depends('cliente_id')
+    def _compute_cliente_occupation_code(self):
+        for rec in self:
+            rec.cliente_occupation_code = getattr(rec.cliente_id, 'occupation', False) or ''
+
     foto_vivienda = fields.Binary(attachment=True)
     estado_foto_vivienda = fields.Selection([
         ('aceptado', 'Aceptado'),
@@ -85,15 +93,80 @@ class AdtExpediente(models.Model):
     ], default='aceptado')
     obs_foto_ingresos = fields.Text()
 
-    # ----------------------
     # Recibo de servicios (luz/agua) - two photos
-    # ----------------------
+    obs_foto_recibo = fields.Text(string='Observaciones Recibo')
     foto_recibo = fields.Binary(attachment=True, string='Recibo')
     estado_foto_recibo = fields.Selection([
+             ('aceptado', 'Aceptado'),
+             ('rechazado', 'Rechazado')
+         ], default='aceptado')
+
+    # ----------------------
+    # Mototaxista specific fields (images, states, observations)
+    # ----------------------
+    foto_moto = fields.Binary(attachment=True, string='Foto en la moto')
+    estado_foto_moto = fields.Selection([
         ('aceptado', 'Aceptado'),
         ('rechazado', 'Rechazado')
     ], default='aceptado')
-    obs_foto_recibo = fields.Text(string='Observaciones Recibo')
+    obs_foto_moto = fields.Text()
+
+    foto_soat = fields.Binary(attachment=True, string='SOAT')
+    estado_foto_soat = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_soat = fields.Text()
+
+    foto_tarjeta_propiedad_frente = fields.Binary(attachment=True, string='Tarjeta Propiedad - Frente')
+    foto_tarjeta_propiedad_reverso = fields.Binary(attachment=True, string='Tarjeta Propiedad - Reverso')
+    estado_foto_tarjeta = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_tarjeta = fields.Text()
+
+    ganancia_diaria_mensual = fields.Char(string='Ganancia diaria / mensual')
+    tiempo_trabajando = fields.Char(string='¿Cuánto tiempo tiene trabajando?')
+    moto_empresa = fields.Char(string='Empresa asociada (si aplica)')
+    moto_propiedad = fields.Selection([
+        ('propia', 'Propia'),
+        ('alquilada', 'Alquilada')
+    ], string='Moto propia o alquilada')
+
+    # ----------------------
+    # Non-mototaxista fields
+    # ----------------------
+    foto_lugar_trabajo = fields.Binary(attachment=True, string='Lugar de trabajo')
+    estado_foto_lugar_trabajo = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_lugar_trabajo = fields.Text()
+
+    foto_lugar_negocio = fields.Binary(attachment=True, string='Lugar del negocio')
+    estado_foto_lugar_negocio = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_lugar_negocio = fields.Text()
+
+    foto_boletas = fields.Binary(attachment=True, string='Boletas / Contrato / Recibos')
+    estado_foto_boletas = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_boletas = fields.Text()
+
+    foto_estado_cuenta = fields.Binary(attachment=True, string='Estado de cuenta')
+    estado_foto_estado_cuenta = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_estado_cuenta = fields.Text()
+
+    ganancia_diaria_mensual_no = fields.Char(string='Ganancia diaria / mensual (no mototaxista)')
+    tiempo_trabajando_no = fields.Char(string='¿Cuánto tiempo tiene trabajando? (no mototaxista)')
 
     # ----------------------
     # SENTINEL / SCORE
@@ -141,12 +214,51 @@ class AdtExpediente(models.Model):
     ], default='aceptado')
     obs_direccion = fields.Text()
 
+
     foto_licencia = fields.Binary(attachment=True)
     estado_foto_licencia = fields.Selection([
+                ('aceptado', 'Aceptado'),
+                ('rechazado', 'Rechazado')
+            ], default='aceptado')
+    obs_foto_licencia = fields.Text()
+
+    # ======================
+    # UBICACIÓN Y FACHADA DEL DOMICILIO
+    # ======================
+    # Foto de ubicación en tiempo actual
+    foto_ubicacion_actual = fields.Binary(attachment=True, string='Ubicación - Foto')
+    estado_foto_ubicacion = fields.Selection([
         ('aceptado', 'Aceptado'),
         ('rechazado', 'Rechazado')
     ], default='aceptado')
-    obs_foto_licencia = fields.Text()
+    obs_foto_ubicacion = fields.Text(string='Observaciones Ubicación')
+
+    # Foto de fachada con el cliente en la puerta
+    foto_fachada_domicilio = fields.Binary(attachment=True, string='Fachada domicilio - Foto')
+    estado_foto_fachada = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_fachada = fields.Text(string='Observaciones Fachada')
+
+    # Si vive alquilado: contrato (foto) o numero del dueño
+    foto_contrato_alquiler = fields.Binary(attachment=True, string='Contrato alquiler - Foto')
+    estado_foto_contrato = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_contrato = fields.Text(string='Observaciones Contrato')
+    propietario_contacto = fields.Char(string='Número del dueño / contacto')
+
+    # ¿Cuánto tiempo viven en ese lugar?
+    tiempo_viviendo = fields.Char(string='¿Cuánto tiempo viven en ese lugar?')
+
+    # La casa es alquilada / propia / familiar ?
+    tipo_vivienda = fields.Selection([
+        ('alquilada', 'Alquilada'),
+        ('propia', 'Propia'),
+        ('familiar', 'Familiar')
+    ], string='Tipo de vivienda')
 
     # ======================
     # FASE FINAL
@@ -244,6 +356,22 @@ class AdtExpediente(models.Model):
 
     def _open_popup(self, view_xmlid, title):
         self.ensure_one()
+        # If the record is not yet saved (no id), avoid opening a popup that could
+        # trigger unwanted validations or create an empty record; notify the user
+        # to save first. This prevents constraints from running while simply
+        # viewing images on transient/unsaved records.
+        if not self.id:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Guardar expediente',
+                    'message': 'Guarda el expediente antes de ver las fotos.',
+                    'sticky': False,
+                    'type': 'warning'
+                }
+            }
+
         return {
             'type': 'ir.actions.act_window',
             'name': title,
@@ -256,6 +384,15 @@ class AdtExpediente(models.Model):
 
     def action_ver_foto_vivienda(self):
         return self._open_popup('adt_expedientes.view_foto_vivienda_popup', 'Foto vivienda')
+
+    def action_ver_foto_ubicacion(self):
+        return self._open_popup('adt_expedientes.view_foto_ubicacion_popup', 'Ubicación - Foto')
+
+    def action_ver_foto_fachada(self):
+        return self._open_popup('adt_expedientes.view_foto_fachada_popup', 'Fachada - Foto')
+
+    def action_ver_foto_contrato(self):
+        return self._open_popup('adt_expedientes.view_foto_contrato_popup', 'Contrato - Foto')
 
     def action_ver_foto_ingresos(self):
         return self._open_popup('adt_expedientes.view_foto_ingresos_popup', 'Fotos ingresos')
@@ -274,6 +411,31 @@ class AdtExpediente(models.Model):
 
     def action_ver_foto_sentinel_2(self):
         return self._open_popup('adt_expedientes.view_foto_sentinel_2_popup', 'Sentinel - Deudas')
+
+    # Popup actions for mototaxista / non-mototaxista images
+    def action_ver_foto_moto(self):
+        return self._open_popup('adt_expedientes.view_foto_moto_popup', 'Foto en la moto')
+
+    def action_ver_foto_soat(self):
+        return self._open_popup('adt_expedientes.view_foto_soat_popup', 'SOAT')
+
+    def action_ver_foto_tarjeta_frente(self):
+        return self._open_popup('adt_expedientes.view_foto_tarjeta_frente_popup', 'Tarjeta - Frente')
+
+    def action_ver_foto_tarjeta_reverso(self):
+        return self._open_popup('adt_expedientes.view_foto_tarjeta_reverso_popup', 'Tarjeta - Reverso')
+
+    def action_ver_foto_lugar_trabajo(self):
+        return self._open_popup('adt_expedientes.view_foto_lugar_trabajo_popup', 'Lugar de trabajo')
+
+    def action_ver_foto_lugar_negocio(self):
+        return self._open_popup('adt_expedientes.view_foto_lugar_negocio_popup', 'Lugar del negocio')
+
+    def action_ver_foto_boletas(self):
+        return self._open_popup('adt_expedientes.view_foto_boletas_popup', 'Boletas / Contratos / Recibos')
+
+    def action_ver_foto_estado_cuenta(self):
+        return self._open_popup('adt_expedientes.view_foto_estado_cuenta_popup', 'Estado de cuenta')
 
     def action_ver_foto_sentinel(self):
         """Open a popup that shows both sentinel images together."""
@@ -334,3 +496,4 @@ class AdtExpediente(models.Model):
                     raise ValidationError("El Carnet de Extranjería debe estar en estado 'Aceptado'.")
                 if pas_present and rec.estado_foto_pasaporte != 'aceptado':
                     raise ValidationError("El Pasaporte debe estar en estado 'Aceptado'.")
+

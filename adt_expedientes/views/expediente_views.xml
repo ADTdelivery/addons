@@ -108,6 +108,187 @@
         </field>
     </record>
 
+    <!-- POPUP FOTO MOTO -->
+    <record id="view_foto_moto_popup" model="ir.ui.view">
+        <field name="name">foto.moto.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Foto en la moto">
+                <sheet>
+                    <group>
+                        <field name="foto_moto" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP FOTO SOAT -->
+    <record id="view_foto_soat_popup" model="ir.ui.view">
+        <field name="name">foto.soat.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="SOAT">
+                <sheet>
+                    <group>
+                        <field name="foto_soat" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP TARJETA FRENTE -->
+    <record id="view_foto_tarjeta_frente_popup" model="ir.ui.view">
+        <field name="name">foto.tarjeta.frente.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Tarjeta de propiedad - Frente">
+                <sheet>
+                    <group>
+                        <field name="foto_tarjeta_propiedad_frente" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP TARJETA REVERSO -->
+    <record id="view_foto_tarjeta_reverso_popup" model="ir.ui.view">
+        <field name="name">foto.tarjeta.reverso.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Tarjeta de propiedad - Reverso">
+                <sheet>
+                    <group>
+                        <field name="foto_tarjeta_propiedad_reverso" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP LUGAR TRABAJO -->
+    <record id="view_foto_lugar_trabajo_popup" model="ir.ui.view">
+        <field name="name">foto.lugar.trabajo.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Lugar de trabajo">
+                <sheet>
+                    <group>
+                        <field name="foto_lugar_trabajo" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP LUGAR NEGOCIO -->
+    <record id="view_foto_lugar_negocio_popup" model="ir.ui.view">
+        <field name="name">foto.lugar.negocio.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Lugar del negocio">
+                <sheet>
+                    <group>
+                        <field name="foto_lugar_negocio" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP BOLETAS -->
+    <record id="view_foto_boletas_popup" model="ir.ui.view">
+        <field name="name">foto.boletas.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Boletas / Contratos / Recibos">
+                <sheet>
+                    <group>
+                        <field name="foto_boletas" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP ESTADO DE CUENTA -->
+    <record id="view_foto_estado_cuenta_popup" model="ir.ui.view">
+        <field name="name">foto.estado.cuenta.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Estado de cuenta">
+                <sheet>
+                    <group>
+                        <field name="foto_estado_cuenta" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP FOTO UBICACION -->
+    <record id="view_foto_ubicacion_popup" model="ir.ui.view">
+        <field name="name">foto.ubicacion.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Ubicación - Foto">
+                <sheet>
+                    <group>
+                        <field name="foto_ubicacion_actual" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP FOTO FACHADA -->
+    <record id="view_foto_fachada_popup" model="ir.ui.view">
+        <field name="name">foto.fachada.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Fachada - Foto">
+                <sheet>
+                    <group>
+                        <field name="foto_fachada_domicilio" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP FOTO CONTRATO -->
+    <record id="view_foto_contrato_popup" model="ir.ui.view">
+        <field name="name">foto.contrato.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Contrato - Foto">
+                <sheet>
+                    <group>
+                        <field name="foto_contrato_alquiler" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- POPUP SENTINEL (combined) -->
+    <record id="view_foto_sentinel_popup" model="ir.ui.view">
+        <field name="name">foto.sentinel.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Sentinel - Imágenes">
+                <sheet>
+                    <group>
+                        <field name="foto_sentinel_1" widget="image"/>
+                        <field name="foto_sentinel_2" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <!-- POPUP DOCUMENTOS -->
     <record id="view_foto_dni_frente_popup" model="ir.ui.view">
         <field name="name">foto.dni.frente.popup</field>
@@ -218,6 +399,8 @@
                         <field name="cliente_id"/>
                         <!-- hidden field so attrs referencing cliente_nationality validate correctly -->
                         <field name="cliente_nationality"/>
+                        <!-- hidden field so attrs referencing cliente_occupation_code validate correctly -->
+                        <field name="cliente_occupation_code" invisible="1"/>
                         <field name="cliente_occupation"/>
                         <field name="asesora_id"/>
                         <field name="fecha"/>
@@ -229,6 +412,8 @@
                     <group>
                         <field name="vehiculo"/>
                     </group>
+
+                    <separator string="REQUISITOS DEL EXPEDIENTE"/>
 
                     <group>
 
@@ -277,8 +462,6 @@
                         </div>
 
                     </group>
-
-                    <separator string="REQUISITOS DEL EXPEDIENTE"/>
 
                     <group>
 
@@ -453,104 +636,209 @@
                         <group col="2">
                             <field name="estado_foto_sentinel" string="Estado"/>
                             <field name="obs_foto_sentinel" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_sentinel','!=','rechazado')]}"/>
-                            <button name="action_ver_foto_sentinel" type="object" string="Ver todas" class="btn-secondary"/>
+                        </group>
+                    </group>
+
+                    <!-- MOTOTAXISTA: visible only if cliente_occupation_code == 'mototaxista' -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','!=','mototaxista')]}" string="MOTOTAXISTA">
+                        <div class="o_form_label"><strong>5. Documentos mototaxista</strong></div>
+
+                    </group>
+
+                    <!-- Foto en la moto -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','!=','mototaxista')]}">
+                        <group col="1">
+                            <div class="o_form_label">Foto en la moto</div>
+                            <field name="foto_moto" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_moto','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_moto','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_moto" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_moto','=',False)]}"/>
+                        </group>
+                        <group col="2">
+                            <field name="estado_foto_moto" string="Estado"/>
+                            <field name="obs_foto_moto" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_moto','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- SOAT -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','!=','mototaxista')]}">
+                        <group col="1">
+                            <div class="o_form_label">SOAT</div>
+                            <field name="foto_soat" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_soat','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_soat','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_soat" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_soat','=',False)]}"/>
+                        </group>
+                        <group col="2">
+                            <field name="estado_foto_soat" string="Estado"/>
+                            <field name="obs_foto_soat" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_soat','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- Tarjeta de propiedad (frente + reverso) -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','!=','mototaxista')]}">
+                        <group col="1">
+                            <div class="o_form_label">Tarjeta de propiedad - Frente</div>
+                            <field name="foto_tarjeta_propiedad_frente" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_tarjeta_propiedad_frente','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_tarjeta_propiedad_frente','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_tarjeta_frente" type="object" string="Ver frente" class="btn-primary" attrs="{'invisible': [('foto_tarjeta_propiedad_frente','=',False)]}"/>
+
+                            <div class="o_form_label">Tarjeta de propiedad - Reverso</div>
+                            <field name="foto_tarjeta_propiedad_reverso" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_tarjeta_propiedad_reverso','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_tarjeta_propiedad_reverso','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_tarjeta_reverso" type="object" string="Ver reverso" class="btn-primary" attrs="{'invisible': [('foto_tarjeta_propiedad_reverso','=',False)]}"/>
+                        </group>
+                        <group col="2">
+                            <field name="estado_foto_tarjeta" string="Estado"/>
+                            <field name="obs_foto_tarjeta" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_tarjeta','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- Datos adicionales mototaxista -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','!=','mototaxista')]}">
+                        <group>
+                            <field name="ganancia_diaria_mensual"/>
+                            <field name="tiempo_trabajando"/>
+                            <field name="moto_empresa"/>
+                            <field name="moto_propiedad"/>
                         </group>
                     </group>
 
 
-                    <!-- FOTO VIVIENDA -->
-                    <group>
+                    <!-- NO MOTOTAXISTA: visible when occupation != mototaxista -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','=','mototaxista')]}" string="NO MOTOTAXISTA">
+                        <div class="o_form_label"><strong>5. Documentos trabajo independiente</strong></div>
+                    </group>
+
+                    <!-- Lugar de trabajo -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','=','mototaxista')]}">
                         <group col="1">
-                            <div class="o_form_label">
-                                <strong>1. Foto de vivienda</strong>
-                            </div>
-
-                            <field name="foto_vivienda" widget="binary" nolabel="1"/>
-
-                            <div attrs="{'invisible': [('foto_vivienda','=',False)]}" class="text-success">
-                                ✔ Imagen cargada
-                            </div>
-                            <div attrs="{'invisible': [('foto_vivienda','!=',False)]}" class="text-danger">
-                                ✘ Sin imagen
-                            </div>
-
-                            <button name="action_ver_foto_vivienda"
-                                    type="object"
-                                    string="Ver imagen"
-                                    class="btn-primary"
-                                    attrs="{'invisible': [('foto_vivienda','=',False)]}"/>
+                            <div class="o_form_label">Lugar de trabajo</div>
+                            <field name="foto_lugar_trabajo" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_lugar_trabajo','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_lugar_trabajo','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_lugar_trabajo" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_lugar_trabajo','=',False)]}"/>
                         </group>
-
                         <group col="2">
-                            <field name="estado_foto_vivienda" string="Estado"/>
-
-                            <field name="obs_foto_vivienda"
-                                   placeholder="Motivo del rechazo..."
-                                   nolabel="1"
-                                   attrs="{'invisible': [('estado_foto_vivienda','!=','rechazado')]}"/>
+                            <field name="estado_foto_lugar_trabajo" string="Estado"/>
+                            <field name="obs_foto_lugar_trabajo" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_lugar_trabajo','!=','rechazado')]}"/>
                         </group>
                     </group>
 
-                    <!-- INGRESOS -->
-                    <group>
+                    <!-- Lugar del negocio -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','=','mototaxista')]}">
                         <group col="1">
-                            <div class="o_form_label">
-                                <strong>2. Fotos de ingresos</strong>
-                            </div>
-
-                            <field name="foto_ingresos" widget="binary" nolabel="1"/>
-
-                            <div attrs="{'invisible': [('foto_ingresos','=',False)]}" class="text-success">
-                                ✔ Imagen cargada
-                            </div>
-                            <div attrs="{'invisible': [('foto_ingresos','!=',False)]}" class="text-danger">
-                                ✘ Sin imagen
-                            </div>
-
-                            <button name="action_ver_foto_ingresos"
-                                    type="object"
-                                    string="Ver imagen"
-                                    class="btn-primary"
-                                    attrs="{'invisible': [('foto_ingresos','=',False)]}"/>
+                            <div class="o_form_label">Lugar del negocio</div>
+                            <field name="foto_lugar_negocio" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_lugar_negocio','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_lugar_negocio','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_lugar_negocio" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_lugar_negocio','=',False)]}"/>
                         </group>
-
                         <group col="2">
-                            <field name="estado_foto_ingresos" string="Estado"/>
+                            <field name="estado_foto_lugar_negocio" string="Estado"/>
+                            <field name="obs_foto_lugar_negocio" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_lugar_negocio','!=','rechazado')]}"/>
+                        </group>
+                    </group>
 
-                            <field name="obs_foto_ingresos"
-                                   placeholder="Motivo del rechazo..."
-                                   nolabel="1"
-                                   attrs="{'invisible': [('estado_foto_ingresos','!=','rechazado')]}"/>
+                    <!-- Boletas / Contrato / Recibos -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','=','mototaxista')]}">
+                        <group col="1">
+                            <div class="o_form_label">Boletas / Contrato / Recibos</div>
+                            <field name="foto_boletas" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_boletas','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_boletas','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_boletas" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_boletas','=',False)]}"/>
+                        </group>
+                        <group col="2">
+                            <field name="estado_foto_boletas" string="Estado"/>
+                            <field name="obs_foto_boletas" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_boletas','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- Estado de cuenta -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','=','mototaxista')]}">
+                        <group col="1">
+                            <div class="o_form_label">Estado de cuenta</div>
+                            <field name="foto_estado_cuenta" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_estado_cuenta','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_estado_cuenta','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_estado_cuenta" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_estado_cuenta','=',False)]}"/>
+                        </group>
+                        <group col="2">
+                            <field name="estado_foto_estado_cuenta" string="Estado"/>
+                            <field name="obs_foto_estado_cuenta" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_estado_cuenta','!=','rechazado')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- Datos adicionales no-mototaxista -->
+                    <group attrs="{'invisible': [('cliente_occupation_code','=','mototaxista')]}">
+                        <group>
+                            <field name="ganancia_diaria_mensual_no"/>
+                            <field name="tiempo_trabajando_no"/>
                         </group>
                     </group>
 
 
-
-
-                    <!-- DIRECCION -->
+                    <!-- UBICACIÓN Y FACHADA DEL DOMICILIO -->
                     <group>
-                        <group col="1">
-                            <div class="o_form_label">
-                                <strong>3. Dirección del cliente</strong>
-                            </div>
+                        <div class="o_form_label"><strong>6. Ubicación y fachada del domicilio</strong></div>
+                    </group>
 
-                            <field name="direccion_cliente" colspan="2"  nolabel="1"/>
-
-                            <div attrs="{'invisible': [('direccion_cliente','=',False)]}" class="text-success">
-                                ✔ Dirección registrada
-                            </div>
-                            <div attrs="{'invisible': [('direccion_cliente','!=',False)]}" class="text-danger">
-                                ✘ Sin dirección
-                            </div>
+                    <!-- Ubicación en tiempo actual -->
+                    <group>
+                        <group>
+                            <div class="o_form_label">Ubicación en tiempo actual - FOTO</div>
+                            <field name="foto_ubicacion_actual" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_ubicacion_actual','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_ubicacion_actual','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_ubicacion" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_ubicacion_actual','=',False)]}"/>
                         </group>
+                        <group>
+                            <field name="estado_foto_ubicacion" string="Estado"/>
+                            <field name="obs_foto_ubicacion" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_ubicacion','!=','rechazado')]}"/>
+                        </group>
+                    </group>
 
-                        <group col="2">
-                            <field name="estado_direccion"  string="Estado"/>
+                    <!-- Fachada con cliente -->
+                    <group>
+                        <group>
+                            <div class="o_form_label">Fachada de domicilio con el cliente en la puerta - FOTO</div>
+                            <field name="foto_fachada_domicilio" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_fachada_domicilio','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_fachada_domicilio','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_fachada" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_fachada_domicilio','=',False)]}"/>
+                        </group>
+                        <group>
+                            <field name="estado_foto_fachada" string="Estado"/>
+                            <field name="obs_foto_fachada" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_fachada','!=','rechazado')]}"/>
+                        </group>
+                    </group>
 
-                            <field name="obs_direccion"
-                                   placeholder="Motivo del rechazo..."
-                                   nolabel="1"
-                                   attrs="{'invisible': [('estado_direccion','!=','rechazado')]}"/>
+
+                    <!-- Tiempo viviendo y tipo de vivienda -->
+                    <group>
+                        <group>
+                            <field name="tipo_vivienda"/>
+                            <field name="propietario_contacto" string="Número del dueño / contacto"  attrs="{'invisible': [('tipo_vivienda','!=','alquilada')]}" />
+                            <field name="tiempo_viviendo"/>
+                        </group>
+                    </group>
+
+
+                    <!-- Contrato o numero del dueño (visible solo si la vivienda es alquilada) -->
+                    <group attrs="{'invisible': [('tipo_vivienda','!=','alquilada')]}" string="Contrato / Propietario">
+                        <group>
+                            <div class="o_form_label">Si vive alquilado: contrato (FOTO)</div>
+                            <field name="foto_contrato_alquiler" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_contrato_alquiler','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_contrato_alquiler','!=',False)]}" class="text-danger">✘ Sin imagen</div>
+                            <button name="action_ver_foto_contrato" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_contrato_alquiler','=',False)]}"/>
+                        </group>
+                        <group>
+                            <field name="estado_foto_contrato" string="Estado"/>
+                            <field name="obs_foto_contrato" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_contrato','!=','rechazado')]}"/>
                         </group>
                     </group>
 
