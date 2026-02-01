@@ -1,0 +1,163 @@
+{
+  "info": {
+    "_postman_id": "adt-expedientes-collection",
+    "name": "ADT Expedientes Mobile API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection for ADT Expedientes mobile API. Replace {{base_url}} with your Odoo base URL (e.g. https://odoo.example.com) and set {{db}}, {{login}}, {{password}} and {{token}} in Postman environment."
+  },
+  "item": [
+    {
+      "name": "Login (session)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/login", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","login"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"db\": \"{{db}}\",\n  \"login\": \"{{login}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Token (requires session)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/token/create", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","token","create"] },
+        "body": { "mode": "raw", "raw": "{\n  \"days_valid\": 30,\n  \"description\": \"Mobile app token\"\n}" }
+      },
+      "response": [],
+      "description": "This endpoint requires a valid session cookie (call Login first). It returns a token to use in Authorization: Bearer {{token}}."
+    },
+    {
+      "name": "Revoke Token (session)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/token/revoke", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","token","revoke"] },
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token}}\"\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Find Partner by DNI",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/partner/find_by_dni", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","partner","find_by_dni"] },
+        "body": { "mode": "raw", "raw": "{\n  \"dni\": \"12345678\"\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Partner (partial)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/partner/create", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","partner","create"] },
+        "body": { "mode": "raw", "raw": "{\n  \"vals\": {\n    \"name\": \"Juan Perez\",\n    \"document_number\": \"12345678\",\n    \"nationality\": \"peruana\",\n    \"occupation\": \"mototaxista\",\n    \"mobile\": \"999111222\"\n  }\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Expediente (partial)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/create", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","create"] },
+        "body": { "mode": "raw", "raw": "{\n  \"vals\": {\n    \"cliente_id\": 12,\n    \"vehiculo\": \"moto_deluxe_200\"\n  }\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Expediente (partial)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/update", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","update"] },
+        "body": { "mode": "raw", "raw": "{\n  \"expediente_id\": 34,\n  \"vals\": {\n    \"direccion_cliente\": \"Av. Siempre Viva 123\"\n  }\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Expediente",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/get", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","get"] },
+        "body": { "mode": "raw", "raw": "{\n  \"expediente_id\": 34\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Image (JSON base64)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/upload_image", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","upload_image"] },
+        "body": { "mode": "raw", "raw": "{\n  \"expediente_id\": 34,\n  \"field_name\": \"foto_dni_frente\",\n  \"image_base64\": \"<BASE64_IMAGE_STRING>\"\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Image (multipart form)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/upload_image_multipart", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","upload_image_multipart"] },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "expediente_id", "value": "34", "type": "text" },
+            { "key": "field_name", "value": "foto_dni_frente", "type": "text" },
+            { "key": "file", "type": "file", "src": "/path/to/dni_frente.jpg" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Set Document State",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/set_doc_state", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","set_doc_state"] },
+        "body": { "mode": "raw", "raw": "{\n  \"expediente_id\": 34,\n  \"field_state\": \"estado_foto_dni\",\n  \"state\": \"aceptado\",\n  \"obs\": \"Imagen legible\"\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Expediente Progress",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/progress", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","progress"] },
+        "body": { "mode": "raw", "raw": "{\n  \"expediente_id\": 34\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "Finalize Expediente",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/expediente/finalize", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","expediente","finalize"] },
+        "body": { "mode": "raw", "raw": "{\n  \"expediente_id\": 34\n}" }
+      },
+      "response": []
+    },
+    {
+      "name": "List Partner Expedientes",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/adt_expedientes/mobile/partner/expedientes", "host": ["{{base_url}}"], "path": ["adt_expedientes","mobile","partner","expedientes"] },
+        "body": { "mode": "raw", "raw": "{\n  \"partner_id\": 12\n}" }
+      },
+      "response": []
+    }
+  ]
+}

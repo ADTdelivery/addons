@@ -93,12 +93,6 @@ class ResPartner(models.Model):
         required=True
     )
 
-    reference_ids = fields.One2many(
-        'res.partner.reference',
-        'partner_id',
-        string="Referencias personales"
-    )
-
     _sql_constraints = [
         ('unique_document', 'unique(document_number)', 'Este documento ya está registrado.')
     ]
