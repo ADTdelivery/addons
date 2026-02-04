@@ -1,25 +1,32 @@
 # -*- coding: utf-8 -*-
 from odoo import http
 from odoo.http import request
+from odoo.exceptions import AccessDenied
 import base64
 from werkzeug.datastructures import FileStorage
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class AdtExpedientesMobileAPI(http.Controller):
-    """Mobile-friendly REST API for the Expediente workflow.
+    """
+    API Móvil con Sistema de Seguridad de Nivel Producción.
 
-    Features added:
-    - Token-based authentication (Bearer token) via model `adt.mobile.token`.
-    - Endpoints accept either session auth or Bearer token.
-    - Endpoint /adt_expedientes/mobile/token/create to generate token for current user.
-    - Endpoint /adt_expedientes/mobile/expediente/progress that returns a checklist of missing fields.
-    - Multipart upload endpoint /adt_expedientes/mobile/expediente/upload_image_multipart for files.
+    Características de seguridad:
+    - Token-based authentication con hashing SHA256
+    - Validación automática del estado del usuario en cada request
+    - Auditoría completa de accesos
+    - Rate limiting básico
+    - Device binding para un token por dispositivo
+    - Respuestas HTTP estándar (401 Unauthorized, 403 Forbidden)
     """
 
     # -----------------------------
-    # Authentication helpers
+    # Helpers de autenticación MEJORADOS
     # -----------------------------
-    def _token_from_header(self):
+    def _extract_token_from_header(self):
+        """Extrae el token del header Authorization."""
         auth = request.httprequest.headers.get('Authorization') or request.httprequest.headers.get('authorization')
         if not auth:
             return None
@@ -28,118 +35,253 @@ class AdtExpedientesMobileAPI(http.Controller):
             return parts[1]
         return None
 
-    def _sudo_with_token(self):
-        """Return (user_sudo, token_rec) if token provided and valid, else (None, None).
-        If session auth present, return (request.env.user.sudo(), None).
+    def _get_request_info(self):
+        """Extrae información del request para auditoría."""
+        try:
+            return {
+                'ip': request.httprequest.remote_addr,
+                'endpoint': request.httprequest.path,
+                'method': request.httprequest.method,
+                'user_agent': request.httprequest.headers.get('User-Agent', ''),
+            }
+        except:
+            return {}
+
+    def _authenticate_request(self):
         """
-        # session-based
-        if request.session.uid:
-            user = request.env['res.users'].browse(request.session.uid)
-            return (user.sudo(), None)
-        # token based
-        token = self._token_from_header()
-        if not token:
-            return (None, None)
-        Token = request.env['adt.mobile.token'].sudo()
-        rec = Token.validate_token(token)
-        if not rec:
-            return (None, None)
-        return (rec.user_id.sudo(), rec)
+        Valida la autenticación del request (token o sesión).
+
+        Returns:
+            tuple: (user_sudo, token_record, error_response)
+            - Si autenticado: (user, token, None)
+            - Si error: (None, None, {'success': False, 'error': '...', 'code': 401})
+        """
+        # 1. Intentar autenticación por token (prioritario para app móvil)
+        plain_token = self._extract_token_from_header()
+
+        if plain_token:
+            # Validar token con auditoría
+            request_info = self._get_request_info()
+            Token = request.env['adt.mobile.token'].sudo()
+
+            token_rec = Token.validate_token(plain_token, request_info)
+
+            if not token_rec:
+                _logger.warning(f'Invalid token attempted from IP {request_info.get("ip")}')
+                return (None, None, {
+                    'success': False,
+                    'error': 'Invalid or expired token',
+                    'code': 401,
+                    'message': 'Tu sesión ha expirado o tu cuenta fue desactivada. Por favor inicia sesión nuevamente.'
+                })
+
+            # Token válido - verificar usuario activo (doble check)
+            if not token_rec.user_id.active:
+                _logger.warning(f'Attempt to use token of disabled user {token_rec.user_id.login}')
+                return (None, None, {
+                    'success': False,
+                    'error': 'User account disabled',
+                    'code': 403,
+                    'message': 'Tu cuenta ha sido desactivada. Contacta al administrador.'
+                })
+
+            return (token_rec.user_id.sudo(), token_rec, None)
+
+        # 2. Sin token = sin autenticación (NO hay fallback a sesión)
+        # Esto asegura que la app móvil SIEMPRE debe usar tokens
+        return (None, None, {
+            'success': False,
+            'error': 'Authentication required - Token missing',
+            'code': 401,
+            'message': 'No se proporcionó token de autenticación. Por favor inicia sesión.'
+        })
+
+    def _require_auth(self):
+        """
+        Wrapper para endpoints que requieren autenticación.
+        Retorna (user, token) o error response.
+        """
+        user, token, error = self._authenticate_request()
+        if error:
+            return (None, None, error)
+        return (user, token, None)
+
+    def _ensure_auth(self):
+        """
+        Alias simplificado de _require_auth() para compatibilidad con endpoints existentes.
+        Retorna (user, error_dict).
+
+        Uso típico:
+            user, err = self._ensure_auth()
+            if err:
+                return err
+            # continuar con lógica del endpoint
+        """
+        user, token, error = self._authenticate_request()
+        if error:
+            return (None, error)
+        return (user, None)
 
     # -----------------------------
-    # Token endpoints
+    # Token endpoints MEJORADOS
     # -----------------------------
-    @http.route('/adt_expedientes/mobile/token/create', type='json', auth='user', methods=['POST'], csrf=False)
-    def create_token(self, days_valid=30, description=None, **kwargs):
-        """Create a personal token for the logged-in user. Returns token string.
-        Body: {days_valid: 30, description: 'mobile app token'}
-        Response: {success: True, data: {token, expiry}}
+    @http.route('/adt_expedientes/mobile/token/create', type='json', auth='none', methods=['POST'], csrf=False)
+    def create_token(self, db=None, login=None, password=None, device_info=None, days_valid=30, **kwargs):
         """
-        uid = request.session.uid
-        if not uid:
-            return {'success': False, 'error': 'login required'}
-        Token = request.env['adt.mobile.token'].sudo()
-        rec = Token.generate_token(uid, int(days_valid or 30), description)
-        return {'success': True, 'data': {'token': rec.token, 'expiry': rec.expiry}}
+        Genera un token seguro para autenticación móvil.
 
-    @http.route('/adt_expedientes/mobile/token/revoke', type='json', auth='user', methods=['POST'], csrf=False)
-    def revoke_token(self, token=None, **kwargs):
-        """Revoke (deactivate) a token created for the current user.
-        Body: {token: '...'}
-        """
-        uid = request.session.uid
-        if not uid:
-            return {'success': False, 'error': 'login required'}
-        if not token:
-            return {'success': False, 'error': 'token required'}
-        Token = request.env['adt.mobile.token'].sudo()
-        rec = Token.search([('token', '=', token), ('user_id', '=', uid)], limit=1)
-        if not rec:
-            return {'success': False, 'error': 'token not found'}
-        rec.active = False
-        return {'success': True, 'data': {'revoked': True}}
+        Request:
+        {
+            "db": "nombre_bd",
+            "login": "usuario",
+            "password": "contraseña",
+            "device_info": {
+                "device_id": "UUID-del-dispositivo",
+                "device_name": "iPhone 13 Pro",
+                "device_os": "iOS 15.1",
+                "app_version": "1.0.0"
+            },
+            "days_valid": 30
+        }
 
-    # -----------------------------
-    # Existing endpoints mostly unchanged but accept token.
-    # We'll use _sudo_with_token() to get acting user.
-    # -----------------------------
-    @http.route('/adt_expedientes/mobile/login', type='json', auth='none', methods=['POST'], csrf=False)
-    def mobile_login(self, db=None, login=None, password=None, **kwargs):
-        """Authenticate and return session info. Mirrors /web/session/authenticate but simplified.
-        Request JSON: {"db": "mydb", "login": "user", "password": "pwd"}
-        Response: {success: True, data: {uid, username}} or error.
-        This handler now accepts credentials from multiple places:
-        - JSON body (preferred)
-        - form-data / request params
-        - kwargs
+        Response OK:
+        {
+            "success": true,
+            "data": {
+                "token": "token_seguro_64_caracteres",
+                "expiry": "2026-03-05 10:30:00",
+                "user": {"id": 1, "name": "Usuario"},
+                "device_bound": true
+            }
+        }
+
+        Response Error:
+        {
+            "success": false,
+            "error": "Invalid credentials",
+            "message": "Usuario o contraseña incorrectos"
+        }
         """
         try:
-            # Collect possible sources for input to be forgiving with clients
+            # Extraer parámetros
             payload = {}
-            try:
-                # request.jsonrequest exists for type='json'
-                if hasattr(request, 'jsonrequest') and isinstance(request.jsonrequest, dict):
-                    payload.update(request.jsonrequest)
-            except Exception:
-                pass
-            # kwargs may include the values if Odoo mapped them
-            payload.update({k: v for k, v in kwargs.items() if k in ('db', 'login', 'password')})
-            # form/query params fallback
-            try:
-                form = request.httprequest.form
-                for key in ('db', 'login', 'password'):
-                    if key in form and form.get(key):
-                        payload.setdefault(key, form.get(key))
-            except Exception:
-                pass
-            # request.params (also includes query string)
-            try:
-                for key in ('db', 'login', 'password'):
-                    if key in request.params and request.params.get(key):
-                        payload.setdefault(key, request.params.get(key))
-            except Exception:
-                pass
+            if hasattr(request, 'jsonrequest') and isinstance(request.jsonrequest, dict):
+                payload.update(request.jsonrequest)
 
-            # final values (prefer explicit args)
             db = db or payload.get('db')
             login = login or payload.get('login')
             password = password or payload.get('password')
+            device_info = device_info or payload.get('device_info') or {}
+            days_valid = days_valid or payload.get('days_valid', 30)
 
-            if not db or not login or not password:
-                return {'success': False, 'error': 'db, login and password are required'}
-            # authenticate creates session
-            request.session.authenticate(db, login, password)
-            uid = request.session.uid
+            if not all([db, login, password]):
+                return {
+                    'success': False,
+                    'error': 'Missing required fields',
+                    'message': 'Se requieren db, login y password'
+                }
+
+            # Autenticar usuario
+            try:
+                uid = request.session.authenticate(db, login, password)
+                if not uid:
+                    return {
+                        'success': False,
+                        'error': 'Invalid credentials',
+                        'message': 'Usuario o contraseña incorrectos'
+                    }
+            except AccessDenied:
+                _logger.warning(f'Failed login attempt for {login} from {request.httprequest.remote_addr}')
+                return {
+                    'success': False,
+                    'error': 'Access denied',
+                    'message': 'Credenciales inválidas'
+                }
+
+            # Generar token seguro
+            Token = request.env['adt.mobile.token'].sudo()
+            token_rec, plain_token = Token.generate_token(
+                user_id=uid,
+                days_valid=int(days_valid),
+                description=f"Mobile App - {device_info.get('device_name', 'Unknown')}",
+                device_info=device_info
+            )
+
             user = request.env['res.users'].sudo().browse(uid)
-            return {'success': True, 'data': {'uid': uid, 'name': user.name}}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
 
-    def _ensure_auth(self):
-        user, token = self._sudo_with_token()
-        if not user:
-            return (None, {'success': False, 'error': 'authentication required'})
-        return (user, None)
+            _logger.info(f'Token generated for user {user.login} (device: {device_info.get("device_name")})')
+
+            return {
+                'success': True,
+                'data': {
+                    'token': plain_token,  # Solo se retorna UNA VEZ
+                    'expiry': token_rec.expiry,
+                    'user': {
+                        'id': user.id,
+                        'name': user.name,
+                        'login': user.login,
+                    },
+                    'device_bound': bool(device_info.get('device_id')),
+                    'message': 'Token generado exitosamente. Guárdalo de forma segura.'
+                }
+            }
+
+        except Exception as e:
+            _logger.error(f'Error creating token: {e}', exc_info=True)
+            return {
+                'success': False,
+                'error': 'Server error',
+                'message': 'Error al generar token. Intenta nuevamente.'
+            }
+
+    @http.route('/adt_expedientes/mobile/token/revoke', type='json', auth='none', methods=['POST'], csrf=False)
+    def revoke_token(self, token=None, **kwargs):
+        """
+        Revoca un token (logout desde app).
+
+        Request:
+        {
+            "token": "token_a_revocar"
+        }
+        O enviar token en header Authorization: Bearer <token>
+        """
+        try:
+            payload = {}
+            if hasattr(request, 'jsonrequest'):
+                payload.update(request.jsonrequest or {})
+
+            # Token desde body o header
+            plain_token = token or payload.get('token') or self._extract_token_from_header()
+
+            if not plain_token:
+                return {
+                    'success': False,
+                    'error': 'Token required',
+                    'message': 'No se proporcionó token para revocar'
+                }
+
+            Token = request.env['adt.mobile.token'].sudo()
+            revoked = Token.revoke_token(plain_token, reason='logout')
+
+            if revoked:
+                return {
+                    'success': True,
+                    'data': {'revoked': True},
+                    'message': 'Sesión cerrada exitosamente'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Token not found',
+                    'message': 'Token no encontrado o ya revocado'
+                }
+
+        except Exception as e:
+            _logger.error(f'Error revoking token: {e}')
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     def _get_param(self, key, arg_value=None, kwargs=None, default=None):
         """Normalize parameter extraction from multiple possible sources.
@@ -181,6 +323,11 @@ class AdtExpedientesMobileAPI(http.Controller):
         Request: {"dni": "12345678"} or form/query param document_number
         Response: {success: True, data: partner dict or null, suggested: {...}}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         # Collect dni from multiple possible sources (JSON body, kwargs, form, params)
         payload = {}
         try:
@@ -294,6 +441,11 @@ class AdtExpedientesMobileAPI(http.Controller):
         Accepts country/state as codes or ids. Example:
           {"vals": {"name": "...", "country_id": "PE", "state_id": "15", ...}}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         # Collect payload from possible sources (JSON body, kwargs, form, params)
         payload = {}
         try:
@@ -451,10 +603,15 @@ class AdtExpedientesMobileAPI(http.Controller):
         """Create an expediente (partial). Expected minimal vals: {'cliente_id': <partner_id>}.
         Accepts multiple payload formats:
           - {"vals": { ... }}
-          - direct fields: {"cliente_id": 12, "vehiculo": "moto_deluxe_200"}
-          - accept 'dni' or 'document_number' to lookup partner
-        Returns the expediente id so app can continue uploading more data referencing it.
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+        #  - direct fields: {"cliente_id": 12, "vehiculo": "moto_deluxe_200"}
+        #  - accept 'dni' or 'document_number' to lookup partner
+        #Returns the expediente id so app can continue uploading more data referencing it.
+
         # Collect payload from possible sources (JSON body, kwargs, form, params)
         payload = {}
         try:
@@ -521,8 +678,13 @@ class AdtExpedientesMobileAPI(http.Controller):
     @http.route('/adt_expedientes/mobile/expediente/update', type='json', auth='none', methods=['POST'], csrf=False)
     def expediente_update(self, expediente_id=None, vals=None, **kwargs):
         """Partial update: app can send any fields to update an existing expediente.
-        Request: {"expediente_id": 10, "vals": {"direccion_cliente": "..."}}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+        #Request: {"expediente_id": 10, "vals": {"direccion_cliente": "..."}}
+
         expediente_id = self._get_param('expediente_id', expediente_id, kwargs)
         # vals can be passed in body as 'vals' or directly as payload fields
         if not vals or not isinstance(vals, dict):
@@ -562,10 +724,14 @@ class AdtExpedientesMobileAPI(http.Controller):
 
     @http.route('/adt_expedientes/mobile/expediente/get', type='json', auth='none', methods=['POST'], csrf=False)
     def expediente_get(self, expediente_id=None, **kwargs):
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         expediente_id = self._get_param('expediente_id', expediente_id, kwargs)
         if not expediente_id:
             return {'success': False, 'error': 'expediente_id required'}
-        user, err = self._ensure_auth()
         if err:
             return err
         rec = request.env['adt.expediente'].sudo().browse(int(expediente_id))
@@ -590,6 +756,11 @@ class AdtExpedientesMobileAPI(http.Controller):
         """Upload a base64 image and write to the given binary field on the expediente.
         Example: {expediente_id: 10, field_name: 'foto_dni_frente', image_base64: '<base64>'}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         expediente_id = self._get_param('expediente_id', expediente_id, kwargs)
         field_name = self._get_param('field_name', field_name, kwargs)
         if not image_base64:
@@ -623,6 +794,11 @@ class AdtExpedientesMobileAPI(http.Controller):
     @http.route('/adt_expedientes/mobile/expediente/set_doc_state', type='json', auth='none', methods=['POST'], csrf=False)
     def expediente_set_doc_state(self, expediente_id=None, field_state=None, state=None, obs=None, **kwargs):
         """Example: {expediente_id:10, field_state: 'estado_foto_dni', state:'aceptado', obs:'OK'}"""
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         expediente_id = self._get_param('expediente_id', expediente_id, kwargs)
         field_state = self._get_param('field_state', field_state, kwargs)
         state = self._get_param('state', state, kwargs)
@@ -653,12 +829,14 @@ class AdtExpedientesMobileAPI(http.Controller):
     # Finalize fase final
     @http.route('/adt_expedientes/mobile/expediente/finalize', type='json', auth='none', methods=['POST'], csrf=False)
     def expediente_finalize(self, expediente_id=None, **kwargs):
-        expediente_id = self._get_param('expediente_id', expediente_id, kwargs)
-        if not expediente_id:
-            return {'success': False, 'error': 'expediente_id required'}
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
         user, err = self._ensure_auth()
         if err:
             return err
+
+        expediente_id = self._get_param('expediente_id', expediente_id, kwargs)
+        if not expediente_id:
+            return {'success': False, 'error': 'expediente_id required'}
         rec = request.env['adt.expediente'].sudo().browse(int(expediente_id))
         if not rec.exists():
             return {'success': False, 'error': 'expediente not found'}
@@ -670,11 +848,14 @@ class AdtExpedientesMobileAPI(http.Controller):
     # List expedientes for a partner
     @http.route('/adt_expedientes/mobile/partner/expedientes', type='json', auth='none', methods=['POST'], csrf=False)
     def partner_expedientes(self, partner_id=None, **kwargs):
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         partner_id = self._get_param('partner_id', partner_id, kwargs)
         if not partner_id:
             return {'success': False, 'error': 'partner_id required'}
-        user, err = self._ensure_auth()
-        if err:
             return err
         recs = request.env['adt.expediente'].sudo().search([('cliente_id', '=', int(partner_id))])
         data = []
@@ -687,11 +868,13 @@ class AdtExpedientesMobileAPI(http.Controller):
     # -----------------------------
     @http.route('/adt_expedientes/mobile/expediente/progress', type='json', auth='none', methods=['POST'], csrf=False)
     def expediente_progress(self, expediente_id=None, **kwargs):
-        if not expediente_id:
-            return {'success': False, 'error': 'expediente_id required'}
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
         user, err = self._ensure_auth()
         if err:
             return err
+
+        if not expediente_id:
+            return {'success': False, 'error': 'expediente_id required'}
         rec = request.env['adt.expediente'].sudo().browse(int(expediente_id))
         if not rec.exists():
             return {'success': False, 'error': 'expediente not found'}
@@ -742,6 +925,11 @@ class AdtExpedientesMobileAPI(http.Controller):
         JSON example: {"expediente_id": 34, "field_name": "foto_dni_frente", "image_base64": "<base64>"}
         Multipart example: form fields expediente_id, field_name and file under 'file'.
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         # Accept token or session
         user, err = self._ensure_auth()
         if err:
@@ -785,9 +973,14 @@ class AdtExpedientesMobileAPI(http.Controller):
         """
         Return expedientes for an asesora (agent) with detailed payload so the mobile app can show which fields are missing.
         Params:
-          - asesora_id: id (or numeric string) of the user/asesora. If omitted, use the authenticated user.
-        Response: {success: True, data: [ { expediente fields..., cliente: {...}, asesor: {...}, missing: [...] } ]}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+        #  - asesora_id: id (or numeric string) of the user/asesora. If omitted, use the authenticated user.
+        #Response: {success: True, data: [ { expediente fields..., cliente: {...}, asesor: {...}, missing: [...] } ]}
+
         # Accept parameter from multiple sources
         asesora_id = self._get_param('asesora_id', asesora_id, kwargs)
         #user, err = self._ensure_auth()
@@ -935,8 +1128,13 @@ class AdtExpedientesMobileAPI(http.Controller):
         """Return lightweight partner info and the number of expedientes associated.
 
         Request: {"partner_id": 123}
-        Response: {success: True, data: {partner: {...}, expediente_count: 5}}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+        #Response: {success: True, data: {partner: {...}, expediente_count: 5}}
+
         partner_id = self._get_param('partner_id', partner_id, kwargs)
         if not partner_id:
             return {'success': False, 'error': 'partner_id required'}
@@ -1014,6 +1212,11 @@ class AdtExpedientesMobileAPI(http.Controller):
         Request example: {"query": "77100"}
         Response: {success: True, data: [ {id, name, document_number, nationality, nationality_label, occupation, occupation_label, phone, mobile, email, street, city, marital_status, children_count, country_id, country_name, state_id, state_name} ]}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         # accept parameter from multiple sources
         query = self._get_param('query', query, kwargs)
         if not query:
@@ -1097,8 +1300,13 @@ class AdtExpedientesMobileAPI(http.Controller):
         Body examples:
           {"partner_id": 12, "vals": {"phone": "999111222"}}
           {"document_number": "77100152", "vals": {"city": "SJM", "country_id": "PE", "state_id": "LIM"}}
-        Returns: {success: True, data: {id: partner.id}}
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+        #Returns: {success: True, data: {id: partner.id}}
+
         # Accept parameters from multiple sources
         partner_id = self._get_param('partner_id', partner_id, kwargs)
         # vals can be passed as 'vals' dict, or individual fields in payload
@@ -1267,10 +1475,12 @@ class AdtExpedientesMobileAPI(http.Controller):
           { present: bool, state: 'aceptado'|'rechazado'|None, obs: str, value: any }
         Also returns missing_fields (list of keys) and progress (0-100 integer)
         """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
         asesora_id = self._get_param('asesora_id', asesora_id, kwargs)
-        #user, err = self._ensure_auth()
-        #if err:
-        #    return err
         if not asesora_id:
             asesora_id = user.id
         try:
