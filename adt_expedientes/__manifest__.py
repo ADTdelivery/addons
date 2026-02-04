@@ -6,6 +6,7 @@
     'author': 'ADT',
     'depends': ['base', 'mail'],
     'data': [
+        'views/report_expediente.xml',
         'security/ir.model.access.csv',
         'views/expediente_views.xml',
         'views/expediente_rechazo_wizard.xml',

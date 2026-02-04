@@ -17,10 +17,10 @@
                             <field name="asesora_id"/>
                             <field name="state"
                                    widget="badge"
-                                   decoration-info="state == 'por_revisar'"
-                                   decoration-warning="state == 'incompleto'"
-                                   decoration-success="state == 'completo'"
-                                   decoration-danger="state == 'rechazado'"/>
+                                   decoration-info="state == &apos;por_revisar&apos;"
+                                   decoration-warning="(state == &apos;incompleto_expediente&apos;) or (state == &apos;incompleto_fase_final&apos;)"
+                                   decoration-success="state == &apos;completo&apos;"
+                                   decoration-danger="state == &apos;rechazado&apos;"/>
                             <button name="action_open_expediente"
                                     type="object"
                                     string="Abrir"

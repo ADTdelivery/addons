@@ -13,10 +13,20 @@ class AdtExpediente(models.Model):
 
     state = fields.Selection([
         ('por_revisar', 'Por revisar'),
-        ('incompleto', 'Incompleto'),
+        ('incompleto_expediente', 'Incompleto - Expediente'),
+        ('incompleto_fase_final', 'Incompleto - Fase Final'),
         ('completo', 'Completo'),
         ('rechazado', 'Rechazado'),
     ], compute='_compute_state', store=True, tracking=True)
+
+    # Manual override field so UI buttons can set a persistent state that the compute respects.
+    manual_state = fields.Selection([
+        ('por_revisar', 'Por revisar'),
+        ('incompleto_expediente', 'Incompleto - Expediente'),
+        ('incompleto_fase_final', 'Incompleto - Fase Final'),
+        ('completo', 'Completo'),
+        ('rechazado', 'Rechazado'),
+    ], string='Estado manual', help='Si se establece, este valor tendrá prioridad sobre el cálculo automático del estado.', copy=False)
 
     cliente_id = fields.Many2one('res.partner', string="Cliente", required=True)
     asesora_id = fields.Many2one('res.users', string="Asesora", required=True)
@@ -356,6 +366,16 @@ class AdtExpediente(models.Model):
             }
         }
 
+    # New actions to set manual_state so buttons can mark the expediente
+    def action_mark_incompleto_expediente(self):
+        self.write({'state': 'incompleto_expediente'})
+
+    def action_mark_incompleto_fase_final(self):
+        self.write({'state': 'incompleto_fase_final'})
+
+    def action_mark_completo(self):
+        self.write({'state': 'completo'})
+
     # ======================
     # POPUPS DE FOTOS
     # ======================
@@ -477,9 +497,130 @@ class AdtExpediente(models.Model):
             'target': 'current',
         }
 
+    # Helper for QWeb reports: return a data URI string for a Binary field name
+    def get_data_uri(self, field_name):
+        """Return a 'data:image/png;base64,...' string for the binary field specified by
+        `field_name`. Returns an empty string when the field is falsy. This abstracts
+        bytes/str handling away from QWeb templates (avoids calling .decode() in QWeb).
+        """
+        self.ensure_one()
+        val = getattr(self, field_name, False)
+        if not val:
+            return ''
+        # If it's bytes, try to decode; otherwise assume it's a base64 string
+        try:
+            if isinstance(val, (bytes, bytearray)):
+                b64 = val.decode('utf-8')
+            else:
+                b64 = val
+        except Exception:
+            # As a last resort, base64-encode raw bytes
+            try:
+                import base64 as _b64
+                b64 = _b64.b64encode(val).decode('utf-8')
+            except Exception:
+                return ''
+        return 'data:image/png;base64,' + (b64 or '')
+
+    # Backwards compatible alias (in case any template still references _get_data_uri)
+    get_data_uri_safe = get_data_uri
+    # Keep underscore-named alias because some templates still call doc._get_data_uri(...)
+    _get_data_uri = get_data_uri
+
     # ======================
     # VALIDACIONES
     # ======================
+
+    # NOTE: The original implementation of _compute_state is commented out below for temporary disabling / debugging.
+    # If you want to re-enable the original logic restore the block and remove the no-op implementation that follows.
+    #
+    # @api.depends(
+    #     'foto_vivienda', 'foto_ingresos', 'direccion_cliente', 'foto_licencia',
+    #     'foto_entrega', 'placa', 'chasis',
+    #     'estado_foto_vivienda', 'estado_foto_ingresos',
+    #     'estado_direccion', 'estado_foto_licencia',
+    #     'foto_dni_frente', 'foto_dni_reverso', 'estado_foto_dni',
+    #     'foto_ce_frente', 'foto_ce_reverso', 'estado_foto_ce',
+    #     'foto_pasaporte_frente', 'foto_pasaporte_reverso', 'estado_foto_pasaporte', 'cliente_id',
+    #     'foto_recibo', 'estado_foto_recibo'
+    # )
+    # def _compute_state(self):
+    #     """Compute the overall state and split previous single 'incompleto' into two precise values:
+    #     - 'incompleto_expediente' when the expediente (requisitos) is incomplete but fase final may be complete
+    #     - 'incompleto_fase_final' when requisitos are complete but the final phase is incomplete
+    #     """
+    #     for rec in self:
+    #
+    #         # Keep rejected untouched
+    #         if rec.state == 'rechazado':
+    #             continue
+    #
+    #         # New unsaved record
+    #         if not rec.id:
+    #             rec.state = 'por_revisar'
+    #             continue
+    #
+    #         # Document validation depending on nationality
+    #         doc_ok = True
+    #         if rec.cliente_id:
+    #             nat = getattr(rec.cliente_id, 'nationality', False)
+    #             if nat == 'peruana':
+    #                 doc_ok = bool(rec.foto_dni_frente and rec.foto_dni_reverso and rec.estado_foto_dni == 'aceptado')
+    #             elif nat and nat != 'peruana':
+    #                 ce_ok = bool(rec.foto_ce_frente and rec.foto_ce_reverso and rec.estado_foto_ce == 'aceptado')
+    #                 pas_ok = bool(rec.foto_pasaporte_frente and rec.foto_pasaporte_reverso and rec.estado_foto_pasaporte == 'aceptado')
+    #                 doc_ok = bool(ce_ok or pas_ok)
+    #
+    #         requisitos_ok = all([
+    #             rec.foto_vivienda,
+    #             rec.foto_ingresos,
+    #             rec.direccion_cliente,
+    #             rec.foto_licencia,
+    #             rec.foto_recibo,
+    #             doc_ok,
+    #             rec.estado_foto_vivienda == 'aceptado',
+    #             rec.estado_foto_ingresos == 'aceptado',
+    #             rec.estado_direccion == 'aceptado',
+    #             rec.estado_foto_licencia == 'aceptado',
+    #             rec.estado_foto_recibo == 'aceptado',
+    #         ])
+    #
+    #         fase_final_ok = all([
+    #             rec.foto_entrega,
+    #             rec.placa,
+    #             rec.chasis,
+    #         ])
+    #
+    #         # Determine precise incomplete state
+    #         if requisitos_ok and fase_final_ok:
+    #             rec.state = 'completo'
+    #         elif requisitos_ok and not fase_final_ok:
+    #             # expediente requirements satisfied, but final phase missing
+    #             rec.state = 'incompleto_fase_final'
+    #         elif fase_final_ok and not requisitos_ok:
+    #             # final phase satisfied but expediente requirements missing
+    #             rec.state = 'incompleto_expediente'
+    #         else:
+    #             rec.state = 'por_revisar'
+    #
+    #         # Respect manual_state if set; this allows buttons to control the state
+    #         if rec.manual_state:
+    #             rec.state = rec.manual_state
+
+    @api.depends()  # keep a compute decorator to avoid Odoo warnings; no dependencies since this is a no-op
+    def _compute_state(self):
+        """Temporarily disabled compute. This no-op respects `manual_state` if it is set,
+        otherwise leaves the stored `state` unchanged (so we don't overwrite values unintentionally).
+        The original implementation is retained as a commented block above for reference.
+        """
+        for rec in self:
+            if rec.manual_state:
+                # If a manual override is present, ensure the stored state reflects it.
+                rec.state = rec.manual_state
+            else:
+                # Do nothing: preserve existing stored `state` value.
+                # Intentionally left blank to avoid recalculation while debugging.
+                pass
 
     @api.constrains('cliente_id', 'foto_dni_frente', 'foto_dni_reverso', 'foto_ce_frente', 'foto_ce_reverso', 'foto_pasaporte_frente', 'foto_pasaporte_reverso')
     def _check_document_photos(self):

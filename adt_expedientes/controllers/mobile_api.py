@@ -543,7 +543,19 @@ class AdtExpedientesMobileAPI(http.Controller):
         if not Exp.exists():
             return {'success': False, 'error': 'expediente not found'}
         try:
-            Exp.write(vals)
+            # Sanitize vals: mobile clients sometimes send empty strings for binary fields
+            # to indicate "no change". Writing '' to a binary field will clear the stored
+            # image and may change computed state unexpectedly. We'll skip such keys.
+            write_vals = dict(vals)
+            for key in list(write_vals.keys()):
+                field = Exp._fields.get(key)
+                if field and field.type == 'binary':
+                    v = write_vals.get(key)
+                    if v is None or (isinstance(v, str) and v.strip() == ''):
+                        # skip updating this binary field
+                        write_vals.pop(key, None)
+
+            Exp.write(write_vals)
             return {'success': True, 'data': {'id': Exp.id}}
         except Exception as e:
             return {'success': False, 'error': str(e)}
@@ -917,6 +929,84 @@ class AdtExpedientesMobileAPI(http.Controller):
             data.append(exp)
 
         return {'success': True, 'data': data}
+
+    @http.route('/adt_expedientes/mobile/partner/card', type='json', auth='none', methods=['POST'], csrf=False)
+    def partner_card(self, partner_id=None, **kwargs):
+        """Return lightweight partner info and the number of expedientes associated.
+
+        Request: {"partner_id": 123}
+        Response: {success: True, data: {partner: {...}, expediente_count: 5}}
+        """
+        partner_id = self._get_param('partner_id', partner_id, kwargs)
+        if not partner_id:
+            return {'success': False, 'error': 'partner_id required'}
+        try:
+            pid = int(partner_id)
+        except Exception:
+            return {'success': False, 'error': 'invalid partner_id'}
+
+        Partner = request.env['res.partner'].sudo()
+        p = Partner.browse(pid)
+        if not p.exists():
+            return {'success': False, 'error': 'partner not found'}
+
+        def _selection_label(record, field_name, value):
+            if value in (False, None, ''):
+                return ''
+            field = record._fields.get(field_name)
+            if not field:
+                return str(value)
+            try:
+                selection = field.selection(record.env) if callable(field.selection) else field.selection
+            except Exception:
+                selection = field.selection if hasattr(field, 'selection') else None
+            if not selection:
+                return str(value)
+            for key, label in selection:
+                if key == value:
+                    return label
+            return str(value)
+
+        country_code = getattr(p.country_id, 'code', None) or ''
+        country_name = p.country_id.name if p.country_id else ''
+        state_code = getattr(p.state_id, 'code', None) or ''
+        state_name = p.state_id.name if p.state_id else ''
+
+        partner_data = {
+            'id': p.id,
+            'name': p.name or '',
+            'document_number': p.document_number or '',
+            'nationality': p.nationality or '',
+            'nationality_label': _selection_label(p, 'nationality', p.nationality),
+            'occupation': p.occupation or '',
+            'occupation_label': _selection_label(p, 'occupation', p.occupation),
+            'phone': p.phone or '',
+            'mobile': p.mobile or '',
+            'email': p.email or '',
+            'street': p.street or '',
+            'city': p.city or '',
+            'country_id': country_code,
+            'country_name': country_name,
+            'state_id': state_code,
+            'state_name': state_name,
+        }
+
+        Exp = request.env['adt.expediente'].sudo()
+        recs = Exp.search([('cliente_id', '=', p.id)], order='id desc')
+        expedientes = []
+        for r in recs:
+            expedientes.append({
+                'id': r.id,
+                'state': r.state,
+                'fecha': str(r.fecha) if getattr(r, 'fecha', False) else None,
+                'vehiculo': r.vehiculo,
+                'placa': r.placa or '',
+                'chasis': r.chasis or '',
+                'asesor': {'id': r.asesora_id.id if r.asesora_id else None, 'name': r.asesora_id.name if r.asesora_id else ''}
+            })
+
+        # Return partner info plus a minimal list of expedientes for card UI
+        return {'success': True, 'data': {'partner': partner_data, 'expedientes': expedientes}}
 
     @http.route('/adt_expedientes/mobile/partner/search_by_dni', type='json', auth='none', methods=['POST'], csrf=False)
     def partner_search_by_dni(self, query=None, limit=50, **kwargs):

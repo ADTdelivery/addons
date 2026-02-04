@@ -388,9 +388,13 @@
 
                 <header>
                     <button string="Rechazar" name="action_rechazar" type="object" class="btn-danger"/>
+                    <button string="Marcar incompleto - Expediente" name="action_mark_incompleto_expediente" type="object" class="btn-warning"/>
+                    <button string="Marcar incompleto - Fase Final" name="action_mark_incompleto_fase_final" type="object" class="btn-warning"/>
+                    <button string="Marcar Completo" name="action_mark_completo" type="object" class="btn-success"/>
+                    <button name="%(adt_expedientes.action_adt_expediente_report)d" string="Descargar PDF" type="action" class="btn-primary"/>
 
                     <field name="state" widget="statusbar"
-                           statusbar_visible="por_revisar,incompleto,completo,rechazado"/>
+                           statusbar_visible="por_revisar,incompleto_expediente,incompleto_fase_final,completo,rechazado"/>
                 </header>
 
                 <sheet>
@@ -916,13 +920,14 @@
                 <field name="state"
                        widget="badge"
                        decoration-info="state == 'por_revisar'"
-                       decoration-warning="state == 'incompleto'"
+                       decoration-warning="(state == 'incompleto_expediente') or (state == 'incompleto_fase_final')"
                        decoration-success="state == 'completo'"
                        decoration-danger="state == 'rechazado'"/>
 
             </tree>
         </field>
     </record>
+
 
 
 
@@ -941,11 +946,18 @@
         <field name="domain">[('state','=','por_revisar')]</field>
     </record>
 
-    <record id="action_adt_expediente_incompletos" model="ir.actions.act_window">
-        <field name="name">Expedientes - Incompletos</field>
+    <record id="action_adt_expediente_incompleto_expediente" model="ir.actions.act_window">
+        <field name="name">Expedientes - Incompletos (Expediente)</field>
         <field name="res_model">adt.expediente</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('state','=','incompleto')]</field>
+        <field name="domain">[('state','=','incompleto_expediente')]</field>
+    </record>
+
+    <record id="action_adt_expediente_incompleto_fase_final" model="ir.actions.act_window">
+        <field name="name">Expedientes - Incompletos (Fase Final)</field>
+        <field name="res_model">adt.expediente</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state','=','incompleto_fase_final')]</field>
     </record>
 
     <record id="action_adt_expediente_completos" model="ir.actions.act_window">
@@ -963,6 +975,9 @@
     </record>
 
 
+
+
+
     <!-- MENU -->
     <!-- MENU ROOT -->
     <menuitem id="menu_adt_root" name="Expedientes"/>
@@ -977,10 +992,16 @@
               parent="menu_adt_root"
               action="action_adt_expediente_por_revisar"/>
 
-    <menuitem id="menu_adt_expedientes_incompletos"
-              name="Incompletos"
+    <!-- Menu entries for the two separate incompleto actions -->
+    <menuitem id="menu_adt_expedientes_incompletos_expediente"
+              name="Incompletos - Expediente"
               parent="menu_adt_root"
-              action="action_adt_expediente_incompletos"/>
+              action="action_adt_expediente_incompleto_expediente"/>
+
+    <menuitem id="menu_adt_expedientes_incompletos_fase_final"
+              name="Incompletos - Fase Final"
+              parent="menu_adt_root"
+              action="action_adt_expediente_incompleto_fase_final"/>
 
     <menuitem id="menu_adt_expedientes_completos"
               name="Completos"
@@ -991,6 +1012,9 @@
               name="Rechazados"
               parent="menu_adt_root"
               action="action_adt_expediente_rechazados"/>
+
+
+
 
 
 
