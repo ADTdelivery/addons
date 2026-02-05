@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- MENÚ PRINCIPAL -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <menuitem id="menu_sentinel_root"
+              name="Sentinel"
+              sequence="90"
+              web_icon="adt_sentinel,static/description/icon.png"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- SUBMENÚS -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Consultar DNI (Acción principal) -->
+    <menuitem id="menu_sentinel_query"
+              name="🔍 Consultar DNI"
+              parent="menu_sentinel_root"
+              action="action_sentinel_query_wizard"
+              sequence="10"/>
+
+    <!-- Reportes Vigentes -->
+    <menuitem id="menu_sentinel_vigentes"
+              name="✅ Reportes Vigentes"
+              parent="menu_sentinel_root"
+              action="action_sentinel_report_vigentes"
+              sequence="20"/>
+
+    <!-- Todos los Reportes -->
+    <menuitem id="menu_sentinel_all"
+              name="📋 Todos los Reportes"
+              parent="menu_sentinel_root"
+              action="action_sentinel_report_all"
+              sequence="30"/>
+
+    <!-- Histórico -->
+    <menuitem id="menu_sentinel_historico"
+              name="📚 Histórico"
+              parent="menu_sentinel_root"
+              action="action_sentinel_report_historico"
+              sequence="40"/>
+
+</odoo>

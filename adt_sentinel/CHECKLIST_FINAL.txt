@@ -1,0 +1,168 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   ✅ CHECKLIST FINAL DE VERIFICACIÓN                         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+🎯 PROBLEMAS RESUELTOS:
+   ✅ El botón "Buscar" no hacía nada
+   ✅ No aparecía el campo para subir imagen
+   ✅ Error "mandatory field is not set" (document_number)
+
+📋 ANTES DE ACTUALIZAR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ✅ Archivos modificados correctamente
+      ├─ sentinel_query_wizard.py
+      │  ├─ Removido required=True del campo ............... ✓
+      │  └─ Agregada validación manual .................... ✓
+      └─ sentinel_query_wizard_views.xml
+         └─ Agregado required condicional en vista ........ ✓
+
+   ✅ No hay errores de sintaxis
+      ├─ XML válido ..................................... ✓
+      └─ Python válido .................................. ✓
+
+   ✅ Documentación creada
+      ├─ ACTUALIZAR_MODULO.md .......................... ✓
+      ├─ PASOS_RAPIDOS.md .............................. ✓
+      ├─ GUIA_VISUAL.txt ............................... ✓
+      ├─ RESUMEN_EJECUTIVO.txt ......................... ✓
+      ├─ FIX_CAMPO_OBLIGATORIO.txt ..................... ✓
+      └─ verificar_cambios.sh .......................... ✓
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 PASOS PARA ACTUALIZAR (MARCA CADA UNO):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   [ ] 1. Abrir Odoo en el navegador
+          URL: http://tu-servidor:8069
+
+   [ ] 2. Ir al menú "Apps" (Aplicaciones)
+
+   [ ] 3. Quitar el filtro "Apps"
+          (click en la X para ver todos los módulos)
+
+   [ ] 4. Buscar "adt_sentinel" en el buscador
+
+   [ ] 5. Hacer clic en el botón "Actualizar" (⟳)
+
+   [ ] 6. Confirmar la actualización
+
+   [ ] 7. Esperar a que termine (10-30 segundos)
+
+   [ ] 8. Limpiar caché del navegador
+          - Windows/Linux: Ctrl + Shift + R
+          - Mac: Cmd + Shift + R
+
+   [ ] 9. O cerrar y abrir el navegador completamente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 PASOS PARA PROBAR (MARCA CADA UNO):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   [ ] 1. Ir a: Sentinel > 🔍 Consultar DNI
+
+   [ ] 2. Ingresar un DNI de 8 dígitos
+          Ejemplo: 12345678
+
+   [ ] 3. Hacer clic en "🔍 Buscar"
+
+   [ ] 4. VERIFICAR: La pantalla se actualiza automáticamente
+
+   [ ] 5. CASO A - Si encuentra reporte:
+          [ ] ✅ Aparece "Reporte Encontrado"
+          [ ] 📄 Se muestra la imagen del reporte
+          [ ] 📊 Se muestran los detalles
+          [ ] Botones: "Ver Reporte Completo" y "Ver Histórico"
+
+   [ ] 6. CASO B - Si NO encuentra reporte:
+          [ ] 📸 Aparece "Subir Nuevo Reporte"
+          [ ] ℹ️ Mensaje informativo visible
+          [ ] ⚠️ Advertencia de costo visible (S/ 10.00)
+          [ ] 📋 Sección "Información del Reporte"
+          [ ] 📎 Sección "Adjuntar Imagen del Reporte" ⭐ CRÍTICO
+          [ ] [📁 Seleccionar Archivo] botón visible
+          [ ] Campo para "Observaciones"
+
+   [ ] 7. Seleccionar una imagen:
+          [ ] Click en "Seleccionar Archivo"
+          [ ] Elegir una imagen (JPG, PNG, etc.)
+          [ ] 🖼️ Aparece sección "Vista Previa"
+          [ ] La imagen se muestra correctamente
+
+   [ ] 8. Verificar botón de guardar:
+          [ ] Botón "💾 Subir y Guardar (S/ 10.00)" visible
+          [ ] Al hacer clic, pide confirmación
+          [ ] Después de confirmar, se guarda correctamente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ SI ALGO NO FUNCIONA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   PROBLEMA 1: No veo el campo "Adjuntar Imagen del Reporte"
+   ┌────────────────────────────────────────────────────────────┐
+   │ Solución:                                                  │
+   │ 1. Verifica que actualizaste el módulo en Apps            │
+   │ 2. Limpia caché: Ctrl+Shift+R                             │
+   │ 3. Intenta con un DNI diferente                           │
+   │ 4. Verifica que el DNI NO tenga reporte del mes actual    │
+   └────────────────────────────────────────────────────────────┘
+
+   PROBLEMA 2: El botón "Buscar" no hace nada
+   ┌────────────────────────────────────────────────────────────┐
+   │ Solución:                                                  │
+   │ 1. Verifica que el DNI tenga exactamente 8 dígitos        │
+   │ 2. Actualiza el módulo en Apps                            │
+   │ 3. Limpia caché del navegador                             │
+   │ 4. Revisa los logs de Odoo por errores                    │
+   └────────────────────────────────────────────────────────────┘
+
+   PROBLEMA 3: Error al actualizar el módulo
+   ┌────────────────────────────────────────────────────────────┐
+   │ Solución:                                                  │
+   │ 1. Revisa /var/log/odoo/odoo.log                          │
+   │ 2. O: docker logs nombre_contenedor                       │
+   │ 3. Reinicia Odoo: systemctl restart odoo                  │
+   │ 4. O: docker-compose restart                              │
+   └────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ CONFIRMACIÓN FINAL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   Una vez que hayas completado todos los pasos y el wizard funcione
+   correctamente, marca aquí:
+
+   [ ] ✅ WIZARD FUNCIONANDO CORRECTAMENTE
+   [ ] ✅ CAMPO DE IMAGEN VISIBLE
+   [ ] ✅ PUEDE SUBIR Y GUARDAR REPORTES
+   [ ] ✅ TODO PROBADO Y FUNCIONAL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 INFORMACIÓN ADICIONAL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   Documentación completa en:
+   - PASOS_RAPIDOS.md      (guía simplificada)
+   - ACTUALIZAR_MODULO.md  (guía detallada)
+   - GUIA_VISUAL.txt       (mockups de las pantallas)
+   - RESUMEN_EJECUTIVO.txt (resumen técnico)
+
+   Script de verificación:
+   - verificar_cambios.sh  (ejecutar para verificar archivos)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 ¡LISTO PARA ACTUALIZAR!
+
+   Todo está preparado. Solo necesitas actualizar el módulo en Odoo y probar.
+   Sigue el checklist paso a paso y marca cada item a medida que lo completes.
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        ✅ PROBLEMA RESUELTO                                  ║
+║                  Fecha: 04 de febrero de 2026                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝

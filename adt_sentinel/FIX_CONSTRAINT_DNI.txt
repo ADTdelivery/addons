@@ -1,0 +1,198 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║           🔧 FIX CRÍTICO - ERROR "DNI REQUERIDO" CON DNI VÁLIDO              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 ERROR REPORTADO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ❌ Usuario ingresa un DNI válido (ej: 12345678)
+   ❌ Hace clic en "Buscar"
+   ❌ Aparece error: "Debe ingresar el número de DNI antes de buscar"
+   ❌ Aunque el DNI SÍ está ingresado
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 CAUSA DEL PROBLEMA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   El constraint `@api.constrains('document_number')` se ejecutaba
+   automáticamente CADA VEZ que el campo cambiaba.
+
+   FLUJO DEL PROBLEMA:
+   1. Usuario escribe "1234567" (mientras escribe)
+   2. Constraint se ejecuta → "No es 8 dígitos" → ValidationError
+   3. Campo se limpia por el error
+   4. Usuario escribe "12345678" (completo)
+   5. Hace clic en "Buscar"
+   6. Pero el constraint ya había limpiado el campo
+   7. action_search() ve el campo vacío
+   8. Muestra error "DNI requerido"
+
+   PROBLEMA: Los constraints se ejecutan automáticamente durante la edición,
+   no solo cuando se hace clic en el botón. Esto causa conflictos en wizards
+   donde el usuario está escribiendo.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ SOLUCIÓN APLICADA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ELIMINADO el constraint problemático:
+
+   ❌ ANTES (MALO):
+   ┌────────────────────────────────────────────────────────────┐
+   │ @api.constrains('document_number')                         │
+   │ def _check_document_number_format(self):                   │
+   │     """Valida formato del DNI antes de buscar."""          │
+   │     for wizard in self:                                    │
+   │         if wizard.document_number:                         │
+   │             dni = wizard.document_number.strip()           │
+   │             if not re.match(r'^\d{8}$', dni):              │
+   │                 raise exceptions.ValidationError(...)      │
+   │                 # ← SE EJECUTA MIENTRAS EL USUARIO ESCRIBE │
+   └────────────────────────────────────────────────────────────┘
+
+   ✅ AHORA (BUENO):
+   ┌────────────────────────────────────────────────────────────┐
+   │ def action_search(self):                                   │
+   │     self.ensure_one()                                      │
+   │                                                            │
+   │     # Validar que el DNI esté presente                     │
+   │     if not self.document_number:                           │
+   │         raise exceptions.UserError(...)                    │
+   │                                                            │
+   │     # Limpiar DNI                                          │
+   │     dni = self.document_number.strip()                     │
+   │                                                            │
+   │     # Validar que no esté vacío después de limpiar         │
+   │     if not dni:                                            │
+   │         raise exceptions.UserError(...)                    │
+   │                                                            │
+   │     # Validar formato del DNI (exactamente 8 dígitos)      │
+   │     if not re.match(r'^\d{8}$', dni):                      │
+   │         raise exceptions.UserError(...)                    │
+   │         # ← SOLO SE EJECUTA AL HACER CLIC EN "BUSCAR"     │
+   │                                                            │
+   │     # ...continuar con la búsqueda                         │
+   └────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 VENTAJAS DE ESTA SOLUCIÓN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ✅ El usuario puede escribir el DNI sin interrupciones
+   ✅ La validación solo ocurre al hacer clic en "Buscar"
+   ✅ Mensajes de error más claros (UserError vs ValidationError)
+   ✅ No hay conflictos durante la edición del campo
+   ✅ Mejor experiencia de usuario
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📂 ARCHIVOS MODIFICADOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   wizard/sentinel_query_wizard.py
+   - Líneas ~160-180: ELIMINADO constraint _check_document_number_format
+   - Líneas ~187-202: AGREGADA validación de formato en action_search
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 VALIDACIONES IMPLEMENTADAS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   1. ✅ DNI presente (not empty)
+   2. ✅ DNI no vacío después de strip()
+   3. ✅ DNI con exactamente 8 dígitos numéricos
+   4. ✅ Mensaje de error con información detallada:
+      - Valor ingresado
+      - Longitud del valor
+      - Ejemplo de formato válido
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ COMPORTAMIENTO ESPERADO AHORA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   CASO 1: Usuario escribe DNI válido
+   ┌────────────────────────────────────────────────────────────┐
+   │ 1. Usuario escribe: 12345678                               │
+   │ 2. Click en "Buscar"                                       │
+   │ 3. ✅ Validación pasa                                      │
+   │ 4. ✅ Busca el reporte                                     │
+   │ 5. ✅ Muestra resultado (found o not_found)                │
+   └────────────────────────────────────────────────────────────┘
+
+   CASO 2: Usuario deja el campo vacío
+   ┌────────────────────────────────────────────────────────────┐
+   │ 1. Usuario NO escribe nada                                 │
+   │ 2. Click en "Buscar"                                       │
+   │ 3. ⚠️ Error: "DNI requerido"                              │
+   └────────────────────────────────────────────────────────────┘
+
+   CASO 3: Usuario escribe DNI inválido
+   ┌────────────────────────────────────────────────────────────┐
+   │ 1. Usuario escribe: 123 (solo 3 dígitos)                   │
+   │ 2. Click en "Buscar"                                       │
+   │ 3. ⚠️ Error: "Formato de DNI inválido"                    │
+   │    - Valor ingresado: "123"                                │
+   │    - Longitud: 3 caracteres                                │
+   │    - Ejemplo válido: 12345678                              │
+   └────────────────────────────────────────────────────────────┘
+
+   CASO 4: Usuario escribe letras
+   ┌────────────────────────────────────────────────────────────┐
+   │ 1. Usuario escribe: ABC12345                               │
+   │ 2. Click en "Buscar"                                       │
+   │ 3. ⚠️ Error: "Formato de DNI inválido"                    │
+   │    - Debe tener exactamente 8 dígitos numéricos            │
+   └────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 CÓMO APLICAR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   1. Actualizar el módulo en Odoo:
+      → Apps > Buscar "adt_sentinel" > Actualizar
+
+   2. Limpiar caché del navegador:
+      → Ctrl+Shift+R (Windows) o Cmd+Shift+R (Mac)
+
+   3. Probar:
+      → Sentinel > Consultar DNI
+      → Escribir: 12345678
+      → Click en "Buscar"
+      → ✅ Debe funcionar correctamente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 NOTA TÉCNICA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   **@api.constrains() vs validación manual:**
+
+   ❌ @api.constrains():
+   - Se ejecuta automáticamente al cambiar el campo
+   - Interrumpe al usuario mientras escribe
+   - Causa problemas en wizards interactivos
+   - Limpia el campo si hay error
+
+   ✅ Validación manual en métodos:
+   - Se ejecuta solo cuando se llama al método
+   - No interrumpe al usuario
+   - Control total del flujo
+   - Mensajes de error más claros
+
+   **REGLA DE ORO:**
+   En wizards transitorios (TransientModel), usa validación manual
+   en métodos, NO uses @api.constrains() para campos que el usuario
+   está editando activamente.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        ✅ FIX COMPLETADO                                     ║
+║                  Fecha: 04 de febrero de 2026                                ║
+║                  Error resuelto: DNI válido rechazado                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝

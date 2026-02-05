@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        ARCHIVO OBSOLETO - NO ELIMINAR
+
+        Este archivo se mantiene por compatibilidad pero no contiene vistas activas.
+
+        Las vistas actuales del módulo están en:
+        - views/sentinel_report_views.xml (vistas del modelo)
+        - views/sentinel_menu.xml (menús)
+        - wizard/sentinel_query_wizard_views.xml (wizard de consulta)
+
+        Fecha de deprecación: 04/02/2026
+    -->
+</odoo>

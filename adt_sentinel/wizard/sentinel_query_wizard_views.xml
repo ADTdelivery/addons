@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- WIZARD: PASO 1 - BÚSQUEDA INICIAL -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_sentinel_query_wizard_form_search" model="ir.ui.view">
+        <field name="name">adt.sentinel.query.wizard.form.search</field>
+        <field name="model">adt.sentinel.query.wizard</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <form string="Consultar Reporte Sentinel">
+                <field name="state" invisible="1"/>
+                <sheet>
+                    <!-- PASO 1: BÚSQUEDA INICIAL -->
+                    <div attrs="{'invisible': [('state', '!=', 'search')]}">
+                        <div class="oe_title">
+                            <h1>🔍 Consultar Reporte Sentinel</h1>
+                        </div>
+
+                        <group>
+                            <group>
+                                <field name="document_number"
+                                       placeholder="Ej: 12345678"
+                                       class="oe_inline"
+                                       style="font-size: 18px; font-weight: bold;"
+                                       attrs="{'required': [('state', '=', 'search')]}"/>
+                            </group>
+                        </group>
+
+                        <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                            <p style="margin: 0; color: #6c757d;">
+                                <strong>ℹ️ Instrucciones:</strong><br/>
+                                1. Ingrese el número de DNI (8 dígitos)<br/>
+                                2. Haga clic en "Buscar"<br/>
+                                3. El sistema verificará si existe un reporte vigente para este mes
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- PASO 2A: REPORTE ENCONTRADO -->
+                    <div attrs="{'invisible': [('state', '!=', 'found')]}">
+                        <div class="oe_title">
+                            <h1>✅ Reporte Encontrado</h1>
+                        </div>
+
+                        <!-- Mensaje de vigencia -->
+                        <group>
+                            <field name="validity_message"
+                                   nolabel="1"
+                                   colspan="2"
+                                   widget="html"/>
+                        </group>
+
+                        <notebook>
+                            <page string="📄 Vista Previa">
+                                <group>
+                                    <field name="found_report_image"
+                                           widget="image"
+                                           nolabel="1"
+                                           options="{'size': [800, 0]}"/>
+                                </group>
+                            </page>
+                            <page string="📊 Detalles">
+                                <group>
+                                    <group>
+                                        <field name="document_number" readonly="1"/>
+                                        <field name="found_report_date" readonly="1"/>
+                                    </group>
+                                    <group>
+                                        <field name="found_report_user" readonly="1"/>
+                                        <field name="found_report_id" readonly="1"/>
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
+                    </div>
+
+                    <!-- PASO 2B: NO ENCONTRADO, PERMITIR CARGA -->
+                    <div attrs="{'invisible': [('state', '!=', 'not_found')]}">
+                        <div class="oe_title">
+                            <h1>📸 Subir Nuevo Reporte</h1>
+                        </div>
+
+                        <!-- Mensaje informativo -->
+                        <group>
+                            <field name="validity_message" nolabel="1" colspan="2" widget="html"/>
+                        </group>
+
+                        <!-- Advertencia de costo -->
+                        <group>
+                            <field name="cost_warning" nolabel="1" colspan="2" widget="html"/>
+                        </group>
+
+                        <group string="📋 Información del Reporte">
+                            <group>
+                                <field name="document_number" readonly="1" string="DNI"/>
+                                <field name="new_image_filename" invisible="1"/>
+                            </group>
+                            <group>
+                                <field name="notes" placeholder="Observaciones opcionales..."/>
+                            </group>
+                        </group>
+
+                        <group string="📎 Adjuntar Imagen del Reporte">
+                            <field name="new_report_image"
+                                   widget="binary"
+                                   filename="new_image_filename"
+                                   string="Seleccionar Archivo"
+                                   nolabel="1"
+                                   attrs="{'required': [('state', '=', 'not_found')]}"/>
+                        </group>
+
+                        <group string="🖼️ Vista Previa" attrs="{'invisible': [('new_report_image', '=', False)]}">
+                            <field name="new_report_image"
+                                   widget="image"
+                                   nolabel="1"
+                                   options="{'size': [600, 0]}"/>
+                        </group>
+                    </div>
+                </sheet>
+                <footer>
+                    <!-- Botones para BÚSQUEDA -->
+                    <button name="action_search"
+                            string="🔍 Buscar"
+                            type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state', '!=', 'search')]}"
+                            force_save="1"/>
+                    <button string="Cancelar"
+                            special="cancel"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('state', '!=', 'search')]}"/>
+
+                    <!-- Botones para REPORTE ENCONTRADO -->
+                    <button name="action_view_report"
+                            string="📋 Ver Reporte Completo"
+                            type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state', '!=', 'found')]}"/>
+                    <button name="action_view_history"
+                            string="📚 Ver Histórico"
+                            type="object"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('state', '!=', 'found')]}"/>
+                    <button string="Cerrar"
+                            special="cancel"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('state', '!=', 'found')]}"/>
+
+                    <!-- Botones para SUBIR NUEVO REPORTE -->
+                    <button name="action_upload_report"
+                            string="💾 Subir y Guardar (S/ 10.00)"
+                            type="object"
+                            class="btn-primary"
+                            confirm="¿Está seguro de que desea subir este reporte? Esta acción tiene un costo de S/ 10.00"
+                            attrs="{'invisible': [('state', '!=', 'not_found')]}"/>
+                    <button string="Cancelar"
+                            special="cancel"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('state', '!=', 'not_found')]}"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- ACCIÓN DEL WIZARD -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="action_sentinel_query_wizard" model="ir.actions.act_window">
+        <field name="name">Consultar DNI</field>
+        <field name="res_model">adt.sentinel.query.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_sentinel_query_wizard_form_search"/>
+        <field name="target">new</field>
+        <field name="context">{}</field>
+    </record>
+
+</odoo>

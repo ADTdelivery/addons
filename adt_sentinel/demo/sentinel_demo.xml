@@ -1,0 +1,14 @@
+<!-- Demo data for ADT Sentinel -->
+<!--
+    NO DEMO DATA PROVIDED
+
+    Reason: Credit reports contain sensitive personal information.
+
+    For testing purposes, use the wizard:
+    Sentinel > Consultar DNI
+
+    Test DNIs (fake data for development):
+    - 12345678
+    - 87654321
+    - 11223344
+-->

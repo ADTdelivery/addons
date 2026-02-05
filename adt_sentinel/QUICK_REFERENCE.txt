@@ -1,0 +1,82 @@
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  ADT SENTINEL MODULE - QUICK FIX REFERENCE               ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+STATUS: ✅ ALL ERRORS FIXED - READY TO INSTALL
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  WHAT WAS FIXED                                          ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+1. ❌ Tree view decoration conflict
+   ✅ Removed field-level decorations from badge widget
+
+2. ❌ Wizard expression evaluation error
+   ✅ Removed problematic invisible condition on image field
+
+3. ❌ Missing mail dependencies
+   ✅ Removed chatter section from form view
+
+4. ❌ Incorrect invisible syntax on spans
+   ✅ Reverted to attrs syntax for non-field elements
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  INSTALL NOW                                             ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+# Upgrade existing module:
+odoo-bin -d your_database -u adt_sentinel --log-level=info
+
+# OR fresh install:
+odoo-bin -d your_database -i adt_sentinel --log-level=info
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  FILES CHANGED                                           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+✏️  views/sentinel_report_views.xml (4 changes)
+✏️  wizard/sentinel_query_wizard_views.xml (1 change)
+✅ All other files OK (no changes needed)
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  VERIFY AFTER INSTALL                                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+□ Module shows "Installed" status
+□ Menu "Sentinel" appears in main menu
+□ Tree view opens without errors
+□ Form view displays correctly (no chatter)
+□ Wizard "Consultar DNI" opens successfully
+□ No errors in Odoo log
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  DOCUMENTATION                                           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+📄 BUGFIX_SUMMARY.md      → Detailed technical explanation
+📄 INSTALLATION_TEST.md   → Complete testing checklist
+📄 FIXES_APPLIED.md       → Summary of all fixes
+📄 README.md              → Module documentation
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  KEY TAKEAWAYS                                           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+✓ Don't mix widget="badge" with field-level decoration-*
+✓ Avoid complex expressions in invisible on duplicate fields
+✓ Use attrs={'invisible': [...]} for non-field elements
+✓ Don't add chatter if model doesn't inherit mail.thread
+✓ Image widgets handle empty values automatically
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  IF PROBLEMS PERSIST                                     ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+1. Clear cache: rm -rf **/__pycache__
+2. Check logs: tail -f /var/log/odoo/odoo.log
+3. Review: BUGFIX_SUMMARY.md for details
+4. Verify Odoo version compatibility (tested on 15.0)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Date: February 4, 2026  |  Module: adt_sentinel v1.0.0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

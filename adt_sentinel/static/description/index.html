@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ADT Sentinel - Repositorio de Consultas Crediticias</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .warning-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .feature-card h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .benefit-box {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .benefit-box h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        .screenshot {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .cta-button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ ADT Sentinel</h1>
+        <p>Repositorio Inteligente de Consultas Crediticias</p>
+        <p style="font-size: 0.9em;">Versión 1.0.0 | Compatible con Odoo 15.0+</p>
+    </div>
+
+    <div class="warning-box">
+        <h3>⚠️ IMPORTANTE: Este NO es un sistema de evaluación crediticia</h3>
+        <p><strong>El módulo NO calcula ni interpreta scores crediticios.</strong></p>
+        <p>ADT Sentinel es un repositorio para almacenar y reutilizar consultas crediticias, reduciendo costos operativos.</p>
+    </div>
+
+    <section>
+        <h2>🎯 ¿Qué problema resuelve?</h2>
+        <p>Actualmente, múltiples asesores consultan el mismo DNI en Sentinel el mismo día, pagando S/ 10 por cada consulta. Como el score crediticio solo cambia mensualmente, estas consultas duplicadas son innecesarias.</p>
+
+        <div class="benefit-box">
+            <h3>💰 Ahorro Inmediato</h3>
+            <p><strong>Antes:</strong> 50 consultas/día × 30% duplicadas = 15 consultas × S/ 10 = S/ 150/día desperdiciados</p>
+            <p><strong>Con Sentinel:</strong> S/ 0 en duplicados = <strong>S/ 3,000/mes de ahorro</strong></p>
+        </div>
+    </section>
+
+    <section>
+        <h2>✨ Características Principales</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>🔍 Búsqueda Inteligente</h3>
+                <p>Verifica automáticamente si existe un reporte vigente antes de permitir nueva consulta.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📅 Vigencia Mensual</h3>
+                <p>Los reportes son válidos solo durante el mes actual. Al cambiar de mes, se permite nueva consulta.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🤝 Reutilización</h3>
+                <p>Todos los usuarios comparten el mismo reporte del mes, eliminando consultas duplicadas.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📚 Histórico Completo</h3>
+                <p>Mantiene registro permanente de todas las consultas para auditoría y trazabilidad.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔒 Seguridad</h3>
+                <p>Múltiples capas de validación. Los reportes no pueden eliminarse ni modificarse.</p>
+            </div>
+            <div class="feature-card">
+                <h3>👥 Trazabilidad</h3>
+                <p>Registra quién consultó, cuándo y mantiene log completo de accesos.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>🚀 Flujo de Trabajo Simple</h2>
+        <ol style="font-size: 1.1em; line-height: 2em;">
+            <li><strong>Usuario busca DNI</strong> → Sistema verifica si existe reporte vigente</li>
+            <li><strong>Si existe</strong> → Muestra reporte (sin costo adicional)</li>
+            <li><strong>Si no existe</strong> → Permite subir nueva imagen (costo S/ 10)</li>
+            <li><strong>Todos los demás usuarios</strong> → Ven el mismo reporte del mes</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>📊 Reglas de Negocio</h2>
+        <ul style="font-size: 1.1em; line-height: 2em;">
+            <li>✅ <strong>1 reporte por DNI por mes</strong> (garantizado por constraint de BD)</li>
+            <li>✅ <strong>Búsqueda obligatoria</strong> antes de nueva consulta</li>
+            <li>✅ <strong>Vigencia automática</strong> basada en mes actual</li>
+            <li>✅ <strong>Histórico permanente</strong> (no se puede eliminar)</li>
+            <li>✅ <strong>Campos protegidos</strong> (no se puede modificar DNI, imagen, fecha)</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>🔐 Seguridad Implementada</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>Validación de Entrada</h3>
+                <p>DNI debe ser exactamente 8 dígitos numéricos.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Constraint de BD</h3>
+                <p>Unique constraint evita duplicados a nivel de PostgreSQL.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Doble Verificación</h3>
+                <p>Verifica duplicados antes de crear, incluso en race conditions.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Protección Total</h3>
+                <p>No se pueden eliminar ni modificar campos críticos.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>📦 Instalación</h2>
+        <ol style="font-size: 1.1em; line-height: 2em;">
+            <li>Copiar módulo a directorio addons</li>
+            <li>Actualizar lista de aplicaciones</li>
+            <li>Buscar "ADT Sentinel"</li>
+            <li>Hacer clic en Instalar</li>
+            <li>¡Listo! El menú "Sentinel" aparecerá en la barra superior</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>📝 Documentación Incluida</h2>
+        <ul style="font-size: 1.1em; line-height: 2em;">
+            <li>📖 <strong>README.md</strong> - Guía completa del módulo</li>
+            <li>🔒 <strong>SECURITY_ARCHITECTURE.md</strong> - Arquitectura de seguridad</li>
+            <li>🧪 <strong>TEST_CASES.md</strong> - 25 casos de prueba documentados</li>
+            <li>✅ <strong>IMPLEMENTATION_SUMMARY.md</strong> - Resumen de implementación</li>
+            <li>📥 <strong>INSTALL.md</strong> - Guía de instalación</li>
+            <li>📋 <strong>CHANGELOG.md</strong> - Registro de cambios</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>🎓 Soporte y Capacitación</h2>
+        <p>El módulo incluye documentación completa para:</p>
+        <ul>
+            <li>Usuarios finales (asesores)</li>
+            <li>Administradores del sistema</li>
+            <li>Desarrolladores</li>
+            <li>Auditores</li>
+        </ul>
+    </section>
+
+    <div class="footer">
+        <p><strong>ADT Sentinel v1.0.0</strong></p>
+        <p>Desarrollado por ADT | Licencia LGPL-3</p>
+        <p>Compatible con Odoo 15.0 y superior</p>
+        <p style="margin-top: 20px; font-size: 0.9em;">
+            Para soporte técnico, consulte la documentación incluida o contacte al equipo de desarrollo.
+        </p>
+    </div>
+</body>
+</html>

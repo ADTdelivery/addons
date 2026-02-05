@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- TREE VIEW -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_sentinel_report_tree" model="ir.ui.view">
+        <field name="name">adt.sentinel.report.tree</field>
+        <field name="model">adt.sentinel.report</field>
+        <field name="arch" type="xml">
+            <tree string="Reportes Sentinel"
+                  create="false"
+                  delete="false"
+                  decoration-success="state == 'vigente'"
+                  decoration-muted="state == 'vencido'">
+                <field name="document_number"/>
+                <field name="query_date"/>
+                <field name="query_user_id"/>
+                <field name="query_month" invisible="1"/>
+                <field name="query_year"/>
+                <field name="state" widget="badge"/>
+                <field name="is_current_month" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- FORM VIEW -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_sentinel_report_form" model="ir.ui.view">
+        <field name="name">adt.sentinel.report.form</field>
+        <field name="model">adt.sentinel.report</field>
+        <field name="arch" type="xml">
+            <form string="Reporte Sentinel" create="false" delete="false">
+                <header>
+                    <field name="state"
+                           widget="statusbar"
+                           statusbar_visible="vigente,vencido"
+                           statusbar_colors='{"vigente":"blue","vencido":"red"}'/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_history"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-history">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Ver</span>
+                                <span class="o_stat_text">Histórico</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="document_number" readonly="1" class="oe_inline"/>
+                        </h1>
+                        <h3>
+                            <field name="state" invisible="1"/>
+                            <span attrs="{'invisible': [('state', '!=', 'vigente')]}"
+                                  style="color: #28a745;">
+                                ✅ Reporte Vigente
+                            </span>
+                            <span attrs="{'invisible': [('state', '!=', 'vencido')]}"
+                                  style="color: #dc3545;">
+                                📅 Reporte Vencido
+                            </span>
+                        </h3>
+                    </div>
+
+                    <group>
+                        <group string="📊 Información de Consulta">
+                            <field name="query_date" readonly="1"/>
+                            <field name="query_user_id" readonly="1"/>
+                            <field name="query_month" readonly="1"/>
+                            <field name="query_year" readonly="1"/>
+                        </group>
+                        <group string="📁 Información del Archivo">
+                            <field name="image_filename" readonly="1"/>
+                            <field name="is_current_month" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="🖼️ Imagen del Reporte">
+                            <field name="report_image"
+                                   widget="image"
+                                   readonly="1"
+                                   options="{'size': [1024, 0]}"
+                                   nolabel="1"/>
+                        </page>
+                        <page string="📝 Observaciones">
+                            <field name="notes" placeholder="Agregue observaciones sobre esta consulta..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- SEARCH VIEW -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_sentinel_report_search" model="ir.ui.view">
+        <field name="name">adt.sentinel.report.search</field>
+        <field name="model">adt.sentinel.report</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Reportes">
+                <field name="document_number"
+                       string="DNI"
+                       filter_domain="[('document_number', 'ilike', self)]"/>
+                <field name="query_user_id"/>
+                <field name="query_date"/>
+
+                <separator/>
+
+                <filter string="Vigentes"
+                        name="filter_vigente"
+                        domain="[('state', '=', 'vigente')]"/>
+                <filter string="Vencidos"
+                        name="filter_vencido"
+                        domain="[('state', '=', 'vencido')]"/>
+
+                <separator/>
+
+                <filter string="Mes Actual"
+                        name="filter_current_month"
+                        domain="[('is_current_month', '=', True)]"/>
+                <filter string="Mis Consultas"
+                        name="filter_my_queries"
+                        domain="[('query_user_id', '=', uid)]"/>
+
+                <separator/>
+
+                <filter string="Hoy"
+                        name="filter_today"
+                        domain="[('query_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Esta Semana"
+                        name="filter_this_week"
+                        domain="[('query_date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+
+                <group expand="0" string="Agrupar Por">
+                    <filter string="Estado"
+                            name="group_state"
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Usuario"
+                            name="group_user"
+                            context="{'group_by': 'query_user_id'}"/>
+                    <filter string="Mes/Año"
+                            name="group_month"
+                            context="{'group_by': 'query_year', 'group_by': 'query_month'}"/>
+                    <filter string="Fecha"
+                            name="group_date"
+                            context="{'group_by': 'query_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- ACTIONS -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="action_sentinel_report_all" model="ir.actions.act_window">
+        <field name="name">Todos los Reportes</field>
+        <field name="res_model">adt.sentinel.report</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay reportes registrados
+            </p>
+            <p>
+                Los reportes Sentinel se crean mediante el asistente de consulta.<br/>
+                Vaya a: <strong>Sentinel &gt; Consultar DNI</strong>
+            </p>
+        </field>
+    </record>
+
+    <record id="action_sentinel_report_vigentes" model="ir.actions.act_window">
+        <field name="name">Reportes Vigentes</field>
+        <field name="res_model">adt.sentinel.report</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', '=', 'vigente')]</field>
+        <field name="context">{
+            'create': False,
+            'search_default_filter_vigente': 1
+        }</field>
+    </record>
+
+    <record id="action_sentinel_report_historico" model="ir.actions.act_window">
+        <field name="name">Histórico Completo</field>
+        <field name="res_model">adt.sentinel.report</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{
+            'create': False,
+            'search_default_group_date': 1
+        }</field>
+    </record>
+
+</odoo>

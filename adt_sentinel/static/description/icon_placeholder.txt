@@ -1,0 +1,2 @@
+# Placeholder for module icon
+# Place a PNG image here named 'icon.png' (128x128 recommended)
