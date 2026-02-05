@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- ACCIÓN PARA ABRIR WIZARD -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="action_sentinel_query_wizard" model="ir.actions.server">
+        <field name="name">Consultar DNI</field>
+        <field name="model_id" ref="model_adt_sentinel_report"/>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_open_sentinel_wizard()
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
     <!-- MENÚ PRINCIPAL -->
     <!-- ══════════════════════════════════════════════════════════════════ -->
 

@@ -330,3 +330,36 @@ class SentinelReport(models.Model):
             result.append((record.id, name))
 
         return result
+
+    # ═══════════════════════════════════════════════════════════
+    # MÉTODO PARA ABRIR WIZARD (SOLUCIÓN DEFINITIVA)
+    # ═══════════════════════════════════════════════════════════
+
+    def action_open_sentinel_wizard(self):
+        """
+        Abre el wizard de consulta de DNI.
+
+        Este método crea un nuevo registro transient del wizard,
+        asegurando que siempre comience en estado 'search' con
+        valores inicializados correctamente.
+
+        Returns:
+            dict: Acción de ventana para abrir el wizard
+        """
+        # Crear un nuevo registro transient del wizard
+        wizard = self.env['adt.sentinel.query.wizard'].create({
+            'state': 'search',
+        })
+
+        # Retornar la acción para abrir el wizard
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Consultar DNI',
+            'res_model': 'adt.sentinel.query.wizard',
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'view_id': self.env.ref('adt_sentinel.view_sentinel_query_wizard_form_search').id,
+            'target': 'new',
+            'context': dict(self.env.context, wizard_created=True),
+        }
+

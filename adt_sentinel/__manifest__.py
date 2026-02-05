@@ -30,6 +30,11 @@
         'views/sentinel_report_views.xml',
         'views/sentinel_menu.xml',
     ],
+    "assets": {
+        'web.assets_backend': [
+            'adt_sentinel/static/src/js/wizard_search.js',
+        ],
+    },
     "installable": True,
     "application": True,
     "license": "LGPL-3",

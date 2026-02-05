@@ -121,12 +121,11 @@
                 </sheet>
                 <footer>
                     <!-- Botones para BÚSQUEDA -->
-                    <button name="action_search"
+                    <button name="action_search_dni"
                             string="🔍 Buscar"
                             type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state', '!=', 'search')]}"
-                            force_save="1"/>
+                            attrs="{'invisible': [('state', '!=', 'search')]}"/>
                     <button string="Cancelar"
                             special="cancel"
                             class="btn-secondary"
@@ -165,16 +164,9 @@
     </record>
 
     <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- ACCIÓN DEL WIZARD -->
+    <!-- NOTA: La acción del wizard ahora se crea dinámicamente desde Python -->
+    <!-- Ver: action_open_sentinel_wizard() en adt.sentinel.report -->
     <!-- ══════════════════════════════════════════════════════════════════ -->
 
-    <record id="action_sentinel_query_wizard" model="ir.actions.act_window">
-        <field name="name">Consultar DNI</field>
-        <field name="res_model">adt.sentinel.query.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="view_id" ref="view_sentinel_query_wizard_form_search"/>
-        <field name="target">new</field>
-        <field name="context">{}</field>
-    </record>
 
 </odoo>

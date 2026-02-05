@@ -161,32 +161,44 @@ class SentinelQueryWizard(models.TransientModel):
 
 
     # ═══════════════════════════════════════════════════════════
+    # VALIDACIÓN CON ONCHANGE
+    # ═══════════════════════════════════════════════════════════
+
+    @api.onchange('document_number')
+    def _onchange_document_number(self):
+        """Captura y valida el DNI cuando cambia en el formulario."""
+        if self.document_number:
+            # Limpiar espacios
+            self.document_number = self.document_number.strip()
+
+    # ═══════════════════════════════════════════════════════════
     # ACCIONES PRINCIPALES
     # ═══════════════════════════════════════════════════════════
 
-    def action_search(self):
+    def action_search_dni(self, wizard_id, dni_value):
         """
-        Acción: Buscar reporte vigente por DNI.
+        Método que recibe el DNI directamente como parámetro desde JavaScript.
 
-        Resultado:
-        - Si existe → state='found', muestra info
-        - Si no existe → state='not_found', permite carga
+        Args:
+            wizard_id: ID del registro wizard
+            dni_value: Valor del DNI capturado del formulario
+
+        Returns:
+            dict: Acción de ventana para reabrir el wizard con el resultado
         """
-        self.ensure_one()
+        wizard = self.browse(wizard_id)
 
-        # Gracias a force_save="1" en el botón, el valor ya está guardado
-        dni = (self.document_number or '').strip()
+        dni = (dni_value or '').strip()
 
-        _logger.info("🔍 Buscando DNI: %s", dni)
+        _logger.info("🔍 Buscando DNI: '%s' (Wizard ID: %s)", dni, wizard_id)
 
-        # Validar que el DNI esté presente
+        # Validaciones
         if not dni:
             raise exceptions.UserError(
                 '⚠️ DNI requerido\n\n'
                 'Debe ingresar el número de DNI antes de buscar.'
             )
 
-        # Validar formato del DNI (exactamente 8 dígitos)
         if not re.match(r'^\d{8}$', dni):
             raise exceptions.UserError(
                 '⚠️ Formato de DNI inválido\n\n'
@@ -196,36 +208,36 @@ class SentinelQueryWizard(models.TransientModel):
                 'Ejemplo válido: 12345678'
             )
 
+        # Guardar el DNI en el wizard
+        wizard.write({'document_number': dni})
+
         # Buscar reporte vigente
         report = self.env['adt.sentinel.report'].search_current_report(dni)
 
         if report:
-            # CASO A: Reporte encontrado
-            _logger.info("✅ Reporte encontrado: ID=%s, Fecha=%s", report.id, report.query_date)
-            self.write({
+            _logger.info("✅ Reporte encontrado: ID=%s", report.id)
+            wizard.write({
                 'state': 'found',
                 'found_report_id': report.id,
                 'found_report_date': report.query_date,
                 'found_report_user': report.query_user_id.name,
-                'document_number': report.document_number,
             })
         else:
-            # CASO B: No existe reporte vigente
-            _logger.info("❌ No se encontró reporte vigente para DNI: %s", dni)
-            self.write({
-                'state': 'not_found',
-                'document_number': dni,
-            })
+            _logger.info("❌ No se encontró reporte vigente")
+            wizard.write({'state': 'not_found'})
 
-        # Retornar acción para recargar el formulario del wizard
+        # Retornar acción completa para reabrir el wizard
+        view_id = self.env.ref('adt_sentinel.view_sentinel_query_wizard_form_search').id
         return {
+            'name': 'Consultar DNI',
             'type': 'ir.actions.act_window',
             'res_model': 'adt.sentinel.query.wizard',
-            'res_id': self.id,
+            'res_id': wizard.id,
             'view_mode': 'form',
-            'view_id': self.env.ref('adt_sentinel.view_sentinel_query_wizard_form_search').id,
+            'views': [(view_id, 'form')],
+            'view_id': view_id,
             'target': 'new',
-            'context': dict(self.env.context, wizard_reloaded=True),
+            'context': self.env.context,
         }
 
     def action_upload_report(self):
