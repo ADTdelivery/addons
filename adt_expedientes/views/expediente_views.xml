@@ -391,7 +391,6 @@
                     <button string="Marcar incompleto - Expediente" name="action_mark_incompleto_expediente" type="object" class="btn-warning"/>
                     <button string="Marcar incompleto - Fase Final" name="action_mark_incompleto_fase_final" type="object" class="btn-warning"/>
                     <button string="Marcar Completo" name="action_mark_completo" type="object" class="btn-success"/>
-                    <!--<button name="%(adt_expedientes.action_adt_expediente_report)d" string="Descargar PDF" type="action" class="btn-primary"/>-->
 
                     <field name="state" widget="statusbar"
                            statusbar_visible="por_revisar,incompleto_expediente,incompleto_fase_final,completo,rechazado"/>
