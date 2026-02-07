@@ -27,7 +27,6 @@
         'views/expediente_rechazo_wizard.xml',
         'views/res_partner_views.xml',
         'views/expediente_references_inherit.xml',
-        'views/report_expediente.xml',
     ],
     'installable': True,
     'application': True,
