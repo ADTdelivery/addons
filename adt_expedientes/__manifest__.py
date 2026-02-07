@@ -20,7 +20,7 @@
     ''',
     'author': 'ADT',
     'website': 'https://www.adt.com',
-    'depends': ['base', 'mail'],
+    'depends': ['base', 'mail', 'adt_sentinel'],
     'data': [
         'security/ir.model.access.csv',
         'views/expediente_views.xml',
