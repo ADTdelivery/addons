@@ -391,9 +391,10 @@
                     <button string="Marcar incompleto - Expediente" name="action_mark_incompleto_expediente" type="object" class="btn-warning"/>
                     <button string="Marcar incompleto - Fase Final" name="action_mark_incompleto_fase_final" type="object" class="btn-warning"/>
                     <button string="Marcar Completo" name="action_mark_completo" type="object" class="btn-success"/>
+                    <button string="Aprobado sin desembolso" name="action_mark_aprobado_sin_desembolso" type="object" class="btn-info"/>
 
                     <field name="state" widget="statusbar"
-                           statusbar_visible="por_revisar,incompleto_expediente,incompleto_fase_final,completo,rechazado"/>
+                           statusbar_visible="por_revisar,incompleto_expediente,incompleto_fase_final,completo,aprobado_sin_desembolso,rechazado"/>
                 </header>
 
                 <sheet>
@@ -966,6 +967,13 @@
         <field name="domain">[('state','=','completo')]</field>
     </record>
 
+    <record id="action_adt_expediente_aprobado_sin_desembolso" model="ir.actions.act_window">
+        <field name="name">Expedientes - Aprobados sin desembolso</field>
+        <field name="res_model">adt.expediente</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state','=','aprobado_sin_desembolso')]</field>
+    </record>
+
     <record id="action_adt_expediente_rechazados" model="ir.actions.act_window">
         <field name="name">Expedientes - Rechazados</field>
         <field name="res_model">adt.expediente</field>
@@ -1006,6 +1014,11 @@
               name="Completos"
               parent="menu_adt_root"
               action="action_adt_expediente_completos"/>
+
+    <menuitem id="menu_adt_expedientes_aprobado_sin_desembolso"
+              name="Aprobados sin desembolso"
+              parent="menu_adt_root"
+              action="action_adt_expediente_aprobado_sin_desembolso"/>
 
     <menuitem id="menu_adt_expedientes_rechazados"
               name="Rechazados"

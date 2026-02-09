@@ -19,6 +19,7 @@ class AdtExpediente(models.Model):
         ('incompleto_expediente', 'Incompleto - Expediente'),
         ('incompleto_fase_final', 'Incompleto - Fase Final'),
         ('completo', 'Completo'),
+        ('aprobado_sin_desembolso', 'Aprobado sin desembolso'),
         ('rechazado', 'Rechazado'),
     ], compute='_compute_state', store=True, tracking=True)
 
@@ -28,6 +29,7 @@ class AdtExpediente(models.Model):
         ('incompleto_expediente', 'Incompleto - Expediente'),
         ('incompleto_fase_final', 'Incompleto - Fase Final'),
         ('completo', 'Completo'),
+        ('aprobado_sin_desembolso', 'Aprobado sin desembolso'),
         ('rechazado', 'Rechazado'),
     ], string='Estado manual', help='Si se establece, este valor tendrá prioridad sobre el cálculo automático del estado.', copy=False)
 
@@ -358,7 +360,7 @@ class AdtExpediente(models.Model):
 
     def _send_firebase_notification(self, title, body, action_type):
         """
-        Envía notificación push al cliente asociado al expediente.
+        Envía notificación push al asesor/vendedor asociado al expediente.
 
         Args:
             title (str): Título de la notificación
@@ -367,14 +369,8 @@ class AdtExpediente(models.Model):
         """
         self.ensure_one()
 
-        if not self.cliente_id:
-            _logger.warning(f'Expediente {self.id} no tiene cliente asociado, no se envía notificación')
-            return
-
-        # Obtener el usuario asociado al cliente (partner)
-        user = self.cliente_id.user_ids and self.cliente_id.user_ids[0]
-        if not user:
-            _logger.warning(f'Cliente {self.cliente_id.name} no tiene usuario asociado, no se envía notificación')
+        if not self.asesora_id:
+            _logger.warning(f'Expediente {self.id} no tiene asesor asociado, no se envía notificación')
             return
 
         try:
@@ -388,13 +384,13 @@ class AdtExpediente(models.Model):
                 'expediente_id': self.id,
                 'action': action_type,
                 'timestamp': fields.Datetime.now().isoformat(),
-                'cliente_id': self.cliente_id.id,
-                'cliente_name': self.cliente_id.name or '',
+                'cliente_id': self.cliente_id.id if self.cliente_id else None,
+                'cliente_name': self.cliente_id.name if self.cliente_id else '',
             }
 
-            # Enviar notificación
+            # Enviar notificación al asesor/vendedor
             result = notification_service.send_to_user(
-                user_id=user.id,
+                user_id=self.asesora_id.id,
                 title=title,
                 body=body,
                 data=data
@@ -439,28 +435,41 @@ class AdtExpediente(models.Model):
     def action_mark_incompleto_expediente(self):
         self.write({'state': 'incompleto_expediente'})
         # Enviar notificación Firebase
+        cliente_nombre = self.cliente_id.name or 'Cliente'
         self._send_firebase_notification(
-            title='Expediente incompleto',
-            body='Tu expediente está incompleto. Por favor revisa los datos enviados.',
-            action_type='incompleto_expediente'
+            title='Expediente incompleto - Documentación',
+            body=f'Hola {cliente_nombre}, tu expediente está incompleto. Por favor revisa los datos enviados.',
+            action_type='incompleto_expediente_documentacion'
         )
 
     def action_mark_incompleto_fase_final(self):
         self.write({'state': 'incompleto_fase_final'})
         # Enviar notificación Firebase
+        cliente_nombre = self.cliente_id.name or 'Cliente'
         self._send_firebase_notification(
             title='Expediente incompleto - Fase Final',
-            body='Tu expediente está incompleto en la fase final. Por favor revisa la documentación.',
+            body=f'Hola {cliente_nombre}, tu expediente está incompleto en la fase final. Por favor revisa la documentación.',
             action_type='incompleto_fase_final'
         )
 
     def action_mark_completo(self):
         self.write({'state': 'completo'})
         # Enviar notificación Firebase
+        cliente_nombre = self.cliente_id.name or 'Cliente'
         self._send_firebase_notification(
             title='Expediente aprobado',
-            body='¡Felicitaciones! Tu expediente ha sido aprobado con éxito.',
+            body=f'¡Felicitaciones {cliente_nombre}! Tu expediente ha sido aprobado con éxito.',
             action_type='completo'
+        )
+
+    def action_mark_aprobado_sin_desembolso(self):
+        self.write({'state': 'aprobado_sin_desembolso'})
+        # Enviar notificación Firebase
+        cliente_nombre = self.cliente_id.name or 'Cliente'
+        self._send_firebase_notification(
+            title='Expediente aprobado sin desembolso',
+            body=f'Hola {cliente_nombre}, tu expediente ha sido aprobado sin desembolso.',
+            action_type='aprobado_sin_desembolso'
         )
 
     # ======================

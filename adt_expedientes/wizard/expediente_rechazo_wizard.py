@@ -17,8 +17,9 @@ class AdtExpedienteRechazoWizard(models.TransientModel):
         })
 
         # Enviar notificación Firebase
+        cliente_nombre = self.expediente_id.cliente_id.name or 'Cliente'
         self.expediente_id._send_firebase_notification(
             title='Expediente rechazado',
-            body=f'Tu expediente ha sido rechazado. Motivo: {self.motivo_rechazo[:100]}',
+            body=f'Hola {cliente_nombre}, tu expediente ha sido rechazado. Motivo: {self.motivo_rechazo[:100]}',
             action_type='rechazado'
         )
