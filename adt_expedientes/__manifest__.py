@@ -34,6 +34,7 @@
         'python': ['requests'],
     },
     'data': [
+        'security/security.xml',
         'security/ir.model.access.csv',
         'data/notification_config.xml',
         'views/expediente_views.xml',
