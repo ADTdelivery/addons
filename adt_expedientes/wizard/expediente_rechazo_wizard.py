@@ -15,3 +15,10 @@ class AdtExpedienteRechazoWizard(models.TransientModel):
             'fecha_rechazo': self.fecha_rechazo,
             'motivo_rechazo': self.motivo_rechazo,
         })
+
+        # Enviar notificación Firebase
+        self.expediente_id._send_firebase_notification(
+            title='Expediente rechazado',
+            body=f'Tu expediente ha sido rechazado. Motivo: {self.motivo_rechazo[:100]}',
+            action_type='rechazado'
+        )

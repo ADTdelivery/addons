@@ -1,5 +1,8 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class AdtExpediente(models.Model):
@@ -350,6 +353,72 @@ class AdtExpediente(models.Model):
     obs_referencias = fields.Text(string='Observaciones referencias')
 
     # ======================
+    # PUSH NOTIFICATIONS
+    # ======================
+
+    def _send_firebase_notification(self, title, body, action_type):
+        """
+        Envía notificación push al cliente asociado al expediente.
+
+        Args:
+            title (str): Título de la notificación
+            body (str): Mensaje de la notificación
+            action_type (str): Tipo de acción (rechazado, incompleto, completo)
+        """
+        self.ensure_one()
+
+        if not self.cliente_id:
+            _logger.warning(f'Expediente {self.id} no tiene cliente asociado, no se envía notificación')
+            return
+
+        # Obtener el usuario asociado al cliente (partner)
+        user = self.cliente_id.user_ids and self.cliente_id.user_ids[0]
+        if not user:
+            _logger.warning(f'Cliente {self.cliente_id.name} no tiene usuario asociado, no se envía notificación')
+            return
+
+        try:
+            # Importar el servicio de notificaciones
+            from ..services.notification_service import NotificationService
+
+            notification_service = NotificationService(self.env)
+
+            # Preparar datos adicionales
+            data = {
+                'expediente_id': self.id,
+                'action': action_type,
+                'timestamp': fields.Datetime.now().isoformat(),
+                'cliente_id': self.cliente_id.id,
+                'cliente_name': self.cliente_id.name or '',
+            }
+
+            # Enviar notificación
+            result = notification_service.send_to_user(
+                user_id=user.id,
+                title=title,
+                body=body,
+                data=data
+            )
+
+            if result.get('success'):
+                _logger.info(
+                    f'Notificación enviada para expediente {self.id}: '
+                    f'{result.get("sent")} dispositivo(s)'
+                )
+            else:
+                _logger.warning(
+                    f'No se pudo enviar notificación para expediente {self.id}: '
+                    f'{result.get("error")}'
+                )
+
+        except Exception as e:
+            # No bloquear la operación si falla el envío de notificaciones
+            _logger.error(
+                f'Error enviando notificación para expediente {self.id}: {str(e)}',
+                exc_info=True
+            )
+
+    # ======================
     # RECHAZAR CON WIZARD
     # ======================
 
@@ -369,12 +438,30 @@ class AdtExpediente(models.Model):
     # New actions to set manual_state so buttons can mark the expediente
     def action_mark_incompleto_expediente(self):
         self.write({'state': 'incompleto_expediente'})
+        # Enviar notificación Firebase
+        self._send_firebase_notification(
+            title='Expediente incompleto',
+            body='Tu expediente está incompleto. Por favor revisa los datos enviados.',
+            action_type='incompleto_expediente'
+        )
 
     def action_mark_incompleto_fase_final(self):
         self.write({'state': 'incompleto_fase_final'})
+        # Enviar notificación Firebase
+        self._send_firebase_notification(
+            title='Expediente incompleto - Fase Final',
+            body='Tu expediente está incompleto en la fase final. Por favor revisa la documentación.',
+            action_type='incompleto_fase_final'
+        )
 
     def action_mark_completo(self):
         self.write({'state': 'completo'})
+        # Enviar notificación Firebase
+        self._send_firebase_notification(
+            title='Expediente aprobado',
+            body='¡Felicitaciones! Tu expediente ha sido aprobado con éxito.',
+            action_type='completo'
+        )
 
     # ======================
     # POPUPS DE FOTOS
