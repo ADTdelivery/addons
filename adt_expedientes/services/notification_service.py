@@ -33,7 +33,12 @@ class NotificationService:
             env: Environment de Odoo
         """
         self.env = env
-        self.notification_url = 'http://192.168.100.5:8030/send'
+        # Obtener URL desde configuración o usar valor por defecto
+        IrConfigParam = env['ir.config_parameter'].sudo()
+        self.notification_url = IrConfigParam.get_param(
+            'notification.service.url',
+            'http://localhost:8030/send'
+        )
 
     def send_notification(self, token, title, body, data=None):
         """

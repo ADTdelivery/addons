@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Configuración del servicio de notificaciones push -->
+    <data noupdate="1">
+        <!-- URL del servicio de notificaciones -->
+        <record id="notification_service_url" model="ir.config_parameter">
+            <field name="key">notification.service.url</field>
+            <field name="value">http://localhost:8030/send</field>
+        </record>
+    </data>
+</odoo>
