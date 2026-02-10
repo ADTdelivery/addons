@@ -439,7 +439,21 @@ class AdtExpedientesMobileAPI(http.Controller):
     def partner_create(self, vals=None, **kwargs):
         """Create a partner/contact. Accepts partial data.
         Accepts country/state as codes or ids. Example:
-          {"vals": {"name": "...", "country_id": "PE", "state_id": "15", ...}}
+          {
+              "vals": {
+                  "nombre_completo": "Juan",
+                  "apellido_paterno": "Perez",
+                  "apellido_materno": "Lopez",
+                  "document_number": "12345678",
+                  "country_id": "PE",
+                  "state_id": "15",
+                  ...
+              },
+              "created_by_user_id": 8
+          }
+
+        The created_by_user_id parameter is optional. If provided, the partner's create_uid
+        will be set to that user, allowing tracking of who created the partner via the mobile app.
         """
         # 🔒 VALIDACIÓN DE AUTENTICACIÓN
         user, err = self._ensure_auth()
@@ -468,6 +482,9 @@ class AdtExpedientesMobileAPI(http.Controller):
         except Exception:
             pass
 
+        # Extract created_by_user_id from payload
+        created_by_user_id = payload.get('created_by_user_id')
+
         # If vals not provided explicitly, try to extract from payload
         if not vals or not isinstance(vals, dict):
             if isinstance(payload.get('vals'), dict):
@@ -476,7 +493,8 @@ class AdtExpedientesMobileAPI(http.Controller):
                 candidate_keys = [
                     'name', 'document_number', 'dni', 'nationality', 'occupation',
                     'mobile', 'phone', 'email', 'street', 'street2', 'city', 'zip',
-                    'country_id', 'state_id', 'marital_status', 'children_count'
+                    'country_id', 'state_id', 'marital_status', 'children_count',
+                    'nombre_completo', 'apellido_paterno', 'apellido_materno'
                 ]
                 vals = {}
                 for k in candidate_keys:
@@ -488,6 +506,29 @@ class AdtExpedientesMobileAPI(http.Controller):
 
         if not vals or not isinstance(vals, dict):
             return {'success': False, 'error': 'vals dict required'}
+
+        # 🔹 Procesar nombre completo si se reciben los campos individuales
+        nombre_completo = vals.get('nombre_completo', '').strip() if vals.get('nombre_completo') else ''
+        apellido_paterno = vals.get('apellido_paterno', '').strip() if vals.get('apellido_paterno') else ''
+        apellido_materno = vals.get('apellido_materno', '').strip() if vals.get('apellido_materno') else ''
+
+        # Si se proporcionan los campos de nombre, construir el campo 'name'
+        if nombre_completo or apellido_paterno or apellido_materno:
+            name_parts = []
+            if nombre_completo:
+                name_parts.append(nombre_completo)
+            if apellido_paterno:
+                name_parts.append(apellido_paterno)
+            if apellido_materno:
+                name_parts.append(apellido_materno)
+
+            # Construir el nombre completo y asignarlo
+            full_name = ' '.join(name_parts)
+            vals['name'] = full_name
+            _logger.info(f"Construyendo nombre completo: {full_name}")
+        elif not vals.get('name'):
+            # Si no hay nombre construido ni proporcionado, es un error
+            return {'success': False, 'error': 'name or (nombre_completo/apellido_paterno/apellido_materno) required'}
 
         # Normalize and resolve country/state if provided as codes/strings
         try:
@@ -583,7 +624,23 @@ class AdtExpedientesMobileAPI(http.Controller):
         #if err:
         #    return err
 
+        # Determine the user context for partner creation
         Partner = request.env['res.partner'].sudo()
+
+        # If created_by_user_id is provided, use that user's context
+        if created_by_user_id:
+            try:
+                creator_user_id = int(created_by_user_id)
+                # Verify the user exists
+                user_obj = request.env['res.users'].sudo().browse(creator_user_id)
+                if user_obj.exists():
+                    Partner = request.env['res.partner'].with_user(creator_user_id).sudo()
+                    _logger.info(f"Partner will be created by user ID: {creator_user_id} ({user_obj.name})")
+                else:
+                    _logger.warning(f"User ID {creator_user_id} not found, using sudo()")
+            except (ValueError, TypeError) as e:
+                _logger.warning(f"Invalid created_by_user_id: {created_by_user_id}, using sudo()")
+
         # try to avoid duplicate documents
         doc = vals.get('document_number')
         if doc:
@@ -593,8 +650,10 @@ class AdtExpedientesMobileAPI(http.Controller):
 
         try:
             partner = Partner.create(vals)
+            _logger.info(f"Partner created with ID: {partner.id}, created by user: {partner.create_uid.name if partner.create_uid else 'Unknown'}")
             return {'success': True, 'data': {'id': partner.id}}
         except Exception as e:
+            _logger.error(f"Error creating partner: {e}")
             return {'success': False, 'error': str(e)}
 
     # Expediente (case) management - incremental

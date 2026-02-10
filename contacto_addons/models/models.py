@@ -6,17 +6,19 @@ from odoo import models, fields, api
 class contacto_addons(models.Model):
     _inherit = "res.partner"
 
-    apellido_paterno = fields.Char(string="Apellido paterno")
-    apellido_materno = fields.Char(string="Apellido materno")
-#     _name = 'contacto_addons.contacto_addons'
-#     _description = 'contacto_addons.contacto_addons'
+    nombre_completo = fields.Char(string="Nombre(s)")
+    apellido_paterno = fields.Char(string="Apellido Paterno")
+    apellido_materno = fields.Char(string="Apellido Materno")
 
-#     name = fields.Char()
-#     value = fields.Integer()
-#     value2 = fields.Float(compute="_value_pc", store=True)
-#     description = fields.Text()
-#
-#     @api.depends('value')
-#     def _value_pc(self):
-#         for record in self:
-#             record.value2 = float(record.value) / 100
+    @api.onchange('nombre_completo', 'apellido_paterno', 'apellido_materno')
+    def _onchange_nombre_completo(self):
+        """Autorellenar el campo name cuando se modifican los campos de nombre"""
+        if self.nombre_completo or self.apellido_paterno or self.apellido_materno:
+            nombres = []
+            if self.nombre_completo:
+                nombres.append(self.nombre_completo.strip())
+            if self.apellido_paterno:
+                nombres.append(self.apellido_paterno.strip())
+            if self.apellido_materno:
+                nombres.append(self.apellido_materno.strip())
+            self.name = ' '.join(nombres)

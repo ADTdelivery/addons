@@ -1,4 +1,27 @@
 <odoo>
 
+    <record id="view_partner_form_nombre_completo" model="ir.ui.view">
+        <field name="name">res.partner.form.nombre.completo</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Ocultar el campo name -->
+            <xpath expr="//field[@name='name']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Agregar los nuevos campos debajo del campo name -->
+            <xpath expr="//field[@name='name']" position="after">
+                <group col="3" colspan="2">
+                    <field name="nombre_completo" placeholder="Nombres Completos"/>
+                    <field name="apellido_paterno" placeholder="Apellido Paterno"/>
+                    <field name="apellido_materno" placeholder="Apellido Materno"/>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
 
 </odoo>
+
