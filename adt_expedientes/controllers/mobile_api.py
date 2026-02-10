@@ -1359,12 +1359,28 @@ class AdtExpedientesMobileAPI(http.Controller):
         Body examples:
           {"partner_id": 12, "vals": {"phone": "999111222"}}
           {"document_number": "77100152", "vals": {"city": "SJM", "country_id": "PE", "state_id": "LIM"}}
+          {"partner_id": 12, "created_by_user_id": 8, "vals": {"phone": "999111222"}}
+
+        El campo created_by_user_id (opcional) permite usar el contexto de ese usuario para la actualización,
+        estableciendo correctamente el write_uid.
         """
         # 🔒 VALIDACIÓN DE AUTENTICACIÓN
         user, err = self._ensure_auth()
         if err:
             return err
         #Returns: {success: True, data: {id: partner.id}}
+
+        # Collect payload to extract created_by_user_id
+        payload = {}
+        try:
+            if hasattr(request, 'jsonrequest') and isinstance(request.jsonrequest, dict):
+                payload.update(request.jsonrequest)
+        except Exception:
+            pass
+        payload.update({k: v for k, v in kwargs.items()})
+
+        # Extract created_by_user_id from payload
+        created_by_user_id = payload.get('created_by_user_id')
 
         # Accept parameters from multiple sources
         partner_id = self._get_param('partner_id', partner_id, kwargs)
@@ -1520,9 +1536,26 @@ class AdtExpedientesMobileAPI(http.Controller):
         #    return err
 
         try:
-            partner.write(vals)
+            # 🔹 Si se proporciona created_by_user_id, usar ese contexto de usuario para el write
+            Partner = partner
+            if created_by_user_id:
+                try:
+                    updater_user_id = int(created_by_user_id)
+                    # Verify the user exists
+                    user_obj = request.env['res.users'].sudo().browse(updater_user_id)
+                    if user_obj.exists():
+                        Partner = partner.with_user(updater_user_id).sudo()
+                        _logger.info(f"Partner {partner.id} será actualizado por user ID: {updater_user_id} ({user_obj.name})")
+                    else:
+                        _logger.warning(f"User ID {updater_user_id} not found, using default context")
+                except (ValueError, TypeError) as e:
+                    _logger.warning(f"Invalid created_by_user_id: {created_by_user_id}, using default context")
+
+            Partner.write(vals)
+            _logger.info(f"Partner {partner.id} actualizado exitosamente. Actualizado por: {Partner.write_uid.name if Partner.write_uid else 'Unknown'}")
             return {'success': True, 'data': {'id': partner.id}}
         except Exception as e:
+            _logger.error(f"Error updating partner {partner.id}: {e}")
             return {'success': False, 'error': str(e)}
 
     @http.route('/adt_expedientes/mobile/expediente/summary_by_asesora', type='json', auth='none', methods=['POST'], csrf=False)
