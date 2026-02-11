@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- TREE VIEW - Imágenes Sentinel -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_sentinel_report_image_tree" model="ir.ui.view">
+        <field name="name">adt.sentinel.report.image.tree</field>
+        <field name="model">adt.sentinel.report.image</field>
+        <field name="arch" type="xml">
+            <tree string="Imágenes del Reporte" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="description" placeholder="Ej: Página 1, Detalle de deudas, etc."/>
+                <field name="image_filename"/>
+                <field name="image" widget="image" options="{'size': [64, 64]}"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- FORM VIEW - Imágenes Sentinel -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_sentinel_report_image_form" model="ir.ui.view">
+        <field name="name">adt.sentinel.report.image.form</field>
+        <field name="model">adt.sentinel.report.image</field>
+        <field name="arch" type="xml">
+            <form string="Imagen del Reporte">
+                <sheet>
+                    <group>
+                        <field name="report_id" invisible="1"/>
+                        <field name="sequence"/>
+                        <field name="description" placeholder="Descripción de la imagen"/>
+                        <field name="image_filename"/>
+                    </group>
+                    <group>
+                        <field name="image" widget="image" options="{'size': [800, 0]}" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

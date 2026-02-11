@@ -41,6 +41,13 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
+                        <button name="action_view_images"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-file-image-o"
+                                attrs="{'invisible': [('image_count', '=', 0)]}">
+                            <field name="image_count" widget="statinfo" string="Imágenes"/>
+                        </button>
                         <button name="action_view_history"
                                 type="object"
                                 class="oe_stat_button"
@@ -83,7 +90,48 @@
                     </group>
 
                     <notebook>
-                        <page string="🖼️ Imagen del Reporte">
+                        <page string="🖼️ Imágenes del Reporte">
+                            <field name="image_ids" mode="kanban" nolabel="1">
+                                <kanban>
+                                    <field name="id"/>
+                                    <field name="description"/>
+                                    <field name="image_filename"/>
+                                    <field name="image"/>
+                                    <templates>
+                                        <t t-name="kanban-box">
+                                            <div class="oe_kanban_global_click" style="max-width: 300px;">
+                                                <div class="o_kanban_image">
+                                                    <img t-att-src="kanban_image('adt.sentinel.report.image', 'image', record.id.raw_value)"
+                                                         alt="Imagen" class="o_image_64_cover"/>
+                                                </div>
+                                                <div class="oe_kanban_details">
+                                                    <strong>
+                                                        <field name="description"/>
+                                                    </strong>
+                                                    <div t-if="record.image_filename.value">
+                                                        <field name="image_filename"/>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                </kanban>
+                                <form>
+                                    <group>
+                                        <field name="description"/>
+                                        <field name="image_filename"/>
+                                        <field name="sequence"/>
+                                    </group>
+                                    <group>
+                                        <field name="image" widget="image" options="{'size': [800, 0]}" nolabel="1"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="🖼️ Imagen Legacy" attrs="{'invisible': [('report_image', '=', False)]}">
+                            <div class="alert alert-warning" role="alert">
+                                ⚠️ Este campo está deprecado. Use "Imágenes del Reporte" para agregar múltiples imágenes.
+                            </div>
                             <field name="report_image"
                                    widget="image"
                                    readonly="1"

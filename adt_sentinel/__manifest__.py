@@ -28,6 +28,7 @@
         'security/ir.model.access.csv',
         'wizard/sentinel_query_wizard_views.xml',
         'views/sentinel_report_views.xml',
+        'views/sentinel_image_views.xml',
         'views/sentinel_menu.xml',
     ],
     "assets": {

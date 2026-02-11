@@ -1,4 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_sentinel_report_user,adt.sentinel.report.user,model_adt_sentinel_report,base.group_user,1,1,1,0
 access_sentinel_report_manager,adt.sentinel.report.manager,model_adt_sentinel_report,base.group_system,1,1,1,0
+access_sentinel_report_image_user,adt.sentinel.report.image.user,model_adt_sentinel_report_image,base.group_user,1,1,1,1
+access_sentinel_report_image_manager,adt.sentinel.report.image.manager,model_adt_sentinel_report_image,base.group_system,1,1,1,1
 access_sentinel_query_wizard_user,adt.sentinel.query.wizard.user,model_adt_sentinel_query_wizard,base.group_user,1,1,1,1

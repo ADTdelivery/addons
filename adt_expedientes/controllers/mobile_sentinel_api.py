@@ -17,7 +17,7 @@ class SentinelMobileAPI(AdtExpedientesMobileAPI):
         if not dni:
             return None, {'success': False, 'error': 'document_number required'}
         dni = str(dni).strip()
-        if not re.match(r'^\d{8}$', dni):
+        if not re.match(r'^\d{8,14}$', dni):
             return None, {'success': False, 'error': 'document_number must be 8 digits'}
         return dni, None
 
