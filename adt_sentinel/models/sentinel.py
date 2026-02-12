@@ -32,12 +32,30 @@ class SentinelReport(models.Model):
         help='DNI del cliente consultado (8 dígitos)'
     )
 
+    # ═══════════════════════════════════════════════════════════
+    # IMÁGENES (SOPORTE MÚLTIPLE)
+    # ═══════════════════════════════════════════════════════════
+
+    image_ids = fields.One2many(
+        'adt.sentinel.report.image',
+        'report_id',
+        string='Imágenes del Reporte',
+        help='Múltiples imágenes asociadas a este reporte'
+    )
+
+    image_count = fields.Integer(
+        string='Cantidad de Imágenes',
+        compute='_compute_image_count',
+        store=True,
+        help='Total de imágenes adjuntas'
+    )
+
+    # Campo legacy (deprecated pero mantenido por compatibilidad)
     report_image = fields.Binary(
-        string='Imagen del Reporte',
-        required=True,
+        string='Imagen del Reporte (Legacy)',
         attachment=True,
         readonly=True,
-        help='Captura de pantalla o imagen del reporte Sentinel'
+        help='[DEPRECADO] Use el campo "Imágenes del Reporte" para agregar múltiples imágenes'
     )
 
     image_filename = fields.Char(
@@ -150,6 +168,12 @@ class SentinelReport(models.Model):
                 record.query_month = 0
                 record.query_year = 0
 
+    @api.depends('image_ids')
+    def _compute_image_count(self):
+        """Cuenta el total de imágenes asociadas."""
+        for record in self:
+            record.image_count = len(record.image_ids)
+
     @api.depends('query_month', 'query_year')
     def _compute_state(self):
         """
@@ -259,6 +283,21 @@ class SentinelReport(models.Model):
             'view_mode': 'form',
             'view_id': self.env.ref('adt_sentinel.view_sentinel_report_form').id,
             'target': 'current',
+        }
+
+    def action_view_images(self):
+        """Abre la vista de imágenes asociadas al reporte."""
+        self.ensure_one()
+        return {
+            'name': f'Imágenes - DNI {self.document_number}',
+            'type': 'ir.actions.act_window',
+            'res_model': 'adt.sentinel.report.image',
+            'view_mode': 'tree,form',
+            'domain': [('report_id', '=', self.id)],
+            'context': {
+                'default_report_id': self.id,
+                'create': True,
+            },
         }
 
     def action_view_history(self):
