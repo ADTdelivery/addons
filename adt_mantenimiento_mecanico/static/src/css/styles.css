@@ -1,0 +1,424 @@
+/* ============================================
+   ADT MANTENIMIENTO MECÁNICO - ESTILOS UX/UI
+   Siguiendo guías del archivo UX_UI.md
+   ============================================ */
+
+/* Variables CSS según Design System */
+:root {
+    /* Colores Primarios */
+    --adt-primary: #1565C0;
+    --adt-primary-light: #1976D2;
+    --adt-primary-dark: #0D47A1;
+
+    /* Colores Secundarios */
+    --adt-secondary: #37474F;
+    --adt-secondary-light: #546E7A;
+
+    /* Colores de Acento */
+    --adt-accent: #FF6F00;
+    --adt-accent-light: #FF8F00;
+
+    /* Colores Semánticos */
+    --adt-success: #4CAF50;
+    --adt-success-light: #66BB6A;
+    --adt-warning: #FFA726;
+    --adt-warning-light: #FFB74D;
+    --adt-error: #EF5350;
+    --adt-error-light: #E57373;
+    --adt-info: #29B6F6;
+    --adt-info-light: #4FC3F7;
+
+    /* Grises */
+    --adt-gray-50: #FAFAFA;
+    --adt-gray-100: #F5F5F5;
+    --adt-gray-200: #EEEEEE;
+    --adt-gray-700: #616161;
+    --adt-gray-900: #212121;
+
+    /* Espaciado */
+    --adt-space-xs: 4px;
+    --adt-space-sm: 8px;
+    --adt-space-md: 16px;
+    --adt-space-lg: 24px;
+    --adt-space-xl: 32px;
+
+    /* Bordes */
+    --adt-radius-sm: 4px;
+    --adt-radius-md: 8px;
+    --adt-radius-lg: 12px;
+
+    /* Sombras */
+    --adt-shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+    --adt-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+    --adt-shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* ============================================
+   BADGES DE ESTADO
+   ============================================ */
+
+.badge-priority-high {
+    background-color: var(--adt-error) !important;
+    color: white !important;
+    padding: 4px 12px;
+    border-radius: var(--adt-radius-md);
+    font-weight: 500;
+}
+
+.badge-priority-medium {
+    background-color: var(--adt-warning) !important;
+    color: white !important;
+}
+
+.badge-priority-low {
+    background-color: var(--adt-info) !important;
+    color: white !important;
+}
+
+/* ============================================
+   ALERTAS CONTEXTUALES
+   ============================================ */
+
+.alert-adt-danger {
+    background-color: #FFEBEE;
+    border-left: 4px solid var(--adt-error);
+    padding: var(--adt-space-md);
+    margin-bottom: var(--adt-space-md);
+    border-radius: var(--adt-radius-sm);
+}
+
+.alert-adt-warning {
+    background-color: #FFF3E0;
+    border-left: 4px solid var(--adt-warning);
+    padding: var(--adt-space-md);
+    margin-bottom: var(--adt-space-md);
+    border-radius: var(--adt-radius-sm);
+}
+
+.alert-adt-info {
+    background-color: #E3F2FD;
+    border-left: 4px solid var(--adt-info);
+    padding: var(--adt-space-md);
+    margin-bottom: var(--adt-space-md);
+    border-radius: var(--adt-radius-sm);
+}
+
+.alert-adt-success {
+    background-color: #E8F5E9;
+    border-left: 4px solid var(--adt-success);
+    padding: var(--adt-space-md);
+    margin-bottom: var(--adt-space-md);
+    border-radius: var(--adt-radius-sm);
+}
+
+/* ============================================
+   CARDS Y CONTENEDORES
+   ============================================ */
+
+.adt-modern-card {
+    padding: var(--adt-space-lg);
+    border-radius: var(--adt-radius-lg);
+    background: white;
+    box-shadow: var(--adt-shadow-md);
+    border: 1px solid var(--adt-gray-200);
+    transition: all 0.2s ease;
+}
+
+.adt-modern-card:hover {
+    box-shadow: var(--adt-shadow-lg);
+    transform: translateY(-2px);
+}
+
+.adt-form-section {
+    margin-bottom: var(--adt-space-xl);
+    padding: var(--adt-space-lg);
+    background: var(--adt-gray-50);
+    border-radius: var(--adt-radius-md);
+    border-left: 4px solid var(--adt-primary);
+}
+
+/* ============================================
+   STAT CARDS
+   ============================================ */
+
+.adt-stat-card {
+    background: linear-gradient(135deg, var(--adt-primary) 0%, var(--adt-primary-dark) 100%);
+    color: white;
+    padding: var(--adt-space-lg);
+    border-radius: var(--adt-radius-lg);
+    box-shadow: var(--adt-shadow-md);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.adt-stat-card h3 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: var(--adt-space-sm) 0;
+}
+
+.adt-stat-card p {
+    font-size: 14px;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.adt-stat-card.stat-warning {
+    background: linear-gradient(135deg, var(--adt-warning) 0%, var(--adt-warning-light) 100%);
+}
+
+.adt-stat-card.stat-success {
+    background: linear-gradient(135deg, var(--adt-success) 0%, var(--adt-success-light) 100%);
+}
+
+.adt-stat-card.stat-info {
+    background: linear-gradient(135deg, var(--adt-info) 0%, var(--adt-info-light) 100%);
+}
+
+/* ============================================
+   BOTONES MODERNOS
+   ============================================ */
+
+.btn-adt-primary {
+    background-color: var(--adt-primary) !important;
+    border-color: var(--adt-primary) !important;
+    color: white !important;
+    border-radius: var(--adt-radius-md);
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-adt-primary:hover {
+    background-color: var(--adt-primary-dark) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-adt-success {
+    background-color: var(--adt-success) !important;
+    border-color: var(--adt-success) !important;
+    color: white !important;
+}
+
+.btn-adt-warning {
+    background-color: var(--adt-warning) !important;
+    border-color: var(--adt-warning) !important;
+    color: white !important;
+}
+
+.btn-adt-danger {
+    background-color: var(--adt-error) !important;
+    border-color: var(--adt-error) !important;
+    color: white !important;
+}
+
+/* ============================================
+   LOADING Y ESTADOS
+   ============================================ */
+
+.adt-loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+.adt-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: adt-spin 0.6s linear infinite;
+}
+
+@keyframes adt-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ============================================
+   SKELETON LOADERS
+   ============================================ */
+
+.adt-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--adt-gray-200) 25%,
+        var(--adt-gray-100) 50%,
+        var(--adt-gray-200) 75%
+    );
+    background-size: 200% 100%;
+    animation: adt-loading 1.5s ease-in-out infinite;
+    border-radius: var(--adt-radius-sm);
+}
+
+.adt-skeleton-line {
+    height: 12px;
+    margin-bottom: 8px;
+}
+
+.adt-skeleton-line.short {
+    width: 60%;
+}
+
+@keyframes adt-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   TRANSICIONES Y ANIMACIONES
+   ============================================ */
+
+.adt-fade-in {
+    animation: adt-fadeIn 0.3s ease-out;
+}
+
+@keyframes adt-fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.adt-shake {
+    animation: adt-shake 0.3s;
+}
+
+@keyframes adt-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+/* ============================================
+   PROGRESS BARS
+   ============================================ */
+
+.adt-progress {
+    height: 8px;
+    background-color: var(--adt-gray-200);
+    border-radius: var(--adt-radius-md);
+    overflow: hidden;
+}
+
+.adt-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--adt-primary), var(--adt-primary-light));
+    transition: width 0.3s ease;
+}
+
+.adt-progress-bar.success {
+    background: linear-gradient(90deg, var(--adt-success), var(--adt-success-light));
+}
+
+/* ============================================
+   KANBAN CARDS
+   ============================================ */
+
+.o_kanban_record.adt-kanban-card {
+    border-radius: var(--adt-radius-lg);
+    box-shadow: var(--adt-shadow-sm);
+    transition: all 0.2s ease;
+    border: 1px solid var(--adt-gray-200);
+}
+
+.o_kanban_record.adt-kanban-card:hover {
+    box-shadow: var(--adt-shadow-md);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   FORMULARIOS
+   ============================================ */
+
+.o_field_widget.adt-field {
+    border-radius: var(--adt-radius-sm);
+    border: 1px solid var(--adt-gray-200);
+    padding: 8px 12px;
+    transition: all 0.2s ease;
+}
+
+.o_field_widget.adt-field:focus {
+    border-color: var(--adt-primary);
+    box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1);
+    outline: none;
+}
+
+.o_field_widget.o_field_invalid {
+    border-color: var(--adt-error);
+    animation: adt-shake 0.3s;
+}
+
+/* ============================================
+   TOOLTIPS Y POPOVERS
+   ============================================ */
+
+.adt-tooltip {
+    background-color: var(--adt-gray-900);
+    color: white;
+    padding: 6px 12px;
+    border-radius: var(--adt-radius-sm);
+    font-size: 12px;
+    box-shadow: var(--adt-shadow-md);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .adt-stat-card {
+        min-height: 80px;
+        padding: var(--adt-space-md);
+    }
+
+    .adt-stat-card h3 {
+        font-size: 24px;
+    }
+
+    .adt-modern-card {
+        padding: var(--adt-space-md);
+    }
+}
+
+/* ============================================
+   UTILIDADES
+   ============================================ */
+
+.adt-mt-1 { margin-top: var(--adt-space-xs) !important; }
+.adt-mt-2 { margin-top: var(--adt-space-sm) !important; }
+.adt-mt-3 { margin-top: var(--adt-space-md) !important; }
+.adt-mt-4 { margin-top: var(--adt-space-lg) !important; }
+
+.adt-mb-1 { margin-bottom: var(--adt-space-xs) !important; }
+.adt-mb-2 { margin-bottom: var(--adt-space-sm) !important; }
+.adt-mb-3 { margin-bottom: var(--adt-space-md) !important; }
+.adt-mb-4 { margin-bottom: var(--adt-space-lg) !important; }
+
+.adt-p-2 { padding: var(--adt-space-sm) !important; }
+.adt-p-3 { padding: var(--adt-space-md) !important; }
+.adt-p-4 { padding: var(--adt-space-lg) !important; }
+
+.adt-text-primary { color: var(--adt-primary) !important; }
+.adt-text-success { color: var(--adt-success) !important; }
+.adt-text-warning { color: var(--adt-warning) !important; }
+.adt-text-danger { color: var(--adt-error) !important; }
+
+.adt-bg-primary { background-color: var(--adt-primary) !important; }
+.adt-bg-success { background-color: var(--adt-success) !important; }
+.adt-bg-warning { background-color: var(--adt-warning) !important; }
+.adt-bg-danger { background-color: var(--adt-error) !important; }

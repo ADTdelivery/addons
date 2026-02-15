@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Root Menu -->
+    <menuitem id="menu_adt_captura_root"
+              name="Gestión de Capturas"
+              sequence="10"
+              groups="adt_captura.group_captura_capturador"/>
+
+    <!-- Submenu: Operaciones -->
+    <menuitem id="menu_adt_captura_operaciones"
+              name="Operaciones"
+              parent="menu_adt_captura_root"
+              sequence="10"
+              groups="adt_captura.group_captura_capturador"/>
+
+    <menuitem id="menu_adt_captura_mora"
+              name="Clientes en Mora"
+              parent="menu_adt_captura_operaciones"
+              action="action_adt_captura_mora"
+              sequence="10"
+              groups="adt_captura.group_captura_capturador"/>
+
+    <menuitem id="menu_adt_captura_activas"
+              name="Capturas Activas"
+              parent="menu_adt_captura_operaciones"
+              action="action_adt_captura_record"
+              sequence="20"
+              groups="adt_captura.group_captura_capturador"/>
+
+    <menuitem id="menu_adt_captura_historial"
+              name="Historial"
+              parent="menu_adt_captura_operaciones"
+              action="action_adt_captura_historial"
+              sequence="30"
+              groups="adt_captura.group_captura_capturador"/>
+
+</odoo>

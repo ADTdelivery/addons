@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree View -->
+    <record id="view_adt_captura_mora_tree" model="ir.ui.view">
+        <field name="name">adt.captura.mora.tree</field>
+        <field name="model">adt.captura.mora</field>
+        <field name="arch" type="xml">
+            <tree string="Clientes en Mora"
+                  create="false"
+                  delete="false"
+                  decoration-danger="estado_mora == 'critico'"
+                  decoration-warning="estado_mora == 'normal' and dias_mora &gt;= 5">
+                <field name="partner_id"/>
+                <field name="reference_no"/>
+                <field name="vehicle_id"/>
+                <field name="dias_mora"/>
+                <field name="tipo_cartera"/>
+                <field name="estado_mora" widget="badge"
+                       decoration-danger="estado_mora == 'critico'"
+                       decoration-success="estado_mora == 'normal'"/>
+                <field name="numero_cuotas_vencidas"/>
+                <field name="monto_vencido"/>
+                <field name="fecha_cronograma"/>
+                <field name="gps_activo" widget="boolean_toggle"/>
+                <field name="user_id"/>
+                <field name="captura_existente" widget="boolean" string="Capturado"/>
+                <button name="action_iniciar_captura"
+                        string="Iniciar Captura"
+                        type="object"
+                        class="btn-primary"
+                        attrs="{'invisible': [('captura_existente', '=', True)]}"/>
+                <button name="action_ver_detalle"
+                        string="Ver Detalle"
+                        type="object"
+                        icon="fa-search"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_adt_captura_mora_form" model="ir.ui.view">
+        <field name="name">adt.captura.mora.form</field>
+        <field name="model">adt.captura.mora</field>
+        <field name="arch" type="xml">
+            <form string="Cliente en Mora" create="false" delete="false">
+                <header>
+                    <button name="action_iniciar_captura"
+                            string="Iniciar Captura"
+                            type="object"
+                            class="oe_highlight"
+                            attrs="{'invisible': [('captura_existente', '=', True)]}"/>
+                    <button name="action_ver_detalle"
+                            string="Ver Detalle Cuenta"
+                            type="object"/>
+                </header>
+
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="partner_id" readonly="1"/>
+                        </h1>
+                        <h3>
+                            <field name="reference_no" readonly="1"/>
+                        </h3>
+                    </div>
+
+                    <group>
+                        <group string="Información del Cliente">
+                            <field name="vat"/>
+                            <field name="phone"/>
+                            <field name="mobile"/>
+                            <field name="user_id"/>
+                        </group>
+
+                        <group string="Información del Vehículo">
+                            <field name="vehicle_id"/>
+                            <field name="gps_chip"/>
+                            <field name="gps_activo"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Estado de Mora">
+                            <field name="dias_mora"/>
+                            <field name="tipo_cartera"/>
+                            <field name="estado_mora" widget="badge"
+                                   decoration-danger="estado_mora == 'critico'"
+                                   decoration-success="estado_mora == 'normal'"/>
+                        </group>
+
+                        <group string="Deuda">
+                            <field name="numero_cuotas_vencidas"/>
+                            <field name="monto_vencido"/>
+                            <field name="fecha_cronograma" string="Primera Cuota Vencida"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group>
+                            <field name="captura_existente"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_adt_captura_mora_search" model="ir.ui.view">
+        <field name="name">adt.captura.mora.search</field>
+        <field name="model">adt.captura.mora</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Clientes en Mora">
+                <field name="partner_id"/>
+                <field name="reference_no"/>
+                <field name="vehicle_id"/>
+                <field name="vat"/>
+                <field name="user_id"/>
+
+                <filter string="Estado Crítico" name="filter_critico"
+                        domain="[('estado_mora', '=', 'critico')]"/>
+                <filter string="Más de 14 días" name="filter_14_dias"
+                        domain="[('dias_mora', '&gt;=', 14)]"/>
+                <filter string="Más de 30 días" name="filter_30_dias"
+                        domain="[('dias_mora', '&gt;=', 30)]"/>
+                <separator/>
+                <filter string="Qorilazo" name="filter_qorilazo"
+                        domain="[('tipo_cartera', '=', 'quincena')]"/>
+                <filter string="Los Andes" name="filter_losandes"
+                        domain="[('tipo_cartera', '=', 'mensual')]"/>
+                <separator/>
+                <filter string="GPS Activo" name="filter_gps_activo"
+                        domain="[('gps_activo', '=', True)]"/>
+                <filter string="Sin GPS" name="filter_sin_gps"
+                        domain="[('gps_activo', '=', False)]"/>
+                <separator/>
+                <filter string="Sin Captura" name="filter_sin_captura"
+                        domain="[('captura_existente', '=', False)]"/>
+                <filter string="Ya Capturado" name="filter_capturado"
+                        domain="[('captura_existente', '=', True)]"/>
+                <separator/>
+                <filter string="Mi Cartera" name="filter_mi_cartera"
+                        domain="[('user_id', '=', uid)]"/>
+                <separator/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estado Mora" name="group_estado_mora"
+                            context="{'group_by': 'estado_mora'}"/>
+                    <filter string="Tipo Cartera" name="group_tipo_cartera"
+                            context="{'group_by': 'tipo_cartera'}"/>
+                    <filter string="Asesor" name="group_asesor"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter string="GPS Activo" name="group_gps"
+                            context="{'group_by': 'gps_activo'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_adt_captura_mora" model="ir.actions.act_window">
+        <field name="name">Clientes en Mora</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.captura.mora</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_filter_sin_captura': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay clientes en mora
+            </p>
+            <p>
+                Esta vista muestra automáticamente los clientes con pagos vencidos
+            </p>
+        </field>
+    </record>
+
+    <!-- Kanban View (opcional, para visualización de tarjetas) -->
+    <record id="view_adt_captura_mora_kanban" model="ir.ui.view">
+        <field name="name">adt.captura.mora.kanban</field>
+        <field name="model">adt.captura.mora</field>
+        <field name="arch" type="xml">
+            <kanban create="false" delete="false">
+                <field name="partner_id"/>
+                <field name="reference_no"/>
+                <field name="vehicle_id"/>
+                <field name="dias_mora"/>
+                <field name="estado_mora"/>
+                <field name="monto_vencido"/>
+                <field name="captura_existente"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="partner_id"/>
+                                    </strong>
+                                    <span class="o_kanban_record_subtitle">
+                                        <field name="reference_no"/> - <field name="vehicle_id"/>
+                                    </span>
+                                </div>
+                                <div>
+                                    <field name="estado_mora" widget="label_selection"
+                                           options="{'classes': {'critico': 'danger', 'normal': 'success'}}"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div>Días mora: <strong><field name="dias_mora"/></strong></div>
+                                <div>Monto: <strong>S/ <field name="monto_vencido"/></strong></div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <field name="user_id" widget="many2one_avatar_user"/>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <button name="action_iniciar_captura"
+                                            type="object"
+                                            class="btn btn-primary btn-sm"
+                                            t-if="!record.captura_existente.raw_value">
+                                        Capturar
+                                    </button>
+                                    <span t-if="record.captura_existente.raw_value"
+                                          class="badge badge-success">
+                                        Ya Capturado
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+</odoo>

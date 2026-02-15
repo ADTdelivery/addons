@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree View -->
+    <record id="view_adt_captura_record_tree" model="ir.ui.view">
+        <field name="name">adt.captura.record.tree</field>
+        <field name="model">adt.captura.record</field>
+        <field name="arch" type="xml">
+            <tree string="Capturas"
+                  decoration-success="state == 'liberado'"
+                  decoration-danger="state == 'retenido'"
+                  decoration-warning="state == 'capturado'"
+                  decoration-muted="state == 'cancelado'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="cuenta_id"/>
+                <field name="vehicle_id"/>
+                <field name="capture_type"/>
+                <field name="dias_mora"/>
+                <field name="estado_mora" widget="badge"
+                       decoration-danger="estado_mora == 'critico'"
+                       decoration-success="estado_mora == 'normal'"/>
+                <field name="intervention_fee"/>
+                <field name="payment_state" widget="badge"
+                       decoration-danger="payment_state == 'pendiente'"
+                       decoration-success="payment_state == 'pagado'"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'liberado'"
+                       decoration-danger="state == 'retenido'"
+                       decoration-warning="state == 'capturado'"
+                       decoration-muted="state == 'cancelado'"/>
+                <field name="capturador_id"/>
+                <field name="create_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_adt_captura_record_form" model="ir.ui.view">
+        <field name="name">adt.captura.record.form</field>
+        <field name="model">adt.captura.record</field>
+        <field name="arch" type="xml">
+            <form string="Registro de Captura">
+                <header>
+                    <button name="action_registrar_pago"
+                            string="Registrar Pago"
+                            type="object"
+                            class="oe_highlight"
+                            attrs="{'invisible': ['|', ('state', '!=', 'capturado'), ('payment_state', '=', 'pagado')]}"/>
+
+                    <button name="action_liberar"
+                            string="Liberar Vehículo"
+                            type="object"
+                            class="oe_highlight"
+                            attrs="{'invisible': [('puede_liberar', '=', False)]}"
+                            groups="adt_captura.group_captura_supervisor"
+                            confirm="¿Está seguro de liberar este vehículo?"/>
+
+                    <button name="action_retener"
+                            string="Retener Vehículo"
+                            type="object"
+                            class="btn-danger"
+                            attrs="{'invisible': [('state', '!=', 'capturado')]}"
+                            groups="adt_captura.group_captura_supervisor"/>
+
+                    <button name="action_cancelar"
+                            string="Cancelar"
+                            type="object"
+                            attrs="{'invisible': [('es_estado_final', '=', True)]}"
+                            groups="adt_captura.group_captura_supervisor"
+                            confirm="¿Está seguro de cancelar esta captura?"/>
+
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="capturado,liberado"/>
+                </header>
+
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_evidencia"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-file-image-o">
+                            <field name="evidence_count" widget="statbutton" string="Evidencias"/>
+                        </button>
+
+                        <button name="action_ver_cuenta"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-book">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Ver Cuenta</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Información Principal">
+                            <field name="partner_id" options="{'no_create': True}"/>
+                            <field name="cuenta_id" options="{'no_create': True}"
+                                   domain="[('partner_id', '=', partner_id)]"/>
+                            <field name="vehicle_id" readonly="1"/>
+                            <field name="capturador_id" readonly="1"/>
+                        </group>
+
+                        <group string="Estado de Mora">
+                            <field name="dias_mora"/>
+                            <field name="tipo_cartera"/>
+                            <field name="estado_mora" widget="badge"
+                                   decoration-danger="estado_mora == 'critico'"
+                                   decoration-success="estado_mora == 'normal'"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Tipo de Captura">
+                            <field name="capture_type"/>
+                            <field name="commitment_date"
+                                   attrs="{'invisible': [('capture_type', '!=', 'compromiso')],
+                                           'required': [('capture_type', '=', 'compromiso')]}"/>
+                        </group>
+
+                        <group string="Deuda de Intervención">
+                            <field name="intervention_fee"/>
+                            <field name="payment_state" widget="badge"
+                                   decoration-danger="payment_state == 'pendiente'"
+                                   decoration-success="payment_state == 'pagado'"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Evidencia" name="evidencia">
+                            <field name="evidence_attachment_ids" widget="many2many_binary"
+                                   nolabel="1"
+                                   attrs="{'readonly': [('es_estado_final', '=', True)]}"/>
+                        </page>
+
+                        <page string="Información de Pago" name="pago"
+                              attrs="{'invisible': [('payment_state', '=', 'pendiente')]}">
+                            <group>
+                                <group>
+                                    <field name="voucher_number"/>
+                                    <field name="payment_date"/>
+                                </group>
+                                <group>
+                                    <field name="voucher_file" filename="voucher_filename"/>
+                                    <field name="voucher_filename" invisible="1"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Retención" name="retencion"
+                              attrs="{'invisible': [('state', '!=', 'retenido')]}">
+                            <group>
+                                <field name="retention_date"/>
+                                <field name="retention_reason" nolabel="1"
+                                       placeholder="Motivo de la retención..."/>
+                                <field name="supervisor_id"/>
+                            </group>
+                        </page>
+
+                        <page string="Observaciones" name="observaciones">
+                            <field name="notes" placeholder="Observaciones adicionales sobre la captura..."
+                                   nolabel="1"/>
+                        </page>
+                    </notebook>
+
+                    <!-- Hidden fields -->
+                    <field name="puede_liberar" invisible="1"/>
+                    <field name="es_estado_final" invisible="1"/>
+                </sheet>
+
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_adt_captura_record_search" model="ir.ui.view">
+        <field name="name">adt.captura.record.search</field>
+        <field name="model">adt.captura.record</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Capturas">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="cuenta_id"/>
+                <field name="vehicle_id"/>
+                <field name="capturador_id"/>
+
+                <filter string="Capturados" name="filter_capturado"
+                        domain="[('state', '=', 'capturado')]"/>
+                <filter string="Liberados" name="filter_liberado"
+                        domain="[('state', '=', 'liberado')]"/>
+                <filter string="Retenidos" name="filter_retenido"
+                        domain="[('state', '=', 'retenido')]"/>
+                <separator/>
+                <filter string="Pago Pendiente" name="filter_pago_pendiente"
+                        domain="[('payment_state', '=', 'pendiente')]"/>
+                <filter string="Pago Realizado" name="filter_pago_pagado"
+                        domain="[('payment_state', '=', 'pagado')]"/>
+                <separator/>
+                <filter string="Estado Crítico" name="filter_critico"
+                        domain="[('estado_mora', '=', 'critico')]"/>
+                <separator/>
+                <filter string="Mis Capturas" name="filter_mis_capturas"
+                        domain="[('capturador_id', '=', uid)]"/>
+                <separator/>
+                <filter string="Fecha de Captura" name="filter_fecha" date="create_date"/>
+                <separator/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estado" name="group_state"
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Estado Pago" name="group_payment_state"
+                            context="{'group_by': 'payment_state'}"/>
+                    <filter string="Tipo Captura" name="group_capture_type"
+                            context="{'group_by': 'capture_type'}"/>
+                    <filter string="Capturador" name="group_capturador"
+                            context="{'group_by': 'capturador_id'}"/>
+                    <filter string="Fecha" name="group_fecha"
+                            context="{'group_by': 'create_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_adt_captura_record" model="ir.actions.act_window">
+        <field name="name">Registros de Captura</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.captura.record</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_filter_capturado': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay capturas registradas
+            </p>
+            <p>
+                Las capturas se crean desde la vista de "Clientes en Mora"
+            </p>
+        </field>
+    </record>
+
+    <record id="action_adt_captura_historial" model="ir.actions.act_window">
+        <field name="name">Historial de Capturas</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.captura.record</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', 'in', ['liberado', 'retenido', 'cancelado'])]</field>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay capturas finalizadas
+            </p>
+        </field>
+    </record>
+</odoo>

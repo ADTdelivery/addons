@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista Form de Cliente Extendida -->
+    <record id="view_partner_form_taller" model="ir.ui.view">
+        <field name="name">res.partner.form.taller</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <field name="es_cliente_taller" invisible="1"/>
+                </header>
+            </xpath>
+
+            <xpath expr="//page[@name='internal_notes']" position="after">
+                <page string="Información del Taller" name="taller_info" attrs="{'invisible': [('es_cliente_taller', '=', False)]}">
+                    <group>
+                        <group string="Clasificación">
+                            <field name="es_cliente_taller"/>
+                            <field name="clasificacion_cliente" widget="badge"
+                                   decoration-success="clasificacion_cliente == 'vip'"
+                                   decoration-info="clasificacion_cliente == 'frecuente'"
+                                   decoration-warning="clasificacion_cliente == 'nuevo'"
+                                   decoration-muted="clasificacion_cliente == 'inactivo'"/>
+                            <field name="ultima_visita" readonly="1"/>
+                        </group>
+                        <group string="Estadísticas">
+                            <field name="cantidad_visitas" readonly="1"/>
+                            <field name="total_gastado" readonly="1"/>
+                            <field name="promedio_ticket" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Vehículos">
+                            <field name="cantidad_vehiculos" readonly="1"/>
+                            <button name="action_ver_vehiculos"
+                                    type="object"
+                                    string="Ver Vehículos"
+                                    class="oe_link"
+                                    icon="fa-car"/>
+                        </group>
+                        <group string="Estado Financiero">
+                            <field name="tiene_credito_atrasado" readonly="1"/>
+                            <button name="action_ver_historial_financiero"
+                                    type="object"
+                                    string="Ver Historial"
+                                    class="oe_link"
+                                    icon="fa-history"/>
+                        </group>
+                    </group>
+
+                    <!-- Alerta de crédito atrasado -->
+                    <div class="alert alert-danger"
+                         attrs="{'invisible': [('tiene_credito_atrasado', '=', False)]}">
+                        <i class="fa fa-exclamation-circle"/>
+                        <strong>Atención:</strong> Este cliente tiene créditos atrasados
+                    </div>
+
+                    <notebook>
+                        <page string="Vehículos" name="vehiculos_tab">
+                            <field name="vehiculo_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="placa"/>
+                                    <field name="tipo"/>
+                                    <field name="kilometraje"/>
+                                    <field name="ultima_fecha_servicio"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <page string="Historial de Órdenes" name="ordenes_tab">
+                            <field name="orden_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="fecha_ingreso"/>
+                                    <field name="tipo_servicio"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="total"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Vista Tree filtrada para clientes del taller -->
+    <record id="view_partner_tree_taller" model="ir.ui.view">
+        <field name="name">res.partner.tree.taller</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <tree string="Clientes del Taller"
+                  decoration-success="clasificacion_cliente == 'vip'"
+                  decoration-warning="tiene_credito_atrasado">
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="clasificacion_cliente" widget="badge"/>
+                <field name="cantidad_vehiculos"/>
+                <field name="total_gastado"/>
+                <field name="ultima_visita"/>
+                <field name="tiene_credito_atrasado" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Acción para Clientes del Taller -->
+    <record id="action_partner_taller" model="ir.actions.act_window">
+        <field name="name">Clientes</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('es_cliente_taller', '=', True)]</field>
+        <field name="context">{'default_es_cliente_taller': True, 'default_customer_rank': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Registrar un nuevo cliente
+            </p>
+            <p>
+                Gestiona la base de clientes del taller.<br/>
+                Clasifica automáticamente según su historial y comportamiento.
+            </p>
+        </field>
+    </record>
+
+</odoo>

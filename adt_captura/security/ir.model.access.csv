@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_adt_captura_record_capturador,adt.captura.record.capturador,model_adt_captura_record,group_captura_capturador,1,1,1,0
+access_adt_captura_record_supervisor,adt.captura.record.supervisor,model_adt_captura_record,group_captura_supervisor,1,1,1,1
+access_adt_captura_record_admin,adt.captura.record.admin,model_adt_captura_record,group_captura_administrador,1,1,1,1
+access_adt_captura_mora_capturador,adt.captura.mora.capturador,model_adt_captura_mora,group_captura_capturador,1,0,0,0
+access_adt_captura_mora_supervisor,adt.captura.mora.supervisor,model_adt_captura_mora,group_captura_supervisor,1,0,0,0
+access_adt_captura_mora_admin,adt.captura.mora.admin,model_adt_captura_mora,group_captura_administrador,1,0,0,0
+access_adt_captura_pago_wizard_capturador,adt.captura.pago.wizard.capturador,model_adt_captura_pago_wizard,group_captura_capturador,1,1,1,1
+access_adt_captura_pago_wizard_supervisor,adt.captura.pago.wizard.supervisor,model_adt_captura_pago_wizard,group_captura_supervisor,1,1,1,1
+access_adt_captura_retencion_wizard_supervisor,adt.captura.retencion.wizard.supervisor,model_adt_captura_retencion_wizard,group_captura_supervisor,1,1,1,1
+access_adt_captura_retencion_wizard_admin,adt.captura.retencion.wizard.admin,model_adt_captura_retencion_wizard,group_captura_administrador,1,1,1,1

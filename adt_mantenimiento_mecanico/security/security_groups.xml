@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Categoría del Módulo -->
+    <record id="module_category_taller" model="ir.module.category">
+        <field name="name">Taller Mecánico</field>
+        <field name="description">Gestión de Taller Mecánico</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <!-- Grupos de Seguridad -->
+    <record id="group_taller_usuario" model="res.groups">
+        <field name="name">Usuario del Taller</field>
+        <field name="category_id" ref="module_category_taller"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_taller_mecanico" model="res.groups">
+        <field name="name">Mecánico</field>
+        <field name="category_id" ref="module_category_taller"/>
+        <field name="implied_ids" eval="[(4, ref('group_taller_usuario'))]"/>
+    </record>
+
+    <record id="group_taller_asesor" model="res.groups">
+        <field name="name">Asesor de Servicio</field>
+        <field name="category_id" ref="module_category_taller"/>
+        <field name="implied_ids" eval="[(4, ref('group_taller_usuario'))]"/>
+    </record>
+
+    <record id="group_taller_supervisor" model="res.groups">
+        <field name="name">Supervisor del Taller</field>
+        <field name="category_id" ref="module_category_taller"/>
+        <field name="implied_ids" eval="[(4, ref('group_taller_asesor')), (4, ref('group_taller_mecanico'))]"/>
+    </record>
+
+    <record id="group_taller_manager" model="res.groups">
+        <field name="name">Administrador del Taller</field>
+        <field name="category_id" ref="module_category_taller"/>
+        <field name="implied_ids" eval="[(4, ref('group_taller_supervisor'))]"/>
+    </record>
+
+    <!-- Reglas de Registro (Record Rules) -->
+
+    <!-- Mecánicos solo ven sus propios trabajos -->
+    <!-- Comentado temporalmente hasta configurar usuarios
+    <record id="rule_mecanico_trabajos_propios" model="ir.rule">
+        <field name="name">Mecánico: Solo sus trabajos</field>
+        <field name="model_id" ref="model_adt_trabajo"/>
+        <field name="groups" eval="[(4, ref('group_taller_mecanico'))]"/>
+        <field name="domain_force">[('mecanico_id.user_id', '=', user.id)]</field>
+    </record>
+    -->
+
+    <!-- Supervisores ven todas las órdenes -->
+    <record id="rule_supervisor_todas_ordenes" model="ir.rule">
+        <field name="name">Supervisor: Todas las órdenes</field>
+        <field name="model_id" ref="model_adt_orden_mantenimiento"/>
+        <field name="groups" eval="[(4, ref('group_taller_supervisor'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+</odoo>
