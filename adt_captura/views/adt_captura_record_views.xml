@@ -95,7 +95,7 @@
                         </h1>
                     </div>
 
-                    <!-- Alerta de deuda anterior -->
+                    <!-- Alerta de deuda anterior
                     <div class="alert alert-warning" role="alert"
                          attrs="{'invisible': [('tiene_deuda_anterior', '=', False)]}">
                         <strong>⚠️ Atención:</strong> Este cliente tiene
@@ -107,12 +107,11 @@
                                 class="btn-link"
                                 context="{'search_default_partner_id': partner_id, 'search_default_filter_pago_pendiente': 1}"/>
                     </div>
-
+-->
                     <group>
                         <group string="Información Principal">
-                            <field name="partner_id" options="{'no_create': True}"/>
-                            <field name="cuenta_id" options="{'no_create': True}"
-                                   domain="[('partner_id', '=', partner_id)]"/>
+                            <field name="partner_id"/>
+                            <field name="cuenta_id"/>
                             <field name="vehicle_id" readonly="1"/>
                             <field name="capturador_id" readonly="1"/>
                         </group>
@@ -143,6 +142,24 @@
                     <notebook>
                         <page string="Evidencia" name="evidencia">
                             <field name="evidencia_archivos" widget="many2many_binary" nolabel="1" string="Evidencias (Fotos/Videos)"/>
+                        </page>
+                        <page string="Cuotas Pendientes" name="cuotas_pendientes">
+                            <field name="cuotas_pendientes_ids" widget="one2many_list" readonly="1">
+                                <tree string="Cuotas Pendientes">
+                                    <field name="name" string="# Cuota"/>
+                                    <field name="monto"/>
+                                    <field name="fecha_cronograma"/>
+                                    <field name="real_date" string="Fecha de Pago"/>
+                                    <field name="state"/>
+                                    <field name="saldo"/>
+                                    <field name="mora_total"/>
+                                    <field name="mora_dias"/>
+                                    <field name="mora_estado_texto"/>
+                                    <field name="mora_operacion"/>
+                                    <field name="periodicidad"/>
+                                    <field name="x_asesora"/>
+                                </tree>
+                            </field>
                         </page>
                     </notebook>
 

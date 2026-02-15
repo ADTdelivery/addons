@@ -100,6 +100,15 @@ class ADTCapturaRecord(models.Model):
                                                 compute='_compute_deuda_anterior',
                                                 store=False)
 
+    # Cuotas Pendientes
+    cuotas_pendientes_ids = fields.One2many(
+        comodel_name='adt.comercial.cuotas',
+        inverse_name='cuenta_id',
+        string='Cuotas Pendientes',
+        compute='_compute_cuotas_pendientes',
+        store=False
+    )
+
     @api.depends('evidencia_archivos')
     def _compute_evidence_count(self):
         for record in self:
@@ -162,6 +171,16 @@ class ADTCapturaRecord(models.Model):
                 record.capturas_anteriores_ids = False
                 record.tiene_deuda_anterior = False
                 record.monto_deuda_anterior = 0.0
+
+    @api.depends('cuenta_id', 'cuenta_id.cuota_ids')
+    def _compute_cuotas_pendientes(self):
+        for record in self:
+            if record.cuenta_id and hasattr(record.cuenta_id, 'cuota_ids'):
+                record.cuotas_pendientes_ids = record.cuenta_id.cuota_ids.filtered(
+                    lambda c: c.state in ['pendiente', 'retrasado']
+                )
+            else:
+                record.cuotas_pendientes_ids = False
 
     @api.model
     def create(self, vals):
