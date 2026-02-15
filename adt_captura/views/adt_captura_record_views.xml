@@ -16,9 +16,7 @@
                 <field name="vehicle_id"/>
                 <field name="capture_type"/>
                 <field name="dias_mora"/>
-                <field name="estado_mora" widget="badge"
-                       decoration-danger="estado_mora == 'critico'"
-                       decoration-success="estado_mora == 'normal'"/>
+                <field name="numero_cuotas_vencidas"/>
                 <field name="intervention_fee"/>
                 <field name="payment_state" widget="badge"
                        decoration-danger="payment_state == 'pendiente'"
@@ -79,7 +77,6 @@
                                 type="object"
                                 class="oe_stat_button"
                                 icon="fa-file-image-o">
-                            <field name="evidence_count" widget="statbutton" string="Evidencias"/>
                         </button>
 
                         <button name="action_ver_cuenta"
@@ -98,6 +95,19 @@
                         </h1>
                     </div>
 
+                    <!-- Alerta de deuda anterior -->
+                    <div class="alert alert-warning" role="alert"
+                         attrs="{'invisible': [('tiene_deuda_anterior', '=', False)]}">
+                        <strong>⚠️ Atención:</strong> Este cliente tiene
+                        <field name="capturas_anteriores_ids" widget="many2many_tags" readonly="1"/>
+                        captura(s) anterior(es) sin pagar por un total de
+                        <strong>S/ <field name="monto_deuda_anterior" readonly="1"/></strong>
+                        <button name="%(action_adt_captura_record)d" type="action"
+                                string="Ver Capturas Anteriores"
+                                class="btn-link"
+                                context="{'search_default_partner_id': partner_id, 'search_default_filter_pago_pendiente': 1}"/>
+                    </div>
+
                     <group>
                         <group string="Información Principal">
                             <field name="partner_id" options="{'no_create': True}"/>
@@ -107,12 +117,10 @@
                             <field name="capturador_id" readonly="1"/>
                         </group>
 
-                        <group string="Estado de Mora">
+                        <group string="Información de Mora">
                             <field name="dias_mora"/>
+                            <field name="numero_cuotas_vencidas"/>
                             <field name="tipo_cartera"/>
-                            <field name="estado_mora" widget="badge"
-                                   decoration-danger="estado_mora == 'critico'"
-                                   decoration-success="estado_mora == 'normal'"/>
                         </group>
                     </group>
 
@@ -134,44 +142,14 @@
 
                     <notebook>
                         <page string="Evidencia" name="evidencia">
-                            <field name="evidence_attachment_ids" widget="many2many_binary"
-                                   nolabel="1"
-                                   attrs="{'readonly': [('es_estado_final', '=', True)]}"/>
-                        </page>
-
-                        <page string="Información de Pago" name="pago"
-                              attrs="{'invisible': [('payment_state', '=', 'pendiente')]}">
-                            <group>
-                                <group>
-                                    <field name="voucher_number"/>
-                                    <field name="payment_date"/>
-                                </group>
-                                <group>
-                                    <field name="voucher_file" filename="voucher_filename"/>
-                                    <field name="voucher_filename" invisible="1"/>
-                                </group>
-                            </group>
-                        </page>
-
-                        <page string="Retención" name="retencion"
-                              attrs="{'invisible': [('state', '!=', 'retenido')]}">
-                            <group>
-                                <field name="retention_date"/>
-                                <field name="retention_reason" nolabel="1"
-                                       placeholder="Motivo de la retención..."/>
-                                <field name="supervisor_id"/>
-                            </group>
-                        </page>
-
-                        <page string="Observaciones" name="observaciones">
-                            <field name="notes" placeholder="Observaciones adicionales sobre la captura..."
-                                   nolabel="1"/>
+                            <field name="evidencia_archivos" widget="many2many_binary" nolabel="1" string="Evidencias (Fotos/Videos)"/>
                         </page>
                     </notebook>
 
                     <!-- Hidden fields -->
                     <field name="puede_liberar" invisible="1"/>
                     <field name="es_estado_final" invisible="1"/>
+                    <field name="tiene_deuda_anterior" invisible="1"/>
                 </sheet>
 
                 <div class="oe_chatter">
@@ -207,9 +185,6 @@
                 <filter string="Pago Realizado" name="filter_pago_pagado"
                         domain="[('payment_state', '=', 'pagado')]"/>
                 <separator/>
-                <filter string="Estado Crítico" name="filter_critico"
-                        domain="[('estado_mora', '=', 'critico')]"/>
-                <separator/>
                 <filter string="Mis Capturas" name="filter_mis_capturas"
                         domain="[('capturador_id', '=', uid)]"/>
                 <separator/>
@@ -233,7 +208,7 @@
 
     <!-- Actions -->
     <record id="action_adt_captura_record" model="ir.actions.act_window">
-        <field name="name">Registros de Captura</field>
+        <field name="name">Todas las Capturas</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">adt.captura.record</field>
         <field name="view_mode">tree,form</field>
@@ -244,6 +219,42 @@
             </p>
             <p>
                 Las capturas se crean desde la vista de "Clientes en Mora"
+            </p>
+        </field>
+    </record>
+
+    <!-- Action: Capturas Inmediatas -->
+    <record id="action_adt_captura_inmediata" model="ir.actions.act_window">
+        <field name="name">Capturas Inmediatas</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.captura.record</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('capture_type', '=', 'inmediata'), ('state', '=', 'capturado')]</field>
+        <field name="context">{'search_default_filter_capturado': 1, 'default_capture_type': 'inmediata'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay capturas inmediatas
+            </p>
+            <p>
+                Aquí aparecen los vehículos capturados de forma inmediata
+            </p>
+        </field>
+    </record>
+
+    <!-- Action: Compromisos de Pago -->
+    <record id="action_adt_captura_compromiso" model="ir.actions.act_window">
+        <field name="name">Compromisos de Pago</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.captura.record</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('capture_type', '=', 'compromiso'), ('state', '=', 'capturado')]</field>
+        <field name="context">{'search_default_filter_capturado': 1, 'default_capture_type': 'compromiso'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay compromisos de pago
+            </p>
+            <p>
+                Aquí aparecen los compromisos de pago pendientes de seguimiento
             </p>
         </field>
     </record>

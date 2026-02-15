@@ -64,13 +64,8 @@ class ADTCapturaPagoWizard(models.TransientModel):
 
         _logger.info(f"Pago registrado para captura {self.captura_id.name} - Monto: S/ {self.monto}")
 
+        # Cerrar el wizard y recargar la vista
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Pago Registrado',
-                'message': 'El pago ha sido registrado correctamente. Ahora puede liberar el vehículo.',
-                'type': 'success',
-                'sticky': False,
-            }
+            'tag': 'reload',
         }

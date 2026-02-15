@@ -20,18 +20,25 @@
               sequence="10"
               groups="adt_captura.group_captura_capturador"/>
 
-    <menuitem id="menu_adt_captura_activas"
-              name="Capturas Activas"
+    <menuitem id="menu_adt_captura_inmediatas"
+              name="Capturas Inmediatas"
               parent="menu_adt_captura_operaciones"
-              action="action_adt_captura_record"
+              action="action_adt_captura_inmediata"
               sequence="20"
+              groups="adt_captura.group_captura_capturador"/>
+
+    <menuitem id="menu_adt_captura_compromisos"
+              name="Compromisos de Pago"
+              parent="menu_adt_captura_operaciones"
+              action="action_adt_captura_compromiso"
+              sequence="30"
               groups="adt_captura.group_captura_capturador"/>
 
     <menuitem id="menu_adt_captura_historial"
               name="Historial"
               parent="menu_adt_captura_operaciones"
               action="action_adt_captura_historial"
-              sequence="30"
+              sequence="40"
               groups="adt_captura.group_captura_capturador"/>
 
 </odoo>

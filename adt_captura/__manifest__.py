@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'ADT Captura',
-    'version': '1.0',
+    'version': '1.1.3',
     'category': 'Custom',
     'summary': 'Gestión de Capturas de Vehículos en Mora',
     'description': """

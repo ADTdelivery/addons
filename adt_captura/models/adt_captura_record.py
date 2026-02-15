@@ -30,19 +30,17 @@ class ADTCapturaRecord(models.Model):
     capture_type = fields.Selection([
         ('inmediata', 'Inmediata'),
         ('compromiso', 'Compromiso de Pago'),
-        ('condicional', 'Condicional'),
     ], string='Tipo de Captura', required=True, default='inmediata', tracking=True)
 
     commitment_date = fields.Date(string='Fecha Compromiso', tracking=True,
                                    help='Fecha comprometida para el pago (solo si tipo = compromiso)')
 
     # Evidencia
-    evidence_attachment_ids = fields.Many2many('ir.attachment',
-                                               'adt_captura_evidence_rel',
+    evidencia_archivos = fields.Many2many('ir.attachment',
+                                               'adt_captura_evidencia_rel',
                                                'captura_id', 'attachment_id',
-                                               string='Evidencia (Imágenes/Videos)',
-                                               help='Adjuntar imágenes o videos como evidencia de la captura')
-    evidence_count = fields.Integer(string='# Evidencias', compute='_compute_evidence_count')
+                                               string='Evidencias (Fotos/Videos)',
+                                               help='Adjunta imágenes o videos como evidencia de la captura')
 
     notes = fields.Text(string='Observaciones', tracking=True)
 
@@ -76,14 +74,11 @@ class ADTCapturaRecord(models.Model):
 
     # Información de mora
     dias_mora = fields.Integer(string='Días de Mora', compute='_compute_mora_info', store=True)
+    numero_cuotas_vencidas = fields.Integer(string='# Cuotas Vencidas', compute='_compute_mora_info', store=True)
     tipo_cartera = fields.Selection([
         ('qorilazo', 'Qorilazo'),
         ('los_andes', 'Los Andes'),
     ], string='Tipo Cartera', related='cuenta_id.periodicidad', store=True)
-    estado_mora = fields.Selection([
-        ('normal', 'Normal'),
-        ('critico', 'Crítico'),
-    ], string='Estado Mora', compute='_compute_mora_info', store=True)
 
     # Trazabilidad
     capturador_id = fields.Many2one('res.users', string='Capturador',
@@ -94,10 +89,21 @@ class ADTCapturaRecord(models.Model):
     puede_liberar = fields.Boolean(string='Puede Liberar', compute='_compute_puede_liberar')
     es_estado_final = fields.Boolean(string='Es Estado Final', compute='_compute_es_estado_final')
 
-    @api.depends('evidence_attachment_ids')
+    # Alerta de deuda anterior
+    tiene_deuda_anterior = fields.Boolean(string='Tiene Deuda Anterior', compute='_compute_deuda_anterior', store=False)
+    monto_deuda_anterior = fields.Float(string='Monto Deuda Anterior', compute='_compute_deuda_anterior', store=False)
+    capturas_anteriores_ids = fields.Many2many('adt.captura.record',
+                                                'adt_captura_deuda_rel',
+                                                'captura_actual_id',
+                                                'captura_anterior_id',
+                                                string='Capturas Anteriores Sin Pagar',
+                                                compute='_compute_deuda_anterior',
+                                                store=False)
+
+    @api.depends('evidencia_archivos')
     def _compute_evidence_count(self):
         for record in self:
-            record.evidence_count = len(record.evidence_attachment_ids)
+            record.evidence_count = len(record.evidencia_archivos)
 
     @api.depends('cuenta_id', 'cuenta_id.cuota_ids')
     def _compute_mora_info(self):
@@ -111,40 +117,57 @@ class ADTCapturaRecord(models.Model):
                     cuota_mas_antigua = min(cuotas_vencidas, key=lambda c: c.fecha_cronograma)
                     dias = (fields.Date.today() - cuota_mas_antigua.fecha_cronograma).days
                     record.dias_mora = dias
-
-                    # Determinar estado crítico según tipo de cartera
-                    if record.tipo_cartera == 'quincena':
-                        record.estado_mora = 'critico' if dias >= 14 else 'normal'
-                    elif record.tipo_cartera == 'mensual':
-                        record.estado_mora = 'critico' if dias >= 7 else 'normal'
-                    else:
-                        record.estado_mora = 'normal'
+                    record.numero_cuotas_vencidas = len(cuotas_vencidas)
                 else:
                     record.dias_mora = 0
-                    record.estado_mora = 'normal'
+                    record.numero_cuotas_vencidas = 0
             else:
                 record.dias_mora = 0
-                record.estado_mora = 'normal'
+                record.numero_cuotas_vencidas = 0
 
     @api.depends('payment_state', 'state')
     def _compute_puede_liberar(self):
         for record in self:
-            record.puede_liberar = (record.payment_state == 'pagado' and
-                                   record.state == 'capturado')
+            # Puede liberar si está en estado capturado, independientemente del pago
+            record.puede_liberar = record.state == 'capturado'
 
     @api.depends('state')
     def _compute_es_estado_final(self):
         for record in self:
             record.es_estado_final = record.state in ['liberado', 'retenido', 'cancelado']
 
+    @api.depends('cuenta_id', 'partner_id')
+    def _compute_deuda_anterior(self):
+        for record in self:
+            # Si el registro es nuevo (no tiene ID real), no calcular deuda anterior
+            if not record.id or isinstance(record.id, models.NewId):
+                record.capturas_anteriores_ids = False
+                record.tiene_deuda_anterior = False
+                record.monto_deuda_anterior = 0.0
+                continue
+
+            if record.cuenta_id:
+                # Buscar capturas anteriores sin pagar de la misma cuenta
+                capturas_previas = self.search([
+                    ('cuenta_id', '=', record.cuenta_id.id),
+                    ('payment_state', '=', 'pendiente'),
+                    ('id', '!=', record.id),
+                    ('state', 'in', ['capturado', 'retenido'])  # Solo activas o retenidas
+                ])
+
+                record.capturas_anteriores_ids = capturas_previas
+                record.tiene_deuda_anterior = len(capturas_previas) > 0
+                record.monto_deuda_anterior = sum(capturas_previas.mapped('intervention_fee'))
+            else:
+                record.capturas_anteriores_ids = False
+                record.tiene_deuda_anterior = False
+                record.monto_deuda_anterior = 0.0
+
     @api.model
     def create(self, vals):
         if vals.get('name', _('New')) == _('New'):
             vals['name'] = self.env['ir.sequence'].next_by_code('adt.captura.record') or _('New')
 
-        # Validar evidencia obligatoria
-        if 'evidence_attachment_ids' not in vals or not vals.get('evidence_attachment_ids'):
-            raise ValidationError('La evidencia (imagen o video) es obligatoria para registrar una captura.')
 
         # Validar fecha compromiso si es tipo compromiso
         if vals.get('capture_type') == 'compromiso':
@@ -155,12 +178,6 @@ class ADTCapturaRecord(models.Model):
                 raise ValidationError('La fecha de compromiso debe ser futura.')
 
         return super(ADTCapturaRecord, self).create(vals)
-
-    @api.constrains('evidence_attachment_ids')
-    def _check_evidence(self):
-        for record in self:
-            if record.state == 'capturado' and not record.evidence_attachment_ids:
-                raise ValidationError('No se puede guardar una captura sin evidencia.')
 
     @api.constrains('commitment_date', 'capture_type')
     def _check_commitment_date(self):
@@ -197,14 +214,11 @@ class ADTCapturaRecord(models.Model):
         }
 
     def action_liberar(self):
-        """Libera el vehículo (requiere pago registrado)"""
+        """Libera el vehículo (el pago puede estar pendiente o pagado)"""
         self.ensure_one()
 
         if not self.env.user.has_group('adt_captura.group_captura_supervisor'):
             raise UserError('Solo los supervisores pueden liberar vehículos.')
-
-        if self.payment_state != 'pagado':
-            raise UserError('No se puede liberar el vehículo sin registrar el pago.')
 
         if self.state != 'capturado':
             raise UserError('Solo se pueden liberar capturas en estado Capturado.')
@@ -214,7 +228,11 @@ class ADTCapturaRecord(models.Model):
             'supervisor_id': self.env.user.id,
         })
 
-        self.message_post(body=f"Vehículo liberado por {self.env.user.name}")
+        mensaje = f"Vehículo liberado por {self.env.user.name}"
+        if self.payment_state == 'pendiente':
+            mensaje += " - NOTA: Pago aún está pendiente"
+
+        self.message_post(body=mensaje)
 
         return True
 
@@ -267,7 +285,7 @@ class ADTCapturaRecord(models.Model):
             'type': 'ir.actions.act_window',
             'res_model': 'ir.attachment',
             'view_mode': 'kanban,tree,form',
-            'domain': [('id', 'in', self.evidence_attachment_ids.ids)],
+            'domain': [('id', 'in', self.evidencia_archivos.ids)],
             'context': {
                 'create': False,
                 'edit': False,

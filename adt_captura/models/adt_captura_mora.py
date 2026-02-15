@@ -28,10 +28,6 @@ class ADTCapturaMora(models.Model):
         ('quincena', 'Qorilazo'),
         ('mensual', 'Los Andes'),
     ], string='Tipo de Cartera', readonly=True)
-    estado_mora = fields.Selection([
-        ('normal', 'Normal'),
-        ('critico', 'Crítico'),
-    ], string='Estado Mora', readonly=True)
 
     # Información de cuotas
     fecha_cronograma = fields.Date(string='Fecha Vencimiento', readonly=True)
@@ -70,13 +66,6 @@ class ADTCapturaMora(models.Model):
 
                     -- Tipo de cartera
                     cuenta.periodicidad as tipo_cartera,
-
-                    -- Estado de mora (crítico según reglas)
-                    CASE
-                        WHEN cuenta.periodicidad = 'quincena' AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) >= 14 THEN 'critico'
-                        WHEN cuenta.periodicidad = 'mensual' AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) >= 7 THEN 'critico'
-                        ELSE 'normal'
-                    END as estado_mora,
 
                     -- Información de cuotas vencidas
                     MIN(cuota.fecha_cronograma) as fecha_cronograma,

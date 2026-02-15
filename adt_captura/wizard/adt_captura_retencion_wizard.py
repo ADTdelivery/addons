@@ -57,13 +57,8 @@ class ADTCapturaRetencionWizard(models.TransientModel):
 
         _logger.info(f"Vehículo retenido - Captura: {self.captura_id.name} - Supervisor: {self.env.user.name}")
 
+        # Cerrar el wizard y recargar la vista
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Vehículo Retenido',
-                'message': 'El vehículo ha sido retenido y el registro se movió al historial.',
-                'type': 'warning',
-                'sticky': False,
-            }
+            'tag': 'reload',
         }

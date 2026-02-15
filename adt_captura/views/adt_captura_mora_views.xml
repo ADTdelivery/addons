@@ -8,16 +8,13 @@
             <tree string="Clientes en Mora"
                   create="false"
                   delete="false"
-                  decoration-danger="estado_mora == 'critico'"
-                  decoration-warning="estado_mora == 'normal' and dias_mora &gt;= 5">
+                  decoration-danger="dias_mora &gt;= 30"
+                  decoration-warning="dias_mora &gt;= 14 and dias_mora &lt; 30">
                 <field name="partner_id"/>
                 <field name="reference_no"/>
                 <field name="vehicle_id"/>
                 <field name="dias_mora"/>
                 <field name="tipo_cartera"/>
-                <field name="estado_mora" widget="badge"
-                       decoration-danger="estado_mora == 'critico'"
-                       decoration-success="estado_mora == 'normal'"/>
                 <field name="numero_cuotas_vencidas"/>
                 <field name="monto_vencido"/>
                 <field name="fecha_cronograma"/>
@@ -83,9 +80,7 @@
                         <group string="Estado de Mora">
                             <field name="dias_mora"/>
                             <field name="tipo_cartera"/>
-                            <field name="estado_mora" widget="badge"
-                                   decoration-danger="estado_mora == 'critico'"
-                                   decoration-success="estado_mora == 'normal'"/>
+                            <field name="numero_cuotas_vencidas"/>
                         </group>
 
                         <group string="Deuda">
@@ -117,8 +112,6 @@
                 <field name="vat"/>
                 <field name="user_id"/>
 
-                <filter string="Estado Crítico" name="filter_critico"
-                        domain="[('estado_mora', '=', 'critico')]"/>
                 <filter string="Más de 14 días" name="filter_14_dias"
                         domain="[('dias_mora', '&gt;=', 14)]"/>
                 <filter string="Más de 30 días" name="filter_30_dias"
@@ -143,8 +136,6 @@
                         domain="[('user_id', '=', uid)]"/>
                 <separator/>
                 <group expand="0" string="Agrupar por">
-                    <filter string="Estado Mora" name="group_estado_mora"
-                            context="{'group_by': 'estado_mora'}"/>
                     <filter string="Tipo Cartera" name="group_tipo_cartera"
                             context="{'group_by': 'tipo_cartera'}"/>
                     <filter string="Asesor" name="group_asesor"
@@ -183,7 +174,7 @@
                 <field name="reference_no"/>
                 <field name="vehicle_id"/>
                 <field name="dias_mora"/>
-                <field name="estado_mora"/>
+                <field name="numero_cuotas_vencidas"/>
                 <field name="monto_vencido"/>
                 <field name="captura_existente"/>
                 <templates>
@@ -199,12 +190,20 @@
                                     </span>
                                 </div>
                                 <div>
-                                    <field name="estado_mora" widget="label_selection"
-                                           options="{'classes': {'critico': 'danger', 'normal': 'success'}}"/>
+                                    <span t-if="record.dias_mora.raw_value &gt;= 30" class="badge badge-danger">
+                                        Crítico
+                                    </span>
+                                    <span t-elif="record.dias_mora.raw_value &gt;= 14" class="badge badge-warning">
+                                        Alerta
+                                    </span>
+                                    <span t-else="" class="badge badge-info">
+                                        Normal
+                                    </span>
                                 </div>
                             </div>
                             <div class="o_kanban_record_body">
                                 <div>Días mora: <strong><field name="dias_mora"/></strong></div>
+                                <div>Cuotas: <strong><field name="numero_cuotas_vencidas"/></strong></div>
                                 <div>Monto: <strong>S/ <field name="monto_vencido"/></strong></div>
                             </div>
                             <div class="o_kanban_record_bottom">
