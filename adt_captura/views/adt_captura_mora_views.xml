@@ -21,6 +21,9 @@
                 <field name="gps_activo" widget="boolean_toggle"/>
                 <field name="user_id"/>
                 <field name="captura_existente" widget="boolean" string="Capturado"/>
+                <field name="captura_prioridad" widget="badge"
+                       decoration-info="captura_prioridad == 'normal'"
+                       decoration-danger="captura_prioridad == 'urgente'"/>
                 <button name="action_iniciar_captura"
                         string="Iniciar Captura"
                         type="object"
@@ -49,6 +52,15 @@
                     <button name="action_ver_detalle"
                             string="Ver Detalle Cuenta"
                             type="object"/>
+                    <!-- Botones de prioridad -->
+                    <button name="action_set_prioridad_normal"
+                            string="Prioridad Normal"
+                            type="object"
+                            class="btn-info"/>
+                    <button name="action_set_prioridad_urgente"
+                            string="Prioridad Urgente"
+                            type="object"
+                            class="btn-danger"/>
                 </header>
 
                 <sheet>
@@ -92,6 +104,9 @@
 
                     <group>
                         <group>
+                            <field name="captura_prioridad" widget="badge"
+                                   decoration-info="captura_prioridad == 'normal'"
+                                   decoration-danger="captura_prioridad == 'urgente'"/>
                             <field name="captura_existente"/>
                         </group>
                     </group>

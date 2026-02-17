@@ -49,6 +49,13 @@ class ADTCapturaMora(models.Model):
     # Estado captura
     captura_existente = fields.Boolean(string='Tiene Captura', readonly=True)
 
+    # Prioridad de captura (editable en cuenta)
+    captura_prioridad = fields.Selection([
+        ('', ''),
+        ('normal', 'Normal'),
+        ('urgente', 'Urgente')
+    ], string='Prioridad de Captura', readonly=False, related='cuenta_id.captura_prioridad', store=False)
+
     def init(self):
         """Crea la vista SQL para clientes en mora"""
         tools.drop_view_if_exists(self.env.cr, self._table)
@@ -167,3 +174,15 @@ class ADTCapturaMora(models.Model):
             'view_mode': 'form',
             'res_id': self.cuenta_id.id,
         }
+
+    def action_set_prioridad_urgente(self):
+        """Set the related cuenta's prioridad to 'urgente'"""
+        self.ensure_one()
+        if self.cuenta_id:
+            self.cuenta_id.captura_prioridad = 'urgente'
+
+    def action_set_prioridad_normal(self):
+        """Set the related cuenta's prioridad to 'normal'"""
+        self.ensure_one()
+        if self.cuenta_id:
+            self.cuenta_id.captura_prioridad = 'normal'

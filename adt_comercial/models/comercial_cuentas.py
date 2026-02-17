@@ -152,6 +152,11 @@ class ADTComercialCuentas(models.Model):
 
     is_available_pay_mora = fields.Boolean(string="¿Paga Mora?")
 
+    captura_prioridad = fields.Selection([
+        ('normal', 'Normal'),
+        ('urgente', 'Urgente')
+    ], string='Prioridad de Captura', default='', tracking=True)
+
     @api.onchange('fecha_desembolso')
     def fecha_desembolso_change(self):
         temp_date = int(self.fecha_desembolso.strftime("%d"))
@@ -908,4 +913,6 @@ class AdtMorasWizardLine(models.TransientModel):
     dias = fields.Integer()
     seleccionado = fields.Boolean()
     operacion = fields.Char()
+
+
 

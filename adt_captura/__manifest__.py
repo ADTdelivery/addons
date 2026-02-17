@@ -20,6 +20,7 @@
         'data/sequence_data.xml',
         'views/adt_captura_record_views.xml',
         'views/adt_captura_mora_views.xml',
+        'views/adt_captura_prioridad_urgente_action.xml',
         'views/wizard_views.xml',
         'views/menu.xml',
     ],

@@ -122,6 +122,10 @@
                                 <group>
                                     <field name="soat_activo"
                                            attrs="{'readonly': [('state', 'not in', ['borrador','aprobado'])]}"/>
+
+                                    <field name="captura_prioridad"/>
+                                    <!-- Badge solo en tree, aquí dropdown editable -->
+
                                 </group>
                             </group>
                         </page>
