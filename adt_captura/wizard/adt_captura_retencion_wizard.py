@@ -37,7 +37,7 @@ class ADTCapturaRetencionWizard(models.TransientModel):
 
         # Actualizar la captura
         self.captura_id.write({
-            'state': 'retenido',
+            'state': 'disolucion_contrato',
             'retention_reason': self.retention_reason,
             'retention_date': self.retention_date,
             'supervisor_id': self.env.user.id,
@@ -55,7 +55,7 @@ class ADTCapturaRetencionWizard(models.TransientModel):
 
         self.captura_id.message_post(body=mensaje, subject='Vehículo Retenido')
 
-        _logger.info(f"Vehículo retenido - Captura: {self.captura_id.name} - Supervisor: {self.env.user.name}")
+        _logger.info(f"Vehículo disolución contrato - Captura: {self.captura_id.name} - Supervisor: {self.env.user.name}")
 
         # Cerrar el wizard y recargar la vista
         return {

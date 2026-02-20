@@ -1,0 +1,18 @@
+/* Custom CSS for dashboard look */
+.o_kanban_dashboard .o_kanban_card {
+    transition: box-shadow 0.2s, transform 0.2s;
+    cursor: pointer;
+}
+.o_kanban_dashboard .o_kanban_card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    transform: translateY(-4px) scale(1.03);
+}
+.o_kanban_dashboard .o_kanban_card_selected {
+    border: 2px solid #007bff;
+    background: #e3f2fd !important;
+    color: #007bff !important;
+}
+.o_kanban_dashboard .o_stat_value i {
+    font-size: 2em;
+    margin-bottom: 8px;
+}

@@ -21,9 +21,16 @@
         'views/adt_captura_record_views.xml',
         'views/adt_captura_mora_views.xml',
         'views/adt_captura_prioridad_urgente_action.xml',
+        'views/adt_captura_dashboard_views.xml',
         'views/wizard_views.xml',
         'views/menu.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'adt_captura/static/src/js/dashboard.js',
+            'adt_captura/static/src/css/dashboard.css',
+        ],
+    },
     'installable': True,
     'application': True,
     'auto_install': False,

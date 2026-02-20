@@ -17,28 +17,34 @@
               name="Capturas Urgentes"
               parent="menu_adt_captura_root"
               action="action_adt_captura_prioridad_urgente"
-              sequence="50"
+              sequence="20"
               groups="adt_captura.group_captura_capturador"/>
 
     <menuitem id="menu_adt_captura_inmediatas"
               name="Capturas Inmediatas"
               parent="menu_adt_captura_root"
               action="action_adt_captura_inmediata"
-              sequence="20"
+              sequence="30"
               groups="adt_captura.group_captura_capturador"/>
 
     <menuitem id="menu_adt_captura_compromisos"
               name="Compromisos de Pago"
               parent="menu_adt_captura_root"
               action="action_adt_captura_compromiso"
-              sequence="30"
+              sequence="40"
               groups="adt_captura.group_captura_capturador"/>
 
     <menuitem id="menu_adt_captura_historial"
               name="Historial"
               parent="menu_adt_captura_root"
               action="action_adt_captura_historial"
-              sequence="40"
+              sequence="50"
               groups="adt_captura.group_captura_capturador"/>
 
+    <menuitem id="menu_adt_captura_dashboard"
+              name="Dashboard"
+              parent="menu_adt_captura_root"
+              action="action_adt_captura_dashboard"
+              sequence="60"
+              groups="adt_captura.group_captura_capturador"/>
 </odoo>

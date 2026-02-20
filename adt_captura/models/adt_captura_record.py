@@ -52,7 +52,7 @@ class ADTCapturaRecord(models.Model):
     state = fields.Selection([
         ('capturado', 'Capturado'),
         ('liberado', 'Liberado'),
-        ('retenido', 'Vehículo Retenido'),
+        ('disolucion_contrato', 'Iniciar Disolución Contrato'),
         ('cancelado', 'Cancelado'),
     ], string='Estado', default='capturado', required=True, tracking=True)
 
@@ -109,6 +109,17 @@ class ADTCapturaRecord(models.Model):
         store=False
     )
 
+    # Días de retraso en compromiso
+    commitment_delay_days = fields.Integer(
+        string='Días de Retraso (Compromiso)',
+        compute='_compute_commitment_delay_days',
+        store=False
+    )
+
+    # Nuevo: Campos para recogida de moto
+    moto_recogida = fields.Boolean(string='¿Moto recogida?', default=False, tracking=True)
+    motivo_no_recogida = fields.Text(string='Motivo si no se recogió', tracking=True)
+
     @api.depends('evidencia_archivos')
     def _compute_evidence_count(self):
         for record in self:
@@ -143,7 +154,7 @@ class ADTCapturaRecord(models.Model):
     @api.depends('state')
     def _compute_es_estado_final(self):
         for record in self:
-            record.es_estado_final = record.state in ['liberado', 'retenido', 'cancelado']
+            record.es_estado_final = record.state in ['liberado', 'disolucion_contrato', 'cancelado']
 
     @api.depends('cuenta_id', 'partner_id')
     def _compute_deuda_anterior(self):
@@ -161,7 +172,7 @@ class ADTCapturaRecord(models.Model):
                     ('cuenta_id', '=', record.cuenta_id.id),
                     ('payment_state', '=', 'pendiente'),
                     ('id', '!=', record.id),
-                    ('state', 'in', ['capturado', 'retenido'])  # Solo activas o retenidas
+                    ('state', 'in', ['capturado', 'disolucion_contrato'])  # Solo activas o disolución
                 ])
 
                 record.capturas_anteriores_ids = capturas_previas
@@ -181,6 +192,16 @@ class ADTCapturaRecord(models.Model):
                 )
             else:
                 record.cuotas_pendientes_ids = False
+
+    @api.depends('capture_type', 'commitment_date')
+    def _compute_commitment_delay_days(self):
+        today = fields.Date.context_today(self)
+        for record in self:
+            if record.capture_type == 'compromiso' and record.commitment_date:
+                delay = (today - record.commitment_date).days
+                record.commitment_delay_days = delay if delay > 0 else 0
+            else:
+                record.commitment_delay_days = 0
 
     @api.model
     def create(self, vals):
@@ -210,7 +231,7 @@ class ADTCapturaRecord(models.Model):
     @api.constrains('retention_reason')
     def _check_retention_reason(self):
         for record in self:
-            if record.state == 'retenido' and not record.retention_reason:
+            if record.state == 'disolucion_contrato' and not record.retention_reason:
                 raise ValidationError('El motivo de retención es obligatorio.')
 
     def action_registrar_pago(self):

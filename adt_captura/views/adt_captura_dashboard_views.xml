@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Kanban Dashboard -->
+    <record id="view_adt_captura_dashboard_kanban" model="ir.ui.view">
+        <field name="name">adt.captura.dashboard.kanban</field>
+        <field name="model">adt.captura.dashboard</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard">
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="o_kanban_dashboard" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+                            <style>
+                                .o_kanban_dashboard .dashboard-row {
+                                    display: flex;
+                                    flex-wrap: wrap;
+                                    justify-content: center;
+                                    align-items: stretch;
+                                    gap: 24px;
+                                    margin-bottom: 24px;
+                                }
+                                .o_kanban_dashboard .o_kanban_card {
+                                    width: 200px;
+                                    height: 200px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    align-items: center;
+                                    margin: 0;
+                                    border-radius: 16px;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                                    font-size: 1.2em;
+                                }
+                                .o_kanban_dashboard .o_stat_value {
+                                    font-size: 2.5em;
+                                    font-weight: bold;
+                                    margin-bottom: 8px;
+                                }
+                                .o_kanban_dashboard .o_stat_text {
+                                    font-size: 1.1em;
+                                    font-weight: 500;
+                                }
+                            </style>
+                            <div class="dashboard-row">
+                                <!-- Card 1 -->
+                                <div>
+                                    <div class="o_kanban_card bg-danger text-white">
+                                        <div style="font-size:2.5em; margin-bottom:8px;">
+                                            <i class="fa fa-car-crash"></i>
+                                        </div>
+                                        <div class="o_stat_value">
+                                            <field name="capturas_activas"/>
+                                        </div>
+                                        <div class="o_stat_text">
+                                            Capturas Activas
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card 2 -->
+                                <div>
+                                    <div class="o_kanban_card bg-success text-white">
+                                        <div style="font-size:2.5em; margin-bottom:8px;">
+                                            <i class="fa fa-money-bill-wave"></i>
+                                        </div>
+                                        <div class="o_stat_value">
+                                            S/ <field name="monto_pendiente"/>
+                                        </div>
+                                        <div class="o_stat_text">
+                                            Monto Pendiente - Intervención
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card 3 -->
+                                <div>
+                                    <div class="o_kanban_card bg-primary text-white">
+                                        <div style="font-size:2.5em; margin-bottom:8px;">
+                                            <i class="fa fa-users"></i>
+                                        </div>
+                                        <div class="o_stat_value">
+                                            <field name="clientes_mora"/>
+                                        </div>
+                                        <div class="o_stat_text">
+                                            Clientes en Mora
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card 4 -->
+                                <div>
+                                    <div class="o_kanban_card bg-info text-white">
+                                        <div style="font-size:2.5em; margin-bottom:8px;">
+                                            <i class="fa fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="o_stat_value">
+                                            S/ <field name="monto_vencido_total"/>
+                                        </div>
+                                        <div class="o_stat_text">
+                                            Monto Vencido Total
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dashboard-row">
+                                <!-- Card 5 -->
+                                <div>
+                                    <div class="o_kanban_card bg-warning text-dark">
+                                        <div style="font-size:2.5em; margin-bottom:8px;">
+                                            <i class="fa fa-calendar-check"></i>
+                                        </div>
+                                        <div class="o_stat_value">
+                                            <field name="compromiso_pago"/>
+                                        </div>
+                                        <div class="o_stat_text">
+                                            Compromisos de Pago
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card 6 -->
+                                <div>
+                                    <div class="o_kanban_card bg-warning text-white">
+                                        <div style="font-size:2.5em; margin-bottom:8px;">
+                                            <i class="fa fa-bolt"></i>
+                                        </div>
+                                        <div class="o_stat_value">
+                                            <field name="inmediata"/>
+                                        </div>
+                                        <div class="o_stat_text">
+                                            Capturas Inmediatas
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card 7 -->
+                                <div>
+                                    <div class="o_kanban_card bg-danger text-white">
+                                        <div style="font-size:2.5em; margin-bottom:8px;">
+                                            <i class="fa fa-calendar-times"></i>
+                                        </div>
+                                        <div class="o_stat_value">
+                                            <field name="compromisos_pago_vencidos"/>
+                                        </div>
+                                        <div class="o_stat_text">
+                                            Compromisos de Pago Vencidos
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    <record id="action_adt_captura_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboard</field>
+        <field name="res_model">adt.captura.dashboard</field>
+        <field name="view_mode">kanban</field>
+        <field name="target">current</field>
+    </record>
+
+</odoo>
