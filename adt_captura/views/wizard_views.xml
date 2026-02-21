@@ -44,31 +44,21 @@
         <field name="name">adt.captura.retencion.wizard.form</field>
         <field name="model">adt.captura.retencion.wizard</field>
         <field name="arch" type="xml">
-            <form string="Retener Vehículo">
+            <form string="Disolución de Contrato">
                 <group>
                     <field name="captura_id" readonly="1"/>
                     <field name="retention_date"/>
-                </group>
 
-                <group>
-                    <field name="retention_reason"
-                           placeholder="Especifique detalladamente el motivo de la retención..."
-                           nolabel="1"
-                           required="1"/>
-                </group>
-
-                <group>
-                    <field name="notes"
-                           placeholder="Observaciones adicionales..."
-                           nolabel="1"/>
+                    <field name="retention_reason" string="Motivo de Retención"/>
+                    <field name="notes" string="Observaciones Adicionales" attrs="{'readonly': [('retention_reason', '!=', 'otro')]}" />
                 </group>
 
                 <footer>
-                    <button string="Retener Vehículo"
+                    <button string="Inciar"
                             name="action_retener"
                             type="object"
                             class="btn-danger"
-                            confirm="¿Está seguro de retener este vehículo? Esta acción es irreversible."/>
+                            confirm="¿Está seguro de iniciar el Proceso de Disolución de Contrato? Esta acción es irreversible."/>
                     <button string="Cancelar"
                             class="btn-secondary"
                             special="cancel"/>
@@ -76,4 +66,24 @@
             </form>
         </field>
     </record>
+
+
+    <!-- Wizard View: Liberar Vehículo -->
+    <record id="view_adt_captura_liberar_wizard_form" model="ir.ui.view">
+        <field name="name">adt.captura.liberar.wizard.form</field>
+        <field name="model">adt.captura.liberar.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Liberar Vehículo">
+                <group>
+                    <field name="liberacion_tipo"/>
+                    <field name="observaciones" placeholder="Añadir observaciones..."/>
+                </group>
+                <footer>
+                    <button string="Guardar" type="object" name="confirmar_liberacion" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
 </odoo>

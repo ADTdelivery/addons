@@ -54,7 +54,7 @@
                             confirm="¿Está seguro de liberar este vehículo?"/>
 
                     <button name="action_retener"
-                            string="Retener Vehículo"
+                            string="Disolución Contrato"
                             type="object"
                             class="btn-danger"
                             attrs="{'invisible': [('state', '!=', 'capturado')]}"
@@ -95,18 +95,6 @@
                         </h1>
                     </div>
 
-                    <div class="alert alert-warning" role="alert"
-                         attrs="{'invisible': [('tiene_deuda_anterior', '=', False)]}">
-                        <strong>⚠️ Atención:</strong> Este cliente tiene
-                        <field name="capturas_anteriores_ids" widget="many2many_tags" readonly="1"/>
-                        captura(s) anterior(es) sin pagar por un total de
-                        <strong>S/ <field name="monto_deuda_anterior" readonly="1"/></strong>
-                        <button name="%(action_adt_captura_record)d" type="action"
-                                string="Ver Capturas Anteriores"
-                                class="btn-link"
-                                context="{'search_default_partner_id': partner_id, 'search_default_filter_pago_pendiente': 1}"/>
-                    </div>
-
                     <group>
                         <group string="Información Principal">
                             <field name="partner_id"/>
@@ -144,6 +132,16 @@
                             <field name="moto_recogida"/>
                             <field name="motivo_no_recogida" attrs="{'invisible': [('moto_recogida', '=', True)]}"/>
                         </group>
+
+                        <group string="Liberación de Vehículo" attrs="{'invisible': [('state', '!=', 'liberado')]}" >
+                            <field name="liberacion_tipo" readonly="1"/>
+                            <field name="observaciones" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Disolución de Contrato" attrs="{'invisible': [('state', '!=', 'disolucion_contrato')]}" >
+                        <field name="retention_reason" readonly="1"/>
+                        <field name="retention_date" readonly="1"/>
                     </group>
 
                     <notebook>

@@ -12,3 +12,4 @@ access_adt_captura_retencion_wizard_admin,adt.captura.retencion.wizard.admin,mod
 access_adt_captura_dashboard_capturador,adt.captura.dashboard.capturador,model_adt_captura_dashboard,group_captura_capturador,1,0,0,0
 access_adt_captura_dashboard_supervisor,adt.captura.dashboard.supervisor,model_adt_captura_dashboard,group_captura_supervisor,1,0,0,0
 access_adt_captura_dashboard_admin,adt.captura.dashboard.admin,model_adt_captura_dashboard,group_captura_administrador,1,0,0,0
+access_adt_captura_liberar_wizard,access_adt_captura_liberar_wizard,model_adt_captura_liberar_wizard,adt_captura.group_captura_supervisor,1,1,1,1

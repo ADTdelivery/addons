@@ -69,8 +69,13 @@ class ADTCapturaRecord(models.Model):
     payment_date = fields.Date(string='Fecha de Pago', tracking=True)
 
     # Retención
-    retention_reason = fields.Text(string='Motivo de Retención', tracking=True)
-    retention_date = fields.Date(string='Fecha de Retención', tracking=True)
+    retention_reason = fields.Selection([
+         ('motivo1', 'El cliente no se comunicó por más de 3 días'),
+                ('motivo2', 'El cliente decidio no continuar pagando el credito'),
+                ('otro', 'Otro')
+    ], string='Motivo', tracking=True)
+
+    retention_date = fields.Date(string='Fecha de inicio', tracking=True)
 
     # Información de mora
     dias_mora = fields.Integer(string='Días de Mora', compute='_compute_mora_info', store=True)
@@ -119,6 +124,16 @@ class ADTCapturaRecord(models.Model):
     # Nuevo: Campos para recogida de moto
     moto_recogida = fields.Boolean(string='¿Moto recogida?', default=False, tracking=True)
     motivo_no_recogida = fields.Text(string='Motivo si no se recogió', tracking=True)
+
+    liberacion_tipo = fields.Selection([
+        ('refinanciamiento', 'Refinanciamiento'),
+        ('pago_total', 'Pago Total del Pendiente')
+    ], string='Tipo de Liberación', tracking=True)
+
+    observaciones = fields.Text(string='Observaciones', tracking=True)
+
+    retention_wizard_ids = fields.One2many(
+        'adt.captura.retencion.wizard', 'captura_id', string='Retenciones')
 
     @api.depends('evidencia_archivos')
     def _compute_evidence_count(self):
@@ -254,27 +269,22 @@ class ADTCapturaRecord(models.Model):
         }
 
     def action_liberar(self):
-        """Libera el vehículo (el pago puede estar pendiente o pagado)"""
+        """Libera el vehículo (requiere motivo)"""
         self.ensure_one()
 
         if not self.env.user.has_group('adt_captura.group_captura_supervisor'):
             raise UserError('Solo los supervisores pueden liberar vehículos.')
 
-        if self.state != 'capturado':
-            raise UserError('Solo se pueden liberar capturas en estado Capturado.')
-
-        self.write({
-            'state': 'liberado',
-            'supervisor_id': self.env.user.id,
-        })
-
-        mensaje = f"Vehículo liberado por {self.env.user.name}"
-        if self.payment_state == 'pendiente':
-            mensaje += " - NOTA: Pago aún está pendiente"
-
-        self.message_post(body=mensaje)
-
-        return True
+        return {
+            'name': 'Liberar Vehículo',
+            'type': 'ir.actions.act_window',
+            'res_model': 'adt.captura.liberar.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_captura_id': self.id,
+            }
+        }
 
     def action_retener(self):
         """Retiene el vehículo (requiere motivo)"""
@@ -287,7 +297,7 @@ class ADTCapturaRecord(models.Model):
             raise UserError('Solo se pueden retener capturas en estado Capturado.')
 
         return {
-            'name': 'Retener Vehículo',
+            'name': 'Disolución de Contrato',
             'type': 'ir.actions.act_window',
             'res_model': 'adt.captura.retencion.wizard',
             'view_mode': 'form',
