@@ -20,18 +20,24 @@
               sequence="20"
               groups="adt_captura.group_captura_capturador"/>
 
+    <menuitem id="menu_adt_captura_capturados"
+              name="Capturados"
+              parent="menu_adt_captura_root"
+              sequence="25"
+              groups="adt_captura.group_captura_capturador"/>
+
     <menuitem id="menu_adt_captura_inmediatas"
               name="Capturas Inmediatas"
-              parent="menu_adt_captura_root"
+              parent="menu_adt_captura_capturados"
               action="action_adt_captura_inmediata"
-              sequence="30"
+              sequence="10"
               groups="adt_captura.group_captura_capturador"/>
 
     <menuitem id="menu_adt_captura_compromisos"
               name="Compromisos de Pago"
-              parent="menu_adt_captura_root"
+              parent="menu_adt_captura_capturados"
               action="action_adt_captura_compromiso"
-              sequence="40"
+              sequence="20"
               groups="adt_captura.group_captura_capturador"/>
 
     <menuitem id="menu_adt_captura_historial"
@@ -47,4 +53,12 @@
               action="action_adt_captura_dashboard"
               sequence="60"
               groups="adt_captura.group_captura_capturador"/>
+
+    <menuitem id="menu_adt_captura_disolucion_contrato"
+              name="Disolución de Contrato"
+              parent="menu_adt_captura_capturados"
+              action="action_adt_captura_disolucion_contrato"
+              sequence="30"
+              groups="adt_captura.group_captura_capturador"/>
+
 </odoo>

@@ -23,7 +23,9 @@
         'views/adt_captura_dashboard_views.xml',
         'views/adt_captura_record_views.xml',
         'views/wizard_views.xml',
+        'views/adt_captura_disolucion_contrato_view.xml',
         'views/menu.xml',
+        'views/adt_captura_recolocar_wizard_view.xml',
     ],
     'assets': {
         'web.assets_backend': [

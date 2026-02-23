@@ -1,23 +1,32 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Tree View -->
-    <record id="view_adt_captura_record_tree" model="ir.ui.view">
-        <field name="name">adt.captura.record.tree</field>
+    <record id="action_adt_captura_disolucion_contrato" model="ir.actions.act_window">
+        <field name="name">Disolución de Contrato</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.captura.record</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[("state", "=", "disolucion_contrato")]</field>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay procesos de Disolución de Contrato.
+            </p>
+        </field>
+
+    </record>
+
+    <record id="view_adt_captura_disolucion_contrato_tree" model="ir.ui.view">
+        <field name="name">adt.captura.record.disolucion.contrato.tree</field>
         <field name="model">adt.captura.record</field>
         <field name="arch" type="xml">
-            <tree string="Capturas"
-                  decoration-success="state == 'liberado'"
-                  decoration-danger="state == 'disolucion_contrato'"
-                  decoration-warning="state == 'capturado'"
-                  decoration-muted="state == 'cancelado'">
+            <tree string="Capturas">
                 <field name="name"/>
-                <field name="partner_id"/>
                 <field name="cuenta_id"/>
                 <field name="vehicle_id"/>
-                <field name="capture_type"/>
                 <field name="dias_mora"/>
                 <field name="numero_cuotas_vencidas"/>
-                <field name="intervention_fee"/>
+                <field name="retention_reason"/>
+                <field name="retention_date"/>
                 <field name="payment_state" widget="badge"
                        decoration-danger="payment_state == 'pendiente'"
                        decoration-success="payment_state == 'pagado'"/>
@@ -32,6 +41,8 @@
         </field>
     </record>
 
+
+
     <!-- Form View -->
     <record id="view_adt_captura_record_form" model="ir.ui.view">
         <field name="name">adt.captura.record.form</field>
@@ -39,17 +50,12 @@
         <field name="arch" type="xml">
             <form string="Registro de Captura">
                 <header>
-                    <button name="action_registrar_pago"
-                            string="Registrar Pago"
-                            type="object"
-                            class="oe_highlight"
-                            attrs="{'invisible': ['|', ('state', '!=', 'capturado'), ('payment_state', '=', 'pagado')]}"/>
 
                     <button name="action_liberar"
                             string="Liberar Vehículo"
                             type="object"
                             class="oe_highlight"
-                            attrs="{'invisible': [('puede_liberar', '=', False)]}"
+                            attrs="{'invisible': [('state', 'not in', ['disolucion_contrato', 'capturado'])]}"
                             groups="adt_captura.group_captura_supervisor"
                             confirm="¿Está seguro de liberar este vehículo?"/>
 
@@ -60,12 +66,21 @@
                             attrs="{'invisible': [('state', '!=', 'capturado')]}"
                             groups="adt_captura.group_captura_supervisor"/>
 
+                    <button name="action_recolocar"
+                            string="Recolocar Vehículo"
+                            type="object"
+                            class="btn-danger"
+                            attrs="{'invisible': [('state', '!=', 'disolucion_contrato')]}"
+                            groups="adt_captura.group_captura_supervisor"
+                            confirm="¿Está seguro de recolocar este vehículo?"/>
+
                     <button name="action_cancelar"
                             string="Cancelar"
                             type="object"
                             attrs="{'invisible': [('es_estado_final', '=', True)]}"
                             groups="adt_captura.group_captura_supervisor"
                             confirm="¿Está seguro de cancelar esta captura?"/>
+
 
                     <field name="state" widget="statusbar"
                            statusbar_visible="capturado,liberado,disolucion_contrato,recolocada,cancelado"/>
@@ -124,6 +139,15 @@
                             <field name="payment_state" widget="badge"
                                    decoration-danger="payment_state == 'pendiente'"
                                    decoration-success="payment_state == 'pagado'"/>
+                            <field name="motivo_no_pago"
+                                   attrs="{'invisible': [('pagar_monto', '=', 'True')]}"/>
+
+                            <button name="action_registrar_pago"
+                                    string="Registrar Pago"
+                                    type="object"
+                                    class="oe_highlight"
+                                    attrs="{'invisible': [('payment_state', '=', 'pagado')]}"/>
+
                         </group>
                     </group>
 
@@ -139,10 +163,36 @@
                         </group>
                     </group>
 
-                    <group string="Disolución de Contrato" attrs="{'invisible': [('state', '!=', 'disolucion_contrato')]}" >
+                    <group string="Disolución de Contrato"  attrs="{'invisible': [('state', 'not in', ['disolucion_contrato', 'recolocada'])]}">
                         <field name="retention_reason" readonly="1"/>
+                        <field name="notes" readonly="1"/>
                         <field name="retention_date" readonly="1"/>
+
                     </group>
+
+                    <group  attrs="{'invisible': [('state', 'not in', ['disolucion_contrato', 'recolocada'])]}">
+                        <group string="Apelaciones">
+                            <field name="appeal_ids">
+                                <tree string="Apelaciones">
+                                    <field name="appeal_reason"/>
+                                    <field name="appeal_evidence"/>
+                                </tree>
+                                <form string="Apelación">
+                                    <group>
+                                        <field name="appeal_reason"/>
+                                        <field name="appeal_evidence"/>
+                                    </group>
+                                </form>
+                            </field>
+
+                        </group>
+                    </group>
+
+                    <group string="Recolocación"  attrs="{'invisible': [('state', 'not in', ['disolucion_contrato', 'recolocada'])]}">
+                        <field name="documento_desafiliacion"/>
+                        <field name="evidencia_entrega"/>
+                    </group>
+
 
                     <notebook>
                         <page string="Evidencia" name="evidencia">
@@ -172,6 +222,7 @@
                     <field name="puede_liberar" invisible="1"/>
                     <field name="es_estado_final" invisible="1"/>
                     <field name="tiene_deuda_anterior" invisible="1"/>
+                    <field name="pagar_monto" invisible="1"/>
                 </sheet>
 
                 <div class="oe_chatter">
@@ -228,70 +279,32 @@
         </field>
     </record>
 
-    <!-- Actions -->
-    <record id="action_adt_captura_record" model="ir.actions.act_window">
-        <field name="name">Todas las Capturas</field>
-        <field name="type">ir.actions.act_window</field>
-        <field name="res_model">adt.captura.record</field>
-        <field name="view_mode">tree,form</field>
-        <field name="context">{'search_default_filter_capturado': 1}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                No hay capturas registradas
-            </p>
-            <p>
-                Las capturas se crean desde la vista de "Clientes en Mora"
-            </p>
+    <!--<record id="view_adt_captura_disolucion_contrato_form" model="ir.ui.view">
+        <field name="name">adt.captura.disolucion.contrato.form</field>
+        <field name="model">adt.captura.record</field>
+        <field name="arch" type="xml">
+            <form string="Disolución de Contrato">
+                <sheet>
+                    <group string="Disolución de Contrato">
+                        <field name="retention_reason" readonly="1"/>
+                        <field name="retention_date" readonly="1"/>
+                        <field name="appeal_ids">
+                            <tree string="Apelaciones">
+                                <field name="appeal_reason"/>
+                                <field name="appeal_evidence"/>
+                            </tree>
+                            <form string="Apelación">
+                                <group>
+                                    <field name="appeal_reason"/>
+                                    <field name="appeal_evidence"/>
+                                </group>
+                            </form>
+                        </field>
+                    </group>
+                </sheet>
+            </form>
         </field>
-    </record>
+    </record>-->
 
-    <!-- Action: Capturas Inmediatas -->
-    <record id="action_adt_captura_inmediata" model="ir.actions.act_window">
-        <field name="name">Capturas Inmediatas</field>
-        <field name="type">ir.actions.act_window</field>
-        <field name="res_model">adt.captura.record</field>
-        <field name="view_mode">tree,form</field>
-        <field name="domain">[('capture_type', '=', 'inmediata'), ('state', '=', 'capturado')]</field>
-        <field name="context">{'search_default_filter_capturado': 1, 'default_capture_type': 'inmediata'}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                No hay capturas inmediatas
-            </p>
-            <p>
-                Aquí aparecen los vehículos capturados de forma inmediata
-            </p>
-        </field>
-    </record>
 
-    <!-- Action: Compromisos de Pago -->
-    <record id="action_adt_captura_compromiso" model="ir.actions.act_window">
-        <field name="name">Compromisos de Pago</field>
-        <field name="type">ir.actions.act_window</field>
-        <field name="res_model">adt.captura.record</field>
-        <field name="view_mode">tree,form</field>
-        <field name="domain">[('capture_type', '=', 'compromiso'), ('state', '=', 'capturado')]</field>
-        <field name="context">{'search_default_filter_capturado': 1, 'default_capture_type': 'compromiso'}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                No hay compromisos de pago
-            </p>
-            <p>
-                Aquí aparecen los compromisos de pago pendientes de seguimiento
-            </p>
-        </field>
-    </record>
-
-    <record id="action_adt_captura_historial" model="ir.actions.act_window">
-        <field name="name">Historial de Capturas</field>
-        <field name="type">ir.actions.act_window</field>
-        <field name="res_model">adt.captura.record</field>
-        <field name="view_mode">tree,form</field>
-        <field name="domain">[('state', 'in', ['liberado', 'recolocada', 'cancelado'])]</field>
-        <field name="context">{'create': False}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                No hay capturas finalizadas
-            </p>
-        </field>
-    </record>
 </odoo>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_adt_captura_recolocar_wizard_form" model="ir.ui.view">
+        <field name="name">adt.captura.recolocar.wizard.form</field>
+        <field name="model">adt.captura.recolocar.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Recolocar Vehículo">
+                <group>
+                    <field name="documento_desafiliacion"/>
+                    <field name="evidencia_entrega"/>
+                </group>
+                <footer>
+                    <button string="Confirmar" type="object" name="confirmar_recolocacion" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

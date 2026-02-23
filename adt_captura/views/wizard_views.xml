@@ -8,32 +8,22 @@
             <form string="Registrar Pago de Intervención">
                 <group>
                     <group>
-                        <field name="captura_id" readonly="1"/>
-                        <field name="monto"/>
+                        <field name="captura_id" string="Nombre de Captura"/>
+                        <field name="pagar_monto" string="¿Pagar Monto?"/>
+                        <field name="monto" string="Monto a Pagar" attrs="{'readonly': [('pagar_monto', '=', False)]}"/>
+                        <field name="motivo_no_pago" string="Motivo de No Pago" attrs="{'invisible': [('pagar_monto', '=', True)]}"/>
+                        <field name="estado_pago" string="Estado del Pago" readonly="1"/>
                     </group>
                     <group>
-                        <field name="payment_date"/>
-                        <field name="voucher_number"/>
+                        <field name="payment_date" string="Fecha de Pago"/>
+                        <field name="voucher_number" string="Número de Comprobante" attrs="{'invisible': [('pagar_monto', '=', False)]}"/>
+                        <field name="voucher_file" string="Archivo del Comprobante" filename="voucher_filename" required="1" attrs="{'invisible': [('pagar_monto', '=', False)]}"/>
+                        <field name="voucher_filename" invisible="1"/>
                     </group>
                 </group>
-
-                <group>
-                    <field name="voucher_file" filename="voucher_filename" required="1"/>
-                    <field name="voucher_filename" invisible="1"/>
-                </group>
-
-                <group>
-                    <field name="notes" placeholder="Observaciones adicionales..."/>
-                </group>
-
                 <footer>
-                    <button string="Registrar Pago"
-                            name="action_registrar"
-                            type="object"
-                            class="btn-primary"/>
-                    <button string="Cancelar"
-                            class="btn-secondary"
-                            special="cancel"/>
+                    <button string="Registrar pago" type="object" name="action_registrar" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>

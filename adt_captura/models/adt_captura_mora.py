@@ -96,7 +96,7 @@ class ADTCapturaMora(models.Model):
                         WHEN EXISTS (
                             SELECT 1 FROM adt_captura_record
                             WHERE cuenta_id = cuenta.id
-                            AND state = 'capturado'
+                            AND (state = 'capturado' OR state = 'disolucion_contrato')
                         ) THEN true
                         ELSE false
                     END as captura_existente

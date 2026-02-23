@@ -53,6 +53,7 @@ class ADTCapturaRetencionWizard(models.TransientModel):
             'state': 'disolucion_contrato',
             'retention_reason': self.retention_reason,
             'retention_date': self.retention_date,
+            'notes': self.notes,
             'supervisor_id': self.env.user.id,
         })
 

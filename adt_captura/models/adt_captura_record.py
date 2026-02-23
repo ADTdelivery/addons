@@ -54,6 +54,7 @@ class ADTCapturaRecord(models.Model):
         ('liberado', 'Liberado'),
         ('disolucion_contrato', 'Iniciar Disolución Contrato'),
         ('cancelado', 'Cancelado'),
+        ('recolocada', 'Recolocada'),
     ], string='Estado', default='capturado', required=True, tracking=True)
 
     # Estado de pago
@@ -67,6 +68,8 @@ class ADTCapturaRecord(models.Model):
     voucher_filename = fields.Char(string='Nombre Archivo Voucher')
     voucher_number = fields.Char(string='Número de Voucher', tracking=True)
     payment_date = fields.Date(string='Fecha de Pago', tracking=True)
+    motivo_no_pago = fields.Text(string='Motivo de no pago', readonly=True)
+    pagar_monto = fields.Boolean(string='¿Pagar monto?', default=True)
 
     # Retención
     retention_reason = fields.Selection([
@@ -76,6 +79,7 @@ class ADTCapturaRecord(models.Model):
     ], string='Motivo', tracking=True)
 
     retention_date = fields.Date(string='Fecha de inicio', tracking=True)
+    notes = fields.Text(string='Observaciones Adicionales', readonly=True)
 
     # Información de mora
     dias_mora = fields.Integer(string='Días de Mora', compute='_compute_mora_info', store=True)
@@ -134,6 +138,13 @@ class ADTCapturaRecord(models.Model):
 
     retention_wizard_ids = fields.One2many(
         'adt.captura.retencion.wizard', 'captura_id', string='Retenciones')
+
+    # Nuevos campos para apelación
+    appeal_ids = fields.One2many(
+        'adt.captura.appeal', 'captura_id', string='Apelaciones'
+    )
+    documento_desafiliacion = fields.Binary(string='Documento de Desafiliación')
+    evidencia_entrega = fields.Binary(string='Evidencia de la Entrega')
 
     @api.depends('evidencia_archivos')
     def _compute_evidence_count(self):
@@ -253,8 +264,8 @@ class ADTCapturaRecord(models.Model):
         """Abre wizard para registrar el pago"""
         self.ensure_one()
 
-        if self.state != 'capturado':
-            raise UserError('Solo puede registrar pago en estado Capturado.')
+        if self.state not in ['capturado', 'disolucion_contrato']:
+            raise UserError('Solo puede registrar pago en estado Capturado o Disolución de Contrato.')
 
         return {
             'name': 'Registrar Pago de Intervención',
@@ -354,3 +365,62 @@ class ADTCapturaRecord(models.Model):
             'view_mode': 'form',
             'res_id': self.cuenta_id.id,
         }
+
+    def action_recolocar(self):
+        """Recoloca el vehículo"""
+        self.ensure_one()
+
+        if not self.env.user.has_group('adt_captura.group_captura_supervisor'):
+            raise UserError('Solo los supervisores pueden recolocar vehículos.')
+
+        if self.state != 'disolucion_contrato':
+            raise UserError('Solo se pueden recolocar vehículos en estado Disolución de Contrato.')
+
+        return {
+            'name': 'Recolocar Vehículo',
+            'type': 'ir.actions.act_window',
+            'res_model': 'adt.captura.recolocar.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_captura_id': self.id,
+            }
+        }
+
+    @api.depends('state')
+    def _compute_visibility_fields(self):
+        for record in self:
+            record.show_desafiliacion_fields = record.state == 'recolocada'
+
+    show_desafiliacion_fields = fields.Boolean(string="Show Desafiliacion Fields", compute="_compute_visibility_fields")
+
+
+class ADTCapturaAppeal(models.Model):
+    _name = 'adt.captura.appeal'
+    _description = 'Apelación de Disolución de Contrato'
+
+    captura_id = fields.Many2one(
+        'adt.captura.record', string='Captura', required=True, ondelete='cascade'
+    )
+    appeal_reason = fields.Char(string='Motivo de Apelación', required=True)
+    appeal_evidence = fields.Binary(string='Evidencia de Apelación', attachment=True)
+
+
+class ADTCapturaRecolocarWizard(models.TransientModel):
+    _name = 'adt.captura.recolocar.wizard'
+    _description = 'Recolocar Wizard'
+
+    captura_id = fields.Many2one('adt.captura.record', string='Captura')
+    documento_desafiliacion = fields.Binary(string='Documento de Desafiliación', required=True)
+    evidencia_entrega = fields.Binary(string='Evidencia de la Entrega', required=True)
+
+    def confirmar_recolocacion(self):
+        """Confirm recolocacion and perform necessary actions."""
+        self.ensure_one()
+        self.captura_id.write({
+            'state': 'recolocada',
+            'documento_desafiliacion': self.documento_desafiliacion,
+            'evidencia_entrega': self.evidencia_entrega,
+        })
+        return {'type': 'ir.actions.act_window_close'}
+
