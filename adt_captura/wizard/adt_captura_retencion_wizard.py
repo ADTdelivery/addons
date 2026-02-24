@@ -57,6 +57,20 @@ class ADTCapturaRetencionWizard(models.TransientModel):
             'supervisor_id': self.env.user.id,
         })
 
+        # Log the state for debugging
+        _logger.info('Searching for fleet.vehicle.state with name Recolocada')
+        state = self.env['fleet.vehicle.state'].search([
+            ('name', '=', 'Disolución de contrato')
+        ], limit=1)
+        _logger.info('Found state: %s', state)
+
+        # Retrieve the vehicle_id from the captura_id
+        vehicle = self.captura_id.vehicle_id
+        if vehicle:
+            vehicle.write({
+                'state_id': state.id
+            })
+
         # Agregar nota en el chatter
         mensaje = f"""
         <p><strong>Vehículo Retenido</strong></p>

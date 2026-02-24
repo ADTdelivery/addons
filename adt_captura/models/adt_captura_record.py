@@ -234,6 +234,28 @@ class ADTCapturaRecord(models.Model):
         if vals.get('name', _('New')) == _('New'):
             vals['name'] = self.env['ir.sequence'].next_by_code('adt.captura.record') or _('New')
 
+        type = 'Captura Inmediata'
+        if vals.get('capture_type') == 'compromiso':
+            type = 'Compromiso de Pago'
+        # Log the state for debugging
+        _logger.info('Searching for fleet.vehicle.state with name Recolocada')
+        state = self.env['fleet.vehicle.state'].search([
+            ('name', '=', type)
+        ], limit=1)
+        _logger.info('Found state: %s', state)
+
+        # Retrieve the vehicle_id from cuenta_id if not directly provided
+        if not vals.get('vehicle_id') and vals.get('cuenta_id'):
+            cuenta = self.env['adt.comercial.cuentas'].browse(vals['cuenta_id'])
+            vals['vehicle_id'] = cuenta.vehiculo_id.id
+
+        vehicle_id = vals.get('vehicle_id')
+        _logger.info('Vehicle Id: %s', str(vehicle_id))
+        if vehicle_id:
+            vehicle = self.env['fleet.vehicle'].browse(vehicle_id)
+            vehicle.write({
+                'state_id': state.id
+            })
 
         # Validar fecha compromiso si es tipo compromiso
         if vals.get('capture_type') == 'compromiso':
@@ -422,5 +444,26 @@ class ADTCapturaRecolocarWizard(models.TransientModel):
             'documento_desafiliacion': self.documento_desafiliacion,
             'evidencia_entrega': self.evidencia_entrega,
         })
+
+        # Update the state of the related adt.comercial.cuentas record to 'cancelado'
+        comercial_cuenta = self.env['adt.comercial.cuentas'].search([('id', '=', self.captura_id.cuenta_id.id)], limit=1)
+        if comercial_cuenta:
+            comercial_cuenta.write({'state': 'cancelado'})
+
+
+        # Log the state for debugging
+        _logger.info('Searching for fleet.vehicle.state with name Recolocada')
+        state = self.env['fleet.vehicle.state'].search([
+            ('name', '=', 'Recolocada')
+        ], limit=1)
+        _logger.info('Found state: %s', state)
+
+        # Retrieve the vehicle_id from the captura_id
+        vehicle = self.captura_id.vehicle_id
+        if vehicle:
+            vehicle.write({
+                'state_id': state.id
+            })
+
         return {'type': 'ir.actions.act_window_close'}
 

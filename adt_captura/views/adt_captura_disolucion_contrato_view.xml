@@ -114,7 +114,7 @@
                         <group string="Información Principal">
                             <field name="partner_id"/>
                             <field name="cuenta_id"/>
-                            <field name="vehicle_id" readonly="1"/>
+                            <field name="vehicle_id"/>
                             <field name="capturador_id" readonly="1"/>
                         </group>
 

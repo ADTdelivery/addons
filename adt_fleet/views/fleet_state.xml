@@ -1,0 +1,42 @@
+<odoo>
+    <record id="vehicle_state_available" model="fleet.vehicle.state">
+        <field name="name">Disponible</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="vehicle_state_loan_progress" model="fleet.vehicle.state">
+        <field name="name">Prestamo en Progreso</field>
+        <field name="sequence">2</field>
+    </record>
+
+    <record id="vehicle_state_transferred" model="fleet.vehicle.state">
+        <field name="name">Transferido</field>
+        <field name="sequence">3</field>
+    </record>
+
+    <record id="vehicle_state_arrears" model="fleet.vehicle.state">
+        <field name="name">Mora</field>
+        <field name="sequence">4</field>
+    </record>
+
+    <record id="vehicle_state_payment_commitment" model="fleet.vehicle.state">
+        <field name="name">Compromiso de Pago</field>
+        <field name="sequence">5</field>
+    </record>
+
+    <record id="vehicle_state_seized" model="fleet.vehicle.state">
+        <field name="name">Captura Inmediata</field>
+        <field name="sequence">6</field>
+    </record>
+
+    <record id="vehicle_state_contract_dissolution" model="fleet.vehicle.state">
+        <field name="name">Disolución de contrato</field>
+        <field name="sequence">7</field>
+    </record>
+
+    <record id="vehicle_state_repositioned" model="fleet.vehicle.state">
+        <field name="name">Recolocada</field>
+        <field name="sequence">8</field>
+    </record>
+
+</odoo>
