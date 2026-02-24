@@ -1,0 +1,85 @@
+<odoo>
+    <record id="view_adt_papeleta_form" model="ir.ui.view">
+        <field name="name">adt.papeleta.form</field>
+        <field name="model">adt.papeleta</field>
+        <field name="arch" type="xml">
+            <form string="Papeleta">
+                <header>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pendiente,fraccionado,pagado"/>
+                    <!-- show small badge in header when alert exists -->
+                    <field name="alert_badge" widget="adt_alert_badge" attrs="{'invisible': [('proximo_a_vencerse', '=', False)]}"/>
+                </header>
+
+                <!-- ALERTA: mostrado cuando falten <= 5 días para la fecha de captura -->
+                <div class="alert alert-danger o_form_warning" role="alert"
+                     attrs="{'invisible': [('proximo_a_vencerse','=', False)]}">
+                    <strong>⚠ Aviso:</strong>
+                    <field name="texto_alerta" readonly="1"/>
+                </div>
+
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="vehicle_id"/>
+                        </group>
+                        <group>
+                            <field name="fecha_papeleta"/>
+                            <field name="monto"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <field name="detalle" colspan="2"/>
+                    </group>
+
+                    <group string="Control de Vencimiento">
+                        <field name="fecha_captura" readonly="1"/>
+                        <field name="fecha_vencimiento_final" readonly="1"/>
+                    </group>
+
+                    <group string="Prórroga">
+                        <field name="tiene_prorroga"/>
+                        <field name="dias_prorroga" attrs="{'invisible': [('tiene_prorroga', '=', False)]}"/>
+                        <field name="motivo_prorroga" attrs="{'invisible': [('tiene_prorroga', '=', False)]}"/>
+                    </group>
+
+                    <field name="proximo_a_vencerse" invisible="1"/>
+                    <field name="texto_alerta" invisible="1"/>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_tree" model="ir.ui.view">
+        <field name="name">adt.papeleta.tree</field>
+        <field name="model">adt.papeleta</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="proximo_a_vencerse">
+                <field name="name"/>
+                <field name="vehicle_id"/>
+                <field name="fecha_papeleta"/>
+                <field name="monto"/>
+                <field name="state"/>
+                <field name="fecha_vencimiento_final"/>
+                <!-- Mostrar días y texto de alerta para visibilidad rápida -->
+                <field name="dias_para_captura" string="Días para Captura"/>
+                <field name="alert_badge" string="Alerta" widget="adt_alert_badge"/>
+                 <!-- required by decoration-danger: include the field (can be invisible) -->
+                <field name="proximo_a_vencerse" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_adt_papeletas" model="ir.actions.act_window">
+        <field name="name">Papeletas</field>
+        <field name="res_model">adt.papeleta</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_adt_papeleta_tree"/>
+    </record>
+
+    <menuitem id="menu_adt_papeletas_root" name="ADT Papeletas" sequence="95"/>
+    <menuitem id="menu_adt_papeletas" name="Papeletas" parent="menu_adt_papeletas_root" action="action_adt_papeletas" sequence="10"/>
+</odoo>
