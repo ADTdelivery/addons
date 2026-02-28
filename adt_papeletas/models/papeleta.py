@@ -35,6 +35,12 @@ class ADTPapeleta(models.Model):
     texto_alerta = fields.Char(string='Texto Alerta', compute='_compute_proximo_a_vencerse', store=True)
     alert_badge = fields.Char(string='Badge Alerta', compute='_compute_proximo_a_vencerse', store=True)
 
+    # Fraccionamiento
+    cantidad_cuotas = fields.Integer(string='Cantidad de Cuotas')
+    cuotas_ids = fields.One2many('adt.papeleta.cuota', 'papeleta_id', string='Cuotas', copy=True)
+    fecha_pago = fields.Date(string='Fecha de Pago')
+    show_fraccionamiento = fields.Boolean(string='Mostrar Fraccionamiento', compute='_compute_show_fraccionamiento', store=True)
+
     @api.depends('fecha_papeleta')
     def _compute_fecha_captura(self):
         for rec in self:
@@ -109,3 +115,77 @@ class ADTPapeleta(models.Model):
             if rec.state == 'pagado':
                 raise ValidationError('No se puede eliminar una papeleta en estado Pagado.')
         return super(ADTPapeleta, self).unlink()
+
+    @api.onchange('cantidad_cuotas', 'state', 'monto')
+    def _onchange_cantidad_o_estado(self):
+        """Genera automáticamente las cuotas cuando el estado es 'fraccionado' y no existen cuotas creadas."""
+        for rec in self:
+            if rec.state != 'fraccionado' or not rec.cantidad_cuotas:
+                # if state not fraccionado, don't show/generate cuotas
+                continue
+            # Only generate if there are no existing cuotas
+            if rec.cuotas_ids:
+                continue
+            total = float(rec.monto or 0.0)
+            n = int(rec.cantidad_cuotas or 0)
+            if n <= 0:
+                continue
+            base = total / n if n else 0.0
+            cuotas = []
+            for i in range(n):
+                cuotas.append((0, 0, {
+                    'name': 'Cuota %s' % (i + 1),
+                    'amount': base,
+                }))
+            rec.cuotas_ids = cuotas
+
+    @api.depends('state')
+    def _compute_show_fraccionamiento(self):
+        for rec in self:
+            rec.show_fraccionamiento = rec.state in ('fraccionado', 'pagado')
+
+    def action_mark_pagado(self):
+        """Marca la papeleta como pagada. Validaciones:
+        - Si ya está en 'pagado' se ignora.
+        - Si está en 'fraccionado' y existen cuotas pendientes, lanza error.
+        - Si todo OK, setea state='pagado' y fecha_pago hoy.
+        """
+        today = fields.Date.context_today(self)
+        for rec in self:
+            if rec.state == 'pagado':
+                continue
+            if rec.state == 'fraccionado':
+                pendientes = rec.cuotas_ids.filtered(lambda c: c.state == 'pendiente')
+                if pendientes:
+                    raise ValidationError('Existen cuotas pendientes. Marque las cuotas como pagadas antes de marcar la papeleta como pagada.')
+            rec.write({
+                'state': 'pagado',
+                'fecha_pago': today,
+            })
+        return True
+
+
+class ADTPapeletaCuota(models.Model):
+    _name = 'adt.papeleta.cuota'
+    _description = 'Cuota de Papeleta'
+    _order = 'id'
+
+    name = fields.Char(string='Cuota', required=True)
+    papeleta_id = fields.Many2one('adt.papeleta', string='Papeleta', ondelete='cascade', required=True)
+    due_date = fields.Date(string='Fecha de Cuota')
+    amount = fields.Monetary(string='Monto', currency_field='company_currency_id')
+    state = fields.Selection([
+        ('pendiente', 'Pendiente'),
+        ('pagado', 'Pagado')
+    ], string='Estado', default='pendiente')
+
+    company_currency_id = fields.Many2one('res.currency', related='papeleta_id.company_currency_id', string='Moneda', readonly=True)
+
+    @api.model
+    def create(self, vals):
+        # ensure default name if missing
+        if not vals.get('name') and vals.get('papeleta_id'):
+            papeleta = self.env['adt.papeleta'].browse(vals.get('papeleta_id'))
+            count = self.search_count([('papeleta_id', '=', papeleta.id)]) + 1
+            vals['name'] = 'Cuota %s' % count
+        return super(ADTPapeletaCuota, self).create(vals)

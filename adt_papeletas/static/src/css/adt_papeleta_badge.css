@@ -1,2 +1,16 @@
 .adt-alert-badge{display:inline-block;padding:3px 8px;background:#d9534f;color:#fff;border-radius:6px;font-weight:600;font-size:12px}
 .adta-alert-cell{padding:2px 4px}
+
+/* Statusbar state colors for adt.papeleta */
+.o_statusbar_buttons .o_statusbar_item[data-value="pendiente"] {
+    background-color: #5bc0de; /* celeste */
+    color: #fff;
+}
+.o_statusbar_buttons .o_statusbar_item[data-value="fraccionado"] {
+    background-color: #f0ad4e; /* amarillo / naranja */
+    color: #fff;
+}
+.o_statusbar_buttons .o_statusbar_item[data-value="pagado"] {
+    background-color: #5cb85c; /* verde */
+    color: #fff;
+}

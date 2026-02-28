@@ -5,10 +5,9 @@
         <field name="arch" type="xml">
             <form string="Papeleta">
                 <header>
-                    <field name="state" widget="statusbar"
-                           statusbar_visible="pendiente,fraccionado,pagado"/>
                     <!-- show small badge in header when alert exists -->
                     <field name="alert_badge" widget="adt_alert_badge" attrs="{'invisible': [('proximo_a_vencerse', '=', False)]}"/>
+                    <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-primary" attrs="{'invisible': [('state', '=', 'pagado')]}"/>
                 </header>
 
                 <!-- ALERTA: mostrado cuando falten <= 5 días para la fecha de captura -->
@@ -31,6 +30,15 @@
                     </group>
 
                     <group>
+
+                        <field name="state" widget="badge"
+                               decoration-success="state == 'pagado'"
+                               decoration-warning="state == 'fraccionado'"
+                               decoration-info="state == 'pendiente'"/>
+
+                    </group>
+
+                    <group>
                         <field name="detalle" colspan="2"/>
                     </group>
 
@@ -45,8 +53,31 @@
                         <field name="motivo_prorroga" attrs="{'invisible': [('tiene_prorroga', '=', False)]}"/>
                     </group>
 
+                    <!-- Sección de cuotas: visible cuando el estado sea 'fraccionado' o 'pagado' -->
+                    <!-- Controlada por el campo computado show_fraccionamiento -->
+                    <group attrs="{'invisible': [('show_fraccionamiento', '=', False)]}" string="Fraccionamiento">
+                        <field name="cantidad_cuotas"/>
+                        <field name="cuotas_ids">
+                            <tree string="Cuotas">
+                                <field name="name"/>
+                                <field name="due_date"/>
+                                <field name="amount"/>
+                                <field name="state"/>
+                            </tree>
+                            <form string="Cuota">
+                                <group>
+                                    <field name="name"/>
+                                    <field name="due_date"/>
+                                    <field name="amount"/>
+                                    <field name="state"/>
+                                </group>
+                            </form>
+                        </field>
+                    </group>
+
                     <field name="proximo_a_vencerse" invisible="1"/>
                     <field name="texto_alerta" invisible="1"/>
+                    <field name="show_fraccionamiento" invisible="1"/>
 
                 </sheet>
             </form>
@@ -62,7 +93,10 @@
                 <field name="vehicle_id"/>
                 <field name="fecha_papeleta"/>
                 <field name="monto"/>
-                <field name="state"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'pagado'"
+                       decoration-warning="state == 'fraccionado'"
+                       decoration-info="state == 'pendiente'"/>
                 <field name="fecha_vencimiento_final"/>
                 <!-- Mostrar días y texto de alerta para visibilidad rápida -->
                 <field name="dias_para_captura" string="Días para Captura"/>

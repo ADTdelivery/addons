@@ -76,8 +76,11 @@ class ADTCapturaMora(models.Model):
 
                     -- Información de cuotas vencidas
                     MIN(cuota.fecha_cronograma) as fecha_cronograma,
-                    SUM(cuota.monto) as monto_vencido,
+                    COALESCE(SUM(cuota.monto), 0) as monto_vencido,
                     COUNT(cuota.id) as numero_cuotas_vencidas,
+
+                    -- Información de papeletas vencidas (si aplica)
+                    MIN(p.fecha_vencimiento_final) as fecha_vencimiento_papeleta,
 
                     -- GPS
                     cuenta.gps_chip as gps_chip,
@@ -102,12 +105,15 @@ class ADTCapturaMora(models.Model):
                     END as captura_existente
 
                 FROM adt_comercial_cuentas cuenta
-                INNER JOIN adt_comercial_cuotas cuota ON cuota.cuenta_id = cuenta.id
+                LEFT JOIN adt_comercial_cuotas cuota ON cuota.cuenta_id = cuenta.id
+                    AND cuota.state IN ('pendiente', 'retrasado')
+                    AND cuota.fecha_cronograma < now()
+                LEFT JOIN adt_papeleta p ON p.vehicle_id = cuenta.vehiculo_id
+                    AND COALESCE(p.state, '') != 'pagado'
+                    AND p.fecha_vencimiento_final < now()
                 LEFT JOIN res_partner partner ON cuenta.partner_id = partner.id
 
                 WHERE cuenta.state != 'cancelado'
-                    AND cuota.state IN ('pendiente', 'retrasado')
-                    AND cuota.fecha_cronograma < now()
 
                 GROUP BY
                     cuenta.id,
@@ -122,7 +128,12 @@ class ADTCapturaMora(models.Model):
                     partner.mobile,
                     partner.vat
 
-                HAVING date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0
+                -- Incluir cuentas que tienen cuotas vencidas (min fecha_cronograma) OR papeletas vencidas
+                HAVING (
+                    (MIN(cuota.fecha_cronograma) IS NOT NULL
+                     AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
+                    OR (MIN(p.fecha_vencimiento_final) IS NOT NULL)
+                )
 
                 ORDER BY dias_mora DESC, fecha_cronograma ASC
             )
