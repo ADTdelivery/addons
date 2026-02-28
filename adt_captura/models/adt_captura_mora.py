@@ -34,6 +34,10 @@ class ADTCapturaMora(models.Model):
     monto_vencido = fields.Float(string='Monto Vencido', readonly=True)
     numero_cuotas_vencidas = fields.Integer(string='# Cuotas Vencidas', readonly=True)
 
+    # Información de papeletas
+    fecha_vencimiento_papeleta = fields.Date(string='Fecha Vencimiento Papeleta', readonly=True)
+    papeleta_id = fields.Many2one('adt.papeleta', string='Papeleta', readonly=True)
+
     # Información GPS
     gps_chip = fields.Char(string='GPS Chip', readonly=True)
     gps_activo = fields.Boolean(string='GPS Activo', readonly=True)
@@ -55,6 +59,14 @@ class ADTCapturaMora(models.Model):
         ('normal', 'Normal'),
         ('urgente', 'Urgente')
     ], string='Prioridad de Captura', readonly=False, related='cuenta_id.captura_prioridad', store=False)
+
+    # Nuevo: Origen del problema (mora / papeleta / ambos / none)
+    source_type = fields.Selection([
+        ('mora', 'Mora (Cuotas)'),
+        ('papeleta', 'Papeleta'),
+        ('ambos', 'Mora y Papeleta'),
+        ('none', 'Ninguno')
+    ], string='Origen', readonly=True)
 
     def init(self):
         """Crea la vista SQL para clientes en mora"""
@@ -81,6 +93,7 @@ class ADTCapturaMora(models.Model):
 
                     -- Información de papeletas vencidas (si aplica)
                     MIN(p.fecha_vencimiento_final) as fecha_vencimiento_papeleta,
+                    MIN(p.id) as papeleta_id,
 
                     -- GPS
                     cuenta.gps_chip as gps_chip,
@@ -102,7 +115,29 @@ class ADTCapturaMora(models.Model):
                             AND (state = 'capturado' OR state = 'disolucion_contrato')
                         ) THEN true
                         ELSE false
-                    END as captura_existente
+                    END as captura_existente,
+
+                    -- Flags intermedios para determinar origen
+                    CASE
+                        WHEN (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
+                        THEN true
+                        ELSE false
+                    END as has_mora,
+
+                    CASE
+                        WHEN (MIN(p.fecha_vencimiento_final) IS NOT NULL)
+                        THEN true
+                        ELSE false
+                    END as has_papeleta,
+
+                    -- Origen: mora / papeleta / ambos / none
+                    CASE
+                        WHEN ( (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
+                               AND (MIN(p.fecha_vencimiento_final) IS NOT NULL) ) THEN 'ambos'
+                        WHEN (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0) THEN 'mora'
+                        WHEN (MIN(p.fecha_vencimiento_final) IS NOT NULL) THEN 'papeleta'
+                        ELSE 'none'
+                    END as source_type
 
                 FROM adt_comercial_cuentas cuenta
                 LEFT JOIN adt_comercial_cuotas cuota ON cuota.cuenta_id = cuenta.id
@@ -170,6 +205,8 @@ class ADTCapturaMora(models.Model):
                 'default_partner_id': self.partner_id.id,
                 'default_cuenta_id': self.cuenta_id.id,
                 'default_intervention_fee': 50.0,
+                'default_source_type': self.source_type,
+                'default_papeleta_id': self.papeleta_id and self.papeleta_id.id or False,
             },
             'target': 'current',
         }

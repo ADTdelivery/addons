@@ -136,6 +136,27 @@ class ADTCapturaRecord(models.Model):
 
     observaciones = fields.Text(string='Observaciones', tracking=True)
 
+    source_type = fields.Selection([
+        ('mora', 'Mora (Cuotas)'),
+        ('papeleta', 'Papeleta'),
+        ('ambos', 'Mora y Papeleta'),
+        ('none', 'Ninguno')
+    ], string='Origen', tracking=True)
+
+    papeleta_id = fields.Many2one('adt.papeleta', string='Papeleta', tracking=True)
+
+    # Mostrar el monto de la papeleta vinculada (si existe)
+    papeleta_monto = fields.Monetary(
+        string='Monto Papeleta',
+        related='papeleta_id.monto',
+        currency_field='company_currency_id',
+        store=True,
+        readonly=True,
+    )
+
+    company_currency_id = fields.Many2one('res.currency', string='Moneda', related='company_id.currency_id', readonly=True)
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+
     retention_wizard_ids = fields.One2many(
         'adt.captura.retencion.wizard', 'captura_id', string='Retenciones')
 
@@ -256,6 +277,10 @@ class ADTCapturaRecord(models.Model):
             vehicle.write({
                 'state_id': state.id
             })
+
+        # Ensure papeleta is set from default context if provided
+        if not vals.get('papeleta_id') and self.env.context.get('default_papeleta_id'):
+            vals['papeleta_id'] = self.env.context.get('default_papeleta_id')
 
         # Validar fecha compromiso si es tipo compromiso
         if vals.get('capture_type') == 'compromiso':
@@ -466,4 +491,3 @@ class ADTCapturaRecolocarWizard(models.TransientModel):
             })
 
         return {'type': 'ir.actions.act_window_close'}
-

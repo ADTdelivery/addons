@@ -21,6 +21,7 @@
         <field name="arch" type="xml">
             <tree string="Capturas">
                 <field name="name"/>
+                <field name="source_type"/>
                 <field name="cuenta_id"/>
                 <field name="vehicle_id"/>
                 <field name="dias_mora"/>
@@ -109,6 +110,15 @@
                             <field name="name" readonly="1"/>
                         </h1>
                     </div>
+
+                    <group>
+                        <field name="source_type" readonly="1"/>
+                        <field name="papeleta_id" readonly="1" attrs="{'invisible': [('source_type','=', 'mora')] }"/>
+                        <field name="papeleta_monto"
+                               widget="monetary"
+                               options="{'currency_field': 'currency_id'}"
+                               readonly="1" attrs="{'invisible': [('source_type','=', 'mora')] }"/>
+                    </group>
 
                     <group>
                         <group string="Información Principal">
@@ -245,6 +255,11 @@
                 <field name="cuenta_id"/>
                 <field name="vehicle_id"/>
                 <field name="capturador_id"/>
+
+                <filter string="Origen: Mora" name="filter_origen_mora" domain="[('source_type','=','mora')]"/>
+                <filter string="Origen: Papeleta" name="filter_origen_papeleta" domain="[('source_type','=','papeleta')]"/>
+                <filter string="Origen: Ambos" name="filter_origen_ambos" domain="[('source_type','=','ambos')]"/>
+
 
                 <filter string="Capturados" name="filter_capturado"
                         domain="[('state', '=', 'capturado')]"/>

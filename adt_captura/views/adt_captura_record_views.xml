@@ -11,9 +11,11 @@
                   decoration-warning="state == 'capturado'"
                   decoration-muted="state == 'cancelado'">
                 <field name="name"/>
+                <field name="source_type"/>
                 <field name="partner_id"/>
                 <field name="cuenta_id"/>
                 <field name="vehicle_id"/>
+                <field name="papeleta_id"/>
                 <field name="capture_type"/>
                 <field name="dias_mora"/>
                 <field name="numero_cuotas_vencidas"/>
@@ -57,7 +59,7 @@
                             string="Disolución Contrato"
                             type="object"
                             class="btn-danger"
-                            attrs="{'invisible': [('state', '!=', 'capturado')]}"
+                            attrs="{'invisible': [('state', '!=', 'capturado')] }"
                             groups="adt_captura.group_captura_supervisor"/>
 
                     <button name="action_cancelar"
@@ -94,6 +96,11 @@
                             <field name="name" readonly="1"/>
                         </h1>
                     </div>
+
+                    <group>
+                        <field name="source_type" readonly="1"/>
+                        <field name="papeleta_id" readonly="1"/>
+                    </group>
 
                     <group>
                         <group string="Información Principal">
@@ -133,13 +140,13 @@
                             <field name="motivo_no_recogida" attrs="{'invisible': [('moto_recogida', '=', True)]}"/>
                         </group>
 
-                        <group string="Liberación de Vehículo" attrs="{'invisible': [('state', '!=', 'liberado')]}" >
+                        <group string="Liberación de Vehículo" attrs="{'invisible': [('state', '!=', 'liberado')] }" >
                             <field name="liberacion_tipo" readonly="1"/>
                             <field name="observaciones" readonly="1"/>
                         </group>
                     </group>
 
-                    <group string="Disolución de Contrato" attrs="{'invisible': [('state', '!=', 'disolucion_contrato')]}" >
+                    <group string="Disolución de Contrato" attrs="{'invisible': [('state', '!=', 'disolucion_contrato')] }" >
                         <field name="retention_reason" readonly="1"/>
                         <field name="retention_date" readonly="1"/>
                     </group>
@@ -194,6 +201,12 @@
                 <field name="cuenta_id"/>
                 <field name="vehicle_id"/>
                 <field name="capturador_id"/>
+
+                <filter string="Origen: Mora" name="filter_origen_mora" domain="[('source_type','=','mora')]"/>
+                <filter string="Origen: Papeleta" name="filter_origen_papeleta" domain="[('source_type','=','papeleta')]"/>
+                <filter string="Origen: Ambos" name="filter_origen_ambos" domain="[('source_type','=','ambos')]"/>
+                <filter string="Tiene Papeleta" name="filter_tiene_papeleta" domain="[('papeleta_id','!=',False)]"/>
+                <filter string="Sin Papeleta" name="filter_sin_papeleta" domain="[('papeleta_id','=',False)]"/>
 
                 <filter string="Capturados" name="filter_capturado"
                         domain="[('state', '=', 'capturado')]"/>
