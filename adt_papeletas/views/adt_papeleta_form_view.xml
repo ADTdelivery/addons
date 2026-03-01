@@ -6,8 +6,8 @@
             <form string="Papeleta">
                 <header>
                     <!-- show small badge in header when alert exists -->
-                    <field name="alert_badge" widget="adt_alert_badge" attrs="{'invisible': [('proximo_a_vencerse', '=', False)]}"/>
-                    <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-primary" attrs="{'invisible': [('state', '=', 'pagado')]}"/>
+                    <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-success" attrs="{'invisible': [('state', '=', 'pagado')]}"/>                    <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-primary" attrs="{'invisible': [('state', '=', 'pagado')]}"/>
+                    <button name="action_mark_capturar" type="object" string="Mandar a capturar" class="btn-danger" attrs="{'invisible': [('capturado', '=', True)]}"/>                    <field name="state"   widget="statusbar" statusbar_visible="pendiente,pagado"/>
                 </header>
 
                 <!-- ALERTA: mostrado cuando falten <= 5 días para la fecha de captura -->
@@ -16,6 +16,20 @@
                     <strong>⚠ Aviso:</strong>
                     <field name="texto_alerta" readonly="1"/>
                 </div>
+
+                <!-- WARNING banner when the papeleta has been marked as captured -->
+                <div class="alert alert-warning o_form_warning" role="alert"
+                     attrs="{'invisible': [('capturado','=', False)]}">
+                    <strong>⚠ Atención:</strong>
+                    El vehículo asociado a esta papeleta ha sido marcado como <em>capturado</em> — esta papeleta será derivada al área de captura para su procesamiento.
+                </div>
+
+                <div class="alert alert-danger o_form_warning" role="alert"
+                     attrs="{'invisible': [('recolocada','=', False)]}">
+                    <strong>⚠ Atención:</strong>
+                    Este vehículo ya fue <em>recolocado</em>, pero la papeleta asociada aún está pendiente de pago.
+                </div>
+
 
                 <sheet>
                     <group>
@@ -30,27 +44,11 @@
                     </group>
 
                     <group>
-
-                        <field name="state" widget="badge"
-                               decoration-success="state == 'pagado'"
-                               decoration-warning="state == 'fraccionado'"
-                               decoration-info="state == 'pendiente'"/>
-
+                        <field name="payment_method"/>
                     </group>
 
                     <group>
                         <field name="detalle" colspan="2"/>
-                    </group>
-
-                    <group string="Control de Vencimiento">
-                        <field name="fecha_captura" readonly="1"/>
-                        <field name="fecha_vencimiento_final" readonly="1"/>
-                    </group>
-
-                    <group string="Prórroga">
-                        <field name="tiene_prorroga"/>
-                        <field name="dias_prorroga" attrs="{'invisible': [('tiene_prorroga', '=', False)]}"/>
-                        <field name="motivo_prorroga" attrs="{'invisible': [('tiene_prorroga', '=', False)]}"/>
                     </group>
 
                     <!-- Sección de cuotas: visible cuando el estado sea 'fraccionado' o 'pagado' -->
@@ -75,11 +73,32 @@
                         </field>
                     </group>
 
+                    <group string="Prórroga">
+                        <field name="tiene_prorroga"/>
+                        <field name="dias_prorroga" attrs="{'invisible': [('tiene_prorroga', '=', False)]}"/>
+                        <field name="motivo_prorroga" attrs="{'invisible': [('tiene_prorroga', '=', False)]}"/>
+                    </group>
+
+                    <group string="Control de Vencimiento">
+                        <field name="fecha_captura" readonly="1"/>
+                        <field name="fecha_vencimiento_final" readonly="1"/>
+                    </group>
+
                     <field name="proximo_a_vencerse" invisible="1"/>
                     <field name="texto_alerta" invisible="1"/>
                     <field name="show_fraccionamiento" invisible="1"/>
+                    <field name="capturado" invisible="1"/>
+                    <field name="recolocada" invisible="1"/>
 
                 </sheet>
+
+                <!-- Chatter / History -->
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+
             </form>
         </field>
     </record>
@@ -93,6 +112,7 @@
                 <field name="vehicle_id"/>
                 <field name="fecha_papeleta"/>
                 <field name="monto"/>
+                <field name="payment_method"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'pagado'"
                        decoration-warning="state == 'fraccionado'"

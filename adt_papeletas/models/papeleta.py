@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError, UserError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class ADTPapeleta(models.Model):
     _name = 'adt.papeleta'
     _description = 'Papeleta Vehicular'
     _order = 'fecha_papeleta desc'
+    # enable chatter history
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(string='Número de Papeleta', required=True)
     fecha_papeleta = fields.Date(string='Fecha de Papeleta', required=True)
@@ -15,9 +20,8 @@ class ADTPapeleta(models.Model):
 
     state = fields.Selection([
         ('pendiente', 'Pendiente'),
-        ('pagado', 'Pagado'),
-        ('fraccionado', 'Fraccionado')
-    ], string='Estado', default='pendiente', tracking=True)
+        ('pagado', 'Pagado')
+    ], string='Estado de papeleta', default='pendiente', tracking=True)
 
     fecha_captura = fields.Date(string='Fecha de Captura', compute='_compute_fecha_captura', store=True)
 
@@ -40,6 +44,14 @@ class ADTPapeleta(models.Model):
     cuotas_ids = fields.One2many('adt.papeleta.cuota', 'papeleta_id', string='Cuotas', copy=True)
     fecha_pago = fields.Date(string='Fecha de Pago')
     show_fraccionamiento = fields.Boolean(string='Mostrar Fraccionamiento', compute='_compute_show_fraccionamiento', store=True)
+
+    payment_method = fields.Selection([
+            ('pago_completo', 'Pago Completo'),
+            ('fraccionado', 'Fraccionado')
+        ], string='Modalidad de pago', default='pago_completo', tracking=True)
+
+    capturado = fields.Boolean(string='Capturado', default=False)
+    recolocada = fields.Boolean(string='Recolocada', default=False)
 
     @api.depends('fecha_papeleta')
     def _compute_fecha_captura(self):
@@ -120,7 +132,7 @@ class ADTPapeleta(models.Model):
     def _onchange_cantidad_o_estado(self):
         """Genera automáticamente las cuotas cuando el estado es 'fraccionado' y no existen cuotas creadas."""
         for rec in self:
-            if rec.state != 'fraccionado' or not rec.cantidad_cuotas:
+            if rec.payment_method != 'fraccionado' or not rec.cantidad_cuotas:
                 # if state not fraccionado, don't show/generate cuotas
                 continue
             # Only generate if there are no existing cuotas
@@ -139,10 +151,10 @@ class ADTPapeleta(models.Model):
                 }))
             rec.cuotas_ids = cuotas
 
-    @api.depends('state')
+    @api.depends('payment_method')
     def _compute_show_fraccionamiento(self):
         for rec in self:
-            rec.show_fraccionamiento = rec.state in ('fraccionado', 'pagado')
+            rec.show_fraccionamiento = rec.payment_method in ('fraccionado')
 
     def action_mark_pagado(self):
         """Marca la papeleta como pagada. Validaciones:
@@ -162,8 +174,79 @@ class ADTPapeleta(models.Model):
                 'state': 'pagado',
                 'fecha_pago': today,
             })
+            # Post a short message to chatter
+            try:
+                rec.message_post(body=_('Papeleta marcada como <b>Pagado</b> por %s') % (self.env.user.display_name,))
+            except Exception:
+                _logger.exception('Failed to post chatter message for action_mark_pagado on papeleta %s', rec.id)
         return True
 
+    def action_mark_capturar(self):
+        """Marca la papeleta como capturada. Validaciones:
+        - Si ya está en 'capturado' se ignora.
+        - Si está en 'pagado' no se puede marcar como capturado.
+        - Si todo OK, setea capturado=True.
+        """
+        for rec in self:
+            if rec.capturado:
+                continue
+            if rec.state == 'pagado':
+                raise ValidationError('No se puede marcar como capturada una papeleta que ya está pagada.')
+            rec.capturado = True
+            try:
+                rec.message_post(body=_('Papeleta marcada como <b>Capturado</b> por %s') % (self.env.user.display_name,))
+            except Exception:
+                _logger.exception('Failed to post chatter message for action_mark_capturar on papeleta %s', rec.id)
+        return True
+
+    @api.model
+    def create(self, vals):
+        rec = super(ADTPapeleta, self).create(vals)
+        try:
+            rec.message_post(body=_('Papeleta creada por %s') % (self.env.user.display_name,))
+        except Exception:
+            _logger.exception('Failed to post chatter message on create for papeleta %s', rec.id)
+        return rec
+
+    def write(self, vals):
+        # Prevent editing records that are already paid
+        for rec in self:
+            if rec.state == 'pagado':
+                raise UserError('No se puede modificar una papeleta que ya está en estado Pagado.')
+
+        # capture previous values for keys to build a concise change log
+        prevs = {}
+        for rec in self:
+            prev = {}
+            for k in vals.keys():
+                try:
+                    prev[k] = rec[k]
+                except Exception:
+                    prev[k] = None
+            prevs[rec.id] = prev
+
+        res = super(ADTPapeleta, self).write(vals)
+
+        # post changes into chatter
+        for rec in self:
+            prev = prevs.get(rec.id, {})
+            changes = []
+            for k, old in prev.items():
+                new = getattr(rec, k, None)
+                # display related records nicely
+                if hasattr(old, 'display_name'):
+                    old = old.display_name
+                if hasattr(new, 'display_name'):
+                    new = new.display_name
+                if old != new:
+                    changes.append('%s: %s -> %s' % (k, old, new))
+            if changes:
+                try:
+                    rec.message_post(body=_('Cambios: <br/>%s') % ('<br/>'.join(changes),))
+                except Exception:
+                    _logger.exception('Failed to post chatter message on write for papeleta %s', rec.id)
+
+        return res
 
 class ADTPapeletaCuota(models.Model):
     _name = 'adt.papeleta.cuota'

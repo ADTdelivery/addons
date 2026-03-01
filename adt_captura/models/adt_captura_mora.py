@@ -145,7 +145,8 @@ class ADTCapturaMora(models.Model):
                     AND cuota.fecha_cronograma < now()
                 LEFT JOIN adt_papeleta p ON p.vehicle_id = cuenta.vehiculo_id
                     AND COALESCE(p.state, '') != 'pagado'
-                    AND p.fecha_vencimiento_final < now()
+                    AND (p.fecha_vencimiento_final < now() OR p.capturado = true)
+                    AND p.recolocada = false
                 LEFT JOIN res_partner partner ON cuenta.partner_id = partner.id
 
                 WHERE cuenta.state != 'cancelado'
