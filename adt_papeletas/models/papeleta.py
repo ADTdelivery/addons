@@ -18,6 +18,15 @@ class ADTPapeleta(models.Model):
     detalle = fields.Text(string='Detalle')
     vehicle_id = fields.Many2one('fleet.vehicle', string='Vehículo', required=True)
 
+    # Evidencias (imágenes, PDFs) relacionadas a la papeleta
+    attachment_ids = fields.Many2many(
+        comodel_name='ir.attachment',
+        relation='adt_papeleta_attachment_rel',
+        column1='papeleta_id',
+        column2='attachment_id',
+        string='Evidencias (Fotos/PDFs)'
+    )
+
     state = fields.Selection([
         ('pendiente', 'Pendiente'),
         ('pagado', 'Pagado')

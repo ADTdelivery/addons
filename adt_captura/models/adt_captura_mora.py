@@ -91,9 +91,19 @@ class ADTCapturaMora(models.Model):
                     COALESCE(SUM(cuota.monto), 0) as monto_vencido,
                     COUNT(cuota.id) as numero_cuotas_vencidas,
 
-                    -- Información de papeletas vencidas (si aplica)
-                    MIN(p.fecha_vencimiento_final) as fecha_vencimiento_papeleta,
-                    MIN(p.id) as papeleta_id,
+                    -- Información de papeletas vencidas o capturadas (si aplica). Use conditional aggregation to
+                    -- include papeletas vencidas (fecha_vencimiento_final < now()) OR marcadas como capturadas,
+                    -- and explicitly exclude las que ya fueron recolocadas.
+                    MIN(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN p.fecha_vencimiento_final END) as fecha_vencimiento_papeleta,
+                    -- pick the papeleta id that corresponds to the earliest matching fecha_vencimiento_final (if any)
+                    (SELECT p2.id FROM adt_papeleta p2
+                        WHERE p2.vehicle_id = cuenta.vehiculo_id
+                          AND COALESCE(p2.state, '') != 'pagado'
+                          AND (p2.fecha_vencimiento_final < now() OR p2.capturado IS TRUE)
+                          AND (p2.recolocada IS NOT TRUE)
+                        ORDER BY p2.fecha_vencimiento_final ASC NULLS LAST
+                        LIMIT 1
+                    ) as papeleta_id,
 
                     -- GPS
                     cuenta.gps_chip as gps_chip,
@@ -124,18 +134,16 @@ class ADTCapturaMora(models.Model):
                         ELSE false
                     END as has_mora,
 
-                    CASE
-                        WHEN (MIN(p.fecha_vencimiento_final) IS NOT NULL)
-                        THEN true
-                        ELSE false
-                    END as has_papeleta,
+                    -- has_papeleta = there exists at least one papeleta for this vehicle that is not pagada
+                    -- and that is either vencida or marked as captured, and not recolocada
+                    (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1) as has_papeleta,
 
                     -- Origen: mora / papeleta / ambos / none
                     CASE
                         WHEN ( (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
-                               AND (MIN(p.fecha_vencimiento_final) IS NOT NULL) ) THEN 'ambos'
+                               AND (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1) ) THEN 'ambos'
                         WHEN (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0) THEN 'mora'
-                        WHEN (MIN(p.fecha_vencimiento_final) IS NOT NULL) THEN 'papeleta'
+                        WHEN (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1) THEN 'papeleta'
                         ELSE 'none'
                     END as source_type
 
@@ -144,10 +152,7 @@ class ADTCapturaMora(models.Model):
                     AND cuota.state IN ('pendiente', 'retrasado')
                     AND cuota.fecha_cronograma < now()
                 LEFT JOIN adt_papeleta p ON p.vehicle_id = cuenta.vehiculo_id
-                    AND COALESCE(p.state, '') != 'pagado'
-                    AND (p.fecha_vencimiento_final < now() OR p.capturado = true)
-                    AND p.recolocada = false
-                LEFT JOIN res_partner partner ON cuenta.partner_id = partner.id
+                 LEFT JOIN res_partner partner ON cuenta.partner_id = partner.id
 
                 WHERE cuenta.state != 'cancelado'
 
@@ -168,7 +173,7 @@ class ADTCapturaMora(models.Model):
                 HAVING (
                     (MIN(cuota.fecha_cronograma) IS NOT NULL
                      AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
-                    OR (MIN(p.fecha_vencimiento_final) IS NOT NULL)
+                    OR (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1)
                 )
 
                 ORDER BY dias_mora DESC, fecha_cronograma ASC

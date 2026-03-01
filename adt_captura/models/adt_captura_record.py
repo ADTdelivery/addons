@@ -131,7 +131,8 @@ class ADTCapturaRecord(models.Model):
 
     liberacion_tipo = fields.Selection([
         ('refinanciamiento', 'Refinanciamiento'),
-        ('pago_total', 'Pago Total del Pendiente')
+        ('pago_total', 'Pago Total del Pendiente'),
+         ('pago_papeleta_total', 'Pago Total de la papeleta')
     ], string='Tipo de Liberación', tracking=True)
 
     observaciones = fields.Text(string='Observaciones', tracking=True)

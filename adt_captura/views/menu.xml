@@ -2,7 +2,7 @@
 <odoo>
     <!-- Root Menu -->
     <menuitem id="menu_adt_captura_root"
-              name="Gestión de Capturas"
+              name="Capturas"
               sequence="10"
               groups="adt_captura.group_captura_capturador"/>
 

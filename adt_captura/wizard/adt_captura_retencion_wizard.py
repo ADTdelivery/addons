@@ -71,6 +71,21 @@ class ADTCapturaRetencionWizard(models.TransientModel):
                 'state_id': state.id
             })
 
+            # If there is a pending papeleta for this vehicle, mark it as recolocada = True
+            try:
+                papeleta = self.env['adt.papeleta'].search([
+                    ('vehicle_id', '=', vehicle.id),
+                    ('state', '!=', 'pagado')
+                ], order='fecha_vencimiento_final asc, id asc', limit=1)
+                if papeleta:
+                    papeleta.write({'recolocada': True})
+                    try:
+                        papeleta.message_post(body=_('Papeleta marcada como <b>Recolocada</b> por retención del vehículo por %s') % (self.env.user.display_name,))
+                    except Exception:
+                        _logger.exception('Failed to post chatter message for papeleta %s', papeleta.id)
+            except Exception:
+                _logger.exception('Error while updating papeleta recolocada flag for vehicle %s', getattr(vehicle, 'id', None))
+
         # Agregar nota en el chatter
         mensaje = f"""
         <p><strong>Vehículo Retenido</strong></p>

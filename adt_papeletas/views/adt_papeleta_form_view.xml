@@ -6,7 +6,7 @@
             <form string="Papeleta">
                 <header>
                     <!-- show small badge in header when alert exists -->
-                    <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-success" attrs="{'invisible': [('state', '=', 'pagado')]}"/>                    <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-primary" attrs="{'invisible': [('state', '=', 'pagado')]}"/>
+                    <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-success" attrs="{'invisible': [('state', '=', 'pagado')]}"/>
                     <button name="action_mark_capturar" type="object" string="Mandar a capturar" class="btn-danger" attrs="{'invisible': [('capturado', '=', True)]}"/>                    <field name="state"   widget="statusbar" statusbar_visible="pendiente,pagado"/>
                 </header>
 
@@ -18,14 +18,16 @@
                 </div>
 
                 <!-- WARNING banner when the papeleta has been marked as captured -->
+                <!-- Show only when capturado = True AND recolocada = False -->
                 <div class="alert alert-warning o_form_warning" role="alert"
-                     attrs="{'invisible': [('capturado','=', False)]}">
+                     attrs="{'invisible': ['|', ('capturado','=', False), ('recolocada','=', True)]}">
                     <strong>⚠ Atención:</strong>
                     El vehículo asociado a esta papeleta ha sido marcado como <em>capturado</em> — esta papeleta será derivada al área de captura para su procesamiento.
                 </div>
 
+                <!-- Show only when recolocada = True and not yet pagada -->
                 <div class="alert alert-danger o_form_warning" role="alert"
-                     attrs="{'invisible': [('recolocada','=', False)]}">
+                     attrs="{'invisible': ['|', ('recolocada','=', False), ('state','=', 'pagado')]}">
                     <strong>⚠ Atención:</strong>
                     Este vehículo ya fue <em>recolocado</em>, pero la papeleta asociada aún está pendiente de pago.
                 </div>
@@ -49,6 +51,10 @@
 
                     <group>
                         <field name="detalle" colspan="2"/>
+                    </group>
+
+                    <group string="Evidencias">
+                        <field name="attachment_ids" widget="many2many_binary" nolabel="1" string="Evidencias (Fotos/PDFs)"/>
                     </group>
 
                     <!-- Sección de cuotas: visible cuando el estado sea 'fraccionado' o 'pagado' -->
@@ -134,6 +140,27 @@
         <field name="view_id" ref="view_adt_papeleta_tree"/>
     </record>
 
-    <menuitem id="menu_adt_papeletas_root" name="ADT Papeletas" sequence="95"/>
-    <menuitem id="menu_adt_papeletas" name="Papeletas" parent="menu_adt_papeletas_root" action="action_adt_papeletas" sequence="10"/>
+    <!-- Action: Papeletas Pendientes -->
+    <record id="action_adt_papeletas_pendientes" model="ir.actions.act_window">
+        <field name="name">Papeletas Pendientes</field>
+        <field name="res_model">adt.papeleta</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_adt_papeleta_tree"/>
+        <field name="domain">[('state','=','pendiente')]</field>
+    </record>
+
+    <!-- Action: Papeletas Pagadas -->
+    <record id="action_adt_papeletas_pagadas" model="ir.actions.act_window">
+        <field name="name">Papeletas Pagadas</field>
+        <field name="res_model">adt.papeleta</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_adt_papeleta_tree"/>
+        <field name="domain">[('state','=','pagado')]</field>
+    </record>
+
+    <!-- Menus under root -->
+    <menuitem id="menu_adt_papeletas_pendientes" name="Pendientes" parent="menu_adt_papeletas_root" action="action_adt_papeletas_pendientes" sequence="5"/>
+    <menuitem id="menu_adt_papeletas_pagadas" name="Pagadas" parent="menu_adt_papeletas_root" action="action_adt_papeletas_pagadas" sequence="10"/>
+    <menuitem id="menu_adt_papeletas_todas" name="Todas" parent="menu_adt_papeletas_root" action="action_adt_papeletas" sequence="15"/>
+    <menuitem id="menu_adt_papeletas_root" name="Papeletas" sequence="95"/>
 </odoo>
