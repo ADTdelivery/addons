@@ -7,7 +7,7 @@
     <record id="action_maintenance_work_order_done" model="ir.actions.act_window">
         <field name="name">Órdenes Finalizadas</field>
         <field name="res_model">maintenance.work.order</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="domain">[("state","=","done")]</field>
     </record>
 
