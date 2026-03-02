@@ -1,0 +1,33 @@
+<odoo>
+    <record id="view_vehicle_form_inherit_adt_captura" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.inherit.adt.captura</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Capturas">
+                    <field name="adt_captura_ids">
+                        <tree string="Capturas">
+                            <field name="name"/>
+                            <field name="partner_id"/>
+                            <field name="cuenta_id"/>
+                            <field name="capture_type"/>
+                            <field name="state"/>
+                            <field name="payment_state"/>
+                        </tree>
+                        <form string="Captura">
+                            <group>
+                                <field name="name" readonly="1"/>
+                                <field name="partner_id"/>
+                                <field name="cuenta_id"/>
+                                <field name="capture_type"/>
+                                <field name="commitment_date"/>
+                                <field name="notes"/>
+                            </group>
+                        </form>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

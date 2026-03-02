@@ -13,6 +13,7 @@
     'data': [
         'security/ir.model.access.csv',
         'views/adt_papeleta_form_view.xml',
+        'views/adt_papeleta_fleet_inherit_view.xml',
     ],
     'assets': {
         'web.assets_backend': [

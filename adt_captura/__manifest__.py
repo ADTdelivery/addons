@@ -22,6 +22,7 @@
         'views/adt_captura_prioridad_urgente_action.xml',
         'views/adt_captura_dashboard_views.xml',
         'views/adt_captura_record_views.xml',
+        'views/adt_captura_fleet_inherit_view.xml',
         'views/wizard_views.xml',
         'views/adt_captura_disolucion_contrato_view.xml',
         'views/menu.xml',

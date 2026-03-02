@@ -81,7 +81,8 @@
                         <group>
                             <field name="partner_id"
                                    attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
-                            <field name="mobile"/>
+                            <field name="mobile" readonly="1"/>
+                            <field name="tipo_financiera"/>
                         </group>
                         <group>
                             <field name="asesor" required="0"/>
@@ -149,9 +150,7 @@
                                     <!-- <field name="monto_financiado" attrs="{'readonly': [('state', '!=', 'borrador')]}"/> -->
                                     <field name="monto_inicial"/>
 
-                                    <field name="monto_fraccionado"
-                                           attrs="{'readonly': [('state', '!=', 'borrador')]}"
-                                           required="1"/>
+                                    <field name="monto_fraccionado" attrs="{'readonly': [('state', '!=', 'borrador')]}" required="1"/>
                                     <field name="cuota_gracia" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                     <field name="fecha_gracia" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                 </group>
@@ -160,6 +159,7 @@
                                     <field name="qty_cuotas" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                     <field name="monto_cuota" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                                 </group>
+
                             </group>
 
                         </page>

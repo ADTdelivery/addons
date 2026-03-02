@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_vehicle_form_inherit_adt_papeletas" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.inherit.adt.papeletas</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Papeletas">
+                    <button name="action_new_adt_papeleta" type="object" string="Nueva Papeleta" class="oe_highlight"/>
+                    <field name="adt_papeleta_ids">
+                        <tree string="Papeletas" editable="bottom">
+                            <field name="name"/>
+                            <field name="fecha_papeleta"/>
+                            <field name="monto"/>
+                            <field name="state"/>
+                        </tree>
+                        <form string="Papeleta">
+                            <group>
+                                <field name="name"/>
+                                <field name="vehicle_id" readonly="1"/>
+                                <field name="fecha_papeleta"/>
+                                <field name="monto"/>
+                                <field name="detalle"/>
+                            </group>
+                        </form>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

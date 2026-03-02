@@ -39,6 +39,7 @@
                     <group>
                         <group>
                             <field name="name" readonly="1"/>
+                            <field name="vehicle_id"/>
                             <field name="client_id"/>
                             <field name="mechanic_id"/>
                             <field name="mileage"/>

@@ -19,6 +19,7 @@ class MaintenanceWorkOrder(models.Model):
 
     client_id = fields.Many2one('res.partner', string='Cliente', required=True, tracking=True)
     mechanic_id = fields.Many2one('res.users', string='Mecánico', tracking=True)
+    vehicle_id = fields.Many2one('fleet.vehicle', string='Vehículo', tracking=True)
     entry_reason = fields.Text(string='Motivo de ingreso')
     evidence_image = fields.Binary(string='Evidencia (Imagen)', attachment=True)
     mileage = fields.Float(string='Kilometraje')

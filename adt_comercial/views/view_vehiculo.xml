@@ -6,6 +6,7 @@
     <field name="arch" type="xml">
         <xpath expr="//notebook" position="inside">
             <page string="Cuentas">
+                <button name="action_new_cuenta" type="object" string="Nueva Cuenta" class="oe_highlight"/>
                 <field name="disponible" invisible="1"/>
                 <field name="cuenta_ids">
                     <tree delete="false" edit="false" create="false">

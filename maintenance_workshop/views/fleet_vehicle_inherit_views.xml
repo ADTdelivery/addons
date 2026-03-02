@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_vehicle_form_inherit_work_orders" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.inherit.work.orders</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Órdenes de Taller">
+                    <button name="action_new_work_order" type="object" string="Nueva Orden de Taller" class="oe_highlight"/>
+                    <field name="work_order_ids">
+                        <tree string="Órdenes de Taller" editable="bottom">
+                            <field name="name"/>
+                            <field name="client_id"/>
+                            <field name="mechanic_id"/>
+                            <field name="state" widget="badge"/>
+                            <field name="total_amount"/>
+                        </tree>
+                        <form>
+                            <group>
+                                <field name="name" readonly="1"/>
+                                <field name="client_id"/>
+                                <field name="mechanic_id"/>
+                                <field name="vehicle_id" readonly="1"/>
+                            </group>
+                        </form>
+                    </field>
+
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

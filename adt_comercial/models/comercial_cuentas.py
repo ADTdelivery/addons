@@ -97,6 +97,13 @@ class ADTComercialCuentas(models.Model):
         ('3', 'Jaico Cervera Luna')
     ], string='Asesor')
 
+    # Tipo de financiera: Qorilazo, Los Andes, Otro
+    tipo_financiera = fields.Selection([
+        ('qorilazo', 'Qorilazo'),
+        ('los_andes', 'Los Andes'),
+        ('otro', 'Otro')
+    ], string='Tipo de Financiera', tracking=True)
+
     cuota_inicio_1 = fields.Integer(string="Cuota inicio 1", default=0)
     cuota_fin_1 = fields.Integer(string="Cuota fin 1", default=0)
     monto_1 = fields.Monetary(string="Monto 1 ", default=0)
@@ -913,6 +920,4 @@ class AdtMorasWizardLine(models.TransientModel):
     dias = fields.Integer()
     seleccionado = fields.Boolean()
     operacion = fields.Char()
-
-
 

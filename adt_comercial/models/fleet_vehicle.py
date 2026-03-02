@@ -10,26 +10,21 @@ class ADTFleetVehicle(models.Model):
     cuenta_ids = fields.One2many(
         'adt.comercial.cuentas', 'vehiculo_id', string="Cuentas")
 
-    # disponible = fields.Boolean(string='Disponible', compute="_compute_vehiculo_disponible", store=True)
     disponible = fields.Boolean(string='Disponible', default=True)
 
-    # @api.depends('cuenta_ids')
-    # def _compute_vehiculo_disponible(self):
-    #     for record in self:
-    #         if (len(record.cuenta_ids) == 0):
-    #             _logger.info('ENTRA EN IF')
-    #             record.disponible = True
-    #         else:
-    #             _logger.info('ENTRA EN ELSE')
-    #             last_record = record.cuenta_ids.sorted(
-    #                 key=lambda x: x.create_date, reverse=True)[0]
-    #             _logger.info({'LAST REECORD': last_record})
-    #             if (last_record.recuperado and last_record.state != 'pagado'):
-    #                 _logger.info('ENTRA EN ELSE IF')
-    #                 record.disponible = True
-    #             elif last_record.state in ('pagado', 'aprobado', 'en_curso'):
-    #                 _logger.info('ENTRA EN ELSE ELIF')
-    #                 record.disponible = False
-    #             else:
-    #                 _logger.info('ENTRA EN ELSE ELSE')
-    #                 record.disponible = False
+    def action_new_cuenta(self):
+        self.ensure_one()
+        ctx = {
+            'default_vehiculo_id': self.id,
+        }
+        # set default partner from driver if available
+        if getattr(self, 'driver_id', False):
+            ctx['default_partner_id'] = self.driver_id.id
+        return {
+            'name': 'Crear Cuenta',
+            'type': 'ir.actions.act_window',
+            'res_model': 'adt.comercial.cuentas',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': ctx,
+        }
