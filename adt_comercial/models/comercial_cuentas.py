@@ -287,13 +287,31 @@ class ADTComercialCuentas(models.Model):
             no_mora_pending = not rec.cuota_ids.filtered(lambda x: (x.mora_pendiente or 0) > 0)
 
             if pagadas_all:
-                rec.state = 'pagado'
-
                 if rec.is_available_pay_mora:
                     if no_mora_pending:
                         rec.state = 'pagado'
                     else:
                         rec.state = 'en_curso'
+                else:
+                    # marcar la cuenta como pagada
+                    rec.state = 'pagado'
+                    # buscar el estado de vehículo "Transferido" y actualizar el vehicle.state_id
+                    try:
+                        state = self.env['fleet.vehicle.state'].search([
+                            ('name', '=', 'Transferido')
+                        ], limit=1)
+                        _logger.info('Found state: %s', state)
+                        if state:
+                            vehicle = getattr(rec, 'vehiculo_id', False)
+                            if vehicle:
+                                vehicle.write({'state_id': state.id})
+                                _logger.info('Updated vehicle %s state to Transferido (id=%s)', vehicle.id, state.id)
+                            else:
+                                _logger.debug('No vehiculo_id set for cuenta %s, skipping vehicle state update', rec.id)
+                        else:
+                            _logger.debug('fleet.vehicle.state "Transferido" not found, skipping vehicle update for cuenta %s', rec.id)
+                    except Exception:
+                        _logger.exception('Failed to update vehicle state for cuenta %s', rec.id)
 
 
     cuota_ids = fields.One2many(
