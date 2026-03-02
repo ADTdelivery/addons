@@ -17,6 +17,17 @@ class AdtCapturaDashboard(models.Model):
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
+        # Check if the adt_captura_mora view/table exists before referencing it
+        self.env.cr.execute("SELECT EXISTS (SELECT 1 FROM pg_class WHERE relname = %s)", ('adt_captura_mora',))
+        mora_exists = self.env.cr.fetchone()[0]
+
+        if mora_exists:
+            clientes_mora_sql = "(SELECT COUNT(*) FROM adt_captura_mora) AS clientes_mora,"
+            monto_vencido_sql = "(SELECT COALESCE(SUM(monto_vencido), 0) FROM adt_captura_mora) AS monto_vencido_total"
+        else:
+            clientes_mora_sql = "0 AS clientes_mora,"
+            monto_vencido_sql = "0 AS monto_vencido_total"
+
         self.env.cr.execute(f"""
             CREATE OR REPLACE VIEW {self._table} AS (
                 SELECT
@@ -33,7 +44,7 @@ class AdtCapturaDashboard(models.Model):
                      WHERE state = 'compromiso_pago') AS compromiso_pago,
 
                      -- compromiso de pago vencido
-                     (SELECT COUNT(*)
+                    (SELECT COUNT(*)
                      FROM adt_captura_record
                      WHERE capture_type = 'compromiso' AND
                      commitment_date < CURRENT_DATE AND
@@ -50,11 +61,9 @@ class AdtCapturaDashboard(models.Model):
                      WHERE payment_state = 'pendiente') AS monto_pendiente,
 
                     -- clientes en mora
-                    (SELECT COUNT(*)
-                     FROM adt_captura_mora) AS clientes_mora,
+                    {clientes_mora_sql}
 
                     -- NUEVA METRICA: monto vencido total
-                    (SELECT COALESCE(SUM(monto_vencido), 0)
-                     FROM adt_captura_mora) AS monto_vencido_total
+                    {monto_vencido_sql}
             )
         """)

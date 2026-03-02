@@ -159,8 +159,8 @@
     </record>
 
     <!-- Menus under root -->
+    <menuitem id="menu_adt_papeletas_root" name="Papeletas" sequence="95"/>
     <menuitem id="menu_adt_papeletas_pendientes" name="Pendientes" parent="menu_adt_papeletas_root" action="action_adt_papeletas_pendientes" sequence="5"/>
     <menuitem id="menu_adt_papeletas_pagadas" name="Pagadas" parent="menu_adt_papeletas_root" action="action_adt_papeletas_pagadas" sequence="10"/>
     <menuitem id="menu_adt_papeletas_todas" name="Todas" parent="menu_adt_papeletas_root" action="action_adt_papeletas" sequence="15"/>
-    <menuitem id="menu_adt_papeletas_root" name="Papeletas" sequence="95"/>
 </odoo>
