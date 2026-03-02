@@ -125,6 +125,23 @@ class ADTCapturaRecord(models.Model):
         store=False
     )
 
+    # Maintenance info: show if vehicle has a maintenance in_progress
+    maintenance_start_date = fields.Datetime(
+        string='Fecha inicio mantenimiento',
+        compute='_compute_maintenance_taller',
+        store=False
+    )
+    maintenance_days_in_taller = fields.Integer(
+        string='Días en taller (mantenimiento)',
+        compute='_compute_maintenance_taller',
+        store=False
+    )
+    maintenance_taller_message = fields.Char(
+        string='Mensaje mantenimiento',
+        compute='_compute_maintenance_taller',
+        store=False
+    )
+
     # Nuevo: Campos para recogida de moto
     moto_recogida = fields.Boolean(string='¿Moto recogida?', default=False, tracking=True)
     motivo_no_recogida = fields.Text(string='Motivo si no se recogió', tracking=True)
@@ -240,6 +257,47 @@ class ADTCapturaRecord(models.Model):
                 )
             else:
                 record.cuotas_pendientes_ids = False
+
+    @api.depends('vehicle_id')
+    def _compute_maintenance_taller(self):
+        for record in self:
+            record.maintenance_start_date = False
+            record.maintenance_days_in_taller = 0
+            record.maintenance_taller_message = False
+
+            if not record.vehicle_id:
+                continue
+
+            maint = self.env['adt.tvs.mantenimiento'].search([
+                ('vehicle_id', '=', record.vehicle_id.id),
+                ('state', '=', 'in_progress')
+            ], order='date_inicio_revision asc', limit=1)
+
+            if not maint:
+                continue
+
+            start = maint.date_inicio_revision
+            if not start:
+                continue
+
+            try:
+                start_dt = fields.Datetime.from_string(start)
+                now_dt = fields.Datetime.from_string(fields.Datetime.now())
+            except Exception:
+                # don't fail compute; just skip
+                continue
+
+            days = max(0, (now_dt - start_dt).days)
+
+            record.maintenance_start_date = start
+            record.maintenance_days_in_taller = days
+            # Format date as YYYY-MM-DD for readability
+            try:
+                date_str = start_dt.strftime('%Y-%m-%d')
+            except Exception:
+                date_str = str(start)
+
+            record.maintenance_taller_message = f"El cliente lleva {days} días en el taller desde la fecha {date_str}."
 
     @api.depends('capture_type', 'commitment_date')
     def _compute_commitment_delay_days(self):
@@ -412,6 +470,25 @@ class ADTCapturaRecord(models.Model):
             'res_model': 'adt.comercial.cuentas',
             'view_mode': 'form',
             'res_id': self.cuenta_id.id,
+        }
+
+    def action_ver_mantenimientos(self):
+        """Abre un popup mostrando los mantenimientos relacionados con el vehículo de esta captura.
+
+        Solo filtra por vehicle_id; no combina otra lógica adicional.
+        """
+        self.ensure_one()
+        if not self.vehicle_id:
+            raise UserError('No hay vehículo asociado a esta captura.')
+
+        return {
+            'name': 'Mantenimientos del Vehículo',
+            'type': 'ir.actions.act_window',
+            'res_model': 'adt.tvs.mantenimiento',
+            'view_mode': 'tree,form',
+            'target': 'new',
+            'domain': [('vehicle_id', '=', self.vehicle_id.id)],
+            'context': {'create': False},
         }
 
     def action_recolocar(self):

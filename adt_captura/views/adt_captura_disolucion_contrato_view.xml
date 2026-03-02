@@ -87,6 +87,12 @@
                            statusbar_visible="capturado,liberado,disolucion_contrato,recolocada,cancelado"/>
                 </header>
 
+                <div class="alert alert-warning o_form_warning" role="alert"
+                     attrs="{'invisible': [('maintenance_taller_message','=', False)]}">
+                    <strong>⚠ Atención:</strong>
+                    <field name="maintenance_taller_message" readonly="1"/>
+                </div>
+
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_ver_evidencia"
@@ -112,12 +118,24 @@
                     </div>
 
                     <group>
+
                         <field name="source_type" readonly="1"/>
                         <field name="papeleta_id" readonly="1" attrs="{'invisible': [('source_type','=', 'mora')] }"/>
                         <field name="papeleta_monto"
                                widget="monetary"
                                options="{'currency_field': 'currency_id'}"
                                readonly="1" attrs="{'invisible': [('source_type','=', 'mora')] }"/>
+
+                        <button name="action_ver_mantenimientos"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-wrench"
+                                >
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Ver Mantenimientos</span>
+                            </div>
+                        </button>
+
                     </group>
 
                     <group>

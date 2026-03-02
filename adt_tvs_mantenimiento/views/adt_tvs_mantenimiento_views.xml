@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_adt_tvs_mantenimiento_tree" model="ir.ui.view">
+        <field name="name">adt.tvs.mantenimiento.tree</field>
+        <field name="model">adt.tvs.mantenimiento</field>
+        <field name="arch" type="xml">
+            <tree string="Mantenimientos">
+                <field name="name"/>
+                <field name="vehicle_id"/>
+                <field name="state"/>
+                <field name="date_inicio_revision"/>
+                <field name="date_fin_revision"/>
+                <field name="days_in_taller"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_tvs_mantenimiento_form" model="ir.ui.view">
+        <field name="name">adt.tvs.mantenimiento.form</field>
+        <field name="model">adt.tvs.mantenimiento</field>
+        <field name="arch" type="xml">
+            <form string="Mantenimiento" create="true" edit="true">
+                <header>
+                    <field name="name"/>
+                    <field name="state" widget="statusbar" statusbar_visible="in_progress,done" />
+                    <button name="action_finalizar_revision" string="Finalizar revisión" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'in_progress')]}"/>
+                </header>
+                <sheet>
+                    <group>
+
+                        <field name="vehicle_id"/>
+                        <field name="motivo_ingreso"/>
+
+                    </group>
+                    <group>
+                        <field name="date_inicio_revision"/>
+                        <field name="date_fin_revision"/>
+                        <field name="days_in_taller" readonly="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Archivos">
+                            <field name="attachment_ids" widget="many2many_binary"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_tvs_mantenimiento" model="ir.actions.act_window">
+        <field name="name">Mantenimientos</field>
+        <field name="res_model">adt.tvs.mantenimiento</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Registre ingresos y cierres de mantenimiento de vehículos.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_adt_tvs_mantenimiento_action" name="Mantenimientos" parent="menu_adt_tvs_mantenimiento" action="action_adt_tvs_mantenimiento"/>
+</odoo>

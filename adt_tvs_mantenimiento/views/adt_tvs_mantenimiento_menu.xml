@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_adt_tvs_root" name="Matenimiento TVS"/>
+    <menuitem id="menu_adt_tvs_mantenimiento" name="Mantenimiento" parent="menu_adt_tvs_root"/>
+</odoo>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_maintenance_workshop_root" name="Taller" sequence="50" groups="maintenance_workshop.group_workshop_user,base.group_user"/>
+    <menuitem id="menu_maintenance_work_order" name="Órdenes Pendientes" parent="menu_maintenance_workshop_root" action="action_maintenance_work_order" sequence="10" groups="maintenance_workshop.group_workshop_user,base.group_user"/>
+
+    <!-- Action and menu for finalized orders -->
+    <record id="action_maintenance_work_order_done" model="ir.actions.act_window">
+        <field name="name">Órdenes Finalizadas</field>
+        <field name="res_model">maintenance.work.order</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="domain">[("state","=","done")]</field>
+    </record>
+
+    <menuitem id="menu_maintenance_work_order_done" name="Finalizadas" parent="menu_maintenance_workshop_root" action="action_maintenance_work_order_done" sequence="20" groups="maintenance_workshop.group_workshop_user,base.group_user"/>
+</odoo>
