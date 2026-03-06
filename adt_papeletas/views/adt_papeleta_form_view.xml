@@ -59,8 +59,10 @@
 
                     <!-- Sección de cuotas: visible cuando el estado sea 'fraccionado' o 'pagado' -->
                     <!-- Controlada por el campo computado show_fraccionamiento -->
-                    <group attrs="{'invisible': [('show_fraccionamiento', '=', False)]}" string="Fraccionamiento">
+                    <group attrs="{'invisible': [('payment_method', '!=', 'fraccionado')]}" string="Fraccionamiento">
                         <field name="cantidad_cuotas"/>
+                        <field name="fecha_inicio_cuotas"/>
+                        <button name="action_generar_cuotas" type="object" string="Generar cuotas" class="oe_highlight"/>
                         <field name="cuotas_ids">
                             <tree string="Cuotas">
                                 <field name="name"/>

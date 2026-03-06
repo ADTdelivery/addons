@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from dateutil.relativedelta import relativedelta
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
 import logging
@@ -17,6 +18,7 @@ class ADTPapeleta(models.Model):
     monto = fields.Monetary(string='Monto', required=True, currency_field='company_currency_id')
     detalle = fields.Text(string='Detalle')
     vehicle_id = fields.Many2one('fleet.vehicle', string='Vehículo', required=True)
+    fecha_inicio_cuotas = fields.Date(string='Fecha inicio cuotas', help='Fecha desde la cual se generarán las cuotas mensualmente cuando la papeleta sea fraccionada')
 
     # Evidencias (imágenes, PDFs) relacionadas a la papeleta
     attachment_ids = fields.Many2many(
@@ -52,7 +54,7 @@ class ADTPapeleta(models.Model):
     cantidad_cuotas = fields.Integer(string='Cantidad de Cuotas')
     cuotas_ids = fields.One2many('adt.papeleta.cuota', 'papeleta_id', string='Cuotas', copy=True)
     fecha_pago = fields.Date(string='Fecha de Pago')
-    show_fraccionamiento = fields.Boolean(string='Mostrar Fraccionamiento', compute='_compute_show_fraccionamiento', store=True)
+    show_fraccionamiento = fields.Boolean(string='Mostrar Fraccionamiento', compute='_compute_show_fraccionamiento')
 
     payment_method = fields.Selection([
             ('pago_completo', 'Pago Completo'),
@@ -139,26 +141,62 @@ class ADTPapeleta(models.Model):
 
     @api.onchange('cantidad_cuotas', 'state', 'monto')
     def _onchange_cantidad_o_estado(self):
-        """Genera automáticamente las cuotas cuando el estado es 'fraccionado' y no existen cuotas creadas."""
+        """No generar automáticamente las cuotas en el onchange.
+        La generación será manual mediante el botón `Generar cuotas`.
+        Aquí sólo podemos validar valores básicos si se desea.
+        """
         for rec in self:
-            if rec.payment_method != 'fraccionado' or not rec.cantidad_cuotas:
-                # if state not fraccionado, don't show/generate cuotas
-                continue
-            # Only generate if there are no existing cuotas
+            # no auto-generate; just ensure cantidad_cuotas no es negativa
+            if rec.cantidad_cuotas and rec.cantidad_cuotas < 0:
+                raise ValidationError('La cantidad de cuotas debe ser un número positivo.')
+
+    def _generate_cuotas_for(self, rec):
+        """Genera cuotas para un registro individual `rec` según la lógica usada en el onchange.
+        No hace nada si ya existen cuotas o si no está en modalidad fraccionado o cantidad_cuotas <= 0.
+        """
+        if rec.payment_method != 'fraccionado' or not rec.cantidad_cuotas:
+            return
+        if rec.cuotas_ids:
+            return
+        total = float(rec.monto or 0.0)
+        n = int(rec.cantidad_cuotas or 0)
+        if n <= 0:
+            return
+        base = total / n if n else 0.0
+        # determine start date for cuotas
+        if rec.fecha_inicio_cuotas:
+            start_date = fields.Date.from_string(rec.fecha_inicio_cuotas)
+        elif rec.fecha_papeleta:
+            start_date = fields.Date.from_string(rec.fecha_papeleta)
+        else:
+            start_date = fields.Date.context_today(self)
+        cuotas_vals = []
+        for i in range(n):
+            due = start_date + relativedelta(months=i)
+            cuotas_vals.append((0, 0, {
+                'name': 'Cuota %s' % (i + 1),
+                'amount': base,
+                'due_date': fields.Date.to_string(due),
+            }))
+        rec.cuotas_ids = cuotas_vals
+
+    def action_generar_cuotas(self):
+        """Botón que genera las cuotas manualmente tomando `cantidad_cuotas` y `fecha_inicio_cuotas`.
+        Lanzará errores si la papeleta no está en modo fraccionado, si falta cantidad o si las cuotas ya existen.
+        """
+        for rec in self:
+            if rec.payment_method != 'fraccionado':
+                raise UserError('La papeleta no está en modalidad "Fraccionado".')
+            if not rec.cantidad_cuotas or int(rec.cantidad_cuotas) <= 0:
+                raise UserError('Ingrese la cantidad de cuotas antes de generar.')
             if rec.cuotas_ids:
-                continue
-            total = float(rec.monto or 0.0)
-            n = int(rec.cantidad_cuotas or 0)
-            if n <= 0:
-                continue
-            base = total / n if n else 0.0
-            cuotas = []
-            for i in range(n):
-                cuotas.append((0, 0, {
-                    'name': 'Cuota %s' % (i + 1),
-                    'amount': base,
-                }))
-            rec.cuotas_ids = cuotas
+                raise UserError('Las cuotas ya existen. Elimine las existentes si desea regenerarlas.')
+            try:
+                rec._generate_cuotas_for(rec)
+            except Exception:
+                _logger.exception('Error generando cuotas manualmente para papeleta %s', rec.id)
+                raise UserError('Ocurrió un error al generar las cuotas. Revise los logs.')
+        return True
 
     @api.depends('payment_method')
     def _compute_show_fraccionamiento(self):
@@ -211,6 +249,7 @@ class ADTPapeleta(models.Model):
     @api.model
     def create(self, vals):
         rec = super(ADTPapeleta, self).create(vals)
+        # No generar cuotas automáticamente al crear; la generación es manual mediante el botón
         try:
             rec.message_post(body=_('Papeleta creada por %s') % (self.env.user.display_name,))
         except Exception:
@@ -218,44 +257,60 @@ class ADTPapeleta(models.Model):
         return rec
 
     def write(self, vals):
-        # Prevent editing records that are already paid
-        for rec in self:
-            if rec.state == 'pagado':
-                raise UserError('No se puede modificar una papeleta que ya está en estado Pagado.')
+         # Prevent editing records that are already paid
+         for rec in self:
+             if rec.state == 'pagado':
+                 raise UserError('No se puede modificar una papeleta que ya está en estado Pagado.')
 
-        # capture previous values for keys to build a concise change log
-        prevs = {}
-        for rec in self:
-            prev = {}
-            for k in vals.keys():
-                try:
-                    prev[k] = rec[k]
-                except Exception:
-                    prev[k] = None
-            prevs[rec.id] = prev
+         # capture previous values for keys to build a concise change log
+         prevs = {}
+         for rec in self:
+             prev = {}
+             for k in vals.keys():
+                 try:
+                     prev[k] = rec[k]
+                 except Exception:
+                     prev[k] = None
+             prevs[rec.id] = prev
 
-        res = super(ADTPapeleta, self).write(vals)
+         res = super(ADTPapeleta, self).write(vals)
 
-        # post changes into chatter
-        for rec in self:
-            prev = prevs.get(rec.id, {})
-            changes = []
-            for k, old in prev.items():
-                new = getattr(rec, k, None)
-                # display related records nicely
-                if hasattr(old, 'display_name'):
-                    old = old.display_name
-                if hasattr(new, 'display_name'):
-                    new = new.display_name
-                if old != new:
-                    changes.append('%s: %s -> %s' % (k, old, new))
-            if changes:
-                try:
-                    rec.message_post(body=_('Cambios: <br/>%s') % ('<br/>'.join(changes),))
-                except Exception:
-                    _logger.exception('Failed to post chatter message on write for papeleta %s', rec.id)
+         # No generar cuotas automáticamente en write; la generación es manual mediante el botón
 
-        return res
+         # post changes into chatter
+         for rec in self:
+             prev = prevs.get(rec.id, {})
+             changes = []
+
+             def _repr_value(v):
+                 # Safe string representation for comparison; handle recordsets without forcing singleton
+                 try:
+                     if hasattr(v, 'ids'):
+                         return ', '.join([r.display_name for r in v])
+                 except Exception:
+                     pass
+                 try:
+                     return str(v)
+                 except Exception:
+                     return repr(v)
+
+             for k, old in prev.items():
+                 try:
+                     new = getattr(rec, k, None)
+                 except Exception:
+                     new = None
+                 old_repr = _repr_value(old)
+                 new_repr = _repr_value(new)
+                 if old_repr != new_repr:
+                     changes.append('%s: %s -> %s' % (k, old_repr, new_repr))
+
+             if changes:
+                 try:
+                     rec.message_post(body=_('Cambios: <br/>%s') % ('<br/>'.join(changes),))
+                 except Exception:
+                     _logger.exception('Failed to post chatter message on write for papeleta %s', rec.id)
+
+         return res
 
 class ADTPapeletaCuota(models.Model):
     _name = 'adt.papeleta.cuota'
