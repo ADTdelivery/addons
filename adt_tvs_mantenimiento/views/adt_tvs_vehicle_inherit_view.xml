@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_vehicle_form_inherit_adt_tvs_maintenance" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.inherit.adt.tvs.maintenance</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Mantenimientos KM">
+                    <field name="maintenance_record_ids">
+                        <tree string="Mantenimientos por KM">
+                            <field name="name"/>
+                            <field name="estado_mantenimiento"/>
+                            <field name="active"/>
+                        </tree>
+                        <form string="Mantenimiento por KM">
+                            <sheet>
+                                <group>
+                                    <field name="name" readonly="1"/>
+                                    <field name="estado_mantenimiento"/>
+                                    <field name="motivo_terceros" attrs="{'invisible':[('estado_mantenimiento','!=','terceros')]}"/>
+                                </group>
+                                <group>
+                                    <field name="line_ids">
+                                        <tree editable="bottom">
+                                            <field name="km_objetivo"/>
+                                            <field name="realizado"/>
+                                            <field name="attachment_ids" widget="many2many_binary" />
+                                            <field name="fecha_inicio"/>
+                                            <field name="fecha_fin"/>
+                                        </tree>
+                                    </field>
+                                </group>
+                            </sheet>
+                        </form>
+                    </field>
+                </page>
+                <page string="Mantenimientos ADT">
+                    <field name="mantenimiento_ids">
+                        <tree string="Mantenimientos ADT">
+                            <field name="name"/>
+                            <field name="state"/>
+                            <field name="gasto_mantenimiento"/>
+                            <field name="date_inicio_revision"/>
+                            <field name="date_fin_revision"/>
+                        </tree>
+                        <form string="Mantenimiento ADT">
+                            <sheet>
+                                <group>
+                                    <field name="name" readonly="1"/>
+                                    <field name="punto_autorizado_id"/>
+                                    <field name="motivo_ingreso"/>
+                                    <field name="tiene_garantia"/>
+                                    <field name="gasto_mantenimiento"/>
+                                </group>
+                                <group>
+                                    <field name="date_inicio_revision"/>
+                                    <field name="date_fin_revision"/>
+                                </group>
+                            </sheet>
+                        </form>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

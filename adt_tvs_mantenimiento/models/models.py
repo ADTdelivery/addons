@@ -2,6 +2,9 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from datetime import datetime
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class AdtTvsPuntoAutorizado(models.Model):
@@ -121,6 +124,10 @@ class AdtTvsVehicleMaintenanceRecord(models.Model):
     _description = 'Registro de Mantenimiento por Kilometraje (TVS)'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+    _sql_constraints = [
+        ('vehicle_maintenance_unique', 'unique(vehicle_id)', 'Ya existe un registro de mantenimiento para este vehículo.'),
+    ]
+
     name = fields.Char(string='Referencia', required=True, copy=False, readonly=True, default=lambda self: _('New'))
     vehicle_id = fields.Many2one('fleet.vehicle', string='Vehículo', required=True, tracking=True)
     conductor_id = fields.Many2one('res.partner', string='Conductor / Cliente', readonly=False)
@@ -190,8 +197,23 @@ class AdtTvsVehicleMaintenanceRecord(models.Model):
             rec.motor = engine or ''
             rec.placa = getattr(vehicle, 'license_plate', '') or getattr(vehicle, 'plate', '') or ''
 
+            # Auto-generate default plan of km if there are no lines yet
+            try:
+                if not rec.line_ids:
+                    rec._generate_default_plan()
+            except Exception:
+                # don't break onchange on error, but log in server logs if needed
+                _logger = getattr(self, '_logger', None)
+                if _logger:
+                    _logger.exception('Failed to auto-generate default km plan for vehicle %s', getattr(vehicle, 'id', False))
+
     @api.model
     def create(self, vals):
+        # Prevent creating a second maintenance record for the same vehicle
+        if vals.get('vehicle_id'):
+            exists = self.search([('vehicle_id', '=', vals.get('vehicle_id'))], limit=1)
+            if exists:
+                raise ValidationError('Ya existe un registro de mantenimiento para este vehículo.')
         if vals.get('name', _('New')) == _('New'):
             seq = self.env['ir.sequence'].next_by_code('adt.tvs.vehicle_maintenance_record')
             vals['name'] = seq or _('New')
@@ -250,3 +272,11 @@ class AdtTvsVehicleMaintenanceLine(models.Model):
             'views': [(view.id, 'form')] if view else None,
             'target': 'new',
         }
+
+
+class FleetVehicle(models.Model):
+    _inherit = 'fleet.vehicle'
+
+    maintenance_record_ids = fields.One2many('adt.tvs.vehicle_maintenance_record', 'vehicle_id', string='Mantenimientos por KM')
+    # Expose adt.tvs.mantenimiento records related to this vehicle
+    mantenimiento_ids = fields.One2many('adt.tvs.mantenimiento', 'vehicle_id', string='Mantenimientos ADT')
