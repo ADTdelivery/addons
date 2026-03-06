@@ -29,6 +29,15 @@ class ADTPapeleta(models.Model):
         string='Evidencias (Fotos/PDFs)'
     )
 
+    # Evidencias específicas del fraccionamiento/cuotas
+    attachment_cuotas_ids = fields.Many2many(
+        comodel_name='ir.attachment',
+        relation='adt_papeleta_cuotas_attachment_rel',
+        column1='papeleta_id',
+        column2='attachment_id',
+        string='Evidencias Fraccionamiento (Fotos/PDFs)'
+    )
+
     state = fields.Selection([
         ('pendiente', 'Pendiente'),
         ('pagado', 'Pagado')
@@ -112,9 +121,24 @@ class ADTPapeleta(models.Model):
                 rec.texto_alerta = False
                 rec.alert_badge = False
 
-    @api.depends('fecha_captura', 'tiene_prorroga', 'dias_prorroga')
+    @api.depends('fecha_captura', 'tiene_prorroga', 'dias_prorroga', 'payment_method', 'cuotas_ids.state', 'cuotas_ids.due_date')
     def _compute_fecha_vencimiento_final(self):
         for rec in self:
+            # Si la papeleta está fraccionada, fecha_vencimiento_final es la primera cuota pendiente
+            if rec.payment_method == 'fraccionado' and rec.cuotas_ids:
+                pendientes = rec.cuotas_ids.filtered(lambda c: c.state == 'pendiente')
+                if pendientes:
+                    # Ordenar por due_date y tomar la primera
+                    siguientes = pendientes.sorted(key=lambda r: r.due_date or fields.Date.context_today(self))
+                    rec.fecha_vencimiento_final = siguientes[0].due_date
+                    continue
+                else:
+                    # Si no hay pendientes, tomar la última cuota (si existe) como vencimiento final
+                    todas = rec.cuotas_ids.sorted(key=lambda r: r.due_date or fields.Date.context_today(self))
+                    if todas:
+                        rec.fecha_vencimiento_final = todas[-1].due_date
+                        continue
+            # Comportamiento por defecto (no fraccionado o sin cuotas)
             if rec.tiene_prorroga and rec.dias_prorroga and rec.fecha_captura:
                 rec.fecha_vencimiento_final = fields.Date.add(rec.fecha_captura, days=rec.dias_prorroga)
             else:
@@ -182,20 +206,37 @@ class ADTPapeleta(models.Model):
 
     def action_generar_cuotas(self):
         """Botón que genera las cuotas manualmente tomando `cantidad_cuotas` y `fecha_inicio_cuotas`.
-        Lanzará errores si la papeleta no está en modo fraccionado, si falta cantidad o si las cuotas ya existen.
+        Ahora borra las cuotas existentes (si las hay) y las recrea.
         """
         for rec in self:
             if rec.payment_method != 'fraccionado':
                 raise UserError('La papeleta no está en modalidad "Fraccionado".')
             if not rec.cantidad_cuotas or int(rec.cantidad_cuotas) <= 0:
                 raise UserError('Ingrese la cantidad de cuotas antes de generar.')
+
+            # Si ya existen cuotas, eliminarlas antes de generar
             if rec.cuotas_ids:
-                raise UserError('Las cuotas ya existen. Elimine las existentes si desea regenerarlas.')
+                try:
+                    count_old = len(rec.cuotas_ids)
+                    rec.cuotas_ids.unlink()
+                    _logger.info('adt.papeleta: eliminadas %s cuotas existentes para papeleta %s', count_old, rec.id)
+                except Exception:
+                    _logger.exception('adt.papeleta: fallo al eliminar cuotas existentes para papeleta %s', rec.id)
+                    raise UserError('No se pudieron eliminar las cuotas existentes. Revise los logs.')
+
+            # Generar nuevas cuotas
             try:
                 rec._generate_cuotas_for(rec)
             except Exception:
                 _logger.exception('Error generando cuotas manualmente para papeleta %s', rec.id)
                 raise UserError('Ocurrió un error al generar las cuotas. Revise los logs.')
+
+            # Informar en chatter cuántas se crearon
+            try:
+                created = len(rec.cuotas_ids)
+                rec.message_post(body=_('Se generaron %s cuotas.') % (created,))
+            except Exception:
+                _logger.exception('Failed to post chatter message after generating cuotas for papeleta %s', rec.id)
         return True
 
     @api.depends('payment_method')
@@ -244,6 +285,22 @@ class ADTPapeleta(models.Model):
                 rec.message_post(body=_('Papeleta marcada como <b>Capturado</b> por %s') % (self.env.user.display_name,))
             except Exception:
                 _logger.exception('Failed to post chatter message for action_mark_capturar on papeleta %s', rec.id)
+        return True
+
+    def action_unmark_capturar(self):
+        """Quita la marca de captura en la papeleta (capturado=False).
+        Si ya no está marcada, se ignora.
+        Registra en chatter quién la removió.
+        """
+        for rec in self:
+            if not rec.capturado:
+                continue
+            # permitir quitar la marca independientemente del estado de la papeleta
+            rec.capturado = False
+            try:
+                rec.message_post(body=_('Marca de captura removida por %s') % (self.env.user.display_name,))
+            except Exception:
+                _logger.exception('Failed to post chatter message for action_unmark_capturar on papeleta %s', rec.id)
         return True
 
     @api.model
@@ -312,6 +369,26 @@ class ADTPapeleta(models.Model):
 
          return res
 
+    def action_eliminar_cuotas(self):
+        """Eliminar todas las cuotas asociadas a la papeleta.
+        Usable como botón separado si el usuario quiere borrar sin regenerar.
+        """
+        for rec in self:
+            if not rec.cuotas_ids:
+                raise UserError('No hay cuotas para eliminar.')
+            try:
+                count = len(rec.cuotas_ids)
+                rec.cuotas_ids.unlink()
+                _logger.info('adt.papeleta: eliminadas %s cuotas para papeleta %s', count, rec.id)
+                try:
+                    rec.message_post(body=_('Se eliminaron %s cuotas.') % (count,))
+                except Exception:
+                    _logger.exception('Failed to post chatter message after deleting cuotas for papeleta %s', rec.id)
+            except Exception:
+                _logger.exception('adt.papeleta: fallo al eliminar cuotas para papeleta %s', rec.id)
+                raise UserError('No se pudieron eliminar las cuotas. Revise los logs.')
+        return True
+
 class ADTPapeletaCuota(models.Model):
     _name = 'adt.papeleta.cuota'
     _description = 'Cuota de Papeleta'
@@ -336,3 +413,16 @@ class ADTPapeletaCuota(models.Model):
             count = self.search_count([('papeleta_id', '=', papeleta.id)]) + 1
             vals['name'] = 'Cuota %s' % count
         return super(ADTPapeletaCuota, self).create(vals)
+
+    def action_mark_cuota_pagado(self):
+        """Marca la(s) cuota(s) como pagada(s) y fuerza recarga de la vista cliente para que se actualicen decoraciones."""
+        for rec in self:
+            if rec.state == 'pagado':
+                continue
+            rec.state = 'pagado'
+            try:
+                rec.papeleta_id.message_post(body=_('Cuota %s marcada como pagada por %s') % (rec.name, self.env.user.display_name))
+            except Exception:
+                _logger.exception('Failed to post message when marking cuota pagada %s', rec.id)
+        # return reload action for client to refresh view and show updated decorations
+        return {'type': 'ir.actions.client', 'tag': 'reload'}

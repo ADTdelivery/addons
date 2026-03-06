@@ -7,7 +7,9 @@
                 <header>
                     <!-- show small badge in header when alert exists -->
                     <button name="action_mark_pagado" type="object" string="Marcar como Pagado" class="btn-success" attrs="{'invisible': [('state', '=', 'pagado')]}"/>
-                    <button name="action_mark_capturar" type="object" string="Mandar a capturar" class="btn-danger" attrs="{'invisible': [('capturado', '=', True)]}"/>                    <field name="state"   widget="statusbar" statusbar_visible="pendiente,pagado"/>
+                    <button name="action_mark_capturar" type="object" string="Mandar a capturar" class="btn-danger" attrs="{'invisible': [('capturado', '=', True)]}"/>
+                    <button name="action_unmark_capturar" type="object" string="Remover captura" class="btn-secondary" attrs="{'invisible': [('capturado', '=', False)]}"/>
+                    <field name="state"   widget="statusbar" statusbar_visible="pendiente,pagado"/>
                 </header>
 
                 <!-- ALERTA: mostrado cuando falten <= 5 días para la fecha de captura -->
@@ -53,32 +55,47 @@
                         <field name="detalle" colspan="2"/>
                     </group>
 
-                    <group string="Evidencias">
+                    <group string="Evidencia de papeleta">
                         <field name="attachment_ids" widget="many2many_binary" nolabel="1" string="Evidencias (Fotos/PDFs)"/>
                     </group>
 
                     <!-- Sección de cuotas: visible cuando el estado sea 'fraccionado' o 'pagado' -->
-                    <!-- Controlada por el campo computado show_fraccionamiento -->
-                    <group attrs="{'invisible': [('payment_method', '!=', 'fraccionado')]}" string="Fraccionamiento">
-                        <field name="cantidad_cuotas"/>
-                        <field name="fecha_inicio_cuotas"/>
-                        <button name="action_generar_cuotas" type="object" string="Generar cuotas" class="oe_highlight"/>
-                        <field name="cuotas_ids">
-                            <tree string="Cuotas">
-                                <field name="name"/>
-                                <field name="due_date"/>
-                                <field name="amount"/>
-                                <field name="state"/>
-                            </tree>
-                            <form string="Cuota">
-                                <group>
+                    <!-- Controlada por el campo payment_method para actualización inmediata en cliente -->
+                    <group attrs="{'invisible': [('payment_method', '!=', 'fraccionado')] }" string="Fraccionamiento">
+                        <group>
+                                <field name="cantidad_cuotas"/>
+                                <field name="fecha_inicio_cuotas"/>
+
+                                <div class="btn-group o_group">
+                                    <button name="action_generar_cuotas" type="object" string="Generar cuotas" class="oe_highlight"/>
+                                    <button name="action_eliminar_cuotas" type="object" string="Eliminar cuotas" class="btn-secondary"/>
+                                </div>
+                        </group>
+
+                        <!-- Lista de cuotas en bloque separado (ancho completo) -->
+                        <group>
+                            <field name="cuotas_ids" nolabel="1">
+                                <tree string="Cuotas" editable="bottom" decoration-danger="state == 'pendiente'" decoration-success="state == 'pagado'">
                                     <field name="name"/>
                                     <field name="due_date"/>
                                     <field name="amount"/>
-                                    <field name="state"/>
-                                </group>
-                            </form>
-                        </field>
+                                    <field name="state" widget="badge"/>
+                                    <button name="action_mark_cuota_pagado" type="object" icon="fa-check" string="Pagar" class="o_inline_button"/>
+                                </tree>
+                                <form string="Cuota">
+                                    <group>
+                                        <field name="name"/>
+                                        <field name="due_date"/>
+                                        <field name="amount"/>
+                                        <field name="state" widget="badge"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </group>
+                    </group>
+
+                    <group string="Evidencias del Fraccionamiento"  attrs="{'invisible': [('payment_method', '!=', 'fraccionado')] }">
+                        <field name="attachment_cuotas_ids" widget="many2many_binary" nolabel="1"/>
                     </group>
 
                     <group string="Prórroga">
@@ -88,7 +105,7 @@
                     </group>
 
                     <group string="Control de Vencimiento">
-                        <field name="fecha_captura" readonly="1"/>
+                        <field name="fecha_captura" readonly="1" invisible="1"/>
                         <field name="fecha_vencimiento_final" readonly="1"/>
                     </group>
 
