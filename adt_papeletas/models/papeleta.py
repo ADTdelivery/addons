@@ -207,6 +207,8 @@ class ADTPapeleta(models.Model):
     def action_generar_cuotas(self):
         """Botón que genera las cuotas manualmente tomando `cantidad_cuotas` y `fecha_inicio_cuotas`.
         Ahora borra las cuotas existentes (si las hay) y las recrea.
+        Si se ejecuta sobre un solo registro, devuelve una acción que reabre el formulario
+        en modal para mostrar los cambios sin refrescar toda la pantalla.
         """
         for rec in self:
             if rec.payment_method != 'fraccionado':
@@ -237,6 +239,26 @@ class ADTPapeleta(models.Model):
                 rec.message_post(body=_('Se generaron %s cuotas.') % (created,))
             except Exception:
                 _logger.exception('Failed to post chatter message after generating cuotas for papeleta %s', rec.id)
+
+        # Si la acción se hizo sobre un único registro, devolvemos una acción
+        # que reabra el formulario de esa papeleta en modal para que el usuario vea
+        # los cambios sin forzar un refresco completo de la página padre.
+        if len(self) == 1:
+            rec = self
+            view = self.env.ref('adt_papeletas.view_adt_papeleta_form', False)
+            action = {
+                'type': 'ir.actions.act_window',
+                'name': _('Papeleta'),
+                'res_model': 'adt.papeleta',
+                'res_id': rec.id,
+                'view_mode': 'form',
+                'views': [(view.id, 'form')] if view else None,
+                # Use 'current' so the client replaces the current modal content
+                # instead of opening a new modal and closing the parent.
+                'target': 'current',
+            }
+            return action
+
         return True
 
     @api.depends('payment_method')
