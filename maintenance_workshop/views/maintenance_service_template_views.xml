@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_maintenance_service_template_tree" model="ir.ui.view">
+        <field name="name">maintenance.work.order.service.template.tree</field>
+        <field name="model">maintenance.work.order.service.template</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="default_unit_price"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_maintenance_service_template_form" model="ir.ui.view">
+        <field name="name">maintenance.work.order.service.template.form</field>
+        <field name="model">maintenance.work.order.service.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="name"/>
+                    <field name="default_unit_price"/>
+                    <field name="description"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_maintenance_service_template" model="ir.actions.act_window">
+        <field name="name">Plantillas de Servicio</field>
+        <field name="res_model">maintenance.work.order.service.template</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_maintenance_service_templates" name="Plantillas de Servicio" parent="menu_maintenance_work_order" action="action_maintenance_service_template"/>
+
+    <!-- Vistas y acción para Servicios (líneas de Mano de Obra) -->
+    <record id="view_maintenance_service_line_tree" model="ir.ui.view">
+        <field name="name">maintenance.work.order.service.tree</field>
+        <field name="model">maintenance.work.order.service</field>
+        <field name="arch" type="xml">
+            <tree string="Servicios de Taller">
+                <field name="name"/>
+                <field name="work_order_id"/>
+                <field name="service_template_id"/>
+                <field name="unit_price"/>
+                <field name="subtotal"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_maintenance_service_line_form" model="ir.ui.view">
+        <field name="name">maintenance.work.order.service.form</field>
+        <field name="model">maintenance.work.order.service</field>
+        <field name="arch" type="xml">
+            <form string="Servicio de Taller">
+                <group>
+                    <field name="service_template_id"/>
+                    <field name="name"/>
+                    <field name="description"/>
+                    <field name="unit_price"/>
+                    <field name="subtotal" readonly="1"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_maintenance_work_order_service" model="ir.actions.act_window">
+        <field name="name">Servicios (Mano de obra)</field>
+        <field name="res_model">maintenance.work.order.service</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_maintenance_service_line_tree"/>
+    </record>
+
+    <menuitem id="menu_maintenance_services" name="Servicios" parent="menu_maintenance_workshop_root" action="action_maintenance_work_order_service" sequence="30" groups="maintenance_workshop.group_workshop_user,base.group_user"/>
+</odoo>

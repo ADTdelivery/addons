@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+from dateutil.relativedelta import relativedelta
 
 class MaintenanceWorkOrder(models.Model):
     _name = 'maintenance.work.order'
@@ -33,6 +34,26 @@ class MaintenanceWorkOrder(models.Model):
     labor_total = fields.Float(string='Total Mano de Obra', compute='_compute_totals', store=True)
     total_amount = fields.Float(string='Total General', compute='_compute_totals', store=True)
 
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+    company_currency_id = fields.Many2one('res.currency', related='company_id.currency_id', string='Moneda', readonly=True)
+
+    # --- Payment responsibility fields (maintenance_workshop specific) ---
+    payer_type = fields.Selection([
+        ('adt', 'ADT Corporación'),
+        ('cliente', 'Cliente'),
+        ('ambos', 'Ambos'),
+    ], string='¿Quién asume el pago?', default='cliente', tracking=True)
+
+    # ADT contribution: user inputs a fixed amount when payer_type == 'ambos'
+    adt_contribution = fields.Monetary(string='Aporte ADT', currency_field='company_currency_id', default=0.0)
+    # Computed final amounts per payer
+    adt_amount = fields.Monetary(string='Monto ADT', compute='_compute_payment_shares', currency_field='company_currency_id', store=True)
+    client_amount = fields.Monetary(string='Monto Cliente', compute='_compute_payment_shares', currency_field='company_currency_id', store=True)
+    adt_note = fields.Text(string='Nota (si ADT asume)')
+
+    # Cronograma de pagos: número de cuotas y líneas
+    payment_schedule_ids = fields.One2many('maintenance.work.order.payment', 'work_order_id', string='Cronograma de Pagos', copy=True)
+
     start_date = fields.Datetime(string='Fecha Inicio')
     end_date = fields.Datetime(string='Fecha Fin')
     service_duration_hours = fields.Float(string='Tiempo de atención (horas)', compute='_compute_duration', store=True)
@@ -46,7 +67,7 @@ class MaintenanceWorkOrder(models.Model):
     mechanic_signature = fields.Binary(string='Firma Mecánico', attachment=True)
     client_signature = fields.Binary(string='Firma Cliente', attachment=True)
 
-    @api.depends('part_ids.subtotal','service_ids.subtotal')
+    @api.depends('part_ids.subtotal', 'service_ids.subtotal')
     def _compute_totals(self):
         for rec in self:
             rec.parts_total = sum(rec.part_ids.mapped('subtotal'))
@@ -79,6 +100,28 @@ class MaintenanceWorkOrder(models.Model):
                     rec.days_in_taller = 0
             else:
                 rec.days_in_taller = 0
+
+    @api.depends('total_amount', 'payer_type', 'adt_contribution')
+    def _compute_payment_shares(self):
+        for rec in self:
+            total = float(rec.total_amount or 0.0)
+            if rec.payer_type == 'adt':
+                # ADT asume todo
+                rec.adt_amount = total
+                rec.client_amount = 0.0
+            elif rec.payer_type == 'cliente':
+                # Cliente asume todo
+                rec.adt_amount = 0.0
+                rec.client_amount = total
+            else:
+                # Ambos: ADT aporta un monto fijo (adt_contribution), el resto lo paga el cliente
+                contrib = float(rec.adt_contribution or 0.0)
+                if contrib < 0:
+                    contrib = 0.0
+                if contrib > total:
+                    contrib = total
+                rec.adt_amount = round(contrib, 2)
+                rec.client_amount = round(total - rec.adt_amount, 2)
 
     def action_start(self):
         for rec in self:
@@ -114,3 +157,36 @@ class MaintenanceWorkOrder(models.Model):
             seq = self.env['ir.sequence'].next_by_code('maintenance.work.order')
             vals['name'] = seq or _('New')
         return super(MaintenanceWorkOrder, self).create(vals)
+
+    @api.onchange('vehicle_id')
+    def _onchange_vehicle_id(self):
+        for rec in self:
+            rec.client_id = False
+            vehicle = rec.vehicle_id
+            if not vehicle:
+                continue
+            # Prefer driver_id if present
+            driver_field = vehicle._fields.get('driver_id')
+            if driver_field:
+                try:
+                    driver = getattr(vehicle, 'driver_id')
+                except Exception:
+                    driver = False
+                if driver:
+                    # if driver is a partner
+                    if driver._name == 'res.partner':
+                        rec.client_id = driver.id
+                        continue
+                    # if driver is a user, use its partner
+                    if driver._name == 'res.users' and hasattr(driver, 'partner_id') and driver.partner_id:
+                        rec.client_id = driver.partner_id.id
+                        continue
+            # Fallback to partner_id
+            if getattr(vehicle, 'partner_id', False):
+                rec.client_id = vehicle.partner_id.id
+                continue
+            # Another possible fallback: owner_id
+            if getattr(vehicle, 'owner_id', False):
+                rec.client_id = vehicle.owner_id.id
+                continue
+
