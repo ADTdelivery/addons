@@ -14,6 +14,7 @@
                             <field name="capture_type"/>
                             <field name="state"/>
                             <field name="payment_state"/>
+                            <button name="action_open_in_modal" type="object" string="Abrir" class="oe_highlight"/>
                         </tree>
                         <form string="Captura">
                             <group>

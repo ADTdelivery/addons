@@ -190,3 +190,17 @@ class MaintenanceWorkOrder(models.Model):
                 rec.client_id = vehicle.owner_id.id
                 continue
 
+    def action_open_in_modal(self):
+        """Return an action that opens the work order form in a modal for the current recordset (single)."""
+        self.ensure_one()
+        view = self.env.ref('maintenance_workshop.view_maintenance_work_order_form', False)
+        action = {
+            'type': 'ir.actions.act_window',
+            'name': _('Orden de Taller'),
+            'res_model': 'maintenance.work.order',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(view.id, 'form')] if view else None,
+            'target': 'new',
+        }
+        return action

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_adt_tvs_punto_autorizado_tree" model="ir.ui.view">
+        <field name="name">adt.tvs.punto.autorizado.tree</field>
+        <field name="model">adt.tvs.punto_autorizado</field>
+        <field name="arch" type="xml">
+            <tree string="Puntos Autorizados">
+                <field name="name"/>
+                <field name="direccion"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_tvs_punto_autorizado_form" model="ir.ui.view">
+        <field name="name">adt.tvs.punto.autorizado.form</field>
+        <field name="model">adt.tvs.punto_autorizado</field>
+        <field name="arch" type="xml">
+            <form string="Punto Autorizado">
+                <group>
+                    <field name="name"/>
+                    <field name="direccion"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_tvs_punto_autorizado" model="ir.actions.act_window">
+        <field name="name">Puntos Autorizados</field>
+        <field name="res_model">adt.tvs.punto_autorizado</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_adt_tvs_puntos_autorizados" name="Puntos Autorizados" parent="menu_adt_tvs_mantenimiento" action="action_adt_tvs_punto_autorizado"/>
+
+</odoo>

@@ -520,6 +520,20 @@ class ADTCapturaRecord(models.Model):
 
     show_desafiliacion_fields = fields.Boolean(string="Show Desafiliacion Fields", compute="_compute_visibility_fields")
 
+    def action_open_in_modal(self):
+        """Open this captura in a modal form view."""
+        self.ensure_one()
+        view = self.env.ref('adt_captura.view_adt_captura_record_form', False)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Captura'),
+            'res_model': 'adt.captura.record',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(view.id, 'form')] if view else None,
+            'target': 'new',
+        }
+
 
 class ADTCapturaAppeal(models.Model):
     _name = 'adt.captura.appeal'

@@ -4,12 +4,22 @@ from odoo.exceptions import UserError, ValidationError
 from datetime import datetime
 
 
+class AdtTvsPuntoAutorizado(models.Model):
+    _name = 'adt.tvs.punto_autorizado'
+    _description = 'Punto Autorizado'
+
+    name = fields.Char(string='Nombre', required=True)
+    direccion = fields.Char(string='Dirección')
+
+
 class AdtTvsMantenimiento(models.Model):
     _name = 'adt.tvs.mantenimiento'
     _description = 'ADT TVS Mantenimiento'
     _rec_name = 'name'
 
     name = fields.Char(string='Número', required=True, copy=False, readonly=True, default=lambda self: _('New'))
+
+    punto_autorizado_id = fields.Many2one('adt.tvs.punto_autorizado', string='Punto Autorizado')
 
     vehicle_id = fields.Many2one('fleet.vehicle', string='Vehículo', required=True)
     motivo_ingreso = fields.Char(string='Motivo de ingreso')
@@ -26,6 +36,12 @@ class AdtTvsMantenimiento(models.Model):
     ], string='Estado', default='in_progress', required=True)
 
     active = fields.Boolean(default=True)
+
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+    company_currency_id = fields.Many2one('res.currency', related='company_id.currency_id', string='Moneda', readonly=True)
+
+    tiene_garantia = fields.Boolean(string='¿Tiene garantía?', default=False)
+    gasto_mantenimiento = fields.Monetary(string='Gasto de Mantenimiento', currency_field='company_currency_id', default=0.0)
 
     @api.model
     def create(self, vals):

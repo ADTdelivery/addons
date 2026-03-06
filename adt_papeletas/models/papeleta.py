@@ -411,6 +411,20 @@ class ADTPapeleta(models.Model):
                 raise UserError('No se pudieron eliminar las cuotas. Revise los logs.')
         return True
 
+    def action_open_in_modal(self):
+        """Open this papeleta in a modal form view."""
+        self.ensure_one()
+        view = self.env.ref('adt_papeletas.view_adt_papeleta_form', False)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Papeleta'),
+            'res_model': 'adt.papeleta',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(view.id, 'form')] if view else None,
+            'target': 'new',
+        }
+
 class ADTPapeletaCuota(models.Model):
     _name = 'adt.papeleta.cuota'
     _description = 'Cuota de Papeleta'

@@ -12,6 +12,7 @@
     'data': [
         'security/ir.model.access.csv',
         'data/adt_tvs_mantenimiento_sequences.xml',
+        'views/adt_tvs_punto_autorizado_views.xml',
         'views/adt_tvs_mantenimiento_menu.xml',
         'views/adt_tvs_mantenimiento_views.xml',
     ],

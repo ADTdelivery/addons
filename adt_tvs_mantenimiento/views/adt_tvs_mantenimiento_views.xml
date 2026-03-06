@@ -21,15 +21,17 @@
         <field name="arch" type="xml">
             <form string="Mantenimiento" create="true" edit="true">
                 <header>
-                    <field name="name"/>
                     <field name="state" widget="statusbar" statusbar_visible="in_progress,done" />
                     <button name="action_finalizar_revision" string="Finalizar revisión" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'in_progress')]}"/>
                 </header>
                 <sheet>
                     <group>
 
+                        <field name="punto_autorizado_id"/>
                         <field name="vehicle_id"/>
                         <field name="motivo_ingreso"/>
+                        <field name="tiene_garantia"/>
+                        <field name="gasto_mantenimiento"/>
 
                     </group>
                     <group>

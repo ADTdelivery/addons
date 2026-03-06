@@ -14,6 +14,7 @@
                             <field name="fecha_papeleta"/>
                             <field name="monto"/>
                             <field name="state"/>
+                            <button name="action_open_in_modal" type="object" string="Abrir" class="oe_highlight"/>
                         </tree>
                         <form string="Papeleta">
                             <group>
