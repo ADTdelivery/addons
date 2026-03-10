@@ -49,7 +49,7 @@ class AdtCapturaLiberarWizard(models.TransientModel):
                         papeleta.write({
                             'state': 'pagado',
                             'fecha_pago': today,
-
+                            'capturado': False,
                         })
                         try:
                             papeleta.message_post(body=_('Papeleta marcada como <b>Pagado</b> al liberar el vehículo por %s') % (self.env.user.display_name,))
@@ -66,8 +66,6 @@ class AdtCapturaLiberarWizard(models.TransientModel):
                 'liberacion_tipo': self.liberacion_tipo,
                 'observaciones': self.observaciones,
             }
-            if self.liberacion_tipo in ('pago_fraccionado', 'pago_papeleta_total'):
-                captura_vals['capturado'] = False
 
             captura.write(captura_vals)
 
