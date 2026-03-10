@@ -53,6 +53,10 @@ class ADTCapturaMora(models.Model):
     # Estado captura
     captura_existente = fields.Boolean(string='Tiene Captura', readonly=True)
 
+    # Mantenimiento TVS
+    en_mantenimiento_tvs = fields.Boolean(string='En Mantenimiento TVS', readonly=True)
+    dias_en_mantenimiento_tvs = fields.Integer(string='Días en Mantenimiento TVS', readonly=True)
+
     # Prioridad de captura (editable en cuenta)
     captura_prioridad = fields.Selection([
         ('', ''),
@@ -126,6 +130,27 @@ class ADTCapturaMora(models.Model):
                         ) THEN true
                         ELSE false
                     END as captura_existente,
+
+                    -- Mantenimiento TVS: ¿el vehículo está actualmente en taller?
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1 FROM adt_tvs_mantenimiento tvs
+                            WHERE tvs.vehicle_id = cuenta.vehiculo_id
+                              AND tvs.state = 'in_progress'
+                              AND tvs.active = true
+                        ) THEN true
+                        ELSE false
+                    END as en_mantenimiento_tvs,
+
+                    -- Días que lleva el vehículo en mantenimiento TVS (0 si no aplica)
+                    COALESCE((
+                        SELECT tvs.days_in_taller FROM adt_tvs_mantenimiento tvs
+                        WHERE tvs.vehicle_id = cuenta.vehiculo_id
+                          AND tvs.state = 'in_progress'
+                          AND tvs.active = true
+                        ORDER BY tvs.date_inicio_revision DESC
+                        LIMIT 1
+                    ), 0) as dias_en_mantenimiento_tvs,
 
                     -- Flags intermedios para determinar origen
                     CASE

@@ -21,6 +21,9 @@
                 <field name="fecha_cronograma"/>
                 <field name="user_id"/>
                 <field name="captura_existente" widget="boolean" string="Capturado"/>
+                <field name="en_mantenimiento_tvs" widget="boolean" string="En TVS"/>
+                <field name="dias_en_mantenimiento_tvs" string="Días TVS"
+                       attrs="{'invisible': [('en_mantenimiento_tvs', '=', False)]}"/>
                 <field name="captura_prioridad" widget="badge"
                        decoration-info="captura_prioridad == 'normal'"
                        decoration-danger="captura_prioridad == 'urgente'"/>
@@ -87,6 +90,9 @@
                             <field name="vehicle_id"/>
                             <field name="gps_chip"/>
                             <field name="gps_activo"/>
+                            <field name="en_mantenimiento_tvs" readonly="1"/>
+                            <field name="dias_en_mantenimiento_tvs" readonly="1"
+                                   attrs="{'invisible': [('en_mantenimiento_tvs', '=', False)]}"/>
                         </group>
                     </group>
 
