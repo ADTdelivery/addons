@@ -1,1 +1,26 @@
-<!-- This file will contain the views for the adt_fleet module -->
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- This file will contain the views for the adt_fleet module -->
+    <record id="fleet_vehicle_model_form_inherit_mototaxi" model="ir.ui.view">
+        <field name="name">fleet.vehicle.model.form.inherit.mototaxi</field>
+        <field name="model">fleet.vehicle.model</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_model_view_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//page[@name='information']" position="inside">
+                <group string="Información Mototaxi"
+                       attrs="{'invisible': [('vehicle_type','!=','mototaxi')]}">
+
+                    <group>
+                           <field name="seats"/>
+                           <field name="doors"/>
+                           <field name="color"/>
+                           <field name="model_year"/>
+                    </group>
+
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

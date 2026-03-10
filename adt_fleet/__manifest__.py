@@ -6,9 +6,10 @@
     'author': 'Your Name',
     'website': 'http://www.example.com',
     'category': 'Fleet',
-    'depends': [],
+    'depends': ['fleet'],
     'data': [
-        'views/fleet_state.xml'
+        'views/fleet_state.xml',
+        'views/adt_fleet_views.xml',
     ],
     'installable': True,
     'application': False,
