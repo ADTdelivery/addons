@@ -306,6 +306,12 @@ class CapturaAPI(http.Controller):
             }
 
             # ── expediente: linked through partner_id ─────────────────────────
+            def _img_url(model_name, rec_id, field_name, has_data):
+                """Return Odoo image URL if the binary field has data, else None."""
+                if not has_data:
+                    return None
+                return '/web/image/%s/%s/%s' % (model_name, rec_id, field_name)
+
             expediente_data = None
             if cuenta.partner_id:
                 Expediente = request.env['adt.expediente'].sudo()
@@ -315,18 +321,159 @@ class CapturaAPI(http.Controller):
                     order='id desc',
                 )
                 if expediente:
+                    eid = expediente.id
+                    emod = 'adt.expediente'
+
                     expediente_data = {
-                        'id': expediente.id,
+                        'id': eid,
                         'name': expediente.display_name or '',
                         'state': expediente.state or '',
-                        'partner_id': {
+                        'cliente_id': {
                             'id': expediente.cliente_id.id,
                             'name': expediente.cliente_id.name or '',
                         } if expediente.cliente_id else None,
+                        'asesora_id': {
+                            'id': expediente.asesora_id.id,
+                            'name': expediente.asesora_id.name or '',
+                        } if expediente.asesora_id else None,
                         'fecha': expediente.fecha.isoformat() if expediente.fecha else None,
                         'vehiculo': expediente.vehiculo or '',
                         'placa': expediente.placa or '',
                         'chasis': expediente.chasis or '',
+
+                        # ── Documento de identidad ────────────────────────────
+                        'documento_identidad': {
+                            'foto_dni_frente': _img_url(emod, eid, 'foto_dni_frente', expediente.foto_dni_frente),
+                            'foto_dni_reverso': _img_url(emod, eid, 'foto_dni_reverso', expediente.foto_dni_reverso),
+                            'estado_foto_dni': expediente.estado_foto_dni or None,
+                            'obs_foto_dni': expediente.obs_foto_dni or None,
+                            'foto_ce_frente': _img_url(emod, eid, 'foto_ce_frente', expediente.foto_ce_frente),
+                            'foto_ce_reverso': _img_url(emod, eid, 'foto_ce_reverso', expediente.foto_ce_reverso),
+                            'estado_foto_ce': expediente.estado_foto_ce or None,
+                            'obs_foto_ce': expediente.obs_foto_ce or None,
+                            'foto_pasaporte_frente': _img_url(emod, eid, 'foto_pasaporte_frente', expediente.foto_pasaporte_frente),
+                            'foto_pasaporte_reverso': _img_url(emod, eid, 'foto_pasaporte_reverso', expediente.foto_pasaporte_reverso),
+                            'estado_foto_pasaporte': expediente.estado_foto_pasaporte or None,
+                            'obs_foto_pasaporte': expediente.obs_foto_pasaporte or None,
+                        },
+
+                        # ── Domicilio ─────────────────────────────────────────
+                        'domicilio': {
+                            'direccion_cliente': expediente.direccion_cliente or None,
+                            'estado_direccion': expediente.estado_direccion or None,
+                            'obs_direccion': expediente.obs_direccion or None,
+                            'tipo_vivienda': expediente.tipo_vivienda or None,
+                            'tiempo_viviendo': expediente.tiempo_viviendo or None,
+                            'propietario_contacto': expediente.propietario_contacto or None,
+                            'foto_vivienda': _img_url(emod, eid, 'foto_vivienda', expediente.foto_vivienda),
+                            'estado_foto_vivienda': expediente.estado_foto_vivienda or None,
+                            'obs_foto_vivienda': expediente.obs_foto_vivienda or None,
+                            'foto_ubicacion_actual': _img_url(emod, eid, 'foto_ubicacion_actual', expediente.foto_ubicacion_actual),
+                            'estado_foto_ubicacion': expediente.estado_foto_ubicacion or None,
+                            'obs_foto_ubicacion': expediente.obs_foto_ubicacion or None,
+                            'foto_fachada_domicilio': _img_url(emod, eid, 'foto_fachada_domicilio', expediente.foto_fachada_domicilio),
+                            'estado_foto_fachada': expediente.estado_foto_fachada or None,
+                            'obs_foto_fachada': expediente.obs_foto_fachada or None,
+                            'foto_contrato_alquiler': _img_url(emod, eid, 'foto_contrato_alquiler', expediente.foto_contrato_alquiler),
+                            'estado_foto_contrato': expediente.estado_foto_contrato or None,
+                            'obs_foto_contrato': expediente.obs_foto_contrato or None,
+                        },
+
+                        # ── Ingresos ──────────────────────────────────────────
+                        'ingresos': {
+                            'foto_ingresos': _img_url(emod, eid, 'foto_ingresos', expediente.foto_ingresos),
+                            'estado_foto_ingresos': expediente.estado_foto_ingresos or None,
+                            'obs_foto_ingresos': expediente.obs_foto_ingresos or None,
+                            'foto_recibo': _img_url(emod, eid, 'foto_recibo', expediente.foto_recibo),
+                            'estado_foto_recibo': expediente.estado_foto_recibo or None,
+                            'obs_foto_recibo': expediente.obs_foto_recibo or None,
+                        },
+
+                        # ── Licencia ──────────────────────────────────────────
+                        'licencia': {
+                            'foto_licencia': _img_url(emod, eid, 'foto_licencia', expediente.foto_licencia),
+                            'estado_foto_licencia': expediente.estado_foto_licencia or None,
+                            'obs_foto_licencia': expediente.obs_foto_licencia or None,
+                        },
+
+                        # ── Mototaxista ───────────────────────────────────────
+                        'mototaxista': {
+                            'foto_moto': _img_url(emod, eid, 'foto_moto', expediente.foto_moto),
+                            'estado_foto_moto': expediente.estado_foto_moto or None,
+                            'obs_foto_moto': expediente.obs_foto_moto or None,
+                            'foto_soat': _img_url(emod, eid, 'foto_soat', expediente.foto_soat),
+                            'estado_foto_soat': expediente.estado_foto_soat or None,
+                            'obs_foto_soat': expediente.obs_foto_soat or None,
+                            'foto_tarjeta_propiedad_frente': _img_url(emod, eid, 'foto_tarjeta_propiedad_frente', expediente.foto_tarjeta_propiedad_frente),
+                            'foto_tarjeta_propiedad_reverso': _img_url(emod, eid, 'foto_tarjeta_propiedad_reverso', expediente.foto_tarjeta_propiedad_reverso),
+                            'estado_foto_tarjeta': expediente.estado_foto_tarjeta or None,
+                            'obs_foto_tarjeta': expediente.obs_foto_tarjeta or None,
+                            'ganancia_diaria_mensual': expediente.ganancia_diaria_mensual or None,
+                            'tiempo_trabajando': expediente.tiempo_trabajando or None,
+                            'moto_empresa': expediente.moto_empresa or None,
+                            'moto_propiedad': expediente.moto_propiedad or None,
+                        },
+
+                        # ── No mototaxista ────────────────────────────────────
+                        'no_mototaxista': {
+                            'foto_lugar_trabajo': _img_url(emod, eid, 'foto_lugar_trabajo', expediente.foto_lugar_trabajo),
+                            'estado_foto_lugar_trabajo': expediente.estado_foto_lugar_trabajo or None,
+                            'obs_foto_lugar_trabajo': expediente.obs_foto_lugar_trabajo or None,
+                            'foto_lugar_negocio': _img_url(emod, eid, 'foto_lugar_negocio', expediente.foto_lugar_negocio),
+                            'estado_foto_lugar_negocio': expediente.estado_foto_lugar_negocio or None,
+                            'obs_foto_lugar_negocio': expediente.obs_foto_lugar_negocio or None,
+                            'foto_boletas': _img_url(emod, eid, 'foto_boletas', expediente.foto_boletas),
+                            'estado_foto_boletas': expediente.estado_foto_boletas or None,
+                            'obs_foto_boletas': expediente.obs_foto_boletas or None,
+                            'foto_estado_cuenta': _img_url(emod, eid, 'foto_estado_cuenta', expediente.foto_estado_cuenta),
+                            'estado_foto_estado_cuenta': expediente.estado_foto_estado_cuenta or None,
+                            'obs_foto_estado_cuenta': expediente.obs_foto_estado_cuenta or None,
+                            'ganancia_diaria_mensual': expediente.ganancia_diaria_mensual_no or None,
+                            'tiempo_trabajando': expediente.tiempo_trabajando_no or None,
+                        },
+
+                        # ── Sentinel ──────────────────────────────────────────
+                        'sentinel': {
+                            'foto_sentinel_1': _img_url(emod, eid, 'foto_sentinel_1', expediente.foto_sentinel_1),
+                            'foto_sentinel_2': _img_url(emod, eid, 'foto_sentinel_2', expediente.foto_sentinel_2),
+                            'estado_foto_sentinel': expediente.estado_foto_sentinel or None,
+                            'obs_foto_sentinel': expediente.obs_foto_sentinel or None,
+                        },
+
+                        # ── Fase final ────────────────────────────────────────
+                        'fase_final': {
+                            'foto_entrega': _img_url(emod, eid, 'foto_entrega', expediente.foto_entrega),
+                            'placa': expediente.placa or None,
+                            'chasis': expediente.chasis or None,
+                        },
+
+                        # ── Referencias ───────────────────────────────────────
+                        'referencias': {
+                            'estado_referencias': expediente.estado_referencias or None,
+                            'obs_referencias': expediente.obs_referencias or None,
+                            'lista': [
+                                {
+                                    'nombre': expediente.ref_1_name or None,
+                                    'telefono': expediente.ref_1_phone or None,
+                                    'vinculo': expediente.ref_1_vinculo or None,
+                                },
+                                {
+                                    'nombre': expediente.ref_2_name or None,
+                                    'telefono': expediente.ref_2_phone or None,
+                                    'vinculo': expediente.ref_2_vinculo or None,
+                                },
+                                {
+                                    'nombre': expediente.ref_3_name or None,
+                                    'telefono': expediente.ref_3_phone or None,
+                                    'vinculo': expediente.ref_3_vinculo or None,
+                                },
+                                {
+                                    'nombre': expediente.ref_4_name or None,
+                                    'telefono': expediente.ref_4_phone or None,
+                                    'vinculo': expediente.ref_4_vinculo or None,
+                                },
+                            ],
+                        },
                     }
 
             # ── papeletas: all for this vehicle ───────────────────────────────
