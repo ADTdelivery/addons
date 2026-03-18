@@ -10,6 +10,77 @@ _logger = logging.getLogger(__name__)
 
 class CapturaAPI(http.Controller):
 
+    # ── Helper: captura summary (count + time since last) ────────────────────
+    def _captura_summary(self, mora_rec, cap_dates_by_vehicle, cap_dates_by_cuenta):
+        """
+        Returns a dict with:
+          - total_capturas      : int  – how many times the vehicle/account was captured
+          - ultima_captura_hace : str  – human-readable time since the latest capture
+                                        e.g. "5 días", "3 meses", "2 años"
+                                        null if never captured
+        """
+        from datetime import date as date_cls
+
+        seen = set()
+        all_dates = []
+
+        for dt in cap_dates_by_vehicle.get(mora_rec.vehicle_id.id if mora_rec.vehicle_id else 0, []):
+            key = id(dt)
+            if key not in seen:
+                seen.add(key)
+                all_dates.append(dt)
+
+        for dt in cap_dates_by_cuenta.get(mora_rec.cuenta_id.id if mora_rec.cuenta_id else 0, []):
+            key = id(dt)
+            if key not in seen:
+                seen.add(key)
+                all_dates.append(dt)
+
+        total = len(all_dates)
+
+        if not all_dates:
+            return {'total_capturas': 0, 'ultima_captura_hace': None}
+
+        latest_dt = max(all_dates)
+        latest_date = latest_dt.date() if hasattr(latest_dt, 'date') else latest_dt
+        today = date_cls.today()
+        delta_days = (today - latest_date).days
+
+        if delta_days < 30:
+            label = '%d %s' % (delta_days, 'día' if delta_days == 1 else 'días')
+        elif delta_days < 365:
+            months = delta_days // 30
+            label = '%d %s' % (months, 'mes' if months == 1 else 'meses')
+        else:
+            years = delta_days // 365
+            label = '%d %s' % (years, 'año' if years == 1 else 'años')
+
+        return {'total_capturas': total, 'ultima_captura_hace': label}
+
+    # ── Helper: días de mora desde la primera cuota retrasada ────────────────
+    def _dias_desde_ultimo_pago(self, cuenta):
+        """
+        Returns the number of days in mora, calculated as:
+            today  -  fecha_cronograma of the OLDEST overdue cuota
+
+        Overdue cuotas are those with state in ('vencido', 'retrasado').
+        Returns None if no overdue cuota exists.
+        """
+        from datetime import date as date_cls
+
+        overdue = cuenta.cuota_ids.filtered(
+            lambda c: c.type == 'cuota'
+            and c.state in ('vencido', 'retrasado')
+            and c.fecha_cronograma
+        )
+        if not overdue:
+            return None
+
+        # Oldest overdue cuota = the one with the earliest fecha_cronograma
+        primera_fecha = min(overdue.mapped('fecha_cronograma'))
+
+        return (date_cls.today() - primera_fecha).days
+
     @http.route(
         '/api/adt/captura/mora',
         type='http',
@@ -109,7 +180,33 @@ class CapturaAPI(http.Controller):
                         'cuotas_saldo': 0.0,
                     }
 
-            # ── serialise ─────────────────────────────────────────────────────
+            # ── pre-fetch adt.captura.record counts & latest date ─────────────
+            vehicle_ids = [r for r in records.mapped('vehicle_id').ids if r]
+            all_cuenta_ids = [r for r in records.mapped('cuenta_id').ids if r]
+            CapturaRecordModel = request.env['adt.captura.record'].sudo()
+
+            # Build lookup dicts: key → list of create_date values
+            cap_dates_by_vehicle = {}   # vehicle_id.id → [datetime, ...]
+            cap_dates_by_cuenta  = {}   # cuenta_id.id  → [datetime, ...]
+
+            if vehicle_ids or all_cuenta_ids:
+                cap_domain = []
+                if vehicle_ids and all_cuenta_ids:
+                    cap_domain = ['|',
+                                  ('vehicle_id', 'in', vehicle_ids),
+                                  ('cuenta_id',  'in', all_cuenta_ids)]
+                elif vehicle_ids:
+                    cap_domain = [('vehicle_id', 'in', vehicle_ids)]
+                else:
+                    cap_domain = [('cuenta_id', 'in', all_cuenta_ids)]
+
+                for cap in CapturaRecordModel.search(cap_domain):
+                    dt = cap.create_date
+                    if cap.vehicle_id:
+                        cap_dates_by_vehicle.setdefault(cap.vehicle_id.id, []).append(dt)
+                    if cap.cuenta_id:
+                        cap_dates_by_cuenta.setdefault(cap.cuenta_id.id, []).append(dt)
+
             result = []
             for rec in records:
                 # vehicle
@@ -159,6 +256,7 @@ class CapturaAPI(http.Controller):
                         'fecha_desembolso': c.fecha_desembolso.isoformat() if c.fecha_desembolso else None,
                     }
 
+                cap_summary = self._captura_summary(rec, cap_dates_by_vehicle, cap_dates_by_cuenta)
                 result.append({
                     'client': {
                         'id': rec.partner_id.id,
@@ -177,6 +275,8 @@ class CapturaAPI(http.Controller):
                     'captura_prioridad': rec.captura_prioridad or '',
                     'en_mantenimiento_tvs': rec.en_mantenimiento_tvs or False,
                     'dias_en_mantenimiento_tvs': rec.dias_en_mantenimiento_tvs or 0,
+                    'total_capturas': cap_summary['total_capturas'],
+                    'ultima_captura_hace': cap_summary['ultima_captura_hace'],
                 })
 
             payload = {
@@ -249,7 +349,7 @@ class CapturaAPI(http.Controller):
     @http.route(
         '/api/adt/captura/mora/detail/cuenta',
         type='http',
-        auth='user',
+        auth='none',
         methods=['GET'],
         csrf=False,
     )
@@ -308,6 +408,7 @@ class CapturaAPI(http.Controller):
                 'fecha_desembolso': cuenta.fecha_desembolso.isoformat() if cuenta.fecha_desembolso else None,
                 'mora_pendiente': self._safe_get(cuenta, 'mora_pendiente', 0.0) or 0.0,
                 'moras_dias_total': self._safe_get(cuenta, 'mora_dias_total', 0) or 0,
+                'dias_mora': self._dias_desde_ultimo_pago(cuenta),
                 'cuotas': cuotas_data,
             }
 
