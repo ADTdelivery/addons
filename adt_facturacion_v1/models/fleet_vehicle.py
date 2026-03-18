@@ -17,13 +17,34 @@ class FleetVehicleFacturacion(models.Model):
         copy=False,
     )
 
-    def action_ver_factura(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Factura',
-            'res_model': 'account.move',
-            'res_id': self.x_id_facturacion.id,
-            'view_mode': 'form',
-            'target': 'current',
-        }
+    # Campos relacionados para mostrar en la pestaña de flota
+    x_facturacion_motor = fields.Char(
+        related='x_id_facturacion.x_facturacion_motor',
+        string='Motor',
+        readonly=True,
+    )
+    x_facturacion_ano_modelo = fields.Integer(
+        related='x_id_facturacion.x_facturacion_ano_modelo',
+        string='Año del Modelo',
+        readonly=True,
+    )
+    x_facturacion_color = fields.Char(
+        related='x_id_facturacion.x_facturacion_color',
+        string='Color',
+        readonly=True,
+    )
+    x_facturacion_dua = fields.Char(
+        related='x_id_facturacion.x_facturacion_dua',
+        string='DUA',
+        readonly=True,
+    )
+    x_facturacion_adjunto_factura = fields.Binary(
+        related='x_id_facturacion.x_facturacion_adjunto_factura',
+        string='Factura Adjunta',
+        readonly=True,
+    )
+    x_facturacion_adjunto_factura_nombre = fields.Char(
+        related='x_id_facturacion.x_facturacion_adjunto_factura_nombre',
+        string='Nombre Factura',
+        readonly=True,
+    )

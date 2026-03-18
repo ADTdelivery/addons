@@ -8,7 +8,21 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
+                <!-- Botón para ir al vehículo creado -->
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <button name="action_ver_vehiculo"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-car"
+                            attrs="{'invisible': [('x_facturacion_vehicle_id', '=', False)]}">
+                        <div class="o_field_widget o_stat_info">
+                            <span class="o_stat_text">Vehículo</span>
+                        </div>
+                    </button>
+                </xpath>
+                <!-- Campos debajo de invoice_vendor_bill_id -->
                 <xpath expr="//field[@name='invoice_vendor_bill_id']" position="after">
+                    <field name="x_facturacion_vehicle_id" invisible="1"/>
                     <field name="x_facturacion_chasis"/>
                     <field name="x_facturacion_modelo_id"/>
                     <field name="x_facturacion_motor"/>
@@ -17,6 +31,28 @@
                     <field name="x_facturacion_dua"/>
                     <field name="x_facturacion_adjunto_factura" filename="x_facturacion_adjunto_factura_nombre"/>
                     <field name="x_facturacion_adjunto_factura_nombre" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Heredar la vista formulario de fleet.vehicle para mostrar pestaña con datos de facturación -->
+        <record id="view_fleet_vehicle_form_adt_facturacion" model="ir.ui.view">
+            <field name="name">fleet.vehicle.form.adt.facturacion</field>
+            <field name="model">fleet.vehicle</field>
+            <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Datos de Facturación" name="adt_facturacion">
+                        <group>
+                            <field name="x_facturacion_motor"/>
+                            <field name="x_facturacion_ano_modelo"/>
+                            <field name="x_facturacion_color"/>
+                            <field name="x_facturacion_dua"/>
+                            <field name="x_id_facturacion"/>
+                            <field name="x_facturacion_adjunto_factura" filename="x_facturacion_adjunto_factura_nombre"/>
+                            <field name="x_facturacion_adjunto_factura_nombre" invisible="1"/>
+                        </group>
+                    </page>
                 </xpath>
             </field>
         </record>
