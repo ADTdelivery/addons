@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         WIZARD: Importación Masiva de Cuotas
+    ═══════════════════════════════════════════════════════════ -->
+    <record id="view_cuotas_masivas_wizard_form" model="ir.ui.view">
+        <field name="name">adt.comercial.cuotas.masivas.wizard.form</field>
+        <field name="model">adt.comercial.cuotas.masivas.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Cuotas Masivas - Importar Excel">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Importación Masiva de Cuotas</h1>
+                        <p class="text-muted">
+                            Sube un archivo Excel (.xls / .xlsx) con los pagos de cuotas.
+                            Las columnas esperadas son: <strong>Referencia Cuenta, # Cuota, Monto Pagado, Fecha Pago, # Operación</strong>.
+                        </p>
+                    </div>
+
+                    <group attrs="{'invisible': [('state', '=', 'done')]}">
+                        <!-- Zona de carga del archivo (drag &amp; drop nativo de Odoo) -->
+                        <group string="Archivo Excel" col="1">
+                            <div class="o_field_widget o_field_binary_file text-center p-4"
+                                 style="border: 2px dashed #adb5bd; border-radius: 8px; background: #f8f9fa; min-height: 150px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                                <i class="fa fa-file-excel-o fa-3x text-success mb-2"/>
+                                <p class="mb-2" style="font-size:1.1em; color:#495057;">
+                                    Arrastra aquí tu archivo Excel o usa el botón de abajo
+                                </p>
+                                <field name="archivo_excel" filename="nombre_archivo"
+                                       widget="binary"
+                                       string="Seleccionar archivo"
+                                       nolabel="1"/>
+                                <field name="nombre_archivo" invisible="1"/>
+                            </div>
+                        </group>
+                    </group>
+
+                    <!-- Resultado del procesamiento -->
+                    <group attrs="{'invisible': [('state', '=', 'draft')]}">
+                        <group string="Resultado del procesamiento" col="1">
+                            <field name="result_message" widget="text" readonly="1" nolabel="1"
+                                   attrs="{'invisible': [('result_message', '=', False)]}"/>
+                        </group>
+                    </group>
+
+                    <field name="state" invisible="1"/>
+                </sheet>
+
+                <footer>
+                    <button string="Importar"
+                            name="action_importar"
+                            type="object"
+                            class="btn btn-primary"
+                            attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <button string="Importar otro archivo"
+                            name="action_reset"
+                            type="object"
+                            class="btn btn-secondary"
+                            attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                    <button string="Cerrar"
+                            special="cancel"
+                            class="btn btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ACTION: Abrir wizard de Cuotas Masivas
+    ═══════════════════════════════════════════════════════════ -->
+    <record id="action_cuotas_masivas_wizard" model="ir.actions.act_window">
+        <field name="name">Cuotas Masivas</field>
+        <field name="res_model">adt.comercial.cuotas.masivas.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="view_id" ref="view_cuotas_masivas_wizard_form"/>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MENU: Cuotas Masivas dentro del menú Comercial
+    ═══════════════════════════════════════════════════════════ -->
+    <menuitem id="adt_comercial_menu_cuotas_masivas"
+              name="Cuotas Masivas"
+              action="action_cuotas_masivas_wizard"
+              parent="menu_adt_comercial"
+              sequence="10"
+              groups="adt_comercial.group_access_adt_comercial"/>
+
+</odoo>

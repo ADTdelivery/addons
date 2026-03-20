@@ -26,6 +26,7 @@
         # 'reports/paperformat.xml',
         'reports/report.xml',
         'reports/reporte_cronograma_cuenta.xml',
+        'views/view_cuotas_masivas.xml',
         'views/report.xml'
     ],
     # 'assets': {
