@@ -2,6 +2,7 @@
 import json
 import logging
 import requests
+from datetime import datetime, timezone, timedelta
 from odoo import http
 from odoo.http import request, Response
 
@@ -119,19 +120,39 @@ class TraccarAPI(http.Controller):
         return devices
 
     def _find_device_by_plate(self, devices, plate):
-        """
-        Step 3 & 4 – Filter devices where device['name'] matches the plate
-        (case-insensitive, stripped).
-
-        Returns:
-            dict – the matched device object, or None if not found.
-        """
+        """Case-insensitive search of device by name (plate)."""
         plate_normalized = plate.strip().upper()
         for device in devices:
             name = (device.get('name') or '').strip().upper()
             if name == plate_normalized:
                 return device
         return None
+
+    @staticmethod
+    def _to_peru_time(utc_iso_str):
+        """
+        Converts a UTC ISO 8601 string (e.g. '2026-03-20T16:20:41.773+00:00')
+        to Peru local time (UTC-5) and returns it in the same ISO 8601 format.
+
+        - Parses the string preserving its UTC offset (no assumption about
+          server timezone).
+        - Applies a fixed UTC-5 offset (Peru does not observe DST).
+        - Returns the adjusted string in ISO 8601 with the -05:00 suffix.
+        - Returns None if the input is missing or cannot be parsed.
+        """
+        if not utc_iso_str:
+            return None
+        try:
+            # Python 3.7+ fromisoformat handles "+00:00" but not "Z"
+            iso_str = utc_iso_str.replace('Z', '+00:00')
+            dt_utc = datetime.fromisoformat(iso_str)
+            # Convert to Peru timezone (UTC-5, fixed offset — no DST)
+            peru_tz = timezone(timedelta(hours=-5))
+            dt_peru = dt_utc.astimezone(peru_tz)
+            return dt_peru.isoformat()
+        except (ValueError, TypeError) as exc:
+            _logger.warning('[Traccar] Could not convert lastUpdate "%s": %s', utc_iso_str, exc)
+            return utc_iso_str  # fallback: return original value unchanged
 
     # ─────────────────────────────────────────────────────────────────────────
     # Public endpoint
@@ -290,7 +311,7 @@ class TraccarAPI(http.Controller):
             'plate': plate,
             'new_device_id': new_device_id,
             'status': new_device.get('status'),
-            'lastUpdate': new_device.get('lastUpdate'),
+            'lastUpdate': self._to_peru_time(new_device.get('lastUpdate')),
         })
 
     # ─────────────────────────────────────────────────────────────────────────
