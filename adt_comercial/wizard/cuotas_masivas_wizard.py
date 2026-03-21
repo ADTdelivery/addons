@@ -292,13 +292,11 @@ class CuotasMasivasWizard(models.TransientModel):
 
     def _find_cuota(self, dni, fecha_pago):
         """
-        Busca la cuota más cercana a pagar para el partner con VAT=dni.
+        Busca la cuota MÁS ANTIGUA pendiente/retrasada para el partner con DNI=dni.
 
-        Estrategia:
-          1. Buscar partner(s) con vat == dni
-          2. Buscar cuenta(s) activas de esos partners
-          3. De esas cuentas, buscar cuotas en estado 'retrasado' o 'pendiente'
-          4. Devolver la cuota cuya fecha_cronograma esté más próxima a fecha_pago
+        La fecha del Excel representa la FECHA DE PAGO, no un criterio de búsqueda.
+        Siempre se paga la cuota más antigua (menor fecha_cronograma) que esté
+        en estado pendiente, retrasado o a_cuenta — de forma consecutiva.
         """
         # Buscar por document_number (adt_clientes_extension) con fallback a vat
         partners = self.env['res.partner'].search([('document_number', '=', dni)])
@@ -314,28 +312,32 @@ class CuotasMasivasWizard(models.TransientModel):
         if not cuentas:
             return None, 'No hay cuentas activas para DNI "%s"' % dni
 
-        cuotas = self.env['adt.comercial.cuotas'].search([
+        # Obtener la cuota más antigua pendiente (orden ascendente por fecha_cronograma)
+        cuota = self.env['adt.comercial.cuotas'].search([
             ('cuenta_id', 'in', cuentas.ids),
             ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
-        ])
-        if not cuotas:
+        ], order='fecha_cronograma asc', limit=1)
+
+        if not cuota:
             return None, 'No hay cuotas pendientes para DNI "%s"' % dni
 
-        # Cuota más próxima a la fecha de pago del extracto
-        ref = fecha_pago or date.today()
-        mejor = min(cuotas, key=lambda c: abs((c.fecha_cronograma - ref).days) if c.fecha_cronograma else 9999)
-        return mejor, None
+        return cuota, None
 
     # ──────────────────────────────────────────────────────────────────────────
     # Registrar pago en la cuota
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _registrar_pago(self, cuota, monto, fecha_pago, numero_operacion):
+    def _registrar_pago(self, cuota_inicial, monto, fecha_pago, numero_operacion):
         """
-        Verifica número de operación duplicado y registra el pago
-        usando el mismo flujo de action_create_payments.
+        Registra el pago en cascada:
+          1. Paga la cuota más antigua con el monto disponible.
+          2. Si el monto cubre la cuota completa y sobra excedente,
+             continúa con la siguiente cuota más antigua.
+          3. Si el monto no alcanza para cubrir la cuota completa,
+             se paga lo que hay y el restante se crea como subcuota.
+          4. Un único número de operación cubre todas las cuotas pagadas.
         """
-        # Verificar duplicado
+        # Verificar duplicado de número de operación
         existing = self.env['account.payment'].search(
             [('ref', '=', numero_operacion)], limit=1
         )
@@ -350,47 +352,85 @@ class CuotasMasivasWizard(models.TransientModel):
         # Obtener journal por defecto
         journal = self.env['account.journal'].search([
             ('type', 'in', ('bank', 'cash')),
-            ('company_id', '=', cuota.company_id.id),
+            ('company_id', '=', cuota_inicial.company_id.id),
         ], limit=1)
         if not journal:
             raise UserError(_('No se encontró un diario de banco/caja para registrar el pago.'))
 
-        saldo_actual = cuota.saldo or 0.0
-        monto_pago = min(monto, saldo_actual) if saldo_actual > 0 else monto
+        cuenta = cuota_inicial.cuenta_id
+        excedente = monto
+        cuotas_pagadas = []
 
-        # Crear account.payment
-        payment_vals = {
-            'payment_type': 'inbound',
-            'journal_id': journal.id,
-            'cuota_id': cuota.id,
-            'ref': numero_operacion,
-            'amount': monto_pago,
-            'date': fecha_pago or date.today(),
-            'partner_id': cuota.cuenta_id.partner_id.id,
-            'mora': 0.0,
-            'mora_state': 'pending',
-        }
-        payment = self.env['account.payment'].create(payment_vals)
-        payment.action_post()
+        # Obtener todas las cuotas pendientes ordenadas de más antigua a más nueva
+        cuotas_pendientes = self.env['adt.comercial.cuotas'].search([
+            ('cuenta_id', '=', cuenta.id),
+            ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
+        ], order='fecha_cronograma asc')
 
-        # Pago parcial → subcuota
-        if monto_pago < saldo_actual:
-            restante = saldo_actual - monto_pago
-            cuota.write({'monto': monto_pago, 'saldo': 0})
-            parent = cuota.parent_id or cuota
-            num_sub = len(parent.child_ids) + 1
-            self.env['adt.comercial.cuotas'].create({
-                'name': '%s-%d' % (parent.name, num_sub),
-                'cuenta_id': cuota.cuenta_id.id,
-                'monto': restante,
-                'saldo': restante,
-                'fecha_cronograma': fecha_pago or date.today(),
-                'periodicidad': cuota.periodicidad,
-                'parent_id': parent.id,
-                'type': 'cuota',
-            })
-        else:
-            cuota.write({'state': 'pagado'})
+        for cuota in cuotas_pendientes:
+            if excedente <= 0:
+                break
+
+            saldo_cuota = cuota.saldo or 0.0
+            if saldo_cuota <= 0:
+                continue
+
+            if excedente >= saldo_cuota:
+                # ── Pago completo de esta cuota ──
+                monto_pago = saldo_cuota
+                excedente = round(excedente - saldo_cuota, 2)
+
+                payment = self.env['account.payment'].create({
+                    'payment_type': 'inbound',
+                    'journal_id': journal.id,
+                    'cuota_id': cuota.id,
+                    'ref': numero_operacion,
+                    'amount': monto_pago,
+                    'date': fecha_pago or date.today(),
+                    'partner_id': cuenta.partner_id.id,
+                    'mora': 0.0,
+                    'mora_state': 'pending',
+                })
+                payment.action_post()
+                cuota.write({'state': 'pagado'})
+                cuotas_pagadas.append(cuota.name)
+
+            else:
+                # ── Pago parcial: excedente < saldo_cuota ──
+                monto_pago = excedente
+                excedente = 0.0
+
+                payment = self.env['account.payment'].create({
+                    'payment_type': 'inbound',
+                    'journal_id': journal.id,
+                    'cuota_id': cuota.id,
+                    'ref': numero_operacion,
+                    'amount': monto_pago,
+                    'date': fecha_pago or date.today(),
+                    'partner_id': cuenta.partner_id.id,
+                    'mora': 0.0,
+                    'mora_state': 'pending',
+                })
+                payment.action_post()
+
+                # Crear subcuota con el restante
+                restante = round(saldo_cuota - monto_pago, 2)
+                cuota.write({'monto': monto_pago})
+
+                parent = cuota.parent_id or cuota
+                num_sub = len(parent.child_ids) + 1
+                self.env['adt.comercial.cuotas'].create({
+                    'name': '%s-%d' % (parent.name, num_sub),
+                    'cuenta_id': cuenta.id,
+                    'monto': restante,
+                    'fecha_cronograma': fecha_pago or date.today(),
+                    'periodicidad': cuota.periodicidad,
+                    'parent_id': parent.id,
+                    'type': 'cuota',
+                })
+                cuotas_pagadas.append('%s (parcial)' % cuota.name)
+
+        return cuotas_pagadas, excedente
 
     # ──────────────────────────────────────────────────────────────────────────
     # Acción principal
@@ -468,13 +508,15 @@ class CuotasMasivasWizard(models.TransientModel):
                     errores.append(_('Fila %d [DNI %s]: %s') % (idx, numero_doc, err_msg))
                     continue
 
-                # ── Registrar pago ──
-                self._registrar_pago(cuota, monto, fecha_pago, num_op)
+                # ── Registrar pago en cascada ──
+                cuotas_pagadas, excedente = self._registrar_pago(cuota, monto, fecha_pago, num_op)
 
                 procesadas += 1
+                detalle_cuotas = ', '.join(cuotas_pagadas) if cuotas_pagadas else '—'
+                excedente_txt = ' | Excedente sin aplicar: %.2f' % excedente if excedente > 0 else ''
                 detalles.append(
-                    '  ✓ Fila %d | DNI %s | Cuota %s | Monto %.2f | Op %s' % (
-                        idx, numero_doc, cuota.name, monto, num_op
+                    '  ✓ Fila %d | DNI %s | Cuotas: [%s] | Monto %.2f | Op %s%s' % (
+                        idx, numero_doc, detalle_cuotas, monto, num_op, excedente_txt
                     )
                 )
 
