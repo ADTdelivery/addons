@@ -312,11 +312,11 @@ class CuotasMasivasWizard(models.TransientModel):
         if not cuentas:
             return None, 'No hay cuentas activas para DNI "%s"' % dni
 
-        # Obtener la cuota más antigua pendiente (orden ascendente por fecha_cronograma)
+        # Cuota más antigua por jerarquía (padre primero, luego hijos, luego siguiente padre)
         cuota = self.env['adt.comercial.cuotas'].search([
             ('cuenta_id', 'in', cuentas.ids),
             ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
-        ], order='fecha_cronograma asc', limit=1)
+        ], order='parent_sort_id asc, id asc', limit=1)
 
         if not cuota:
             return None, 'No hay cuotas pendientes para DNI "%s"' % dni
@@ -361,11 +361,13 @@ class CuotasMasivasWizard(models.TransientModel):
         excedente = monto
         cuotas_pagadas = []
 
-        # Obtener todas las cuotas pendientes ordenadas de más antigua a más nueva
+        # Obtener todas las cuotas pendientes ordenadas por jerarquía:
+        # parent_sort_id agrupa padre e hijos juntos, id mantiene el orden de creación
+        # Esto garantiza: Cuota 7 → Cuota 7-1 → Cuota 8 → Cuota 8-1 → ...
         cuotas_pendientes = self.env['adt.comercial.cuotas'].search([
             ('cuenta_id', '=', cuenta.id),
             ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
-        ], order='fecha_cronograma asc')
+        ], order='parent_sort_id asc, id asc')
 
         for cuota in cuotas_pendientes:
             if excedente <= 0:
