@@ -324,6 +324,47 @@ class CuotasMasivasWizard(models.TransientModel):
         return cuota, None
 
     # ──────────────────────────────────────────────────────────────────────────
+    # Calcular mora (misma lógica que ADTComercialRegisterPayment._compute_mora)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _calcular_mora(self, cuota, fecha_pago, company_id):
+        """
+        Calcula mora y días de mora para una cuota dado la fecha de pago.
+        Retorna (mora, mora_dias).
+        """
+        if not (fecha_pago and cuota.fecha_cronograma):
+            return 0.0, 0
+
+        diff_days = (fecha_pago - cuota.fecha_cronograma).days
+        if diff_days <= 0:
+            return 0.0, 0
+
+        default_factor = float(
+            self.env['ir.config_parameter'].sudo()
+                .get_param('adt_comercial.mora_factor', 2)
+        )
+
+        factors = self.env['adt.cobranza.config.factor'].sudo().search(
+            [('company_id', '=', company_id)],
+            order='id asc',
+            limit=2,
+        )
+
+        # Contar cuotas de la cuenta que ya tienen mora registrada
+        previous_mora_count = len(
+            cuota.cuenta_id.cuota_ids.filtered(lambda c: c.mora_total > 0.0)
+        )
+
+        if not factors:
+            factor = default_factor
+        else:
+            index = min(previous_mora_count, len(factors) - 1)
+            factor = float(factors[index].factor_mora)
+
+        mora = round(diff_days * factor, 2)
+        return mora, diff_days
+
+    # ──────────────────────────────────────────────────────────────────────────
     # Registrar pago en la cuota
     # ──────────────────────────────────────────────────────────────────────────
 
@@ -336,6 +377,8 @@ class CuotasMasivasWizard(models.TransientModel):
           3. Si el monto no alcanza para cubrir la cuota completa,
              se paga lo que hay y el restante se crea como subcuota.
           4. Un único número de operación cubre todas las cuotas pagadas.
+          5. La mora se calcula automáticamente por cada cuota según su
+             fecha_cronograma vs fecha_pago.
         """
         # Verificar duplicado de número de operación
         existing = self.env['account.payment'].search(
@@ -358,6 +401,7 @@ class CuotasMasivasWizard(models.TransientModel):
             raise UserError(_('No se encontró un diario de banco/caja para registrar el pago.'))
 
         cuenta = cuota_inicial.cuenta_id
+        company_id = cuota_inicial.company_id.id
         excedente = monto
         cuotas_pagadas = []
 
@@ -377,6 +421,9 @@ class CuotasMasivasWizard(models.TransientModel):
             if saldo_cuota <= 0:
                 continue
 
+            # Calcular mora automáticamente para esta cuota
+            mora, mora_dias = self._calcular_mora(cuota, fecha_pago, company_id)
+
             if excedente >= saldo_cuota:
                 # ── Pago completo de esta cuota ──
                 monto_pago = saldo_cuota
@@ -390,12 +437,15 @@ class CuotasMasivasWizard(models.TransientModel):
                     'amount': monto_pago,
                     'date': fecha_pago or date.today(),
                     'partner_id': cuenta.partner_id.id,
-                    'mora': 0.0,
+                    'mora': mora,
+                    'mora_dias': mora_dias,
                     'mora_state': 'pending',
                 })
                 payment.action_post()
                 cuota.write({'state': 'pagado'})
-                cuotas_pagadas.append(cuota.name)
+                cuotas_pagadas.append(
+                    '%s%s' % (cuota.name, ' [mora: %.2f]' % mora if mora > 0 else '')
+                )
 
             else:
                 # ── Pago parcial: excedente < saldo_cuota ──
@@ -410,7 +460,8 @@ class CuotasMasivasWizard(models.TransientModel):
                     'amount': monto_pago,
                     'date': fecha_pago or date.today(),
                     'partner_id': cuenta.partner_id.id,
-                    'mora': 0.0,
+                    'mora': mora,
+                    'mora_dias': mora_dias,
                     'mora_state': 'pending',
                 })
                 payment.action_post()
@@ -430,7 +481,9 @@ class CuotasMasivasWizard(models.TransientModel):
                     'parent_id': parent.id,
                     'type': 'cuota',
                 })
-                cuotas_pagadas.append('%s (parcial)' % cuota.name)
+                cuotas_pagadas.append(
+                    '%s (parcial%s)' % (cuota.name, ', mora: %.2f' % mora if mora > 0 else '')
+                )
 
         return cuotas_pagadas, excedente
 
