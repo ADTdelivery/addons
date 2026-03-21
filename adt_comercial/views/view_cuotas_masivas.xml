@@ -8,59 +8,192 @@
         <field name="name">adt.comercial.cuotas.masivas.wizard.form</field>
         <field name="model">adt.comercial.cuotas.masivas.wizard</field>
         <field name="arch" type="xml">
-            <form string="Cuotas Masivas - Importar Excel">
+            <form string="Importación Masiva de Cuotas">
                 <sheet>
-                    <div class="oe_title">
-                        <h1>Importación Masiva de Cuotas</h1>
-                        <p class="text-muted">
-                            Sube un archivo Excel (.xls / .xlsx) con los pagos de cuotas.
-                            Las columnas esperadas son: <strong>Referencia Cuenta, # Cuota, Monto Pagado, Fecha Pago, # Operación</strong>.
-                        </p>
+
+                    <!-- ── Campos invisibles de estado ── -->
+                    <field name="state"          invisible="1"/>
+                    <field name="result_message" invisible="1"/>
+                    <field name="total_filas"    invisible="1"/>
+                    <field name="total_exitosos" invisible="1"/>
+                    <field name="total_errores"  invisible="1"/>
+                    <field name="total_omitidos" invisible="1"/>
+                    <field name="nombre_archivo" invisible="1"/>
+
+                    <!-- ══════════════════════════════════════════════════════
+                         ZONA DE CARGA  (visible solo en estado draft)
+                    ═══════════════════════════════════════════════════════ -->
+                    <div attrs="{'invisible': [('state', '!=', 'draft')]}">
+
+                        <!-- Encabezado -->
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+                            <span style="font-size:28px;">📂</span>
+                            <div>
+                                <h2 style="margin:0; color:#2c3e50;">Importación Masiva de Cuotas</h2>
+                                <p style="margin:4px 0 0; color:#6c757d; font-size:13px;">
+                                    Sube un extracto bancario en Excel (.xlsx / .xls / .csv) y el sistema
+                                    registrará automáticamente los pagos.
+                                </p>
+                            </div>
+                        </div>
+
+                        <hr style="border-color:#dee2e6; margin-bottom:20px;"/>
+
+                        <!-- Zona de carga drag &amp; drop -->
+                        <div style="border:2px dashed #6c757d; border-radius:12px; background:#f8f9fa;
+                                    padding:40px 20px; text-align:center; margin-bottom:20px;">
+                            <div style="font-size:48px; margin-bottom:8px;">📊</div>
+                            <p style="font-size:15px; color:#495057; margin-bottom:4px;">
+                                <strong>Arrastra tu archivo aquí</strong> o usa el botón de abajo
+                            </p>
+                            <p style="font-size:12px; color:#adb5bd; margin-bottom:16px;">
+                                Formatos soportados: <strong>.xlsx</strong> · <strong>.xls</strong> · <strong>.csv</strong>
+                            </p>
+                            <field name="archivo_excel"
+                                   filename="nombre_archivo"
+                                   widget="binary"
+                                   string="Seleccionar archivo"
+                                   nolabel="1"/>
+                        </div>
+
+                        <!-- Formato esperado -->
+                        <div style="background:#e8f4fd; border-left:4px solid #17a2b8; border-radius:6px;
+                                    padding:12px 16px; font-size:12px; color:#0c5460;">
+                            <strong><i class="fa fa-info-circle"/> Formato esperado del archivo:</strong>
+                            <div style="margin-top:8px; overflow-x:auto;">
+                                <table style="border-collapse:collapse; width:100%; font-size:12px;">
+                                    <thead>
+                                        <tr style="background:#bee5eb;">
+                                            <th style="padding:6px 10px; border:1px solid #c5e4ec;">Fecha</th>
+                                            <th style="padding:6px 10px; border:1px solid #c5e4ec;">Descripcion</th>
+                                            <th style="padding:6px 10px; border:1px solid #c5e4ec;">Moneda</th>
+                                            <th style="padding:6px 10px; border:1px solid #c5e4ec;">Monto</th>
+                                            <th style="padding:6px 10px; border:1px solid #c5e4ec;">Numero de Operacion</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr style="background:#fff;">
+                                            <td style="padding:5px 10px; border:1px solid #c5e4ec;">16/03/2026</td>
+                                            <td style="padding:5px 10px; border:1px solid #c5e4ec;">EFECTIVO00000025854906</td>
+                                            <td style="padding:5px 10px; border:1px solid #c5e4ec;">S/</td>
+                                            <td style="padding:5px 10px; border:1px solid #c5e4ec;">364</td>
+                                            <td style="padding:5px 10px; border:1px solid #c5e4ec;">01578020</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p style="margin-top:8px; margin-bottom:0; color:#6c757d;">
+                                La columna <strong>Descripcion</strong> puede contener el DNI al final
+                                (<code>EFECTIVO...12345678</code>) o una placa (<code>EFECTIVO...PLACA4178PC</code>).
+                            </p>
+                        </div>
                     </div>
 
-                    <group attrs="{'invisible': [('state', '=', 'done')]}">
-                        <!-- Zona de carga del archivo (drag &amp; drop nativo de Odoo) -->
-                        <group string="Archivo Excel" col="1">
-                            <div class="o_field_widget o_field_binary_file text-center p-4"
-                                 style="border: 2px dashed #adb5bd; border-radius: 8px; background: #f8f9fa; min-height: 150px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                                <i class="fa fa-file-excel-o fa-3x text-success mb-2"/>
-                                <p class="mb-2" style="font-size:1.1em; color:#495057;">
-                                    Arrastra aquí tu archivo Excel o usa el botón de abajo
-                                </p>
-                                <field name="archivo_excel" filename="nombre_archivo"
-                                       widget="binary"
-                                       string="Seleccionar archivo"
-                                       nolabel="1"/>
-                                <field name="nombre_archivo" invisible="1"/>
+                    <!-- ══════════════════════════════════════════════════════
+                         RESULTADO  (visible después de procesar)
+                    ═══════════════════════════════════════════════════════ -->
+                    <div attrs="{'invisible': [('state', '=', 'draft')]}">
+
+                        <!-- Encabezado resultado -->
+                        <div style="display:flex; align-items:center; justify-content:space-between;
+                                    margin-bottom:12px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:24px;">📊</span>
+                                <h3 style="margin:0; color:#2c3e50;">Resultado del procesamiento</h3>
                             </div>
-                        </group>
-                    </group>
+                            <!-- Badge estado -->
+                            <div attrs="{'invisible': [('total_errores', '!=', 0)]}">
+                                <span style="background:#28a745; color:#fff; padding:5px 14px;
+                                             border-radius:20px; font-size:13px; font-weight:600;">
+                                    ✅ Completado
+                                </span>
+                            </div>
+                            <div attrs="{'invisible': [('total_errores', '=', 0)]}">
+                                <span style="background:#ffc107; color:#212529; padding:5px 14px;
+                                             border-radius:20px; font-size:13px; font-weight:600;">
+                                    ⚠️ Completado con errores
+                                </span>
+                            </div>
+                        </div>
 
-                    <!-- Resultado del procesamiento -->
-                    <group attrs="{'invisible': [('state', '=', 'draft')]}">
-                        <group string="Resultado del procesamiento" col="1">
-                            <field name="result_message" widget="text" readonly="1" nolabel="1"
-                                   attrs="{'invisible': [('result_message', '=', False)]}"/>
-                        </group>
-                    </group>
+                        <!-- Tarjetas resumen -->
+                        <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
 
-                    <field name="state" invisible="1"/>
+                            <div style="flex:1; min-width:110px; background:#d4edda;
+                                        border:1px solid #c3e6cb; border-radius:10px;
+                                        padding:16px; text-align:center;">
+                                <div style="font-size:32px; font-weight:bold; color:#155724; line-height:1;">
+                                    <field name="total_exitosos" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:12px; color:#155724; margin-top:4px;">
+                                    ✅ Exitosos
+                                </div>
+                            </div>
+
+                            <div style="flex:1; min-width:110px; background:#f8d7da;
+                                        border:1px solid #f5c6cb; border-radius:10px;
+                                        padding:16px; text-align:center;">
+                                <div style="font-size:32px; font-weight:bold; color:#721c24; line-height:1;">
+                                    <field name="total_errores" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:12px; color:#721c24; margin-top:4px;">
+                                    ❌ Errores
+                                </div>
+                            </div>
+
+                            <div style="flex:1; min-width:110px; background:#fff3cd;
+                                        border:1px solid #ffeeba; border-radius:10px;
+                                        padding:16px; text-align:center;">
+                                <div style="font-size:32px; font-weight:bold; color:#856404; line-height:1;">
+                                    <field name="total_omitidos" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:12px; color:#856404; margin-top:4px;">
+                                    ⏭ Omitidos
+                                </div>
+                            </div>
+
+                            <div style="flex:1; min-width:110px; background:#d1ecf1;
+                                        border:1px solid #bee5eb; border-radius:10px;
+                                        padding:16px; text-align:center;">
+                                <div style="font-size:32px; font-weight:bold; color:#0c5460; line-height:1;">
+                                    <field name="total_filas" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:12px; color:#0c5460; margin-top:4px;">
+                                    📦 Total filas
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Tabla detalle HTML -->
+                        <div style="border:1px solid #dee2e6; border-radius:8px; overflow:hidden;
+                                    max-height:450px; overflow-y:auto;">
+                            <field name="result_html" readonly="1" nolabel="1"
+                                   widget="html" sanitize="0"/>
+                        </div>
+
+                    </div>
+
                 </sheet>
 
                 <footer>
-                    <button string="Importar"
+                    <!-- Botón importar (solo en draft) -->
+                    <button string="🚀 Importar pagos"
                             name="action_importar"
                             type="object"
                             class="btn btn-primary"
                             attrs="{'invisible': [('state', '!=', 'draft')]}"/>
-                    <button string="Importar otro archivo"
+
+                    <!-- Botón importar otro (después de procesar) -->
+                    <button string="📂 Importar otro archivo"
                             name="action_reset"
                             type="object"
                             class="btn btn-secondary"
                             attrs="{'invisible': [('state', '=', 'draft')]}"/>
+
                     <button string="Cerrar"
                             special="cancel"
-                            class="btn btn-secondary"/>
+                            class="btn btn-light"/>
                 </footer>
             </form>
         </field>

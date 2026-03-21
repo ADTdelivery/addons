@@ -120,6 +120,15 @@ class CuotasMasivasWizard(models.TransientModel):
         ('error', 'Error'),
     ], default='draft', string='Estado')
 
+    # ── Contadores resumen ──
+    total_filas     = fields.Integer(string='Total filas', readonly=True)
+    total_exitosos  = fields.Integer(string='Exitosos', readonly=True)
+    total_errores   = fields.Integer(string='Errores', readonly=True)
+    total_omitidos  = fields.Integer(string='Omitidos', readonly=True)
+
+    # ── Resultado visual HTML ──
+    result_html = fields.Html(string='Resultado detallado', readonly=True, sanitize=False)
+
     # ──────────────────────────────────────────────────────────────────────────
     # Leer Excel
     # ──────────────────────────────────────────────────────────────────────────
@@ -506,14 +515,18 @@ class CuotasMasivasWizard(models.TransientModel):
         try:
             rows = self._read_rows(file_data, filename)
         except Exception as e:
-            self.state = 'error'
-            self.result_message = _('Error al leer el archivo: %s') % str(e)
+            self.write({
+                'state': 'error',
+                'result_message': _('Error al leer el archivo: %s') % str(e),
+                'result_html': '<div class="alert alert-danger"><i class="fa fa-times-circle"/> %s</div>' % str(e),
+            })
             return self._reopen()
 
-        procesadas = 0
+        # ── Estructuras de resultado ──
+        filas_exitosas = []   # {'fila': N, 'doc': '...', 'cuotas': '...', 'monto': X, 'op': '...'}
+        filas_error    = []   # {'fila': N, 'doc': '...', 'msg': '...'}
         omitidas = 0
-        errores = []
-        detalles = []
+        total_filas = len([r for r in rows if r and any(r)])
 
         for idx, row in enumerate(rows, start=2):
             try:
@@ -523,7 +536,6 @@ class CuotasMasivasWizard(models.TransientModel):
                 # ── Columnas: Fecha | Descripcion | Moneda | Monto | Numero Op ──
                 fecha_raw   = row[0] if len(row) > 0 else None
                 descripcion = str(row[1]).strip() if len(row) > 1 and row[1] else ''
-                # moneda       = row[2]  (no se usa en la lógica)
                 monto_raw   = row[3] if len(row) > 3 else None
                 num_op      = str(row[4]).strip() if len(row) > 4 and row[4] else ''
 
@@ -537,8 +549,13 @@ class CuotasMasivasWizard(models.TransientModel):
                 if not descripcion:
                     omitidas += 1
                     continue
+
                 if monto <= 0:
-                    errores.append(_('Fila %d: monto inválido (%s), se omite.') % (idx, monto_raw))
+                    filas_error.append({
+                        'fila': idx,
+                        'doc': '—',
+                        'msg': 'Monto inválido (%s)' % monto_raw,
+                    })
                     continue
 
                 # ── Extracción ──
@@ -547,12 +564,10 @@ class CuotasMasivasWizard(models.TransientModel):
                 if tipo_doc == 'placa':
                     tipo_doc, numero_doc = resolve_placa_to_dni(self.env, numero_doc)
 
-                # Solo procesar filas que tengan DNI o PLACA resoluble
                 if tipo_doc == 'unknown' or not numero_doc:
                     omitidas += 1
                     continue
 
-                # Si después de resolver la placa sigue siendo 'placa' (no se encontró DNI)
                 if tipo_doc == 'placa':
                     omitidas += 1
                     continue
@@ -560,39 +575,178 @@ class CuotasMasivasWizard(models.TransientModel):
                 # ── Buscar cuota ──
                 cuota, err_msg = self._find_cuota(numero_doc, fecha_pago)
                 if err_msg:
-                    errores.append(_('Fila %d [DNI %s]: %s') % (idx, numero_doc, err_msg))
+                    filas_error.append({
+                        'fila': idx,
+                        'doc': 'DNI %s' % numero_doc,
+                        'msg': err_msg,
+                    })
                     continue
 
                 # ── Registrar pago en cascada ──
                 cuotas_pagadas, excedente = self._registrar_pago(cuota, monto, fecha_pago, num_op)
 
-                procesadas += 1
                 detalle_cuotas = ', '.join(cuotas_pagadas) if cuotas_pagadas else '—'
-                excedente_txt = ' | Excedente sin aplicar: %.2f' % excedente if excedente > 0 else ''
-                detalles.append(
-                    '  ✓ Fila %d | DNI %s | Cuotas: [%s] | Monto %.2f | Op %s%s' % (
-                        idx, numero_doc, detalle_cuotas, monto, num_op, excedente_txt
-                    )
-                )
+                excedente_txt = ' | Excedente: S/ %.2f' % excedente if excedente > 0 else ''
+                filas_exitosas.append({
+                    'fila': idx,
+                    'doc': 'DNI %s' % numero_doc,
+                    'cuotas': detalle_cuotas + excedente_txt,
+                    'monto': monto,
+                    'op': num_op,
+                })
 
             except Exception as e:
-                errores.append(_('Fila %d: Error — %s') % (idx, str(e)))
+                filas_error.append({
+                    'fila': idx,
+                    'doc': '—',
+                    'msg': str(e),
+                })
                 _logger.exception('CuotasMasivas: error en fila %d', idx)
 
-        # ── Resultado ──
-        lines = ['✅ Pagos registrados: %d' % procesadas]
-        if omitidas:
-            lines.append('⏭ Filas sin DNI/placa reconocible omitidas: %d' % omitidas)
-        if detalles:
-            lines.append('\nDetalle:')
-            lines.extend(detalles)
-        if errores:
-            lines.append('\n⚠️ Errores (%d):' % len(errores))
-            lines.extend(errores)
+        # ── Construir HTML ──
+        html = self._build_result_html(
+            total_filas, filas_exitosas, filas_error, omitidas
+        )
 
-        self.result_message = '\n'.join(lines)
-        self.state = 'done' if procesadas > 0 and not errores else ('error' if errores else 'done')
+        # Texto plano para result_message (compatibilidad)
+        lines = ['Pagos registrados: %d | Errores: %d | Omitidos: %d' % (
+            len(filas_exitosas), len(filas_error), omitidas
+        )]
+        self.write({
+            'total_filas':    total_filas,
+            'total_exitosos': len(filas_exitosas),
+            'total_errores':  len(filas_error),
+            'total_omitidos': omitidas,
+            'result_message': '\n'.join(lines),
+            'result_html':    html,
+            'state': 'done' if not filas_error else 'error',
+        })
         return self._reopen()
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Builder HTML del resultado
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _build_result_html(self, total_filas, exitosas, errores, omitidas):
+        total_procesadas = len(exitosas) + len(errores)
+        pct = int(total_procesadas * 100 / total_filas) if total_filas else 100
+        bar_color = '#28a745' if not errores else ('#ffc107' if exitosas else '#dc3545')
+
+        # ── Barra de progreso ──
+        barra = '''
+        <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; color:#6c757d; margin-bottom:4px;">
+                <span><i class="fa fa-tasks"/> Filas procesadas: <strong>{procesadas} / {total}</strong></span>
+                <span><strong>{pct}%</strong></span>
+            </div>
+            <div style="background:#e9ecef; border-radius:8px; height:14px; overflow:hidden;">
+                <div style="width:{pct}%; background:{color}; height:100%; border-radius:8px;
+                            transition:width 0.4s ease;"></div>
+            </div>
+        </div>
+        '''.format(procesadas=total_procesadas, total=total_filas, pct=pct, color=bar_color)
+
+        # ── Tarjetas resumen ──
+        resumen = '''
+        <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:120px; background:#d4edda; border:1px solid #c3e6cb;
+                        border-radius:8px; padding:14px; text-align:center;">
+                <div style="font-size:28px; font-weight:bold; color:#155724;">{exitosas}</div>
+                <div style="font-size:12px; color:#155724;"><i class="fa fa-check-circle"/> Exitosos</div>
+            </div>
+            <div style="flex:1; min-width:120px; background:#f8d7da; border:1px solid #f5c6cb;
+                        border-radius:8px; padding:14px; text-align:center;">
+                <div style="font-size:28px; font-weight:bold; color:#721c24;">{errores}</div>
+                <div style="font-size:12px; color:#721c24;"><i class="fa fa-times-circle"/> Errores</div>
+            </div>
+            <div style="flex:1; min-width:120px; background:#fff3cd; border:1px solid #ffeeba;
+                        border-radius:8px; padding:14px; text-align:center;">
+                <div style="font-size:28px; font-weight:bold; color:#856404;">{omitidas}</div>
+                <div style="font-size:12px; color:#856404;"><i class="fa fa-minus-circle"/> Omitidos</div>
+            </div>
+            <div style="flex:1; min-width:120px; background:#d1ecf1; border:1px solid #bee5eb;
+                        border-radius:8px; padding:14px; text-align:center;">
+                <div style="font-size:28px; font-weight:bold; color:#0c5460;">{total}</div>
+                <div style="font-size:12px; color:#0c5460;"><i class="fa fa-list"/> Total filas</div>
+            </div>
+        </div>
+        '''.format(
+            exitosas=len(exitosas), errores=len(errores),
+            omitidas=omitidas, total=total_filas
+        )
+
+        # ── Tabla de resultados ──
+        filas_html = ''
+
+        # Exitosas
+        for r in exitosas:
+            filas_html += '''
+            <tr style="background:#f8fff8;">
+                <td style="padding:8px 10px; text-align:center;">
+                    <span style="background:#28a745; color:#fff; border-radius:12px;
+                                 padding:2px 8px; font-size:11px;">✅ Éxito</span>
+                </td>
+                <td style="padding:8px 10px; color:#6c757d; font-size:13px;">{fila}</td>
+                <td style="padding:8px 10px; font-weight:500;">{doc}</td>
+                <td style="padding:8px 10px; font-size:12px; color:#495057;">{cuotas}</td>
+                <td style="padding:8px 10px; font-weight:600; color:#155724;">S/ {monto:.2f}</td>
+                <td style="padding:8px 10px; font-size:12px; color:#6c757d;">{op}</td>
+            </tr>
+            '''.format(**r)
+
+        # Errores
+        for r in errores:
+            filas_html += '''
+            <tr style="background:#fff8f8;">
+                <td style="padding:8px 10px; text-align:center;">
+                    <span style="background:#dc3545; color:#fff; border-radius:12px;
+                                 padding:2px 8px; font-size:11px;">❌ Error</span>
+                </td>
+                <td style="padding:8px 10px; color:#6c757d; font-size:13px;">{fila}</td>
+                <td style="padding:8px 10px; font-weight:500;">{doc}</td>
+                <td colspan="3" style="padding:8px 10px; font-size:12px; color:#721c24;">{msg}</td>
+            </tr>
+            '''.format(**r)
+
+        if not filas_html:
+            filas_html = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#6c757d;">Sin resultados</td></tr>'
+
+        tabla = '''
+        <div style="border:1px solid #dee2e6; border-radius:8px; overflow:hidden;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="background:#343a40; color:#fff;">
+                        <th style="padding:10px; width:90px;">Estado</th>
+                        <th style="padding:10px; width:60px;">Fila</th>
+                        <th style="padding:10px;">Documento</th>
+                        <th style="padding:10px;">Cuotas pagadas</th>
+                        <th style="padding:10px; width:100px;">Monto</th>
+                        <th style="padding:10px; width:120px;"># Operación</th>
+                    </tr>
+                </thead>
+                <tbody>{filas}</tbody>
+            </table>
+        </div>
+        '''.format(filas=filas_html)
+
+        estado_badge = (
+            '<span style="background:#28a745;color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;">✅ Completado</span>'
+            if not errores else
+            '<span style="background:#ffc107;color:#212529;padding:4px 12px;border-radius:20px;font-size:13px;">⚠️ Completado con errores</span>'
+        )
+
+        return '''
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; padding:4px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <h4 style="margin:0; color:#343a40;"><i class="fa fa-bar-chart"/> Resultado del procesamiento</h4>
+                {badge}
+            </div>
+            {barra}
+            {resumen}
+            <h5 style="color:#343a40; margin:16px 0 8px;"><i class="fa fa-table"/> Detalle de registros</h5>
+            {tabla}
+        </div>
+        '''.format(badge=estado_badge, barra=barra, resumen=resumen, tabla=tabla)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Helpers de navegación
@@ -611,9 +765,14 @@ class CuotasMasivasWizard(models.TransientModel):
         """Reinicia el wizard para importar otro archivo."""
         self.ensure_one()
         self.write({
-            'archivo_excel': False,
+            'archivo_excel':  False,
             'nombre_archivo': False,
             'result_message': False,
-            'state': 'draft',
+            'result_html':    False,
+            'total_filas':    0,
+            'total_exitosos': 0,
+            'total_errores':  0,
+            'total_omitidos': 0,
+            'state':          'draft',
         })
         return self._reopen()
