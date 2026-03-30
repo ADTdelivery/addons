@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from odoo import http
 from odoo.http import request, Response
 
@@ -1133,3 +1134,325 @@ class CapturaAPI(http.Controller):
                 mimetype='application/json',
             )
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # POST /api/adt/captura/record
+    # Create a new adt.captura.record from a mobile/frontend form.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    @http.route(
+        '/api/adt/captura/record',
+        type='json',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+    )
+    def create_captura_record(self, **kwargs):
+        """
+        Plain REST endpoint. Send a flat JSON body – no jsonrpc wrapper needed:
+
+            POST /api/adt/captura/record
+            Content-Type: application/json
+
+            {
+                "tipo_captura": "inmediata",
+                "moto_recogida": false,
+                "motivo_no_recogida": "Cliente ausente",
+                "vehiculo_id": 120,
+                "registrado_por": 7
+            }
+
+        Odoo's JSON dispatcher always stores the parsed body in
+        request.jsonrequest, regardless of whether the jsonrpc envelope is
+        present. Reading from there makes both flat JSON and jsonrpc+params
+        formats work transparently.
+        """
+        from odoo.exceptions import UserError
+
+        def _err(msg, code=400):
+            raise UserError('[%s] %s' % (code, msg))
+
+        # request.jsonrequest is the full parsed body dict.
+        # For a flat body  { "tipo_captura": ... }  it IS the payload.
+        # For a jsonrpc body { "jsonrpc":..., "params": {...} }  Odoo already
+        # unwraps params into kwargs, but we prefer the unified approach below.
+        body = request.jsonrequest or {}
+
+        # If the client sent a proper jsonrpc envelope, params are in body['params']
+        # AND already in kwargs. Prefer kwargs when available (jsonrpc path),
+        # otherwise fall back to reading directly from the flat body.
+        def _get(key):
+            if key in kwargs:
+                return kwargs[key]
+            return body.get(key)
+
+        tipo_captura       = _get('tipo_captura')
+        moto_recogida      = _get('moto_recogida')
+        motivo_no_recogida = (_get('motivo_no_recogida') or '').strip()
+        vehiculo_id_raw    = _get('vehiculo_id')
+        registrado_por     = _get('registrado_por')
+
+        # ── Validate tipo_captura ─────────────────────────────────────────────
+        if not tipo_captura or tipo_captura not in ('inmediata', 'compromiso'):
+            _err('tipo_captura debe ser "inmediata" o "compromiso".')
+
+        # ── Validate vehiculo_id ──────────────────────────────────────────────
+        if vehiculo_id_raw is None:
+            _err('vehiculo_id es requerido.')
+        try:
+            vehiculo_id_int = int(vehiculo_id_raw)
+        except (ValueError, TypeError):
+            _err('vehiculo_id debe ser un entero.')
+
+        vehicle = request.env['fleet.vehicle'].sudo().browse(vehiculo_id_int)
+        if not vehicle.exists():
+            _err('El vehículo con id %s no existe en el sistema.' % vehiculo_id_int, 404)
+
+        # ── Validate registrado_por ───────────────────────────────────────────
+        if registrado_por is None:
+            _err('registrado_por es requerido.')
+        try:
+            registrado_por_int = int(registrado_por)
+        except (ValueError, TypeError):
+            _err('registrado_por debe ser un entero (ID de usuario).')
+
+        user = request.env['res.users'].sudo().browse(registrado_por_int)
+        if not user.exists():
+            _err('El usuario con id %s no existe en el sistema.' % registrado_por_int, 404)
+
+        # ── Validate moto_recogida / motivo_no_recogida ───────────────────────
+        if moto_recogida is True or moto_recogida == 1:
+            moto_recogida      = True
+            motivo_no_recogida = False
+        else:
+            moto_recogida = False
+            if not motivo_no_recogida:
+                _err('motivo_no_recogida es requerido cuando moto_recogida es false.', 422)
+
+        # ── Resolve partner / cuenta from vehicle ─────────────────────────────
+        CuentaModel = request.env['adt.comercial.cuentas'].sudo()
+        cuenta = CuentaModel.search([('vehiculo_id', '=', vehicle.id)], limit=1, order='id desc')
+
+        if cuenta and cuenta.partner_id:
+            partner_id = cuenta.partner_id.id
+            cuenta_id  = cuenta.id
+            cliente_id = partner_id
+        elif vehicle.driver_id:
+            partner_id = vehicle.driver_id.id
+            cuenta_id  = None
+            cliente_id = partner_id
+        else:
+            _err('No se pudo determinar el cliente para el vehículo id=%s.' % vehiculo_id_int, 422)
+
+        if not cuenta_id:
+            _err('No existe una cuenta comercial asociada al vehículo id=%s.' % vehiculo_id_int, 422)
+
+        # ── Build vals & create ───────────────────────────────────────────────
+        vals = {
+            'capture_type'  : tipo_captura,
+            'moto_recogida' : moto_recogida,
+            'partner_id'    : partner_id,
+            'cuenta_id'     : cuenta_id,
+            'capturador_id' : registrado_por_int,
+        }
+        if motivo_no_recogida:
+            vals['motivo_no_recogida'] = motivo_no_recogida
+
+        captura = request.env['adt.captura.record'].sudo().create(vals)
+
+        fecha_registro_str = None
+        if captura.create_date:
+            try:
+                fecha_registro_str = captura.create_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+            except Exception:
+                fecha_registro_str = str(captura.create_date)
+
+        return {
+            'id'                : captura.id,
+            'tipo_captura'      : captura.capture_type,
+            'moto_recogida'     : captura.moto_recogida,
+            'motivo_no_recogida': captura.motivo_no_recogida or None,
+            'vehiculo_id'       : vehicle.id,
+            'cliente_id'        : cliente_id,
+            'registrado_por'    : registrado_por_int,
+            'fecha_registro'    : fecha_registro_str,
+            'evidencias_status' : 'pending',
+        }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # POST /api/adt/captura/record/<int:captura_id>/evidencias
+    # Upload evidence files (images / videos) asynchronously.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # Simple in-memory status registry (process-local).
+    # For multi-worker setups, replace with a DB-backed status field.
+    _evidencia_status = {}
+
+    @http.route(
+        '/api/adt/captura/record/<int:captura_id>/evidencias',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+    )
+    def upload_evidencias(self, captura_id, **kwargs):
+        """
+        Uploads evidence files (photos / videos) to an existing adt.captura.record.
+
+        The endpoint returns immediately with status="processing" and processes
+        the files in a background thread so the client is never blocked.
+
+        Accepted MIME types:
+            images : image/jpeg, image/png, image/webp
+            videos : video/mp4, video/quicktime, video/x-msvideo
+
+        Multipart fields:
+            files[]  – one or more file upload parts
+
+        Success – 202 Accepted:
+        {
+            "captura_id": <int>,
+            "evidencias_status": "processing",
+            "files_received": <int>
+        }
+        """
+        ALLOWED_MIME = {
+            'image/jpeg', 'image/png', 'image/webp',
+            'video/mp4', 'video/quicktime', 'video/x-msvideo',
+        }
+
+        try:
+            # Verify the capture record exists
+            captura = request.env['adt.captura.record'].sudo().browse(captura_id)
+            if not captura.exists():
+                return Response(
+                    json.dumps({'error': 'Registro de captura id=%s no encontrado' % captura_id, 'code': 404}),
+                    status=404,
+                    mimetype='application/json',
+                )
+
+            # Collect uploaded files
+            files = request.httprequest.files.getlist('files[]') or request.httprequest.files.getlist('files')
+            if not files:
+                return Response(
+                    json.dumps({'error': 'No se recibieron archivos. Use el campo multipart "files[]".', 'code': 400}),
+                    status=400,
+                    mimetype='application/json',
+                )
+
+            # Validate MIME types up front (fast check before spawning thread)
+            invalid = [f.filename for f in files if f.content_type not in ALLOWED_MIME]
+            if invalid:
+                return Response(
+                    json.dumps({
+                        'error'            : 'Tipo de archivo no permitido: %s' % ', '.join(invalid),
+                        'tipos_permitidos' : list(ALLOWED_MIME),
+                        'code'             : 415,
+                    }),
+                    status=415,
+                    mimetype='application/json',
+                )
+
+            # Read file bytes while in the request context (must happen before thread)
+            files_data = []
+            for f in files:
+                files_data.append({
+                    'filename'    : f.filename,
+                    'mimetype'    : f.content_type,
+                    'data'        : f.read(),
+                })
+
+            # Mark status as processing
+            CapturaAPI._evidencia_status[captura_id] = 'processing'
+
+            # ── Background thread: save attachments ───────────────────────────
+            db      = request.env.cr.dbname
+            uid     = request.env.uid or request.env.ref('base.user_admin').id
+            context = dict(request.env.context)
+
+            def _save_attachments(db, uid, context, captura_id, files_data):
+                try:
+                    import odoo
+                    with odoo.api.Environment.manage():
+                        with odoo.registry(db).cursor() as cr:
+                            env = odoo.api.Environment(cr, uid, context)
+                            captura = env['adt.captura.record'].browse(captura_id)
+                            if not captura.exists():
+                                _logger.warning('Background upload: captura id=%s not found', captura_id)
+                                CapturaAPI._evidencia_status[captura_id] = 'failed'
+                                return
+                            import base64
+                            attachment_ids = []
+                            for f in files_data:
+                                att = env['ir.attachment'].create({
+                                    'name'      : f['filename'],
+                                    'datas'     : base64.b64encode(f['data']).decode(),
+                                    'mimetype'  : f['mimetype'],
+                                    'res_model' : 'adt.captura.record',
+                                    'res_id'    : captura_id,
+                                })
+                                attachment_ids.append(att.id)
+                            # Link to evidencia_archivos (Many2many)
+                            captura.write({
+                                'evidencia_archivos': [(4, att_id) for att_id in attachment_ids],
+                            })
+                            cr.commit()
+                    CapturaAPI._evidencia_status[captura_id] = 'completed'
+                    _logger.info('Background upload completed for captura id=%s (%s files)', captura_id, len(files_data))
+                except Exception:
+                    CapturaAPI._evidencia_status[captura_id] = 'failed'
+                    _logger.exception('Background upload failed for captura id=%s', captura_id)
+
+            t = threading.Thread(
+                target=_save_attachments,
+                args=(db, uid, context, captura_id, files_data),
+                daemon=True,
+            )
+            t.start()
+
+            return Response(
+                json.dumps({
+                    'captura_id'       : captura_id,
+                    'evidencias_status': 'processing',
+                    'files_received'   : len(files_data),
+                }, ensure_ascii=False),
+                status=202,
+                mimetype='application/json',
+            )
+
+        except Exception as e:
+            _logger.exception('Error in POST /api/adt/captura/record/%s/evidencias: %s', captura_id, e)
+            CapturaAPI._evidencia_status[captura_id] = 'failed'
+            return Response(
+                json.dumps({'error': str(e), 'code': 500}),
+                status=500,
+                mimetype='application/json',
+            )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # GET /api/adt/captura/record/<int:captura_id>/evidencias/status
+    # Poll the background upload status for a given captura.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    @http.route(
+        '/api/adt/captura/record/<int:captura_id>/evidencias/status',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+    )
+    def evidencias_status(self, captura_id, **kwargs):
+        """
+        Returns the current upload status for the given capture record.
+
+        States:
+            pending     – no upload started yet
+            processing  – background thread is running
+            completed   – all files saved successfully
+            failed      – background thread raised an exception
+        """
+        status = CapturaAPI._evidencia_status.get(captura_id, 'pending')
+        return Response(
+            json.dumps({'captura_id': captura_id, 'evidencias_status': status}),
+            status=200,
+            mimetype='application/json',
+        )

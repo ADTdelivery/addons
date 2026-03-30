@@ -8,6 +8,104 @@ from datetime import datetime, date, timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Excel writer (stdlib puro — no requiere openpyxl)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _build_xlsx_bytes(headers, rows):
+    """
+    Genera un archivo .xlsx mínimo usando zipfile + xml.etree (stdlib puro).
+    headers: lista de strings (cabecera)
+    rows:    lista de listas (filas de datos)
+    Devuelve bytes del .xlsx.
+    """
+    NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
+
+    # Compartir strings para reducir tamaño
+    shared = []
+    shared_map = {}
+
+    def _si(text):
+        key = str(text)
+        if key not in shared_map:
+            shared_map[key] = len(shared)
+            shared.append(key)
+        return shared_map[key]
+
+    # Construir filas XML
+    all_rows = [headers] + [list(r) for r in rows]
+    row_xmls = []
+    for r_idx, row in enumerate(all_rows, start=1):
+        cells = []
+        for c_idx, val in enumerate(row):
+            col_letter = chr(ord('A') + c_idx)
+            ref = '%s%d' % (col_letter, r_idx)
+            if val is None:
+                cells.append('<c r="%s" t="s"><v>%d</v></c>' % (ref, _si('')))
+            elif isinstance(val, (int, float)):
+                cells.append('<c r="%s"><v>%s</v></c>' % (ref, val))
+            else:
+                cells.append('<c r="%s" t="s"><v>%d</v></c>' % (ref, _si(str(val))))
+        row_xmls.append('<row r="%d">%s</row>' % (r_idx, ''.join(cells)))
+
+    sheet_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="%s">'
+        '<sheetData>%s</sheetData>'
+        '</worksheet>'
+    ) % (NS, ''.join(row_xmls))
+
+    ss_items = ''.join('<si><t xml:space="preserve">%s</t></si>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') for s in shared)
+    ss_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<sst xmlns="%s" count="%d" uniqueCount="%d">%s</sst>'
+    ) % (NS, len(shared), len(shared), ss_items)
+
+    wb_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+        ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets>'
+        '</workbook>'
+    )
+
+    wb_rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>'
+        '</Relationships>'
+    )
+
+    pkg_rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+        '</Relationships>'
+    )
+
+    content_types = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        '<Default Extension="xml" ContentType="application/xml"/>'
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
+        '</Types>'
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr('[Content_Types].xml', content_types)
+        zf.writestr('_rels/.rels', pkg_rels)
+        zf.writestr('xl/workbook.xml', wb_xml)
+        zf.writestr('xl/_rels/workbook.xml.rels', wb_rels)
+        zf.writestr('xl/worksheets/sheet1.xml', sheet_xml)
+        zf.writestr('xl/sharedStrings.xml', ss_xml)
+    return buf.getvalue()
+
+
 _logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -113,6 +211,17 @@ class CuotasMasivasWizard(models.TransientModel):
     )
     nombre_archivo = fields.Char(string='Nombre del archivo')
 
+    # ── Modo de pago ──
+    modo_pago = fields.Selection([
+        ('exactas', 'Pagar cuotas exactas'),
+        ('exceden', 'Pagar cuotas que exceden el valor'),
+    ], string='Modo de pago', default='exceden', required=True,
+       help=(
+           "Exactas: solo registra cuotas donde el monto del Excel coincide exactamente con el saldo "
+           "de la cuota en el sistema.\n"
+           "Exceden: registra cuotas donde el monto del Excel >= saldo de la cuota (lógica actual con división)."
+       ))
+
     result_message = fields.Text(string='Resultado', readonly=True)
     state = fields.Selection([
         ('draft', 'Borrador'),
@@ -121,10 +230,11 @@ class CuotasMasivasWizard(models.TransientModel):
     ], default='draft', string='Estado')
 
     # ── Contadores resumen ──
-    total_filas     = fields.Integer(string='Total filas', readonly=True)
-    total_exitosos  = fields.Integer(string='Exitosos', readonly=True)
-    total_errores   = fields.Integer(string='Errores', readonly=True)
-    total_omitidos  = fields.Integer(string='Omitidos', readonly=True)
+    total_filas          = fields.Integer(string='Total filas', readonly=True)
+    total_exitosos       = fields.Integer(string='Exitosos', readonly=True)
+    total_errores        = fields.Integer(string='Errores', readonly=True)
+    total_omitidos       = fields.Integer(string='Omitidos', readonly=True)
+    total_no_registradas = fields.Integer(string='No registradas (monto diferente)', readonly=True)
 
     # ── Resultado visual HTML ──
     result_html = fields.Html(string='Resultado detallado', readonly=True, sanitize=False)
@@ -504,6 +614,13 @@ class CuotasMasivasWizard(models.TransientModel):
         """
         Procesa el Excel bancario con formato:
           Fecha | Descripcion | Moneda | Monto | Numero de Operacion
+
+        Modos de pago:
+          - 'exactas': solo registra si monto_excel == saldo_cuota exactamente.
+            Las cuotas con montos distintos se recopilan y se reportan via Excel
+            enviado al canal "general".
+          - 'exceden': registra cuotas donde monto_excel >= saldo_cuota
+            (comportamiento original, con división de cuotas).
         """
         self.ensure_one()
         if not self.archivo_excel:
@@ -523,10 +640,13 @@ class CuotasMasivasWizard(models.TransientModel):
             return self._reopen()
 
         # ── Estructuras de resultado ──
-        filas_exitosas = []   # {'fila': N, 'doc': '...', 'cuotas': '...', 'monto': X, 'op': '...'}
-        filas_error    = []   # {'fila': N, 'doc': '...', 'msg': '...'}
+        filas_exitosas    = []  # {'fila': N, 'doc': '...', 'cuotas': '...', 'monto': X, 'op': '...'}
+        filas_error       = []  # {'fila': N, 'doc': '...', 'msg': '...'}
+        filas_no_reg      = []  # {'fila': N, 'cuota': '...', 'monto_sistema': X, 'monto_excel': Y, 'razon': '...'}
         omitidas = 0
         total_filas = len([r for r in rows if r and any(r)])
+
+        modo = self.modo_pago or 'exceden'
 
         for idx, row in enumerate(rows, start=2):
             try:
@@ -582,8 +702,33 @@ class CuotasMasivasWizard(models.TransientModel):
                     })
                     continue
 
-                # ── Registrar pago en cascada ──
-                cuotas_pagadas, excedente = self._registrar_pago(cuota, monto, fecha_pago, num_op)
+                saldo_cuota = cuota.saldo or 0.0
+
+                # ══════════════════════════════════════════════════════════
+                # MODO EXACTAS: solo registrar si monto coincide exactamente
+                # ══════════════════════════════════════════════════════════
+                if modo == 'exactas':
+                    if round(monto, 2) != round(saldo_cuota, 2):
+                        filas_no_reg.append({
+                            'fila': idx,
+                            'cuota': cuota.name or '—',
+                            'doc': 'DNI %s' % numero_doc,
+                            'monto_sistema': saldo_cuota,
+                            'monto_excel': monto,
+                            'razon': 'Monto no coincide: esperado S/%.2f, recibido S/%.2f' % (saldo_cuota, monto),
+                        })
+                        continue
+                    # monto coincide → registrar una sola cuota (sin cascada)
+                    cuotas_pagadas, excedente = self._registrar_pago_exacto(
+                        cuota, monto, fecha_pago, num_op
+                    )
+                else:
+                    # ══════════════════════════════════════════════════════
+                    # MODO EXCEDEN: comportamiento original con cascada/división
+                    # ══════════════════════════════════════════════════════
+                    cuotas_pagadas, excedente = self._registrar_pago(
+                        cuota, monto, fecha_pago, num_op
+                    )
 
                 detalle_cuotas = ', '.join(cuotas_pagadas) if cuotas_pagadas else '—'
                 excedente_txt = ' | Excedente: S/ %.2f' % excedente if excedente > 0 else ''
@@ -603,31 +748,162 @@ class CuotasMasivasWizard(models.TransientModel):
                 })
                 _logger.exception('CuotasMasivas: error en fila %d', idx)
 
+        _logger.warning(modo == 'exactas' and 'CuotasMasivas: %d filas no registradas por monto diferente' % len(filas_no_reg) or '')
+        # ── Enviar reporte de no-registradas al canal "general" (solo modo exactas) ──
+        if modo == 'exactas' and filas_no_reg:
+            try:
+                self._enviar_reporte_no_registradas(filas_no_reg, filas_exitosas)
+            except Exception as e:
+                _logger.exception('CuotasMasivas: error enviando reporte al canal general: %s', e)
+
         # ── Construir HTML ──
         html = self._build_result_html(
-            total_filas, filas_exitosas, filas_error, omitidas
+            total_filas, filas_exitosas, filas_error, omitidas, filas_no_reg
         )
 
         # Texto plano para result_message (compatibilidad)
-        lines = ['Pagos registrados: %d | Errores: %d | Omitidos: %d' % (
-            len(filas_exitosas), len(filas_error), omitidas
+        lines = ['Pagos registrados: %d | Errores: %d | Omitidos: %d | No registradas: %d' % (
+            len(filas_exitosas), len(filas_error), omitidas, len(filas_no_reg)
         )]
         self.write({
-            'total_filas':    total_filas,
-            'total_exitosos': len(filas_exitosas),
-            'total_errores':  len(filas_error),
-            'total_omitidos': omitidas,
-            'result_message': '\n'.join(lines),
-            'result_html':    html,
+            'total_filas':          total_filas,
+            'total_exitosos':       len(filas_exitosas),
+            'total_errores':        len(filas_error),
+            'total_omitidos':       omitidas,
+            'total_no_registradas': len(filas_no_reg),
+            'result_message':       '\n'.join(lines),
+            'result_html':          html,
             'state': 'done' if not filas_error else 'error',
         })
         return self._reopen()
 
     # ──────────────────────────────────────────────────────────────────────────
+    # Registrar pago exacto (modo exactas — sin cascada ni división)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _registrar_pago_exacto(self, cuota, monto, fecha_pago, numero_operacion):
+        """
+        Registra el pago de UNA SOLA cuota cuando el monto coincide exactamente.
+        No hay cascada ni división de cuotas.
+        """
+        # Verificar duplicado de número de operación
+        existing = self.env['account.payment'].search(
+            [('ref', '=', numero_operacion)], limit=1
+        )
+        if existing:
+            raise UserError(
+                _('Número de operación "%s" ya registrado en la cuenta "%s"') % (
+                    numero_operacion,
+                    existing.cuota_id.cuenta_id.display_name if existing.cuota_id else '?',
+                )
+            )
+
+        journal = self.env['account.journal'].search([
+            ('type', 'in', ('bank', 'cash')),
+            ('company_id', '=', cuota.company_id.id),
+        ], limit=1)
+        if not journal:
+            raise UserError(_('No se encontró un diario de banco/caja para registrar el pago.'))
+
+        mora, mora_dias = self._calcular_mora(cuota, fecha_pago, cuota.company_id.id)
+
+        payment = self.env['account.payment'].create({
+            'payment_type': 'inbound',
+            'journal_id': journal.id,
+            'cuota_id': cuota.id,
+            'ref': numero_operacion,
+            'amount': monto,
+            'date': fecha_pago or date.today(),
+            'partner_id': cuota.cuenta_id.partner_id.id,
+            'mora': mora,
+            'mora_dias': mora_dias,
+            'mora_state': 'pending',
+        })
+        payment.action_post()
+        cuota.write({'state': 'pagado'})
+
+        label = '%s%s' % (cuota.name, ' [mora: %.2f]' % mora if mora > 0 else '')
+        return [label], 0.0
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Enviar reporte de cuotas no registradas al canal "general"
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _enviar_reporte_no_registradas(self, filas_no_reg, filas_exitosas):
+        """
+        Genera un Excel con las cuotas no registradas y lo envía al canal 'general'
+        de mail.channel con un mensaje resumen.
+        """
+        # ── 1. Generar Excel ──
+        headers = [
+            'Fila', 'Documento', 'N° Cuota',
+            'Monto Esperado (Sistema)', 'Monto Recibido (Excel)',
+            'Razón de Rechazo',
+        ]
+        rows_data = [
+            [
+                r['fila'],
+                r.get('doc', '—'),
+                r['cuota'],
+                r['monto_sistema'],
+                r['monto_excel'],
+                r['razon'],
+            ]
+            for r in filas_no_reg
+        ]
+        xlsx_bytes = _build_xlsx_bytes(headers, rows_data)
+        xlsx_b64 = base64.b64encode(xlsx_bytes).decode('utf-8')
+
+        # ── 2. Buscar canal "general" ──
+        canal = self.env['mail.channel'].sudo().search(
+            [('name', 'ilike', 'general')], limit=1
+        )
+        if not canal:
+            _logger.warning('CuotasMasivas: no se encontró canal "general" en mail.channel')
+            return
+
+        # ── 3. Calcular resumen ──
+        total_exitosos = len(filas_exitosas)
+        monto_exitoso  = sum(r.get('monto', 0.0) for r in filas_exitosas)
+        total_no_reg   = len(filas_no_reg)
+        monto_no_reg   = sum(r.get('monto_excel', 0.0) for r in filas_no_reg)
+
+        fecha_hoy = date.today().strftime('%d/%m/%Y')
+        body = (
+            '<p><b>📊 Reporte de Importación Masiva de Cuotas — %s</b></p>'
+            '<ul>'
+            '<li>✅ Cuotas registradas exitosamente: <b>%d</b> (Total: S/ %.2f)</li>'
+            '<li>❌ Cuotas NO registradas (monto no coincide): <b>%d</b> (Total: S/ %.2f)</li>'
+            '</ul>'
+            '<p>Se adjunta el archivo Excel con el detalle de las cuotas pendientes de regularizar.</p>'
+        ) % (fecha_hoy, total_exitosos, monto_exitoso, total_no_reg, monto_no_reg)
+
+        # ── 4. Enviar mensaje con adjunto al canal ──
+        attachment = self.env['ir.attachment'].sudo().create({
+            'name': 'cuotas_no_registradas_%s.xlsx' % date.today().strftime('%Y%m%d'),
+            'datas': xlsx_b64,
+            'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'res_model': 'mail.channel',
+            'res_id': canal.id,
+        })
+
+        canal.sudo().message_post(
+            body=body,
+            message_type='comment',
+            subtype_xmlid='mail.mt_comment',
+            attachment_ids=[attachment.id],
+        )
+        _logger.info(
+            'CuotasMasivas: reporte de %d cuotas no registradas enviado al canal "%s"',
+            total_no_reg, canal.name,
+        )
+
+    # ──────────────────────────────────────────────────────────────────────────
     # Builder HTML del resultado
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _build_result_html(self, total_filas, exitosas, errores, omitidas):
+    def _build_result_html(self, total_filas, exitosas, errores, omitidas, no_reg=None):
+        no_reg = no_reg or []
         total_procesadas = len(exitosas) + len(errores)
         pct = int(total_procesadas * 100 / total_filas) if total_filas else 100
         bar_color = '#28a745' if not errores else ('#ffc107' if exitosas else '#dc3545')
@@ -647,6 +923,16 @@ class CuotasMasivasWizard(models.TransientModel):
         '''.format(procesadas=total_procesadas, total=total_filas, pct=pct, color=bar_color)
 
         # ── Tarjetas resumen ──
+        no_reg_card = ''
+        if no_reg:
+            no_reg_card = '''
+            <div style="flex:1; min-width:120px; background:#e2d9f3; border:1px solid #c4aee9;
+                        border-radius:8px; padding:14px; text-align:center;">
+                <div style="font-size:28px; font-weight:bold; color:#4a235a;">{no_reg}</div>
+                <div style="font-size:12px; color:#4a235a;"><i class="fa fa-exclamation-triangle"/> No registradas</div>
+            </div>
+            '''.format(no_reg=len(no_reg))
+
         resumen = '''
         <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
             <div style="flex:1; min-width:120px; background:#d4edda; border:1px solid #c3e6cb;
@@ -664,6 +950,7 @@ class CuotasMasivasWizard(models.TransientModel):
                 <div style="font-size:28px; font-weight:bold; color:#856404;">{omitidas}</div>
                 <div style="font-size:12px; color:#856404;"><i class="fa fa-minus-circle"/> Omitidos</div>
             </div>
+            {no_reg_card}
             <div style="flex:1; min-width:120px; background:#d1ecf1; border:1px solid #bee5eb;
                         border-radius:8px; padding:14px; text-align:center;">
                 <div style="font-size:28px; font-weight:bold; color:#0c5460;">{total}</div>
@@ -672,10 +959,11 @@ class CuotasMasivasWizard(models.TransientModel):
         </div>
         '''.format(
             exitosas=len(exitosas), errores=len(errores),
-            omitidas=omitidas, total=total_filas
+            omitidas=omitidas, total=total_filas,
+            no_reg_card=no_reg_card,
         )
 
-        # ── Tabla de resultados ──
+        # ── Tabla de resultados (exitosas + errores) ──
         filas_html = ''
 
         # Exitosas
@@ -729,6 +1017,43 @@ class CuotasMasivasWizard(models.TransientModel):
         </div>
         '''.format(filas=filas_html)
 
+        # ── Sección de cuotas NO registradas (solo modo exactas) ──
+        tabla_no_reg = ''
+        if no_reg:
+            filas_nr = ''
+            for r in no_reg:
+                filas_nr += '''
+                <tr style="background:#fdf0ff;">
+                    <td style="padding:8px 10px; color:#6c757d; font-size:13px;">{fila}</td>
+                    <td style="padding:8px 10px; font-weight:500;">{doc}</td>
+                    <td style="padding:8px 10px; font-size:12px;">{cuota}</td>
+                    <td style="padding:8px 10px; font-weight:600; color:#721c24;">S/ {monto_sistema:.2f}</td>
+                    <td style="padding:8px 10px; font-weight:600; color:#856404;">S/ {monto_excel:.2f}</td>
+                    <td style="padding:8px 10px; font-size:12px; color:#4a235a;">{razon}</td>
+                </tr>
+                '''.format(**r)
+
+            tabla_no_reg = '''
+            <h5 style="color:#4a235a; margin:20px 0 8px;">
+                <i class="fa fa-exclamation-triangle"/> Cuotas no registradas (monto diferente) — Reporte enviado al canal "general"
+            </h5>
+            <div style="border:1px solid #c4aee9; border-radius:8px; overflow:hidden;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr style="background:#6f42c1; color:#fff;">
+                            <th style="padding:10px; width:60px;">Fila</th>
+                            <th style="padding:10px;">Documento</th>
+                            <th style="padding:10px;">N° Cuota</th>
+                            <th style="padding:10px; width:130px;">Monto Sistema</th>
+                            <th style="padding:10px; width:130px;">Monto Excel</th>
+                            <th style="padding:10px;">Razón de Rechazo</th>
+                        </tr>
+                    </thead>
+                    <tbody>{filas}</tbody>
+                </table>
+            </div>
+            '''.format(filas=filas_nr)
+
         estado_badge = (
             '<span style="background:#28a745;color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;">✅ Completado</span>'
             if not errores else
@@ -745,8 +1070,9 @@ class CuotasMasivasWizard(models.TransientModel):
             {resumen}
             <h5 style="color:#343a40; margin:16px 0 8px;"><i class="fa fa-table"/> Detalle de registros</h5>
             {tabla}
+            {tabla_no_reg}
         </div>
-        '''.format(badge=estado_badge, barra=barra, resumen=resumen, tabla=tabla)
+        '''.format(badge=estado_badge, barra=barra, resumen=resumen, tabla=tabla, tabla_no_reg=tabla_no_reg)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Helpers de navegación
@@ -765,14 +1091,15 @@ class CuotasMasivasWizard(models.TransientModel):
         """Reinicia el wizard para importar otro archivo."""
         self.ensure_one()
         self.write({
-            'archivo_excel':  False,
-            'nombre_archivo': False,
-            'result_message': False,
-            'result_html':    False,
-            'total_filas':    0,
-            'total_exitosos': 0,
-            'total_errores':  0,
-            'total_omitidos': 0,
-            'state':          'draft',
+            'archivo_excel':       False,
+            'nombre_archivo':      False,
+            'result_message':      False,
+            'result_html':         False,
+            'total_filas':         0,
+            'total_exitosos':      0,
+            'total_errores':       0,
+            'total_omitidos':      0,
+            'total_no_registradas': 0,
+            'state':               'draft',
         })
         return self._reopen()

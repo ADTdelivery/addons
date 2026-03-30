@@ -12,13 +12,14 @@
                 <sheet>
 
                     <!-- ── Campos invisibles de estado ── -->
-                    <field name="state"          invisible="1"/>
-                    <field name="result_message" invisible="1"/>
-                    <field name="total_filas"    invisible="1"/>
-                    <field name="total_exitosos" invisible="1"/>
-                    <field name="total_errores"  invisible="1"/>
-                    <field name="total_omitidos" invisible="1"/>
-                    <field name="nombre_archivo" invisible="1"/>
+                    <field name="state"               invisible="1"/>
+                    <field name="result_message"      invisible="1"/>
+                    <field name="total_filas"         invisible="1"/>
+                    <field name="total_exitosos"      invisible="1"/>
+                    <field name="total_errores"       invisible="1"/>
+                    <field name="total_omitidos"      invisible="1"/>
+                    <field name="total_no_registradas" invisible="1"/>
+                    <field name="nombre_archivo"      invisible="1"/>
 
                     <!-- ══════════════════════════════════════════════════════
                          ZONA DE CARGA  (visible solo en estado draft)
@@ -38,6 +39,21 @@
                         </div>
 
                         <hr style="border-color:#dee2e6; margin-bottom:20px;"/>
+
+                        <!-- ── Selector de modo de pago ── -->
+                        <div style="background:#f0f4ff; border:1px solid #c5ceff; border-radius:10px;
+                                    padding:16px 20px; margin-bottom:20px;">
+                            <div style="font-weight:600; color:#2c3e50; margin-bottom:10px;">
+                                <i class="fa fa-sliders"/> Modo de procesamiento
+                            </div>
+                            <field name="modo_pago" widget="radio" nolabel="1"/>
+                            <div style="margin-top:8px; font-size:12px; color:#6c757d;">
+                                <i class="fa fa-info-circle"/>
+                                <b>Cuotas exactas:</b> Solo registra si el monto del Excel coincide exactamente con la cuota.
+                                Las diferencias se reportan al canal "general". &#160;|&#160;
+                                <b>Exceden el valor:</b> Registra y divide cuotas cuando el Excel paga más de la cuota (comportamiento original).
+                            </div>
+                        </div>
 
                         <!-- Zona de carga drag &amp; drop -->
                         <div style="border:2px dashed #6c757d; border-radius:12px; background:#f8f9fa;
@@ -149,6 +165,18 @@
                                 </div>
                                 <div style="font-size:12px; color:#856404; margin-top:4px;">
                                     ⏭ Omitidos
+                                </div>
+                            </div>
+
+                            <div style="flex:1; min-width:110px; background:#e2d9f3;
+                                        border:1px solid #c4aee9; border-radius:10px;
+                                        padding:16px; text-align:center;"
+                                 attrs="{'invisible': [('total_no_registradas', '=', 0)]}">
+                                <div style="font-size:32px; font-weight:bold; color:#4a235a; line-height:1;">
+                                    <field name="total_no_registradas" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:12px; color:#4a235a; margin-top:4px;">
+                                    ⚠️ No registradas
                                 </div>
                             </div>
 
