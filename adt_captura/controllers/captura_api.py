@@ -1259,24 +1259,7 @@ class CapturaAPI(http.Controller):
 
         captura = request.env['adt.captura.record'].sudo().create(vals)
 
-        fecha_registro_str = None
-        if captura.create_date:
-            try:
-                fecha_registro_str = captura.create_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-            except Exception:
-                fecha_registro_str = str(captura.create_date)
-
-        return {
-            'id'                : captura.id,
-            'tipo_captura'      : captura.capture_type,
-            'moto_recogida'     : captura.moto_recogida,
-            'motivo_no_recogida': captura.motivo_no_recogida or None,
-            'vehiculo_id'       : vehicle.id,
-            'cliente_id'        : cliente_id,
-            'registrado_por'    : registrado_por_int,
-            'fecha_registro'    : fecha_registro_str,
-            'evidencias_status' : 'pending',
-        }
+        return {'id': captura.id}
 
     # ─────────────────────────────────────────────────────────────────────────
     # POST /api/adt/captura/record/<int:captura_id>/evidencias
@@ -1316,9 +1299,34 @@ class CapturaAPI(http.Controller):
         }
         """
         ALLOWED_MIME = {
-            'image/jpeg', 'image/png', 'image/webp',
+            'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
             'video/mp4', 'video/quicktime', 'video/x-msvideo',
         }
+        # Extension → canonical MIME mapping used as fallback when the client
+        # sends a generic content-type (e.g. application/octet-stream).
+        # Android devices frequently do this.
+        EXT_MIME_MAP = {
+            '.jpg' : 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png' : 'image/png',
+            '.webp': 'image/webp',
+            '.mp4' : 'video/mp4',
+            '.mov' : 'video/quicktime',
+            '.avi' : 'video/x-msvideo',
+        }
+
+        def _resolve_mimetype(f):
+            """Return the effective MIME type for an uploaded file.
+            If the reported content_type is not in ALLOWED_MIME, try to
+            derive a valid type from the file extension (case-insensitive).
+            """
+            ct = (f.content_type or '').lower().split(';')[0].strip()
+            if ct in ALLOWED_MIME:
+                return ct
+            # Fallback: use extension
+            import os
+            _, ext = os.path.splitext((f.filename or '').lower())
+            return EXT_MIME_MAP.get(ext)  # None if unknown extension
 
         try:
             # Verify the capture record exists
@@ -1339,8 +1347,8 @@ class CapturaAPI(http.Controller):
                     mimetype='application/json',
                 )
 
-            # Validate MIME types up front (fast check before spawning thread)
-            invalid = [f.filename for f in files if f.content_type not in ALLOWED_MIME]
+            # Validate file types — accept by MIME or by extension fallback
+            invalid = [f.filename for f in files if _resolve_mimetype(f) is None]
             if invalid:
                 return Response(
                     json.dumps({
@@ -1357,7 +1365,7 @@ class CapturaAPI(http.Controller):
             for f in files:
                 files_data.append({
                     'filename'    : f.filename,
-                    'mimetype'    : f.content_type,
+                    'mimetype'    : _resolve_mimetype(f),   # always a valid canonical type
                     'data'        : f.read(),
                 })
 
