@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════
+         TREE VIEW
+    ══════════════════════════════════════════════════ -->
+    <record id="view_adt_comercial_egreso_caja_tree" model="ir.ui.view">
+        <field name="name">adt.comercial.egreso.caja.tree</field>
+        <field name="model">adt.comercial.egreso.caja</field>
+        <field name="arch" type="xml">
+            <tree string="Egresos de Caja" editable="bottom"
+                  decoration-danger="monto &lt; 0">
+                <field name="fecha"/>
+                <field name="descripcion"/>
+                <field name="monto" sum="Total"/>
+                <field name="numero_operacion"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════
+         FORM VIEW
+    ══════════════════════════════════════════════════ -->
+    <record id="view_adt_comercial_egreso_caja_form" model="ir.ui.view">
+        <field name="name">adt.comercial.egreso.caja.form</field>
+        <field name="model">adt.comercial.egreso.caja</field>
+        <field name="arch" type="xml">
+            <form string="Egreso de Caja">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Datos del Egreso">
+                            <field name="fecha" required="1"/>
+                            <field name="descripcion" required="1"/>
+                        </group>
+                        <group string="Detalle Financiero">
+                            <field name="monto" required="1"/>
+                            <field name="numero_operacion" required="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════
+         SEARCH VIEW
+    ══════════════════════════════════════════════════ -->
+    <record id="view_adt_comercial_egreso_caja_search" model="ir.ui.view">
+        <field name="name">adt.comercial.egreso.caja.search</field>
+        <field name="model">adt.comercial.egreso.caja</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Egresos">
+                <field name="descripcion"/>
+                <field name="numero_operacion"/>
+                <filter string="Este mes" name="filter_this_month"
+                        domain="[('fecha','&gt;=', (context_today()).strftime('%Y-%m-01'))]"/>
+                <group expand="1" string="Agrupar por">
+                    <filter string="Mes" name="group_by_month"
+                            context="{'group_by': 'fecha:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════
+         ACTION
+    ══════════════════════════════════════════════════ -->
+    <record id="action_egresos_caja" model="ir.actions.act_window">
+        <field name="name">Egresos de Caja</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.comercial.egreso.caja</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_adt_comercial_egreso_caja_search"/>
+        <field name="context">{'search_default_group_by_month': 1}</field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════
+         MENU ITEM
+    ══════════════════════════════════════════════════ -->
+    <menuitem id="adt_comercial_menu_egresos_caja"
+              name="Egresos de Caja"
+              action="action_egresos_caja"
+              parent="menu_adt_comercial"
+              sequence="11"
+              groups="adt_comercial.group_access_adt_comercial"/>
+
+</odoo>

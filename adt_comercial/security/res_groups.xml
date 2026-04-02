@@ -238,6 +238,17 @@
             <field name="perm_unlink" eval="1"/>
         </record>
 
+        <!-- Acceso al modelo Egresos de Caja -->
+        <record id="access_adt_comercial_egreso_caja" model="ir.model.access">
+            <field name="name">access.adt.comercial.egreso.caja</field>
+            <field name="model_id" ref="model_adt_comercial_egreso_caja"/>
+            <field name="group_id" ref="base.group_user"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="1"/>
+        </record>
+
         <!-- Acceso al wizard de Cuotas Masivas -->
         <record id="access_adt_comercial_cuotas_masivas_wizard" model="ir.model.access">
             <field name="name">access.adt.comercial.cuotas.masivas.wizard</field>
