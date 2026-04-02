@@ -670,7 +670,45 @@ class CuotasMasivasWizard(models.TransientModel):
                     omitidas += 1
                     continue
 
-                if monto <= 0:
+                if monto < 0:
+                    # ── Monto negativo → registrar como Egreso de Caja ──
+                    try:
+                        op_key = num_op or ('IMPORT-%d' % idx)
+                        # Validar duplicado de número de operación en egresos
+                        existing_egreso = self.env['adt.comercial.egreso.caja'].search(
+                            [('numero_operacion', '=', op_key)], limit=1
+                        )
+                        if existing_egreso:
+                            filas_error.append({
+                                'fila': idx,
+                                'doc': '— (Egreso)',
+                                'msg': 'Número de operación "%s" ya registrado en Egresos de Caja '
+                                       '(ref: %s)' % (op_key, existing_egreso.name or existing_egreso.id),
+                            })
+                            continue
+                        self.env['adt.comercial.egreso.caja'].create({
+                            'fecha': fecha_pago or date.today(),
+                            'descripcion': descripcion or ('Fila %d' % idx),
+                            'monto': abs(monto),
+                            'numero_operacion': op_key,
+                        })
+                        filas_exitosas.append({
+                            'fila': idx,
+                            'doc': '— (Egreso)',
+                            'cuotas': 'Registrado en Egresos de Caja',
+                            'monto': abs(monto),
+                            'op': op_key,
+                        })
+                    except Exception as e_egreso:
+                        filas_error.append({
+                            'fila': idx,
+                            'doc': '—',
+                            'msg': 'Error al registrar egreso: %s' % str(e_egreso),
+                        })
+                        _logger.exception('CuotasMasivas: error creando egreso en fila %d', idx)
+                    continue
+
+                if monto == 0:
                     filas_error.append({
                         'fila': idx,
                         'doc': '—',

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 
 class AgtComercialEgresoCaja(models.Model):
@@ -30,6 +31,32 @@ class AgtComercialEgresoCaja(models.Model):
         string='N° de Operación',
         required=True,
     )
+
+    _sql_constraints = [
+        (
+            'numero_operacion_unique',
+            'UNIQUE(numero_operacion)',
+            'El número de operación ya existe en Egresos de Caja. Debe ser único.',
+        ),
+    ]
+
+    @api.constrains('numero_operacion')
+    def _check_numero_operacion_unique(self):
+        for rec in self:
+            if not rec.numero_operacion:
+                continue
+            duplicate = self.env['adt.comercial.egreso.caja'].search([
+                ('numero_operacion', '=', rec.numero_operacion),
+                ('id', '!=', rec.id),
+            ], limit=1)
+            if duplicate:
+                raise ValidationError(
+                    'El número de operación "%s" ya está registrado en Egresos de Caja '
+                    '(referencia: %s). Debe ser único.' % (
+                        rec.numero_operacion,
+                        duplicate.name or duplicate.id,
+                    )
+                )
 
     @api.depends('fecha', 'numero_operacion')
     def _compute_name(self):
