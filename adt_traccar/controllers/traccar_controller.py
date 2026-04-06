@@ -30,7 +30,7 @@ class TraccarAPI(http.Controller):
         ICP = request.env['ir.config_parameter'].sudo()
         url = "http://52.15.86.160:8082"#(ICP.get_param('adt_traccar.url') or '').rstrip('/')
         email = "admin@gmail.com"#ICP.get_param('adt_traccar.email') or ''
-        password = "admin123456"#ICP.get_param('adt_traccar.password') or ''
+        password = "123456"#ICP.get_param('adt_traccar.password') or ''
 
         if not url:
             raise ValueError('Traccar URL no configurada. Ve a Ajustes → Traccar.')
