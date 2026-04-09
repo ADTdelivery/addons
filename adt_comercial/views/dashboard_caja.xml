@@ -158,9 +158,7 @@
         Flujo diario de Caja
       </div>
       <t t-if="datos_grafico">
-        <div style="position:relative;height:240px;">
-          <canvas id="barChart"></canvas>
-        </div>
+        <div id="barChartSvg" style="width:100%;min-height:220px;"></div>
       </t>
       <t t-else="">
         <div class="empty-state"><div class="icon">&#x1F4ED;</div><div>Sin datos para el periodo</div></div>
@@ -174,7 +172,7 @@
       </div>
       <t t-if="total_ingresos or total_egresos">
         <div class="donut-wrap">
-          <canvas id="donutChart" style="width:190px;height:190px;flex-shrink:0;"></canvas>
+          <div id="donutChartSvg" style="width:190px;height:190px;flex-shrink:0;"></div>
           <div class="donut-legend">
             <div class="legend-item">
               <div class="legend-dot" style="background:#4ade80;"></div>
@@ -260,64 +258,29 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Data island: datos embebidos en atributos HTML seguros -->
+<div id="dashData"
+     style="display:none;"
+     t-att-data-grafico="datos_grafico_json"
+     t-att-data-ingresos="total_ingresos or 0"
+     t-att-data-egresos="total_egresos or 0">
+</div>
+
 <script>
 (function(){
   'use strict';
-  var graficoDatos  = <t t-out="datos_grafico_json"/>;
-  var totalIngresos = <t t-esc="total_ingresos or 0"/>;
-  var totalEgresos  = <t t-esc="total_egresos or 0"/>;
 
-  Chart.defaults.color = '#94a3b8';
-  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-
-  var barEl = document.getElementById('barChart');
-  if (barEl &amp;&amp; graficoDatos.length) {
-    new Chart(barEl, {
-      type: 'bar',
-      data: {
-        labels: graficoDatos.map(function(d){ return d.fecha; }),
-        datasets: [
-          { label: 'Ingresos', data: graficoDatos.map(function(d){ return d.ingresos; }),
-            backgroundColor: 'rgba(74,222,128,.75)', borderColor: '#4ade80', borderWidth: 1, borderRadius: 5 },
-          { label: 'Egresos', data: graficoDatos.map(function(d){ return d.egresos; }),
-            backgroundColor: 'rgba(248,113,113,.75)', borderColor: '#f87171', borderWidth: 1, borderRadius: 5 }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
-          tooltip: { callbacks: { label: function(ctx){ return ' S/ ' + ctx.parsed.y.toLocaleString('es-PE', {minimumFractionDigits:2}); } } }
-        },
-        scales: {
-          x: { grid: { color: 'rgba(51,65,85,.5)' }, ticks: { color: '#64748b', font:{size:10} } },
-          y: { grid: { color: 'rgba(51,65,85,.5)' }, ticks: { color: '#64748b', font:{size:10},
-               callback: function(v){ return 'S/ ' + v.toLocaleString('es-PE'); } } }
-        }
-      }
-    });
+  var el = document.getElementById('dashData');
+  var graficoDatos  = [];
+  var totalIngresos = 0;
+  var totalEgresos  = 0;
+  if (el) {
+    try { graficoDatos  = JSON.parse(el.getAttribute('data-grafico') || '[]'); } catch(e){}
+    totalIngresos = parseFloat(el.getAttribute('data-ingresos') || '0') || 0;
+    totalEgresos  = parseFloat(el.getAttribute('data-egresos')  || '0') || 0;
   }
 
-  var donutEl = document.getElementById('donutChart');
-  if (donutEl &amp;&amp; (totalIngresos || totalEgresos)) {
-    new Chart(donutEl, {
-      type: 'doughnut',
-      data: {
-        labels: ['Ingresos', 'Egresos'],
-        datasets: [{ data: [totalIngresos, totalEgresos],
-          backgroundColor: ['rgba(74,222,128,.8)', 'rgba(248,113,113,.8)'],
-          borderColor: ['#4ade80','#f87171'], borderWidth: 2, hoverOffset: 6 }]
-      },
-      options: { responsive: false, cutout: '68%',
-        plugins: { legend: { display: false },
-          tooltip: { callbacks: { label: function(ctx){ return ' S/ ' + ctx.parsed.toLocaleString('es-PE', {minimumFractionDigits:2}); } } }
-        }
-      }
-    });
-  }
-
+  /* TABLE FILTER */
   window.filterTable = function(){
     var search = (document.getElementById('tableSearch').value || '').toLowerCase();
     var filter = document.getElementById('tableFilter').value;
@@ -327,6 +290,114 @@
       row.style.display = ((filter === 'all' || tipo === filter) &amp;&amp; (!search || desc.indexOf(search) !== -1)) ? '' : 'none';
     });
   };
+
+  function fmt(n){ return 'S/ ' + parseFloat(n).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  /* ── BAR CHART (SVG puro) ───────────────────────────────── */
+  function buildBarChart() {
+    var container = document.getElementById('barChartSvg');
+    if (!container || !graficoDatos.length) return;
+
+    var W = container.clientWidth || 560, H = 220;
+    var padL = 64, padR = 16, padT = 20, padB = 40;
+    var chartW = W - padL - padR;
+    var chartH = H - padT - padB;
+
+    var maxVal = 0;
+    graficoDatos.forEach(function(d){
+      if (d.ingresos > maxVal) maxVal = d.ingresos;
+      if (d.egresos  > maxVal) maxVal = d.egresos;
+    });
+    if (maxVal === 0) maxVal = 1;
+
+    var n = graficoDatos.length;
+    var groupW = chartW / n;
+    var barW = Math.max(4, Math.min(20, groupW * 0.35));
+    var parts = [];
+
+    parts.push('&lt;svg xmlns="http://www.w3.org/2000/svg" width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"&gt;');
+
+    /* Grid lines */
+    for (var s = 0; s &lt;= 4; s++) {
+      var yg = padT + chartH - (s / 4) * chartH;
+      var val = (s / 4) * maxVal;
+      var valLbl = val &gt;= 1000 ? (val/1000).toFixed(1)+'k' : val.toFixed(0);
+      parts.push('&lt;line x1="'+padL+'" y1="'+yg+'" x2="'+(W-padR)+'" y2="'+yg+'" stroke="rgba(51,65,85,.5)" stroke-width="1"/&gt;');
+      parts.push('&lt;text x="'+(padL-6)+'" y="'+(yg+4)+'" text-anchor="end" font-size="9" fill="#64748b"&gt;'+valLbl+'&lt;/text&gt;');
+    }
+
+    /* Bars */
+    graficoDatos.forEach(function(d, i){
+      var cx = padL + (i + 0.5) * groupW;
+      var hI = (d.ingresos / maxVal) * chartH;
+      var hE = (d.egresos  / maxVal) * chartH;
+      var xI = cx - barW - 1;
+      var xE = cx + 1;
+      if (hI &gt; 0) {
+        parts.push('&lt;rect x="'+xI+'" y="'+(padT+chartH-hI)+'" width="'+barW+'" height="'+hI+'" rx="3" fill="rgba(74,222,128,.8)"/&gt;');
+      }
+      if (hE &gt; 0) {
+        parts.push('&lt;rect x="'+xE+'" y="'+(padT+chartH-hE)+'" width="'+barW+'" height="'+hE+'" rx="3" fill="rgba(248,113,113,.8)"/&gt;');
+      }
+      if (i % Math.ceil(n / 8) === 0) {
+        var lbl = d.fecha.slice(0, 5);
+        parts.push('&lt;text x="'+cx+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#64748b"&gt;'+lbl+'&lt;/text&gt;');
+      }
+    });
+
+    /* Legend */
+    parts.push('&lt;rect x="'+padL+'" y="4" width="10" height="10" rx="2" fill="rgba(74,222,128,.8)"/&gt;');
+    parts.push('&lt;text x="'+(padL+13)+'" y="13" font-size="10" fill="#94a3b8"&gt;Ingresos&lt;/text&gt;');
+    parts.push('&lt;rect x="'+(padL+72)+'" y="4" width="10" height="10" rx="2" fill="rgba(248,113,113,.8)"/&gt;');
+    parts.push('&lt;text x="'+(padL+85)+'" y="13" font-size="10" fill="#94a3b8"&gt;Egresos&lt;/text&gt;');
+    parts.push('&lt;/svg&gt;');
+
+    container.innerHTML = parts.join('').replace(/&lt;/g,'\x3C').replace(/&gt;/g,'\x3E');
+  }
+
+  /* ── DONUT CHART (SVG puro) ─────────────────────────────── */
+  function buildDonutChart() {
+    var container = document.getElementById('donutChartSvg');
+    if (!container) return;
+    var total = totalIngresos + totalEgresos;
+    if (total &lt;= 0) return;
+
+    var R = 70, r = 46, cx = 95, cy = 95, size = 190;
+    var circ = 2 * Math.PI * R;
+    var ingPct = totalIngresos / total;
+    var egrPct = 1 - ingPct;
+    var ingLen = ingPct * circ;
+    var egrLen = egrPct * circ;
+    var offset = circ * 0.25;
+
+    var parts = [];
+    parts.push('&lt;svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'"&gt;');
+    parts.push('&lt;circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="#334155" stroke-width="'+(R-r)+'"/&gt;');
+    parts.push('&lt;circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="rgba(74,222,128,.85)" stroke-width="'+(R-r)+'"'
+      +' stroke-dasharray="'+ingLen+' '+(circ-ingLen)+'"'
+      +' stroke-dashoffset="'+offset+'"'
+      +' transform="rotate(-90 '+cx+' '+cy+')"/&gt;');
+    parts.push('&lt;circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="rgba(248,113,113,.85)" stroke-width="'+(R-r)+'"'
+      +' stroke-dasharray="'+egrLen+' '+(circ-egrLen)+'"'
+      +' stroke-dashoffset="'+(offset-ingLen)+'"'
+      +' transform="rotate(-90 '+cx+' '+cy+')"/&gt;');
+    var pct = (ingPct*100).toFixed(0)+'%';
+    parts.push('&lt;text x="'+cx+'" y="'+(cy-6)+'" text-anchor="middle" font-size="18" font-weight="700" fill="#4ade80"&gt;'+pct+'&lt;/text&gt;');
+    parts.push('&lt;text x="'+cx+'" y="'+(cy+12)+'" text-anchor="middle" font-size="9" fill="#64748b"&gt;ingresos&lt;/text&gt;');
+    parts.push('&lt;/svg&gt;');
+
+    container.innerHTML = parts.join('').replace(/&lt;/g,'\x3C').replace(/&gt;/g,'\x3E');
+  }
+
+  function init() {
+    buildBarChart();
+    buildDonutChart();
+  }
+
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
+  else { init(); }
+  window.addEventListener('resize', buildBarChart);
+
 })();
 </script>
 </body>
