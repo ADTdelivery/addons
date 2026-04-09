@@ -671,10 +671,9 @@ class CuotasMasivasWizard(models.TransientModel):
                     continue
 
                 if monto < 0:
-                    # ── Monto negativo → registrar como Egreso de Caja ──
+                    # ── Monto negativo → registrar en Egresos de Caja (negativo) ──
                     try:
                         op_key = num_op or ('IMPORT-%d' % idx)
-                        # Validar duplicado de número de operación en egresos
                         existing_egreso = self.env['adt.comercial.egreso.caja'].search(
                             [('numero_operacion', '=', op_key)], limit=1
                         )
@@ -689,14 +688,14 @@ class CuotasMasivasWizard(models.TransientModel):
                         self.env['adt.comercial.egreso.caja'].create({
                             'fecha': fecha_pago or date.today(),
                             'descripcion': descripcion or ('Fila %d' % idx),
-                            'monto': abs(monto),
+                            'monto': monto,  # negativo tal cual
                             'numero_operacion': op_key,
                         })
                         filas_exitosas.append({
                             'fila': idx,
                             'doc': '— (Egreso)',
                             'cuotas': 'Registrado en Egresos de Caja',
-                            'monto': abs(monto),
+                            'monto': monto,
                             'op': op_key,
                         })
                     except Exception as e_egreso:
@@ -716,7 +715,34 @@ class CuotasMasivasWizard(models.TransientModel):
                     })
                     continue
 
-                # ── Extracción ──
+                # ── Monto positivo → registrar en Egresos de Caja (positivo = ingreso) ──
+                # Se registra SIEMPRE, independientemente de si hay cuota asociada o no.
+                try:
+                    op_key_caja = num_op or ('IMPORT-%d' % idx)
+                    existing_egreso_pos = self.env['adt.comercial.egreso.caja'].search(
+                        [('numero_operacion', '=', op_key_caja)], limit=1
+                    )
+                    if existing_egreso_pos:
+                        filas_error.append({
+                            'fila': idx,
+                            'doc': '— (Ingreso)',
+                            'msg': 'Número de operación "%s" ya registrado en Egresos de Caja '
+                                   '(ref: %s)' % (op_key_caja, existing_egreso_pos.name or existing_egreso_pos.id),
+                        })
+                        continue
+                    self.env['adt.comercial.egreso.caja'].create({
+                        'fecha': fecha_pago or date.today(),
+                        'descripcion': descripcion or ('Fila %d' % idx),
+                        'monto': monto,  # positivo tal cual
+                        'numero_operacion': op_key_caja,
+                    })
+                except Exception as e_caja_pos:
+                    _logger.warning(
+                        'CuotasMasivas: no se pudo registrar ingreso en egreso.caja fila %d: %s',
+                        idx, e_caja_pos,
+                    )
+
+                # ── Extracción de DNI/placa para pago de cuotas ──
                 tipo_doc, numero_doc = extract_info(descripcion)
 
                 if tipo_doc == 'placa':
