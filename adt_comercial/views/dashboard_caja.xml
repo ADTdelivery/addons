@@ -49,12 +49,19 @@
   .kpi-card.ops      .kpi-value { color: #c084fc; }
   .kpi-card.promedio .kpi-value { color: #fbbf24; }
   .kpi-sub   { font-size: 0.73rem; color: #64748b; margin-top: 6px; }
-  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
-  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+  .charts-grid { display: flex; flex-direction: column; gap: 20px; margin-bottom: 28px; }
   .panel       { background: #1e293b; border-radius: 16px; padding: 22px 24px; border: 1px solid #334155; }
   .panel-title { font-size: 0.88rem; font-weight: 700; color: #cbd5e1; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
   .panel-title .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .donut-wrap  { display: flex; align-items: center; gap: 28px; justify-content: center; flex-wrap: wrap; }
+  .bar-scroll-wrap { overflow-x: auto; overflow-y: hidden; width: 100%; padding-bottom: 4px; }
+  .bar-scroll-wrap::-webkit-scrollbar { height: 6px; }
+  .bar-scroll-wrap::-webkit-scrollbar-track { background: #0f172a; border-radius: 3px; }
+  .bar-scroll-wrap::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  .bar-scroll-wrap::-webkit-scrollbar-thumb:hover { background: #475569; }
+  .bar-tooltip { position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+                 padding: 8px 12px; font-size: 0.78rem; color: #e2e8f0; pointer-events: none;
+                 z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
   .donut-legend { display: flex; flex-direction: column; gap: 12px; }
   .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; }
   .legend-dot  { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
@@ -158,7 +165,10 @@
         Flujo diario de Caja
       </div>
       <t t-if="datos_grafico">
-        <div id="barChartSvg" style="width:100%;min-height:220px;"></div>
+        <div class="bar-scroll-wrap">
+          <div id="barChartSvg" style="min-height:240px;"></div>
+        </div>
+        <div id="barTooltip" class="bar-tooltip"></div>
       </t>
       <t t-else="">
         <div class="empty-state"><div class="icon">&#x1F4ED;</div><div>Sin datos para el periodo</div></div>
@@ -293,15 +303,20 @@
 
   function fmt(n){ return 'S/ ' + parseFloat(n).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 
-  /* ── BAR CHART (SVG puro) ───────────────────────────────── */
+  /* ── BAR CHART (SVG puro, scroll horizontal) ─────────────── */
   function buildBarChart() {
     var container = document.getElementById('barChartSvg');
     if (!container || !graficoDatos.length) return;
 
-    var W = container.clientWidth || 560, H = 220;
-    var padL = 64, padR = 16, padT = 20, padB = 40;
-    var chartW = W - padL - padR;
+    var H    = 260;
+    var padL = 64, padR = 20, padT = 24, padB = 44;
+    var n    = graficoDatos.length;
+    /* Cada grupo ocupa al menos 36px — con muchos dias el SVG se hace ancho y el wrapper scrollea */
+    var groupW = Math.max(36, Math.floor((container.parentElement.clientWidth - padL - padR) / n));
+    var W      = padL + groupW * n + padR;
+    var chartW = groupW * n;
     var chartH = H - padT - padB;
+    var barW   = Math.max(6, Math.min(18, groupW * 0.38));
 
     var maxVal = 0;
     graficoDatos.forEach(function(d){
@@ -310,49 +325,56 @@
     });
     if (maxVal === 0) maxVal = 1;
 
-    var n = graficoDatos.length;
-    var groupW = chartW / n;
-    var barW = Math.max(4, Math.min(20, groupW * 0.35));
-    var parts = [];
+    var p = [];
 
-    parts.push('&lt;svg xmlns="http://www.w3.org/2000/svg" width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"&gt;');
+    p.push('&lt;svg id="barSvg" xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" style="display:block;"&gt;');
 
     /* Grid lines */
     for (var s = 0; s &lt;= 4; s++) {
-      var yg = padT + chartH - (s / 4) * chartH;
-      var val = (s / 4) * maxVal;
-      var valLbl = val &gt;= 1000 ? (val/1000).toFixed(1)+'k' : val.toFixed(0);
-      parts.push('&lt;line x1="'+padL+'" y1="'+yg+'" x2="'+(W-padR)+'" y2="'+yg+'" stroke="rgba(51,65,85,.5)" stroke-width="1"/&gt;');
-      parts.push('&lt;text x="'+(padL-6)+'" y="'+(yg+4)+'" text-anchor="end" font-size="9" fill="#64748b"&gt;'+valLbl+'&lt;/text&gt;');
+      var yg   = padT + chartH - (s / 4) * chartH;
+      var val  = (s / 4) * maxVal;
+      var vlbl = val &gt;= 1000 ? (val/1000).toFixed(1)+'k' : val.toFixed(0);
+      p.push('&lt;line x1="'+padL+'" y1="'+yg+'" x2="'+(W-padR)+'" y2="'+yg+'" stroke="rgba(51,65,85,.55)" stroke-width="1"/&gt;');
+      p.push('&lt;text x="'+(padL-6)+'" y="'+(yg+4)+'" text-anchor="end" font-size="9" fill="#64748b"&gt;'+vlbl+'&lt;/text&gt;');
     }
 
-    /* Bars */
+    /* Bars — cada barra lleva data-* para el tooltip */
     graficoDatos.forEach(function(d, i){
       var cx = padL + (i + 0.5) * groupW;
       var hI = (d.ingresos / maxVal) * chartH;
       var hE = (d.egresos  / maxVal) * chartH;
       var xI = cx - barW - 1;
       var xE = cx + 1;
+
       if (hI &gt; 0) {
-        parts.push('&lt;rect x="'+xI+'" y="'+(padT+chartH-hI)+'" width="'+barW+'" height="'+hI+'" rx="3" fill="rgba(74,222,128,.8)"/&gt;');
+        p.push('&lt;rect class="bar-i" x="'+xI+'" y="'+(padT+chartH-hI)+'" width="'+barW+'" height="'+hI+'"'
+          +' rx="3" fill="rgba(74,222,128,.82)"'
+          +' data-fecha="'+d.fecha+'" data-tipo="Ingreso" data-monto="'+d.ingresos+'"'
+          +' style="cursor:pointer;transition:opacity .15s"'
+          +' onmouseenter="showTip(event,this)" onmousemove="moveTip(event)" onmouseleave="hideTip()"/&gt;');
       }
       if (hE &gt; 0) {
-        parts.push('&lt;rect x="'+xE+'" y="'+(padT+chartH-hE)+'" width="'+barW+'" height="'+hE+'" rx="3" fill="rgba(248,113,113,.8)"/&gt;');
+        p.push('&lt;rect class="bar-e" x="'+xE+'" y="'+(padT+chartH-hE)+'" width="'+barW+'" height="'+hE+'"'
+          +' rx="3" fill="rgba(248,113,113,.82)"'
+          +' data-fecha="'+d.fecha+'" data-tipo="Egreso" data-monto="'+d.egresos+'"'
+          +' style="cursor:pointer;transition:opacity .15s"'
+          +' onmouseenter="showTip(event,this)" onmousemove="moveTip(event)" onmouseleave="hideTip()"/&gt;');
       }
-      if (i % Math.ceil(n / 8) === 0) {
-        var lbl = d.fecha.slice(0, 5);
-        parts.push('&lt;text x="'+cx+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#64748b"&gt;'+lbl+'&lt;/text&gt;');
-      }
+
+      /* Etiqueta de fecha debajo — siempre mostrar todas */
+      p.push('&lt;text x="'+cx+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#64748b"&gt;'+d.fecha.slice(0,5)+'&lt;/text&gt;');
     });
 
     /* Legend */
-    parts.push('&lt;rect x="'+padL+'" y="4" width="10" height="10" rx="2" fill="rgba(74,222,128,.8)"/&gt;');
-    parts.push('&lt;text x="'+(padL+13)+'" y="13" font-size="10" fill="#94a3b8"&gt;Ingresos&lt;/text&gt;');
-    parts.push('&lt;rect x="'+(padL+72)+'" y="4" width="10" height="10" rx="2" fill="rgba(248,113,113,.8)"/&gt;');
-    parts.push('&lt;text x="'+(padL+85)+'" y="13" font-size="10" fill="#94a3b8"&gt;Egresos&lt;/text&gt;');
-    parts.push('&lt;/svg&gt;');
+    p.push('&lt;rect x="'+padL+'" y="6" width="10" height="10" rx="2" fill="rgba(74,222,128,.82)"/&gt;');
+    p.push('&lt;text x="'+(padL+13)+'" y="15" font-size="10" fill="#94a3b8"&gt;Ingresos&lt;/text&gt;');
+    p.push('&lt;rect x="'+(padL+75)+'" y="6" width="10" height="10" rx="2" fill="rgba(248,113,113,.82)"/&gt;');
+    p.push('&lt;text x="'+(padL+88)+'" y="15" font-size="10" fill="#94a3b8"&gt;Egresos&lt;/text&gt;');
 
-    container.innerHTML = parts.join('').replace(/&lt;/g,'\x3C').replace(/&gt;/g,'\x3E');
+    p.push('&lt;/svg&gt;');
+
+    container.style.width = W + 'px';
+    container.innerHTML = p.join('').replace(/&lt;/g,'\x3C').replace(/&gt;/g,'\x3E');
   }
 
   /* ── DONUT CHART (SVG puro) ─────────────────────────────── */
@@ -388,6 +410,38 @@
 
     container.innerHTML = parts.join('').replace(/&lt;/g,'\x3C').replace(/&gt;/g,'\x3E');
   }
+
+  /* ── Tooltip functions ───────────────────────────────────── */
+  var _tip = null;
+  var _S = '\x3C', _E = '\x3E';
+  window.showTip = function(e, rect) {
+    if (!_tip) _tip = document.getElementById('barTooltip');
+    if (!_tip) return;
+    var fecha = rect.getAttribute('data-fecha') || '';
+    var tipo  = rect.getAttribute('data-tipo')  || '';
+    var monto = parseFloat(rect.getAttribute('data-monto') || '0');
+    var color = tipo === 'Ingreso' ? '#4ade80' : '#f87171';
+    _tip.innerHTML =
+      _S+'span style="color:'+color+';font-weight:700;"'+_E+tipo+_S+'/span'+_E+
+      _S+'br/'+_E+
+      _S+'span style="color:#94a3b8;font-size:.75rem;"'+_E+fecha+_S+'/span'+_E+
+      _S+'br/'+_E+
+      _S+'span style="font-size:1rem;font-weight:800;"'+_E+fmt(monto)+_S+'/span'+_E;
+    _tip.style.display = 'block';
+    window.moveTip(e);
+  };
+  window.moveTip = function(e) {
+    if (!_tip || _tip.style.display === 'none') return;
+    var x = e.clientX + 14, y = e.clientY - 10;
+    if (x + 160 > window.innerWidth)  x = e.clientX - 170;
+    if (y + 80  > window.innerHeight) y = e.clientY - 90;
+    _tip.style.left = x + 'px';
+    _tip.style.top  = y + 'px';
+  };
+  window.hideTip = function() {
+    if (!_tip) _tip = document.getElementById('barTooltip');
+    if (_tip) _tip.style.display = 'none';
+  };
 
   function init() {
     buildBarChart();
