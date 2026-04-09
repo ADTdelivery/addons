@@ -89,4 +89,20 @@
               sequence="11"
               groups="adt_comercial.group_access_adt_comercial"/>
 
+    <!-- ══════════════════════════════════════════════════
+         DASHBOARD CAJA — action URL + menu item
+    ══════════════════════════════════════════════════ -->
+    <record id="action_dashboard_caja" model="ir.actions.act_url">
+        <field name="name">Dashboard de Caja</field>
+        <field name="url">/web/dashboard/caja?periodo=mes</field>
+        <field name="target">self</field>
+    </record>
+
+    <menuitem id="adt_comercial_menu_dashboard_caja"
+              name="Dashboard Caja"
+              action="action_dashboard_caja"
+              parent="menu_adt_comercial"
+              sequence="12"
+              groups="adt_comercial.group_access_adt_comercial"/>
+
 </odoo>
