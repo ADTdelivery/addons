@@ -9,4 +9,7 @@ from . import fleet_vehicle
 from . import cobranza_deudores
 from . import DeudorXLSX
 from . import egreso_caja
+from . import mobile_models
+from . import ir_http
+
 

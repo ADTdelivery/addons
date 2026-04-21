@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-001  App Version
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_app_version_tree" model="ir.ui.view">
+        <field name="name">mobile.app.version.tree</field>
+        <field name="model">mobile.app.version</field>
+        <field name="arch" type="xml">
+            <tree string="Versiones de la App">
+                <field name="name"/>
+                <field name="platform"/>
+                <field name="latest_version"/>
+                <field name="minimum_version"/>
+                <field name="update_required"/>
+                <field name="update_available"/>
+                <field name="maintenance_mode"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_app_version_form" model="ir.ui.view">
+        <field name="name">mobile.app.version.form</field>
+        <field name="model">mobile.app.version</field>
+        <field name="arch" type="xml">
+            <form string="Versión de la Aplicación Móvil">
+                <sheet>
+                    <group string="Información General">
+                        <group>
+                            <field name="name"/>
+                            <field name="platform"/>
+                            <field name="latest_version"/>
+                            <field name="minimum_version"/>
+                        </group>
+                        <group>
+                            <field name="update_required"/>
+                            <field name="update_available"/>
+                            <field name="maintenance_mode"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Mensajes">
+                        <field name="update_message"/>
+                        <field name="maintenance_message"/>
+                    </group>
+                    <group string="URLs de Tiendas">
+                        <field name="store_url_android"/>
+                        <field name="store_url_ios"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_app_version" model="ir.actions.act_window">
+        <field name="name">Versiones de la App</field>
+        <field name="res_model">mobile.app.version</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-004  Promotions
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_promotion_tree" model="ir.ui.view">
+        <field name="name">mobile.promotion.tree</field>
+        <field name="model">mobile.promotion</field>
+        <field name="arch" type="xml">
+            <tree string="Promociones Móviles">
+                <field name="name"/>
+                <field name="title"/>
+                <field name="link_type"/>
+                <field name="active_from"/>
+                <field name="active_to"/>
+                <field name="priority"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_promotion_form" model="ir.ui.view">
+        <field name="name">mobile.promotion.form</field>
+        <field name="model">mobile.promotion</field>
+        <field name="arch" type="xml">
+            <form string="Promoción Móvil">
+                <sheet>
+                    <group string="Información General">
+                        <group>
+                            <field name="name"/>
+                            <field name="title"/>
+                            <field name="priority"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="active_from"/>
+                            <field name="active_to"/>
+                            <field name="image_url"/>
+                        </group>
+                    </group>
+                    <group string="Enlace">
+                        <field name="link_type"/>
+                        <field name="deep_link" attrs="{'invisible': [('link_type', '!=', 'DEEP_LINK')]}"/>
+                        <field name="external_url" attrs="{'invisible': [('link_type', '!=', 'EXTERNAL')]}"/>
+                    </group>
+                    <group string="Contenido">
+                        <field name="body" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_promotion" model="ir.actions.act_window">
+        <field name="name">Promociones Móviles</field>
+        <field name="res_model">mobile.promotion</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-005  Notifications
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_notification_tree" model="ir.ui.view">
+        <field name="name">mobile.notification.tree</field>
+        <field name="model">mobile.notification</field>
+        <field name="arch" type="xml">
+            <tree string="Notificaciones Móviles">
+                <field name="title"/>
+                <field name="notification_type"/>
+                <field name="partner_id"/>
+                <field name="vehicle_id"/>
+                <field name="read"/>
+                <field name="created_at"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_notification_form" model="ir.ui.view">
+        <field name="name">mobile.notification.form</field>
+        <field name="model">mobile.notification</field>
+        <field name="arch" type="xml">
+            <form string="Notificación Móvil">
+                <header>
+                    <button name="mark_as_read" string="Marcar como Leído"
+                            type="object" class="btn-primary"
+                            attrs="{'invisible': [('read', '=', True)]}"/>
+                </header>
+                <sheet>
+                    <group string="Información General">
+                        <group>
+                            <field name="title"/>
+                            <field name="notification_type"/>
+                            <field name="read"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="vehicle_id"/>
+                            <field name="created_at"/>
+                        </group>
+                    </group>
+                    <group string="Enlace">
+                        <field name="link_type"/>
+                        <field name="deep_link" attrs="{'invisible': [('link_type', '!=', 'DEEP_LINK')]}"/>
+                        <field name="external_url" attrs="{'invisible': [('link_type', '!=', 'EXTERNAL')]}"/>
+                    </group>
+                    <group string="Contenido">
+                        <field name="body" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_notification" model="ir.actions.act_window">
+        <field name="name">Notificaciones Móviles</field>
+        <field name="res_model">mobile.notification</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-006  Mobile Tokens
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_token_tree" model="ir.ui.view">
+        <field name="name">mobile.token.tree</field>
+        <field name="model">mobile.token</field>
+        <field name="arch" type="xml">
+            <tree string="Tokens Móviles">
+                <field name="token"/>
+                <field name="partner_id"/>
+                <field name="vehicle_id"/>
+                <field name="platform"/>
+                <field name="app_version"/>
+                <field name="revoked"/>
+                <field name="expires_at"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_token_form" model="ir.ui.view">
+        <field name="name">mobile.token.form</field>
+        <field name="model">mobile.token</field>
+        <field name="arch" type="xml">
+            <form string="Token Móvil">
+                <header>
+                    <button name="revoke" string="Revocar Token"
+                            type="object" class="btn-danger"
+                            attrs="{'invisible': [('revoked', '=', True)]}"/>
+                </header>
+                <sheet>
+                    <group string="Información General">
+                        <group>
+                            <field name="token"/>
+                            <field name="partner_id"/>
+                            <field name="vehicle_id"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="device_id"/>
+                            <field name="device_model"/>
+                            <field name="platform"/>
+                            <field name="app_version"/>
+                        </group>
+                    </group>
+                    <group string="Estado">
+                        <field name="revoked"/>
+                        <field name="revoked_at" attrs="{'invisible': [('revoked', '=', False)]}"/>
+                        <field name="expires_at"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_token" model="ir.actions.act_window">
+        <field name="name">Tokens Móviles</field>
+        <field name="res_model">mobile.token</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Menu Items  (under a top-level "Móvil" menu)
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <menuitem id="menu_mobile_root"
+              name="Móvil"
+              sequence="90"/>
+
+    <menuitem id="menu_mobile_config"
+              name="Configuración"
+              parent="menu_mobile_root"
+              sequence="10"/>
+
+    <menuitem id="menu_mobile_app_version"
+              name="Versiones de la App"
+              parent="menu_mobile_config"
+              action="action_mobile_app_version"
+              sequence="10"/>
+
+    <menuitem id="menu_mobile_promotions"
+              name="Promociones"
+              parent="menu_mobile_root"
+              action="action_mobile_promotion"
+              sequence="20"/>
+
+    <menuitem id="menu_mobile_notifications"
+              name="Notificaciones"
+              parent="menu_mobile_root"
+              action="action_mobile_notification"
+              sequence="30"/>
+
+    <menuitem id="menu_mobile_tokens"
+              name="Tokens de Sesión"
+              parent="menu_mobile_root"
+              action="action_mobile_token"
+              sequence="40"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-007  Payment Accounts (Cuentas de Pago)
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_payment_account_tree" model="ir.ui.view">
+        <field name="name">mobile.payment.account.tree</field>
+        <field name="model">mobile.payment.account</field>
+        <field name="arch" type="xml">
+            <tree string="Cuentas de Pago" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="account_number"/>
+                <field name="icon_url"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_payment_account_form" model="ir.ui.view">
+        <field name="name">mobile.payment.account.form</field>
+        <field name="model">mobile.payment.account</field>
+        <field name="arch" type="xml">
+            <form string="Cuenta de Pago Móvil">
+                <sheet>
+                    <group string="Información General">
+                        <group>
+                            <field name="name"/>
+                            <field name="account_number"/>
+                        </group>
+                        <group>
+                            <field name="icon_url"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_payment_account" model="ir.actions.act_window">
+        <field name="name">Cuentas de Pago</field>
+        <field name="res_model">mobile.payment.account</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_mobile_payment_accounts"
+              name="Cuentas de Pago"
+              parent="menu_mobile_config"
+              action="action_mobile_payment_account"
+              sequence="20"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-008  Support Contacts (Contactos de Soporte)
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_support_contact_tree" model="ir.ui.view">
+        <field name="name">mobile.support.contact.tree</field>
+        <field name="model">mobile.support.contact</field>
+        <field name="arch" type="xml">
+            <tree string="Contactos de Soporte" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="role"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_support_contact_form" model="ir.ui.view">
+        <field name="name">mobile.support.contact.form</field>
+        <field name="model">mobile.support.contact</field>
+        <field name="arch" type="xml">
+            <form string="Contacto de Soporte Móvil">
+                <sheet>
+                    <group string="Información General">
+                        <group>
+                            <field name="name"/>
+                            <field name="phone"/>
+                        </group>
+                        <group>
+                            <field name="role"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_support_contact" model="ir.actions.act_window">
+        <field name="name">Contactos de Soporte</field>
+        <field name="res_model">mobile.support.contact</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_mobile_support_contacts"
+              name="Contactos de Soporte"
+              parent="menu_mobile_config"
+              action="action_mobile_support_contact"
+              sequence="30"/>
+
+</odoo>

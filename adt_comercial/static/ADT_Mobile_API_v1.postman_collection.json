@@ -1,0 +1,380 @@
+{
+  "info": {
+    "name": "ADT Mobile App API – v1",
+    "description": "Collection para probar los 6 endpoints de la API Mobile (HU-001 a HU-006) implementados en el módulo adt_comercial de Odoo 15.\n\n⚠️ ENDPOINTS POST (login / logout / notifications/read):\n- Enviar Content-Type: application/json\n- El body es JSON plano (sin envolver en jsonrpc). Ej: { \"plate\": \"ABC-123\" }\n- Odoo internamente lee request.jsonrequest y devuelve la respuesta en { \"result\": { ... } }\n\nFlujo de uso:\n1. Ejecutar primero el endpoint de Login para obtener el token.\n2. Copiar el token de data.token en la variable de colección BEARER_TOKEN.\n3. Ejecutar los endpoints HU-002 al HU-006.",
+    "_postman_id": "adt-mobile-api-v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL",     "value": "http://localhost:8070",  "type": "string" },
+    { "key": "BEARER_TOKEN", "value": "REPLACE_AFTER_LOGIN",    "type": "string" },
+    { "key": "PLATE",        "value": "ABC-123",                "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "🔑 AUTH – Login (obtener token)",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{BASE_URL}}/v1/auth/login", "host": ["{{BASE_URL}}"], "path": ["v1","auth","login"] },
+        "header": [
+          { "key": "Content-Type",     "value": "application/json" },
+          { "key": "X-Device-Model",   "value": "Samsung Galaxy S23" },
+          { "key": "X-Device-OS",      "value": "Android 14" },
+          { "key": "X-Device-ID",      "value": "550e8400-e29b-41d4-a716-446655440000" },
+          { "key": "X-App-Version",    "value": "2.1.0" },
+          { "key": "X-Platform",       "value": "android" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"plate\": \"{{PLATE}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Odoo wraps type='json' responses as { result: { ... } }",
+              "var json = pm.response.json();",
+              "var data = json.result ? json.result.data : (json.data || null);",
+              "if (data && data.token) {",
+              "    pm.collectionVariables.set('BEARER_TOKEN', data.token);",
+              "    console.log('Token guardado:', data.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 – Token generado",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"Token generado correctamente.\",\n  \"data\": {\n    \"token\": \"a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4\",\n    \"vehicleId\": 120,\n    \"licensePlate\": \"ABC-123\",\n    \"partnerId\": 501,\n    \"partnerName\": \"Juan Carlos Pérez López\",\n    \"expiresAt\": \"2026-07-12T12:00:00Z\"\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n  }\n}"
+        }
+      ]
+    },
+
+    {
+      "name": "HU-001 – GET /v1/app/version (sin auth)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{BASE_URL}}/v1/app/version", "host": ["{{BASE_URL}}"], "path": ["v1","app","version"] },
+        "header": [
+          { "key": "X-Platform",    "value": "android" },
+          { "key": "X-App-Version", "value": "2.0.0" },
+          { "key": "X-Device-Model","value": "Samsung Galaxy S23" },
+          { "key": "X-Device-OS",   "value": "Android 14" },
+          { "key": "X-Device-ID",   "value": "550e8400-e29b-41d4-a716-446655440000" }
+        ]
+      },
+      "response": [
+        {
+          "name": "200 – Versión OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": {\n    \"latestVersion\": \"2.3.1\",\n    \"minimumVersion\": \"2.0.0\",\n    \"updateRequired\": false,\n    \"updateAvailable\": true,\n    \"updateMessage\": \"Hay una nueva versión disponible con mejoras de rendimiento.\",\n    \"storeUrl\": {\n      \"android\": \"https://play.google.com/store/apps/details?id=com.adt.staff\",\n      \"ios\": \"https://apps.apple.com/app/adt-staff/id123456789\"\n    },\n    \"maintenanceMode\": false,\n    \"maintenanceMessage\": null\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n  }\n}"
+        },
+        {
+          "name": "503 – Modo Mantenimiento",
+          "status": "Service Unavailable",
+          "code": 503,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"statusCode\": 503,\n  \"error\": {\n    \"code\": \"SERVICE_UNAVAILABLE\",\n    \"message\": \"Sistema en mantenimiento programado. Vuelve en 30 minutos.\"\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n  }\n}"
+        }
+      ]
+    },
+
+    {
+      "name": "HU-002 – GET /v1/loans?plate={plate}",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{BASE_URL}}/v1/loans?plate={{PLATE}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["v1","loans"],
+          "query": [{ "key": "plate", "value": "{{PLATE}}" }]
+        },
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{BEARER_TOKEN}}" },
+          { "key": "Content-Type",   "value": "application/json" },
+          { "key": "X-Device-Model", "value": "Samsung Galaxy S23" },
+          { "key": "X-Device-OS",    "value": "Android 14" },
+          { "key": "X-Device-ID",    "value": "550e8400-e29b-41d4-a716-446655440000" },
+          { "key": "X-App-Version",  "value": "2.1.0" },
+          { "key": "X-Platform",     "value": "android" }
+        ]
+      },
+      "response": [
+        {
+          "name": "200 – Préstamo encontrado",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": {\n    \"customer\": {\n      \"id\": \"501\",\n      \"fullName\": \"Juan Carlos Pérez López\",\n      \"phone\": \"+51987654321\",\n      \"address\": \"Av. Arequipa 1234, Miraflores, Lima\",\n      \"nationality\": \"Peruana\",\n      \"maritalStatus\": \"SINGLE\"\n    },\n    \"loan\": {\n      \"id\": \"2\",\n      \"referenceNo\": \"CC00002\",\n      \"state\": \"en_curso\",\n      \"totalDebt\": 12792.00,\n      \"paidAmount\": 3120.00,\n      \"pendingAmount\": 9672.00,\n      \"paidPercentage\": 24.4,\n      \"currency\": \"PEN\",\n      \"installments\": [\n        {\n          \"number\": 1,\n          \"name\": \"Cuota 1\",\n          \"dueDate\": \"2026-02-20\",\n          \"amount\": 312.00,\n          \"status\": \"PAID\",\n          \"paidAt\": \"2026-02-19\",\n          \"lateFee\": 0.00,\n          \"lateFeeStatus\": \"NONE\"\n        },\n        {\n          \"number\": 2,\n          \"name\": \"Cuota 2\",\n          \"dueDate\": \"2026-03-20\",\n          \"amount\": 312.00,\n          \"status\": \"OVERDUE\",\n          \"paidAt\": null,\n          \"lateFee\": 25.50,\n          \"lateFeeStatus\": \"PENDING\"\n        },\n        {\n          \"number\": 3,\n          \"name\": \"Cuota 3\",\n          \"dueDate\": \"2026-04-20\",\n          \"amount\": 312.00,\n          \"status\": \"PENDING\",\n          \"paidAt\": null,\n          \"lateFee\": 0.00,\n          \"lateFeeStatus\": \"NONE\"\n        }\n      ]\n    },\n    \"paymentAccounts\": [\n      { \"id\": \"bcp\",  \"name\": \"BCP\",  \"iconUrl\": \"/web/static/img/placeholder.png\", \"accountNumber\": \"Consultar con asesora\" },\n      { \"id\": \"yape\", \"name\": \"Yape\", \"iconUrl\": \"/web/static/img/placeholder.png\", \"accountNumber\": \"Consultar con asesora\" }\n    ],\n    \"contacts\": [\n      { \"id\": \"u12\", \"name\": \"Juan Pérez\", \"phone\": \"+51987000001\", \"role\": \"SUPPORT\" }\n    ]\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n  }\n}"
+        },
+        {
+          "name": "422 – Placa inválida",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"statusCode\": 422,\n  \"error\": {\n    \"code\": \"PLATE_INVALID_FORMAT\",\n    \"message\": \"La placa ingresada no tiene un formato válido.\",\n    \"details\": [{ \"field\": \"plate\", \"issue\": \"Formato inválido. Ejemplo esperado: ABC-123\", \"rejectedValue\": \"12-XYZ\" }]\n  },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        },
+        {
+          "name": "404 – Placa no encontrada",
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"statusCode\": 404,\n  \"error\": {\n    \"code\": \"PLATE_NOT_FOUND\",\n    \"message\": \"No existe préstamo activo para la placa indicada.\"\n  },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        },
+        {
+          "name": "401 – Token inválido",
+          "status": "Unauthorized",
+          "code": 401,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"statusCode\": 401,\n  \"error\": {\n    \"code\": \"TOKEN_INVALID\",\n    \"message\": \"Token inválido o no encontrado.\"\n  },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        }
+      ]
+    },
+
+    {
+      "name": "HU-003 – GET /v1/documents?plate={plate}",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{BASE_URL}}/v1/documents?plate={{PLATE}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["v1","documents"],
+          "query": [{ "key": "plate", "value": "{{PLATE}}" }]
+        },
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{BEARER_TOKEN}}" },
+          { "key": "Content-Type",   "value": "application/json" },
+          { "key": "X-Device-Model", "value": "Xiaomi Redmi Note 12" },
+          { "key": "X-Device-OS",    "value": "Android 13" },
+          { "key": "X-Device-ID",    "value": "550e8400-e29b-41d4-a716-446655440000" },
+          { "key": "X-App-Version",  "value": "2.1.0" },
+          { "key": "X-Platform",     "value": "android" }
+        ]
+      },
+      "response": [
+        {
+          "name": "200 – Documentos encontrados",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": {\n    \"documents\": [\n      {\n        \"id\": \"doc-10-0\",\n        \"name\": \"DNI – Frente\",\n        \"type\": \"ID\",\n        \"mimeType\": \"image/jpeg\",\n        \"sizeKb\": 120,\n        \"url\": \"http://localhost:8070/web/image/adt.expediente/10/foto_dni_frente\",\n        \"urlExpiresAt\": null,\n        \"uploadedAt\": \"2026-01-10T10:00:00Z\"\n      },\n      {\n        \"id\": \"doc-10-1\",\n        \"name\": \"DNI – Reverso\",\n        \"type\": \"ID\",\n        \"mimeType\": \"image/jpeg\",\n        \"sizeKb\": 110,\n        \"url\": \"http://localhost:8070/web/image/adt.expediente/10/foto_dni_reverso\",\n        \"urlExpiresAt\": null,\n        \"uploadedAt\": \"2026-01-10T10:01:00Z\"\n      },\n      {\n        \"id\": \"doc-10-4\",\n        \"name\": \"SOAT\",\n        \"type\": \"GUARANTEE\",\n        \"mimeType\": \"image/jpeg\",\n        \"sizeKb\": 200,\n        \"url\": \"http://localhost:8070/web/image/adt.expediente/10/foto_soat\",\n        \"urlExpiresAt\": null,\n        \"uploadedAt\": \"2026-01-10T10:05:00Z\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n  }\n}"
+        },
+        {
+          "name": "200 – Sin documentos",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": { \"documents\": [] },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        }
+      ]
+    },
+
+    {
+      "name": "HU-004 – GET /v1/promotions",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{BASE_URL}}/v1/promotions?page=1&pageSize=20",
+          "host": ["{{BASE_URL}}"],
+          "path": ["v1","promotions"],
+          "query": [
+            { "key": "page",     "value": "1" },
+            { "key": "pageSize", "value": "20" }
+          ]
+        },
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{BEARER_TOKEN}}" },
+          { "key": "Content-Type",   "value": "application/json" },
+          { "key": "X-Device-Model", "value": "OPPO A57" },
+          { "key": "X-Device-OS",    "value": "Android 12" },
+          { "key": "X-Device-ID",    "value": "550e8400-e29b-41d4-a716-446655440000" },
+          { "key": "X-App-Version",  "value": "2.1.0" },
+          { "key": "X-Platform",     "value": "android" }
+        ]
+      },
+      "response": [
+        {
+          "name": "200 – Promociones activas",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": {\n    \"promotions\": [\n      {\n        \"id\": \"promo-refinanciamiento-abril\",\n        \"title\": \"Refinancia tu préstamo este mes\",\n        \"body\": \"Obtén una tasa preferencial refinanciando antes del 30 de abril. Aplican condiciones.\",\n        \"imageUrl\": \"https://cdn.example.com/promos/banner-refinanciamiento.jpg\",\n        \"deepLink\": \"adt://refinancing\",\n        \"externalUrl\": null,\n        \"linkType\": \"DEEP_LINK\",\n        \"activeFrom\": \"2026-04-01T00:00:00Z\",\n        \"activeTo\": \"2026-04-30T23:59:59Z\",\n        \"priority\": 1\n      },\n      {\n        \"id\": \"promo-seguro-mototaxi\",\n        \"title\": \"Seguro para tu mototaxi\",\n        \"body\": \"Accede a un seguro vehicular con cobertura completa desde S/ 25 al mes.\",\n        \"imageUrl\": \"https://cdn.example.com/promos/banner-seguro.jpg\",\n        \"deepLink\": null,\n        \"externalUrl\": \"https://adt.example.com/seguros\",\n        \"linkType\": \"EXTERNAL\",\n        \"activeFrom\": \"2026-03-01T00:00:00Z\",\n        \"activeTo\": \"2026-05-31T23:59:59Z\",\n        \"priority\": 2\n      }\n    ]\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n    \"pagination\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 2,\n      \"totalPages\": 1,\n      \"hasNext\": false,\n      \"hasPrev\": false\n    }\n  }\n}"
+        },
+        {
+          "name": "200 – Sin promociones activas",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": { \"promotions\": [] },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"uuid\",\n    \"pagination\": { \"page\": 1, \"pageSize\": 20, \"totalItems\": 0, \"totalPages\": 1, \"hasNext\": false, \"hasPrev\": false }\n  }\n}"
+        },
+        {
+          "name": "400 – pageSize inválido (> 50)",
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"statusCode\": 400,\n  \"error\": { \"code\": \"BAD_REQUEST\", \"message\": \"Parámetros de paginación inválidos.\" },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        }
+      ]
+    },
+
+    {
+      "name": "HU-005 – GET /v1/notifications",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{BASE_URL}}/v1/notifications?page=1&pageSize=20&unreadOnly=false",
+          "host": ["{{BASE_URL}}"],
+          "path": ["v1","notifications"],
+          "query": [
+            { "key": "page",       "value": "1" },
+            { "key": "pageSize",   "value": "20" },
+            { "key": "unreadOnly", "value": "false" }
+          ]
+        },
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{BEARER_TOKEN}}" },
+          { "key": "Content-Type",   "value": "application/json" },
+          { "key": "X-Device-Model", "value": "Motorola Moto G84" },
+          { "key": "X-Device-OS",    "value": "Android 13" },
+          { "key": "X-Device-ID",    "value": "550e8400-e29b-41d4-a716-446655440000" },
+          { "key": "X-App-Version",  "value": "2.1.0" },
+          { "key": "X-Platform",     "value": "android" }
+        ]
+      },
+      "response": [
+        {
+          "name": "200 – Notificaciones del usuario",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": {\n    \"unreadCount\": 2,\n    \"notifications\": [\n      {\n        \"id\": \"notif-1\",\n        \"title\": \"Cuota #3 próxima a vencer\",\n        \"body\": \"Tu cuota #3 de S/ 312.00 vence el 20 de abril. Realiza tu pago a tiempo.\",\n        \"type\": \"PAYMENT_DUE\",\n        \"deepLink\": \"adt://loan/installments\",\n        \"externalUrl\": null,\n        \"linkType\": \"DEEP_LINK\",\n        \"read\": false,\n        \"createdAt\": \"2026-04-10T08:00:00Z\"\n      },\n      {\n        \"id\": \"notif-2\",\n        \"title\": \"¡Nueva promoción disponible!\",\n        \"body\": \"Refinancia tu préstamo este mes con tasa preferencial.\",\n        \"type\": \"PROMOTION\",\n        \"deepLink\": \"adt://promotions\",\n        \"externalUrl\": null,\n        \"linkType\": \"DEEP_LINK\",\n        \"read\": false,\n        \"createdAt\": \"2026-04-08T10:30:00Z\"\n      },\n      {\n        \"id\": \"notif-3\",\n        \"title\": \"Pago registrado correctamente\",\n        \"body\": \"Recibimos tu pago de S/ 312.00 correspondiente a la cuota #1.\",\n        \"type\": \"SYSTEM\",\n        \"deepLink\": null,\n        \"externalUrl\": null,\n        \"linkType\": \"NONE\",\n        \"read\": true,\n        \"createdAt\": \"2026-03-20T15:45:00Z\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n    \"pagination\": {\n      \"page\": 1,\n      \"pageSize\": 20,\n      \"totalItems\": 3,\n      \"totalPages\": 1,\n      \"hasNext\": false,\n      \"hasPrev\": false\n    }\n  }\n}"
+        },
+        {
+          "name": "200 – Solo no leídas (unreadOnly=true)",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"OK\",\n  \"data\": {\n    \"unreadCount\": 2,\n    \"notifications\": [\n      {\n        \"id\": \"notif-1\",\n        \"title\": \"Cuota #3 próxima a vencer\",\n        \"body\": \"Tu cuota #3 vence el 20 de abril.\",\n        \"type\": \"PAYMENT_DUE\",\n        \"deepLink\": \"adt://loan/installments\",\n        \"externalUrl\": null,\n        \"linkType\": \"DEEP_LINK\",\n        \"read\": false,\n        \"createdAt\": \"2026-04-10T08:00:00Z\"\n      }\n    ]\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:00:00Z\",\n    \"requestId\": \"uuid\",\n    \"pagination\": { \"page\": 1, \"pageSize\": 20, \"totalItems\": 1, \"totalPages\": 1, \"hasNext\": false, \"hasPrev\": false }\n  }\n}"
+        }
+      ]
+    },
+
+    {
+      "name": "HU-005b – POST /v1/notifications/{id}/read",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{BASE_URL}}/v1/notifications/1/read",
+          "host": ["{{BASE_URL}}"],
+          "path": ["v1","notifications","1","read"]
+        },
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{BEARER_TOKEN}}" },
+          { "key": "Content-Type",  "value": "application/json" }
+        ]
+      },
+      "response": [
+        {
+          "name": "200 – Marcada como leída",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"Notificación marcada como leída.\",\n  \"data\": { \"id\": \"notif-1\", \"read\": true },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        }
+      ]
+    },
+
+    {
+      "name": "HU-006 – POST /v1/auth/logout",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{BASE_URL}}/v1/auth/logout", "host": ["{{BASE_URL}}"], "path": ["v1","auth","logout"] },
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{BEARER_TOKEN}}" },
+          { "key": "Content-Type",   "value": "application/json" },
+          { "key": "X-Device-Model", "value": "Samsung Galaxy A54" },
+          { "key": "X-Device-OS",    "value": "Android 14" },
+          { "key": "X-Device-ID",    "value": "550e8400-e29b-41d4-a716-446655440000" },
+          { "key": "X-App-Version",  "value": "2.1.0" },
+          { "key": "X-Platform",     "value": "android" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"plate\": \"{{PLATE}}\",\n  \"deviceId\": \"550e8400-e29b-41d4-a716-446655440000\"\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// After logout, clear the saved token",
+              "// Odoo wraps type='json' responses as { result: { ... } }",
+              "var json = pm.response.json();",
+              "var res = json.result || json;",
+              "if (res.success || pm.response.code === 200) {",
+              "    pm.collectionVariables.set('BEARER_TOKEN', '');",
+              "    console.log('Token borrado del cliente.');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 – Sesión cerrada",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"statusCode\": 200,\n  \"message\": \"Sesión cerrada correctamente.\",\n  \"data\": {\n    \"loggedOutAt\": \"2026-04-13T12:05:00Z\"\n  },\n  \"meta\": {\n    \"timestamp\": \"2026-04-13T12:05:00Z\",\n    \"requestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n  }\n}"
+        },
+        {
+          "name": "409 – Sesión ya cerrada",
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"statusCode\": 409,\n  \"error\": {\n    \"code\": \"SESSION_ALREADY_CLOSED\",\n    \"message\": \"La sesión ya fue cerrada previamente.\"\n  },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        },
+        {
+          "name": "401 – Token expirado",
+          "status": "Unauthorized",
+          "code": 401,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"statusCode\": 401,\n  \"error\": {\n    \"code\": \"TOKEN_EXPIRED\",\n    \"message\": \"El token ha expirado.\"\n  },\n  \"meta\": { \"timestamp\": \"2026-04-13T12:00:00Z\", \"requestId\": \"uuid\" }\n}"
+        }
+      ]
+    }
+
+  ]
+}

@@ -11,6 +11,7 @@
         'data/recuperacion_data.xml',
         'data/action_view_sms.xml',
         'security/res_groups.xml',
+        'security/ir.model.access.csv',
         'views/view_comercial_socios.xml',
         'views/view_comercial_cuentas.xml',
         'views/view_comercial_payments.xml',
@@ -29,7 +30,8 @@
         'views/view_cuotas_masivas.xml',
         'views/view_egresos_caja.xml',
         'views/dashboard_caja.xml',
-        'views/report.xml'
+        'views/report.xml',
+        'views/view_mobile_models.xml',
     ],
     # 'assets': {
     #     'web.report_assets_common': [

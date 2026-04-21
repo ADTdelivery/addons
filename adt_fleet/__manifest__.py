@@ -10,6 +10,7 @@
     'data': [
         'views/fleet_state.xml',
         'views/adt_fleet_views.xml',
+        'views/adt_fleet_documents.xml'
     ],
     'installable': True,
     'application': False,

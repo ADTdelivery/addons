@@ -14,6 +14,26 @@ class FieldModels(models.Model):
     x_soat = fields.Binary(string="Tarjeta SOAT")
     x_licencia_final = fields.Binary(string="Licencia")
 
+    tarjeta_propiedad_attachment = fields.Binary(
+        string="Tarjeta de Propiedad (PDF/Imagen)",
+        attachment=True,
+        help="Adjunte la Tarjeta de Propiedad en formato PDF o imagen."
+    )
+    chip_gnv_attachment = fields.Binary(
+        string="Chip GNV (PDF/Imagen)",
+        attachment=True,
+        help="Adjunte el documento del Chip GNV en formato PDF o imagen."
+    )
+    soat_attachment = fields.Binary(
+        string="SOAT (PDF/Imagen)",
+        attachment=True,
+        help="Adjunte el SOAT en formato PDF o imagen."
+    )
+
+    tarjeta_propiedad_filename = fields.Char(string="Nombre archivo Tarjeta")
+    chip_gnv_filename = fields.Char(string="Nombre archivo Chip GNV")
+    soat_filename = fields.Char(string="Nombre archivo SOAT")
+
     num_months_between_dates = fields.Integer(string='Number of Months', compute='_compute_num_months_between_dates')
 
     @api.depends('cuenta_ids.cuota_ids.fecha_cronograma')

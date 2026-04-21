@@ -1,0 +1,21 @@
+<odoo>
+    <record id="view_fleet_vehicle_form_inherit_documents" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.inherit.documents</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='next_assignation_date']" position="after">
+
+
+                <field name="tarjeta_propiedad_attachment" filename="tarjeta_propiedad_filename"/>
+
+                <field name="chip_gnv_attachment" filename="chip_gnv_filename"/>
+
+                <field name="soat_attachment" filename="soat_filename"/>
+
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mobile_app_version_admin,mobile.app.version admin,model_mobile_app_version,base.group_system,1,1,1,1
+access_mobile_app_version_user,mobile.app.version user,model_mobile_app_version,base.group_user,1,0,0,0
+access_mobile_promotion_admin,mobile.promotion admin,model_mobile_promotion,base.group_system,1,1,1,1
+access_mobile_promotion_user,mobile.promotion user,model_mobile_promotion,base.group_user,1,0,0,0
+access_mobile_notification_admin,mobile.notification admin,model_mobile_notification,base.group_system,1,1,1,1
+access_mobile_notification_user,mobile.notification user,model_mobile_notification,base.group_user,1,1,1,0
+access_mobile_token_admin,mobile.token admin,model_mobile_token,base.group_system,1,1,1,1
+access_mobile_token_user,mobile.token user,model_mobile_token,base.group_user,1,1,1,0
+access_mobile_payment_account_admin,mobile.payment.account admin,model_mobile_payment_account,base.group_system,1,1,1,1
+access_mobile_payment_account_user,mobile.payment.account user,model_mobile_payment_account,base.group_user,1,0,0,0
+access_mobile_support_contact_admin,mobile.support.contact admin,model_mobile_support_contact,base.group_system,1,1,1,1
+access_mobile_support_contact_user,mobile.support.contact user,model_mobile_support_contact,base.group_user,1,0,0,0
