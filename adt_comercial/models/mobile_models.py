@@ -62,6 +62,7 @@ class MobilePromotion(models.Model):
     link_type = fields.Selection([
         ('DEEP_LINK', 'Deep Link'),
         ('EXTERNAL', 'External URL'),
+        ('WHATSAPP', 'WhatsApp'),
         ('NONE', 'Sin acción'),
     ], string='Tipo de enlace', default='NONE', required=True)
     active_from = fields.Datetime(string='Activo desde', required=True)
@@ -75,6 +76,11 @@ class MobilePromotion(models.Model):
         for rec in self:
             if rec.active_from and rec.active_to and rec.active_from >= rec.active_to:
                 raise ValidationError('La fecha de inicio debe ser anterior a la fecha de fin.')
+
+    def get_button_color(self):
+        if self.link_type == 'WHATSAPP':
+            return 'green'
+        return 'default'
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -182,5 +188,4 @@ class MobileSupportContact(models.Model):
     ], string='Rol', default='SUPPORT', required=True)
     sequence = fields.Integer(string='Orden', default=10)
     active = fields.Boolean(default=True)
-
 

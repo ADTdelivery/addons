@@ -852,6 +852,66 @@ class MobileAPIController(http.Controller):
             _logger.exception('Error in POST /v1/notifications/%s/read', notification_id)
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-004 — POST /v1/promotions
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/promotions',
+        type='json',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def create_promotion(self, **kwargs):
+        """
+        Creates a new promotion. If the promotion is for WhatsApp, it will include a green button styled like WhatsApp.
+        Otherwise, the button color will be configurable from the Odoo module.
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            body = request.jsonrequest if hasattr(request, 'jsonrequest') and request.jsonrequest else {}
+
+            title = body.get('title')
+            body_text = body.get('body')
+            link_type = body.get('linkType')
+            deep_link = body.get('deepLink')
+            external_url = body.get('externalUrl')
+
+            if not title or not body_text or not link_type:
+                return _json_response(
+                    _error(400, 'BAD_REQUEST', 'Faltan campos obligatorios: title, body, linkType.'),
+                    status=400
+                )
+
+            PromoModel = request.env['mobile.promotion'].sudo()
+            new_promo = PromoModel.create({
+                'title': title,
+                'body': body_text,
+                'link_type': link_type,
+                'deep_link': deep_link,
+                'external_url': external_url,
+                'button_color': 'green' if link_type == 'whatsapp' else 'configurable',
+            })
+
+            data = {
+                'id': new_promo.id,
+                'title': new_promo.title,
+                'body': new_promo.body,
+                'linkType': new_promo.link_type,
+                'buttonColor': new_promo.button_color,
+            }
+
+            return _json_response(_success(data, message='Promoción creada exitosamente.'))
+
+        except Exception:
+            _logger.exception('Error in POST /v1/promotions')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Private helpers
