@@ -246,6 +246,8 @@
 
                                         <button string="Observaciones" name="registrar_observacion" type="object"
                                                 attrs="{'invisible': [('state', 'in', ['anulada'])]}"/>
+
+                                        <field name="voucher_image" widget="image"/>
                                     </tree>
                                     <form string="Cuota" edit="0">
                                         <header>

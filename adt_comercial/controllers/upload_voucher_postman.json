@@ -1,0 +1,68 @@
+{
+  "info": {
+    "name": "Upload Voucher",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Upload Voucher",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer <your_token>",
+            "type": "text"
+          },
+          {
+            "key": "X-Device-Model",
+            "value": "Xiaomi Redmi Note 12",
+            "type": "text"
+          },
+          {
+            "key": "X-Device-OS",
+            "value": "Android 13",
+            "type": "text"
+          },
+          {
+            "key": "X-Device-ID",
+            "value": "550e8400-e29b-41d4-a716-446655440000",
+            "type": "text"
+          },
+          {
+            "key": "X-App-Version",
+            "value": "2.1.0",
+            "type": "text"
+          },
+          {
+            "key": "X-Platform",
+            "value": "android",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cuota_id\": \"1\",\n  \"cuenta_id\": \"1\",\n  \"voucher_image\": \"<Base64-encoded-image-data>\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8070/v1/installments/upload_voucher",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8070",
+          "path": [
+            "v1",
+            "installments",
+            "upload_voucher"
+          ]
+        }
+      }
+    }
+  ]
+}

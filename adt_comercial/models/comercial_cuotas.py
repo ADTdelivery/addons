@@ -147,6 +147,12 @@ class ADTComercialCuotas(models.Model):
     observacion_ids = fields.One2many(
         "adt.comercial.observaciones", "cuota_id", string="Observaciones")
 
+    voucher_image = fields.Binary(
+        string="Voucher de Pago",
+        attachment=True,
+        help="Imagen del voucher asociado a esta cuota."
+    )
+
     def action_register_payment(self):
         return {
             'name': _('Register Payment'),

@@ -351,6 +351,9 @@ class MobileAPIController(http.Controller):
             # Cuotas
             cuotas = cuenta.cuota_ids.filtered(lambda c: c.type == 'cuota').sorted('fecha_cronograma')
 
+            # Sort cuotas by name (e.g., "Cuota 1", "Cuota 2", ...) in ascending order
+            cuotas = sorted(cuotas, key=lambda c: c.fecha_cronograma)
+
             total_debt = cuenta.monto_total or 0.0
             paid_amount = 0.0
             installments_data = []
@@ -367,8 +370,21 @@ class MobileAPIController(http.Controller):
                 paid_at_raw = getattr(cuota, 'real_date', None)
                 paid_at = _format_date(paid_at_raw) if paid_at_raw else None
 
+                # Voucher URL
+                voucher_url = None
+                if cuota.voucher_image:
+                    AttachModel = request.env['ir.attachment'].sudo()
+                    attach = AttachModel.search([
+                        ('res_model', '=', 'adt.comercial.cuotas'),
+                        ('res_id', '=', cuota.id),
+                        ('res_field', '=', 'voucher_image'),
+                    ], limit=1)
+                    if attach:
+                        base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+                        voucher_url = f"{base_url}/web/content/{attach.id}"
+
                 installments_data.append({
-                    'number': int((cuota.name or '').split(' ')[-1]) if cuota.name else 0,
+                    'number': cuota.id,
                     'name': cuota.name or '',
                     'dueDate': _format_date(cuota.fecha_cronograma),
                     'amount': cuota.monto or 0.0,
@@ -376,6 +392,7 @@ class MobileAPIController(http.Controller):
                     'paidAt': paid_at,
                     'lateFee': late_fee or 0.0,
                     'lateFeeStatus': _late_fee_status(cuota),
+                    'voucherUrl': voucher_url,
                 })
 
             pending_amount = max(0.0, total_debt - paid_amount)
@@ -911,6 +928,71 @@ class MobileAPIController(http.Controller):
         except Exception:
             _logger.exception('Error in POST /v1/promotions')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-007 — POST /v1/installments/upload_voucher
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/installments/upload_voucher',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def upload_voucher(self, **kwargs):
+        try:
+            # Parsear body JSON manualmente
+            body = request.httprequest.data
+            data = json.loads(body) if body else {}
+
+            cuota_id = data.get('cuota_id')
+            cuenta_id = data.get('cuenta_id')
+            voucher_image = data.get('voucher_image')
+
+            _logger.info(f"Received cuota_id: {cuota_id}")
+            _logger.info(f"Received cuenta_id: {cuenta_id}")
+            _logger.info(f"Received voucher_image: {voucher_image}")
+
+            if not voucher_image:
+                _logger.warning('Validation failed:  voucher_image missing.')
+                return _json_response(
+                    _error(400, 'VALIDATION_ERROR', 'cuota_id y voucher_image son obligatorios.'),
+                    status=400
+                )
+
+            if not cuota_id:
+                _logger.warning('Validation failed: cuota_id missing.')
+                return _json_response(
+                    _error(400, 'VALIDATION_ERROR', 'cuota_id y voucher_image son obligatorios.'),
+                    status=400
+                )
+
+            _logger.info('Fetching cuota with ID: %s', cuota_id)
+            CuotaModel = request.env['adt.comercial.cuotas'].sudo()
+            cuota = CuotaModel.browse(int(cuota_id))
+
+            if not cuota.exists():
+                _logger.warning('Cuota with ID %s does not exist.', cuota_id)
+                return _json_response(
+                    _error(404, 'NOT_FOUND', 'La cuota especificada no existe.'),
+                    status=404
+                )
+
+            _logger.info('Updating voucher_image for cuota ID: %s', cuota_id)
+            cuota.write({'voucher_image': voucher_image})
+
+            _logger.info('Voucher uploaded successfully for cuota ID: %s', cuota_id)
+            return _json_response(
+                _success({}, 'Voucher subido exitosamente.')
+            )
+
+        except Exception as e:
+            _logger.exception('Error en POST /v1/installments/upload_voucher: %s', str(e))
+            return _json_response(
+                _error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'),
+                status=500
+            )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
