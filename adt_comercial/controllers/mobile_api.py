@@ -994,6 +994,142 @@ class MobileAPIController(http.Controller):
                 status=500
             )
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-008 — POST /v1/maintenance/record
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/maintenance/record',
+        type='json',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def maintenance_record(self, **kwargs):
+        """
+        Handles the creation or update of vehicle maintenance records and lines.
+        """
+        try:
+            body = request.jsonrequest if hasattr(request, 'jsonrequest') and request.jsonrequest else {}
+
+            vehicle_id = body.get('vehicle_id')
+            km_objetivo = body.get('km_objetivo')
+            realizado = body.get('realizado', False)
+            attachment_ids = body.get('attachment_ids', [])
+            fecha_inicio = body.get('fecha_inicio')
+            fecha_fin = body.get('fecha_fin')
+
+            if not vehicle_id or not km_objetivo or not fecha_inicio or not fecha_fin:
+                return _json_response(
+                    _error(400, 'VALIDATION_ERROR', 'vehicle_id, km_objetivo, fecha_inicio y fecha_fin son obligatorios.'),
+                    status=400
+                )
+
+            MaintenanceRecordModel = request.env['adt.tvs.vehicle_maintenance_record'].sudo()
+            existing_record = MaintenanceRecordModel.search([('vehicle_id', '=', vehicle_id)], limit=1)
+
+            if existing_record:
+                # Add a new line to the existing record
+                existing_record.line_ids.create({
+                    'record_id': existing_record.id,
+                    'km_objetivo': km_objetivo,
+                    'realizado': realizado,
+                    'attachment_ids': [(6, 0, attachment_ids)],
+                    'fecha_inicio': fecha_inicio,
+                    'fecha_fin': fecha_fin,
+                })
+            else:
+                # Fetch vehicle details from fleet.model
+                FleetModel = request.env['fleet.vehicle'].sudo()
+                vehicle = FleetModel.search([('id', '=', vehicle_id)], limit=1)
+
+                if not vehicle:
+                    return _json_response(
+                        _error(404, 'VEHICLE_NOT_FOUND', 'El vehículo especificado no existe.'),
+                        status=404
+                    )
+
+                # Create a new record with the fetched vehicle data
+                new_record = MaintenanceRecordModel.create({
+                    'vehicle_id': vehicle_id,
+                    'conductor_id': vehicle.driver_id.id if vehicle.driver_id else None,
+                    'chassis': vehicle.vin_sn or '',
+                    'motor':  '',  # Replace missing engine_no with an empty string
+                    'placa': vehicle.license_plate or '',
+                    'estado_mantenimiento': 'tvs',
+                    'line_ids': [(0, 0, {
+                        'km_objetivo': km_objetivo,
+                        'realizado': realizado,
+                        'attachment_ids': [(6, 0, attachment_ids)],
+                        'fecha_inicio': fecha_inicio,
+                        'fecha_fin': fecha_fin,
+                    })],
+                })
+
+            return _json_response(_success({}, 'Registro de mantenimiento procesado exitosamente.'))
+
+        except Exception as e:
+            _logger.exception('Error en POST /v1/maintenance/record: %s', str(e))
+            return _json_response(
+                _error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'),
+                status=500
+            )
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-009 — GET /v1/maintenance/lines
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/maintenance/lines',
+        type='http',  # Changed from 'json' to 'http'
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_maintenance_lines(self, **kwargs):
+        """
+        Fetches all maintenance lines for a given vehicle_id from headers.
+        """
+        try:
+            vehicle_id = kwargs.get('vehicle_id')
+            vehicle_id = int(vehicle_id)
+            if not vehicle_id:
+                return _json_response(
+                    _error(400, 'VALIDATION_ERROR', 'El parámetro vehicle_id es obligatorio.'),
+                    status=400
+                )
+
+            _logger.info(f"vehicle_id {vehicle_id}")
+            MaintenanceRecordModel = request.env['adt.tvs.vehicle_maintenance_record'].sudo()
+            record = MaintenanceRecordModel.search([('vehicle_id', '=', vehicle_id)], limit=1)
+            _logger.info(f"Found {len(record)} maintenance lines for vehicle_id {vehicle_id}")
+
+            if not record:
+                return _json_response(
+                    _error(404, 'RECORD_NOT_FOUND', 'No se encontró un registro de mantenimiento para el vehículo especificado.'),
+                    status=404
+                )
+
+            lines_data = []
+            for line in record.line_ids:
+                lines_data.append({
+                    'id': line.id,
+                    'km_objetivo': line.km_objetivo,
+                    'realizado': line.realizado,
+                    'attachment_ids': [attachment.id for attachment in line.attachment_ids],
+                    'fecha_inicio': _format_date(line.fecha_inicio),
+                    'fecha_fin': _format_date(line.fecha_fin),
+                })
+
+            return  _json_response(_success(lines_data, 'Líneas de mantenimiento obtenidas exitosamente.'))
+
+        except Exception as e:
+            _logger.exception('Error en GET /v1/maintenance/lines: %s', str(e))
+            return _json_response(
+                _error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'),
+                status=500
+            )
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Private helpers

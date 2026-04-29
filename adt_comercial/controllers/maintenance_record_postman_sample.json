@@ -1,0 +1,32 @@
+{
+  "info": {
+    "name": "Maintenance Record API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create or Update Maintenance Record",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vehicle_id\": 1,\n  \"km_objetivo\": 15000,\n  \"realizado\": false,\n  \"attachment_ids\": [1, 2, 3],\n  \"fecha_inicio\": \"2026-04-01\",\n  \"fecha_fin\": \"2026-04-30\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8069/v1/maintenance/record",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8069",
+          "path": ["v1", "maintenance", "record"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
