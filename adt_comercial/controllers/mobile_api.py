@@ -1104,12 +1104,6 @@ class MobileAPIController(http.Controller):
             record = MaintenanceRecordModel.search([('vehicle_id', '=', vehicle_id)], limit=1)
             _logger.info(f"Found {len(record)} maintenance lines for vehicle_id {vehicle_id}")
 
-            if not record:
-                return _json_response(
-                    _error(404, 'RECORD_NOT_FOUND', 'No se encontró un registro de mantenimiento para el vehículo especificado.'),
-                    status=404
-                )
-
             lines_data = []
             for line in record.line_ids:
                 lines_data.append({
