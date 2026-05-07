@@ -1,0 +1,97 @@
+{
+  "info": {
+    "_postman_id": "d1d4e0d8-6ef2-4bcb-8a16-2d8b0a3f1f21",
+    "name": "ADT - Registrar Pagos Odoo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Coleccion para probar POST /api/v1/pagos/registrar"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8069"
+    },
+    {
+      "key": "bearerToken",
+      "value": "TU_TOKEN_AQUI"
+    }
+  ],
+  "item": [
+    {
+      "name": "Escenario 1 - Pago al dia",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-001\",\n  \"montoTotal\": 450.00,\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 450.00,\n      \"estadoPago\": \"PAGADO\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/pagos/registrar",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "pagos", "registrar"]
+        }
+      }
+    },
+    {
+      "name": "Escenario 2 - 1 cuota con mora",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-002\",\n  \"montoTotal\": 517.50,\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 67.50,\n      \"montoPagado\": 517.50,\n      \"estadoPago\": \"PAGADO\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/pagos/registrar",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "pagos", "registrar"]
+        }
+      }
+    },
+    {
+      "name": "Escenario 3 - Multiples cuotas con mora",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-003\",\n  \"montoTotal\": 1485.00,\n  \"comentario\": \"Pago acumulado 3 cuotas\",\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-001\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 90.00,\n      \"montoPagado\": 540.00,\n      \"estadoPago\": \"PAGADO\"\n    },\n    {\n      \"cuotaId\": \"C-002\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 45.00,\n      \"montoPagado\": 495.00,\n      \"estadoPago\": \"PAGADO\"\n    },\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 450.00,\n      \"estadoPago\": \"PAGADO\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/pagos/registrar",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "pagos", "registrar"]
+        }
+      }
+    },
+    {
+      "name": "Escenario 4 - Pago parcial con excedente",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-004\",\n  \"montoTotal\": 620.00,\n  \"comentario\": \"Acuerdo de abono adelantado\",\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 45.00,\n      \"montoPagado\": 495.00,\n      \"estadoPago\": \"PAGADO\"\n    },\n    {\n      \"cuotaId\": \"C-004\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 125.00,\n      \"estadoPago\": \"PARCIAL\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/pagos/registrar",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "pagos", "registrar"]
+        }
+      }
+    }
+  ]
+}
+

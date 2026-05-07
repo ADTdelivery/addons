@@ -23,6 +23,7 @@ import json
 import re
 import uuid
 import logging
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import datetime, timezone
 
 from odoo import http, fields as odoo_fields
@@ -186,6 +187,116 @@ def _format_datetime(dt):
         return str(dt)
     except Exception:
         return None
+
+
+def _contract_error(status, code, message, field=None):
+    body = {
+        'code': code,
+        'message': message,
+    }
+    if field:
+        body['field'] = field
+    return _json_response(body, status=status)
+
+
+def _to_decimal(value):
+    try:
+        if isinstance(value, Decimal):
+            return value
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _money(value):
+    if value is None:
+        value = Decimal('0')
+    if not isinstance(value, Decimal):
+        value = _to_decimal(value) or Decimal('0')
+    return value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
+def _parse_iso_datetime(value):
+    if not value:
+        return None
+    try:
+        raw = str(value).strip()
+        if raw.endswith('Z'):
+            raw = raw[:-1] + '+00:00'
+        dt = datetime.fromisoformat(raw)
+        if dt.tzinfo:
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
+    except Exception:
+        return None
+
+
+def _resolve_credit_record(credito_id):
+    CuentaModel = request.env['adt.comercial.cuentas'].sudo()
+    credito_str = str(credito_id or '').strip()
+    if not credito_str:
+        return None
+
+    if credito_str.isdigit():
+        rec = CuentaModel.search([('id', '=', int(credito_str))], limit=1)
+        if rec:
+            return rec
+
+    rec = CuentaModel.search([('reference_no', '=', credito_str)], limit=1)
+    if rec:
+        return rec
+
+    return CuentaModel.search([('id', '=', credito_str)], limit=1)
+
+
+def _resolve_cuota_record(cuenta, cuota_ref):
+    cuota_str = str(cuota_ref or '').strip()
+    if not cuota_str:
+        return None
+
+    cuotas = cuenta.cuota_ids.filtered(lambda c: c.type == 'cuota')
+
+    if cuota_str.isdigit():
+        rec = cuotas.filtered(lambda c: c.id == int(cuota_str))[:1]
+        if rec:
+            return rec
+
+    rec = cuotas.filtered(lambda c: (c.name or '').strip() == cuota_str)[:1]
+    if rec:
+        return rec
+
+    return None
+
+
+def _compute_server_mora(cuota, fecha_pago_dt):
+    if not cuota or not cuota.fecha_cronograma or not fecha_pago_dt:
+        return Decimal('0.00')
+
+    fecha_cronograma = cuota.fecha_cronograma
+    diff_days = (fecha_pago_dt.date() - fecha_cronograma).days
+    if diff_days <= 0:
+        return Decimal('0.00')
+
+    default_factor = float(
+        request.env['ir.config_parameter'].sudo().get_param('adt_comercial.mora_factor', 2)
+    )
+
+    factors = request.env['adt.cobranza.config.factor'].sudo().search(
+        [('company_id', '=', cuota.company_id.id)],
+        order='id asc',
+        limit=2
+    )
+
+    previous_mora_payments = cuota.cuenta_id.cuota_ids.filtered(lambda p: (p.mora_total or 0.0) > 0.0)
+    previous_mora_count = len(previous_mora_payments)
+
+    if not factors:
+        factor = default_factor
+    else:
+        index = min(previous_mora_count, len(factors) - 1)
+        factor = float(factors[index].factor_mora)
+
+    return _money(Decimal(str(diff_days)) * Decimal(str(factor)))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -358,13 +469,22 @@ class MobileAPIController(http.Controller):
             paid_amount = 0.0
             installments_data = []
 
+            # ── New aggregate counters ─────────────────────────────────────
+            cuota_total = len(cuotas)
+            cuotas_pagadas_count = 0
+            cuotas_retrasadas_list = []
+
             for cuota in cuotas:
                 # Compute paid amount
-                paid = getattr(cuota, 'pagado', None) or 0.0
                 saldo = getattr(cuota, 'saldo', None) or 0.0
+                status = _installment_status(cuota)
 
-                if _installment_status(cuota) == 'PAID':
+                if status == 'PAID':
                     paid_amount += (cuota.monto or 0.0)
+                    cuotas_pagadas_count += 1
+
+                if cuota.state == 'retrasado':
+                    cuotas_retrasadas_list.append(cuota)
 
                 late_fee = cuota.mora_total if hasattr(cuota, 'mora_total') else 0.0
                 paid_at_raw = getattr(cuota, 'real_date', None)
@@ -388,15 +508,33 @@ class MobileAPIController(http.Controller):
                     'name': cuota.name or '',
                     'dueDate': _format_date(cuota.fecha_cronograma),
                     'amount': cuota.monto or 0.0,
-                    'status': _installment_status(cuota),
+                    'status': status,
                     'paidAt': paid_at,
                     'lateFee': late_fee or 0.0,
                     'lateFeeStatus': _late_fee_status(cuota),
                     'voucherUrl': voucher_url,
+                    # Campo 9: suma cuota + mora
+                    'totalConMora': round((cuota.monto or 0.0) + (late_fee or 0.0), 2),
                 })
 
             pending_amount = max(0.0, total_debt - paid_amount)
             paid_pct = round((paid_amount / total_debt * 100), 2) if total_debt > 0 else 0.0
+
+            # ── Aggregate values for new fields ───────────────────────────
+            qty_cuotas_retrasadas = len(cuotas_retrasadas_list)
+            monto_cuotas_retrasadas = round(
+                sum((c.saldo or 0.0) for c in cuotas_retrasadas_list), 2
+            )
+
+            # Cuota pendiente del período actual: primera que no está retrasada ni pagada
+            cuota_pendiente_actual = next(
+                (c for c in cuotas if c.state in ('pendiente', 'a_cuenta')), None
+            )
+            monto_cuota_pendiente = round(
+                (cuota_pendiente_actual.saldo or 0.0) if cuota_pendiente_actual else 0.0, 2
+            )
+
+            total_pendiente_cobrar = round(monto_cuotas_retrasadas + monto_cuota_pendiente, 2)
 
             loan_data = {
                 'id': str(cuenta.id),
@@ -407,6 +545,16 @@ class MobileAPIController(http.Controller):
                 'pendingAmount': pending_amount,
                 'paidPercentage': paid_pct,
                 'currency': 'S/',
+                # ── Nuevos campos ──────────────────────────────────────────
+                'plate': plate_upper,                               # Campo 3
+                'paymentType': cuenta.periodicidad or '',           # Campo 4
+                'cuotaTotal': cuota_total,                          # Campo 1
+                'cuotasPagadas': cuotas_pagadas_count,              # Campo 2
+                'cuotasRetrasadas': qty_cuotas_retrasadas,          # Campo 5
+                'montoCuotasRetrasadas': monto_cuotas_retrasadas,   # Campo 6
+                'montoCuotaPendiente': monto_cuota_pendiente,       # Campo 7
+                'totalPendienteCobrar': total_pendiente_cobrar,     # Campo 8
+                # ───────────────────────────────────────────────────────────
                 'installments': installments_data,
             }
 
@@ -428,6 +576,234 @@ class MobileAPIController(http.Controller):
         except Exception:
             _logger.exception('Error in GET /v1/loans')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/api/v1/pagos/registrar',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def register_payment(self, **kwargs):
+        try:
+            raw_body = request.httprequest.data
+            body = json.loads(raw_body) if raw_body else {}
+
+            credito_id = body.get('creditoId')
+            comprobante = (body.get('comprobante') or '').strip()
+            monto_total_raw = body.get('montoTotal')
+            comentario = (body.get('comentario') or '').strip()
+            cuotas_payload = body.get('cuotas') or []
+
+            if not credito_id:
+                return _contract_error(400, 'CUOTA_NOT_FOUND', 'creditoId es requerido.', 'creditoId')
+            if not comprobante:
+                return _contract_error(400, 'COMPROBANTE_DUPLICADO', 'comprobante es requerido.', 'comprobante')
+            if not isinstance(cuotas_payload, list) or len(cuotas_payload) == 0:
+                return _contract_error(400, 'CUOTA_NOT_FOUND', 'Debe enviar al menos una cuota.', 'cuotas')
+
+            monto_total = _to_decimal(monto_total_raw)
+            if monto_total is None:
+                return _contract_error(400, 'MONTO_NO_COINCIDE', 'montoTotal no es válido.', 'montoTotal')
+            monto_total = _money(monto_total)
+
+            fecha_pago = _parse_iso_datetime(body.get('fechaPago'))
+            if body.get('fechaPago') and not fecha_pago:
+                return _contract_error(400, 'ESTADO_INCONSISTENTE', 'fechaPago no tiene formato ISO 8601.', 'fechaPago')
+            if not fecha_pago:
+                fecha_pago = datetime.now()
+
+            cuenta = _resolve_credit_record(credito_id)
+            if not cuenta:
+                return _contract_error(404, 'CUOTA_NOT_FOUND', 'El crédito no existe.', 'creditoId')
+
+            # a) Verificar cuotas existen y pertenecen al crédito
+            cuotas_data = []
+            any_partial = False
+            sum_pagado = Decimal('0.00')
+
+            for idx, item in enumerate(cuotas_payload):
+                cuota_ref = item.get('cuotaId')
+                cuota_rec = _resolve_cuota_record(cuenta, cuota_ref)
+                if not cuota_rec:
+                    return _contract_error(
+                        404,
+                        'CUOTA_NOT_FOUND',
+                        'La cuota no existe o no pertenece al crédito.',
+                        'cuotas[%s].cuotaId' % idx,
+                    )
+
+                monto_cuota = _to_decimal(item.get('montoCuota'))
+                monto_mora = _to_decimal(item.get('montoMora'))
+                monto_pagado = _to_decimal(item.get('montoPagado'))
+                estado_pago = (item.get('estadoPago') or '').strip().upper()
+
+                if None in (monto_cuota, monto_mora, monto_pagado):
+                    return _contract_error(
+                        400,
+                        'ESTADO_INCONSISTENTE',
+                        'Montos inválidos en la cuota enviada.',
+                        'cuotas[%s]' % idx,
+                    )
+
+                monto_cuota = _money(monto_cuota)
+                monto_mora = _money(monto_mora)
+                monto_pagado = _money(monto_pagado)
+                sum_pagado += monto_pagado
+
+                if estado_pago not in ('PAGADO', 'PARCIAL'):
+                    return _contract_error(
+                        400,
+                        'ESTADO_INCONSISTENTE',
+                        'estadoPago debe ser PAGADO o PARCIAL.',
+                        'cuotas[%s].estadoPago' % idx,
+                    )
+
+                if estado_pago == 'PARCIAL':
+                    any_partial = True
+
+                cuotas_data.append({
+                    'idx': idx,
+                    'cuota': cuota_rec,
+                    'monto_cuota': monto_cuota,
+                    'monto_mora': monto_mora,
+                    'monto_pagado': monto_pagado,
+                    'estado_pago': estado_pago,
+                    'numero_operacion_cuota': (item.get('numeroOperacionCuota') or item.get('numero_operacion_cuota') or '').strip(),
+                    'numero_operacion_mora': (item.get('numeroOperacionMora') or item.get('numero_operacion_mora') or '').strip(),
+                })
+
+            # b) Verificar que ninguna cuota esté PAGADO en BD
+            for c in cuotas_data:
+                if (c['cuota'].state or '').strip().lower() == 'pagado':
+                    return _contract_error(
+                        409,
+                        'CUOTA_YA_PAGADA',
+                        'Se intenta pagar una cuota ya pagada.',
+                        'cuotas[%s].cuotaId' % c['idx'],
+                    )
+
+            # c) Verificar orden de cuotas
+            cuotas_credito_ordenadas = sorted(
+                cuenta.cuota_ids.filtered(lambda x: x.type == 'cuota'),
+                key=lambda x: (x.fecha_cronograma or datetime.max.date(), x.id)
+            )
+            selected_ids = {c['cuota'].id for c in cuotas_data}
+
+            for c in cuotas_data:
+                cuota_actual = c['cuota']
+                for cuota_prev in cuotas_credito_ordenadas:
+                    if cuota_prev.id == cuota_actual.id:
+                        break
+                    if (cuota_prev.state or '').strip().lower() != 'pagado' and cuota_prev.id not in selected_ids:
+                        return _contract_error(
+                            422,
+                            'CUOTAS_FUERA_DE_ORDEN',
+                            'No puede pagar una cuota dejando cuotas anteriores pendientes.',
+                            'cuotas[%s].cuotaId' % c['idx'],
+                        )
+
+            # d) Verificar suma montoPagado == montoTotal
+            if _money(sum_pagado) != monto_total:
+                return _contract_error(400, 'MONTO_NO_COINCIDE', 'La suma de montoPagado no coincide con montoTotal.', 'montoTotal')
+
+            # e) Recalcular mora y comparar
+            for c in cuotas_data:
+                server_mora = _compute_server_mora(c['cuota'], fecha_pago)
+                if _money(server_mora) != _money(c['monto_mora']):
+                    return _contract_error(
+                        400,
+                        'MORA_INCORRECTA',
+                        'montoMora no coincide con el cálculo del servidor.',
+                        'cuotas[%s].montoMora' % c['idx'],
+                    )
+
+            # f) Verificar coherencia estadoPago vs montos
+            for c in cuotas_data:
+                total_cuota = _money(c['monto_cuota'] + c['monto_mora'])
+                if c['estado_pago'] == 'PAGADO' and _money(c['monto_pagado']) != total_cuota:
+                    return _contract_error(
+                        400,
+                        'ESTADO_INCONSISTENTE',
+                        'Para estado PAGADO, montoPagado debe ser igual a montoCuota + montoMora.',
+                        'cuotas[%s].montoPagado' % c['idx'],
+                    )
+                if c['estado_pago'] == 'PARCIAL' and _money(c['monto_pagado']) >= total_cuota:
+                    return _contract_error(
+                        400,
+                        'ESTADO_INCONSISTENTE',
+                        'Para estado PARCIAL, montoPagado debe ser menor a montoCuota + montoMora.',
+                        'cuotas[%s].montoPagado' % c['idx'],
+                    )
+
+            # g) Verificar comentario si hay PARCIAL
+            if any_partial and not comentario:
+                return _contract_error(400, 'COMENTARIO_REQUERIDO', 'El comentario es obligatorio cuando hay cuotas parciales.', 'comentario')
+
+            # h) Verificar comprobante duplicado
+            payment_exist = request.env['account.payment'].sudo().search([
+                ('ref', '=', comprobante)
+            ], limit=1)
+            pending_exist = request.env['adt.comercial.cuotas.pendientes'].sudo().search([
+                '|',
+                ('numero_operacion_cuota', '=', comprobante),
+                ('numero_operacion_mora', '=', comprobante),
+            ], limit=1)
+            if payment_exist or pending_exist:
+                return _contract_error(409, 'COMPROBANTE_DUPLICADO', 'El número de comprobante ya fue registrado.', 'comprobante')
+
+            # i) Persistir y retornar response (registro pendiente para validacion)
+            cuota_results = []
+            pago_id = str(uuid.uuid4())
+
+            for c in cuotas_data:
+                cuota = c['cuota']
+                monto_mora = _money(c['monto_mora'])
+                request.env['adt.comercial.cuotas.pendientes'].sudo().create({
+                    'cuota_id': cuota.id,
+                    'monto_cuota': float(_money(c['monto_cuota'])),
+                    'numero_operacion_cuota': c['numero_operacion_cuota'] or comprobante,
+                    'monto_mora': float(monto_mora),
+                    'numero_operacion_mora': c['numero_operacion_mora'] or (comprobante if monto_mora > 0 else False),
+                    'fecha': fecha_pago,
+                    'comentario': comentario or False,
+                    'estado': 'PENDIENTE_VALIDAR',
+                })
+
+                cuota.invalidate_cache()
+                cuota._compute_pendiente_validar()
+
+                saldo_pendiente = _money(c['monto_cuota'] + c['monto_mora'] - c['monto_pagado'])
+                if saldo_pendiente < Decimal('0.00'):
+                    saldo_pendiente = Decimal('0.00')
+
+                if saldo_pendiente == Decimal('0.00'):
+                    estado_result = 'PAGADO'
+                elif _money(c['monto_pagado']) > Decimal('0.00'):
+                    estado_result = 'PARCIAL'
+                else:
+                    estado_result = 'PENDIENTE'
+
+                cuota_results.append({
+                    'cuotaId': str(cuota.id),
+                    'estado': estado_result,
+                    'montoPagado': float(_money(c['monto_pagado'])),
+                    'saldoPendiente': float(saldo_pendiente),
+                })
+
+            response = {
+                'pagoId': pago_id,
+                'comprobante': comprobante,
+                'montoTotal': float(monto_total),
+                'fechaPago': fecha_pago.replace(tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'cuotas': cuota_results,
+            }
+            return _json_response(response, status=200)
+
+        except Exception:
+            _logger.exception('Error in POST /api/v1/pagos/registrar')
+            return _contract_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.')
 
     # ══════════════════════════════════════════════════════════════════════════
     # HU-003 — GET /v1/documents?plate=ABC-123

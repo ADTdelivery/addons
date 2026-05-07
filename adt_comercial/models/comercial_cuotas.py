@@ -66,19 +66,18 @@ class ADTComercialCuotas(models.Model):
     
     x_asesora = fields.Char(string='Asesora')
     
-    mora_total = fields.Float(string="Mora total",compute="_compute_mora_total",store=True)
-    
-    mora_pendiente = fields.Float(string="Mora pendiente",compute="_compute_mora_total",store=True)
-    
-    mora_estado_texto = fields.Char(string="Estado de mora",compute="_compute_mora_total",store=True)
+    mora_total = fields.Float(string="Mora total", compute="_compute_mora_total")
+
+    mora_pendiente = fields.Float(string="Mora pendiente", compute="_compute_mora_total")
+
+    mora_estado_texto = fields.Char(string="Estado de mora", compute="_compute_mora_total")
 
     mora_operacion = fields.Char(
         string="N° Operación Mora",
         compute="_compute_mora_total",
-        store=True
     )
 
-    mora_dias = fields.Integer(string="Días de mora",compute="_compute_mora_total",store=True)
+    mora_dias = fields.Integer(string="Días de mora", compute="_compute_mora_total")
 
     @api.model
     def _change_real_date(self):
@@ -206,9 +205,19 @@ class ADTComercialCuotas(models.Model):
         'payment_ids',
         'payment_ids.mora',
         'payment_ids.mora_state',
-        'payment_ids.mora_operacion'
+        'payment_ids.mora_operacion',
+        'payment_ids.mora_dias',
+        'fecha_cronograma',
+        'state',
+        'type',
+        'company_id'
     )
+    @api.depends_context('today')
     def _compute_mora_total(self):
+        default_factor = float(
+            self.env['ir.config_parameter'].sudo().get_param('adt_comercial.mora_factor', 2)
+        )
+
         for record in self:
             mora_total = 0.0
             mora_pendiente = 0.0
@@ -232,6 +241,22 @@ class ADTComercialCuotas(models.Model):
                     # si no hay pendiente, tomar la última pagada
                     if p.mora_operacion and not ultima_operacion:
                         ultima_operacion = p.mora_operacion
+
+            # Si la cuota vencio y aun no existe mora pendiente registrada, calcularla en vivo.
+            if (
+                record.type == 'cuota'
+                and record.fecha_cronograma
+                and record.state not in ('pagado', 'anulada')
+                and mora_pendiente <= 0
+            ):
+                hoy = fields.Date.context_today(record)
+                diff_days = (hoy - record.fecha_cronograma).days
+                if diff_days > 0:
+                    mora_auto = diff_days * default_factor
+                    mora_total += mora_auto
+                    mora_pendiente += mora_auto
+                    total_dias = max(total_dias, diff_days)
+                    tiene_pendiente = True
 
             record.mora_total = mora_total
             record.mora_pendiente = mora_pendiente
@@ -551,11 +576,39 @@ class ResConfigSettings(models.TransientModel):
 class ADTComercialCuotas(models.Model):
     _inherit = "adt.comercial.cuotas"
 
+    cuota_pendiente_ids = fields.One2many(
+        'adt.comercial.cuotas.pendientes',
+        'cuota_id',
+        string='Registros pendientes de validacion'
+    )
+
+    pendiente_validar = fields.Selection(
+        [
+            ('PENDIENTE_VALIDAR', 'PENDIENTE_VALIDAR'),
+            ('SIN_REGISTRO', 'SIN_REGISTRO'),
+            ('VALIDADO', 'VALIDADO'),
+        ],
+        string='Pendiente validar',
+        compute='_compute_pendiente_validar',
+        store=True,
+        default='SIN_REGISTRO'
+    )
+
     mora_last_payment_date = fields.Date(
         string="Fecha de pago",
         compute="_compute_mora_last_payment_date",
         store=True,
     )
+
+    @api.depends('cuota_pendiente_ids.estado')
+    def _compute_pendiente_validar(self):
+        for rec in self:
+            if not rec.cuota_pendiente_ids:
+                rec.pendiente_validar = 'SIN_REGISTRO'
+            elif any(line.estado == 'VALIDADO' for line in rec.cuota_pendiente_ids):
+                rec.pendiente_validar = 'VALIDADO'
+            else:
+                rec.pendiente_validar = 'PENDIENTE_VALIDAR'
 
     @api.depends('payment_ids.mora', 'payment_ids.mora_payment_date')
     def _compute_mora_last_payment_date(self):

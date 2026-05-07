@@ -236,11 +236,19 @@ class ADTComercialCuentas(models.Model):
 
                     print(str(account_payment[0]['id']))
                     asesora_data = request.env['mail.message'].search(
-                        [('res_id', '=', account_payment[0]['id']), ('model' , '=' ,'account.payment')]).read([
+                        [
+                            ('res_id', '=', account_payment[0]['id']),
+                            ('model', '=', 'account.payment'),
+                            ('author_id', '!=', False),
+                        ],
+                        order='create_date desc, id desc',
+                        limit=1,
+                    ).read([
                         'body',
                         'author_id'
                     ])
                     print(str(asesora_data))
+                    _logger.info("Payment created successfully"+str(asesora_data))
                     cuota.real_date = str(account_move[0]['date'])
                     cuota.numero_operacion = str(account_move[0]['ref'])
                     cuota.x_asesora = self.emptyList(asesora_data)
@@ -485,12 +493,12 @@ class ADTComercialCuentas(models.Model):
         return result
 
     def emptyList(self,data):
-        if len(data) > 0 :
-            result = str(data[0]['author_id'][1])
-        else:
-            result = ""
-
-        return result
+        if not data:
+            return ""
+        author = data[0].get('author_id')
+        if author and isinstance(author, (list, tuple)) and len(author) > 1:
+            return str(author[1])
+        return ""
 
     @api.depends('cuota_ids', 'cuota_ids.mora_total','cuota_ids.mora_pendiente', 'cuota_ids.mora_estado_texto', 'cuota_ids.mora_dias')
     def _compute_mora_total(self):

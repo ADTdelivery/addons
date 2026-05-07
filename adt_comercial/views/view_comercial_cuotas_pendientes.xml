@@ -1,0 +1,100 @@
+<odoo>
+    <record id="adt_comercial_cuotas_pendientes_tree" model="ir.ui.view">
+        <field name="name">adt.comercial.cuotas.pendientes.tree</field>
+        <field name="model">adt.comercial.cuotas.pendientes</field>
+        <field name="arch" type="xml">
+            <tree string="Cuotas pendientes por validar" create="0" delete="0">
+                <field name="cuota_id"/>
+                <field name="monto_cuota"/>
+                <field name="numero_operacion_cuota"/>
+                <field name="monto_mora"/>
+                <field name="numero_operacion_mora"/>
+                <field name="fecha"/>
+                <field name="estado" widget="badge"
+                       decoration-danger="estado == 'PENDIENTE_VALIDAR'"
+                       decoration-success="estado == 'VALIDADO'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_comercial_cuotas_pendientes_form" model="ir.ui.view">
+        <field name="name">adt.comercial.cuotas.pendientes.form</field>
+        <field name="model">adt.comercial.cuotas.pendientes</field>
+        <field name="arch" type="xml">
+            <form string="Cuota pendiente por validar" create="0" delete="0">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="cuota_id" readonly="1"/>
+                            <field name="monto_cuota" readonly="1"/>
+                            <field name="monto_mora" readonly="1"/>
+                            <field name="fecha" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="numero_operacion_cuota" readonly="1"/>
+                            <field name="numero_operacion_mora" readonly="1"/>
+                            <field name="estado"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="comentario" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="adt_comercial_cuotas_pendientes_search" model="ir.ui.view">
+        <field name="name">adt.comercial.cuotas.pendientes.search</field>
+        <field name="model">adt.comercial.cuotas.pendientes</field>
+        <field name="arch" type="xml">
+            <search string="Buscar cuotas pendientes por validar">
+                <field name="cuota_id"/>
+                <field name="numero_operacion_cuota"/>
+                <field name="numero_operacion_mora"/>
+                <field name="estado"/>
+                <separator/>
+                <filter name="filter_pendiente_validar"
+                        string="Pendiente validar"
+                        domain="[('estado', '=', 'PENDIENTE_VALIDAR')]"/>
+                <filter name="filter_validado"
+                        string="Validado"
+                        domain="[('estado', '=', 'VALIDADO')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_estado" string="Estado" context="{'group_by': 'estado'}"/>
+                    <filter name="group_fecha" string="Fecha" context="{'group_by': 'fecha'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_comercial_cuotas_pendientes" model="ir.actions.act_window">
+        <field name="name">Cuotas pendientes por validar</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">adt.comercial.cuotas.pendientes</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="adt_comercial.adt_comercial_cuotas_pendientes_search"/>
+        <field name="domain">[('estado', '=', 'PENDIENTE_VALIDAR')]</field>
+    </record>
+
+    <record id="action_adt_comercial_cuotas_pendientes_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial.adt_comercial_cuotas_pendientes_tree"/>
+        <field name="act_window_id" ref="adt_comercial.action_adt_comercial_cuotas_pendientes"/>
+    </record>
+
+    <record id="action_adt_comercial_cuotas_pendientes_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="adt_comercial.adt_comercial_cuotas_pendientes_form"/>
+        <field name="act_window_id" ref="adt_comercial.action_adt_comercial_cuotas_pendientes"/>
+    </record>
+
+    <menuitem id="adt_cobranza_menu_cuotas_pendientes_validar"
+              name="Cuotas pendientes validar"
+              parent="adt_comercial.adt_cobranza_menu_pagos"
+              action="adt_comercial.action_adt_comercial_cuotas_pendientes"
+              sequence="4"/>
+</odoo>
+

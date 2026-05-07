@@ -19,6 +19,7 @@
         'views/view_comercial_registrar_observacion.xml',
         'views/view_comercial_refinanciamiento.xml',
         'views/view_cobranzas_pagos.xml',
+        'views/view_comercial_cuotas_pendientes.xml',
         'views/view_cobranzas_capturas.xml',
         'views/view_cobranzas_config.xml',
         'views/view_vehiculo.xml',

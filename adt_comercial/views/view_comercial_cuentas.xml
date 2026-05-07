@@ -228,14 +228,15 @@
                                                 attrs="{'invisible': [('state', 'in', ['retrasado','anulada','pendiente'])]}"
                                                 context="{'dont_redirect_to_payments': True}"/>
                                                 
-                                        <field name="mora_total"/>
-                                        <field name="mora_pendiente"/>
-                                        <field name="mora_operacion"/>
+                                        <field name="mora_total" readonly="1"/>
+                                        <field name="mora_pendiente" readonly="1"/>
+                                        <field name="mora_operacion" readonly="1"/>
                                         <field name="mora_dias" readonly="1"/>
                                         <field name="mora_last_payment_date" readonly="1"/>
                                         <field name="mora_estado_texto" widget="badge"
                                         decoration-danger="mora_estado_texto == 'Pendiente'"
                                         decoration-success="mora_estado_texto == 'Pagado'"/>
+                                        <field name="pendiente_validar" />
 
                                         <button name="action_pagar_mora"
                                                 string="Pagar mora"
