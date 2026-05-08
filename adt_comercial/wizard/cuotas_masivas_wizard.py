@@ -462,17 +462,28 @@ class CuotasMasivasWizard(models.TransientModel):
             _logger.error('[_find_cuota] ✗ No hay cuentas activas para DNI "%s"', dni)
             return None, 'No hay cuentas activas para DNI "%s"' % dni
 
-        # Cuota más antigua por jerarquía (padre primero, luego hijos, luego siguiente padre)
-        _logger.info('[_find_cuota] Buscando cuotas en estado (retrasado|pendiente|a_cuenta) para cuentas: %s',
+        # Priorizar primero cuotas con mora pendiente y luego cuotas con saldo pendiente.
+        _logger.info('[_find_cuota] Buscando cuotas/moras pendientes para cuentas: %s',
                     [c.id for c in cuentas])
-        cuota = self.env['adt.comercial.cuotas'].search([
+        cuotas_candidatas = self.env['adt.comercial.cuotas'].search([
             ('cuenta_id', 'in', cuentas.ids),
-            ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
-        ], order='parent_sort_id asc, id asc', limit=1)
+        ], order='parent_sort_id asc, id asc')
+
+        cuota = False
+        for cuota_candidate in cuotas_candidatas:
+            mora_pendiente = self._get_mora_pendiente_amount(cuota_candidate)
+            saldo_cuota = cuota_candidate.saldo or 0.0
+            if mora_pendiente > 0 or cuota_candidate.state in ('retrasado', 'pendiente', 'a_cuenta') or saldo_cuota > 0:
+                cuota = cuota_candidate
+                _logger.info(
+                    '[_find_cuota] Candidata seleccionada: %s | estado=%s | saldo=%.2f | mora_pendiente=%.2f',
+                    cuota.name, cuota.state, saldo_cuota, mora_pendiente,
+                )
+                break
 
         if not cuota:
-            _logger.error('[_find_cuota] ✗ No hay cuotas pendientes/retrasadas/a_cuenta para DNI "%s"', dni)
-            return None, 'No hay cuotas pendientes para DNI "%s"' % dni
+            _logger.error('[_find_cuota] ✗ No hay cuotas ni moras pendientes para DNI "%s"', dni)
+            return None, 'No hay cuotas ni moras pendientes para DNI "%s"' % dni
 
         _logger.info('[_find_cuota] ✓ Cuota encontrada: ID=%s, nombre=%s, saldo=%.2f',
                     cuota.id, cuota.name, cuota.saldo or 0.0)
@@ -519,21 +530,106 @@ class CuotasMasivasWizard(models.TransientModel):
         mora = round(diff_days * factor, 2)
         return mora, diff_days
 
+    @staticmethod
+    def _get_mora_pendiente_amount(cuota):
+        return round(sum(
+            cuota.payment_ids.filtered(
+                lambda p: (p.mora or 0.0) > 0.0 and p.mora_state == 'pending'
+            ).mapped('mora')
+        ), 2)
+
+    def _get_mora_para_nuevo_pago(self, cuota, fecha_pago, company_id):
+        """
+        Define la mora que debe guardarse en un NUEVO payment de capital.
+
+        Prioridad:
+          1) Si ya existe mora pendiente registrada en payments, NO volver a registrar mora.
+          2) Si la cuota tiene mora_pendiente visible (>0), usar ese valor para alinear con UI.
+          3) Fallback: calcular mora con la lógica histórica.
+        """
+        mora_registrada_pendiente = self._get_mora_pendiente_amount(cuota)
+        if mora_registrada_pendiente > 0:
+            _logger.info(
+                '[_get_mora_para_nuevo_pago] Cuota %s ya tiene mora pendiente registrada S/ %.2f. '
+                'No se agregará mora nueva en este payment.',
+                cuota.name, mora_registrada_pendiente,
+            )
+            return 0.0, 0
+
+        mora_visible = round(cuota.mora_pendiente or 0.0, 2)
+        mora_visible_dias = int(cuota.mora_dias or 0)
+        if mora_visible > 0:
+            _logger.info(
+                '[_get_mora_para_nuevo_pago] Usando mora visible de cuota %s: S/ %.2f (%d días)',
+                cuota.name, mora_visible, mora_visible_dias,
+            )
+            return mora_visible, mora_visible_dias
+
+        mora_calc, mora_dias_calc = self._calcular_mora(cuota, fecha_pago, company_id)
+        _logger.info(
+            '[_get_mora_para_nuevo_pago] Mora calculada para cuota %s: S/ %.2f (%d días)',
+            cuota.name, mora_calc, mora_dias_calc,
+        )
+        return mora_calc, mora_dias_calc
+
+    def _pagar_mora_pendiente(self, cuota, monto_disponible, fecha_pago, numero_operacion):
+        """
+        Paga la mora pendiente de una cuota marcando los payments con mora_state='paid'.
+        La mora NO se registra como un nuevo account.payment; sigue la misma lógica del
+        wizard manual de pago de mora.
+
+        Retorna una tupla: (mora_pagada, monto_restante, mora_pendiente_restante)
+        """
+        pagos_pendientes = cuota.payment_ids.filtered(
+            lambda p: (p.mora or 0.0) > 0.0 and p.mora_state == 'pending'
+        )
+        mora_pendiente = self._get_mora_pendiente_amount(cuota)
+
+        _logger.info(
+            '[_pagar_mora_pendiente] Cuota %s | Mora pendiente: S/ %.2f | Monto disponible: S/ %.2f',
+            cuota.name, mora_pendiente, monto_disponible,
+        )
+
+        if not pagos_pendientes or mora_pendiente <= 0:
+            return 0.0, monto_disponible, 0.0
+
+        if monto_disponible < mora_pendiente:
+            _logger.warning(
+                '[_pagar_mora_pendiente] Monto insuficiente para pagar mora de cuota %s. '
+                'Disponible: S/ %.2f | Requerido: S/ %.2f',
+                cuota.name, monto_disponible, mora_pendiente,
+            )
+            return 0.0, monto_disponible, mora_pendiente
+
+        pagos_pendientes.write({
+            'mora_state': 'paid',
+            'mora_operacion': numero_operacion,
+            'mora_payment_date': fecha_pago or date.today(),
+        })
+        cuota.invalidate_cache()
+        cuota._compute_mora_total()
+
+        monto_restante = round(monto_disponible - mora_pendiente, 2)
+        _logger.info(
+            '[_pagar_mora_pendiente] ✓ Mora pagada para cuota %s: S/ %.2f | Restante: S/ %.2f',
+            cuota.name, mora_pendiente, monto_restante,
+        )
+        return mora_pendiente, monto_restante, 0.0
+
     # ──────────────────────────────────────────────────────────────────────────
     # Registrar pago en la cuota
     # ──────────────────────────────────────────────────────────────────────────
 
     def _registrar_pago(self, cuota_inicial, monto, fecha_pago, numero_operacion):
         """
-        Registra el pago en cascada:
-          1. Paga la cuota más antigua con el monto disponible.
-          2. Si el monto cubre la cuota completa y sobra excedente,
+        Registra el pago en cascada con la secuencia:
+          1. Paga el capital de la cuota más antigua con el monto disponible.
+          2. Si esa cuota tiene mora pendiente, la paga a continuación.
+          3. Solo después de cubrir capital + mora de la cuota actual,
              continúa con la siguiente cuota más antigua.
-          3. Si el monto no alcanza para cubrir la cuota completa,
+          4. Si el monto no alcanza para cubrir el capital completo,
              se paga lo que hay y el restante se crea como subcuota.
-          4. Un único número de operación cubre todas las cuotas pagadas.
-          5. La mora se calcula automáticamente por cada cuota según su
-             fecha_cronograma vs fecha_pago.
+          5. Un único número de operación cubre todas las cuotas pagadas.
         """
         _logger.info('[_registrar_pago] ═══ INICIANDO CASCADA DE PAGOS ═══')
         _logger.info('[_registrar_pago] Cuota inicial: %s | Monto: S/ %.2f | Ref: %s',
@@ -570,18 +666,16 @@ class CuotasMasivasWizard(models.TransientModel):
         excedente = monto
         cuotas_pagadas = []
 
-        # Obtener todas las cuotas pendientes ordenadas por jerarquía:
-        # parent_sort_id agrupa padre e hijos juntos, id mantiene el orden de creación
-        # Esto garantiza: Cuota 7 → Cuota 7-1 → Cuota 8 → Cuota 8-1 → ...
+        # Obtener todas las cuotas ordenadas por jerarquía.
+        # Se incluyen cuotas pagadas si aún tienen mora pendiente.
         cuotas_pendientes = self.env['adt.comercial.cuotas'].search([
             ('cuenta_id', '=', cuenta.id),
-            ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
         ], order='parent_sort_id asc, id asc')
 
         _logger.info('[_registrar_pago] Cuotas pendientes encontradas: %d', len(cuotas_pendientes))
         if cuotas_pendientes:
             _logger.info('[_registrar_pago] Detalle: %s',
-                        [(c.name, c.saldo, c.state) for c in cuotas_pendientes[:5]])
+                        [(c.name, c.saldo, c.state, self._get_mora_pendiente_amount(c)) for c in cuotas_pendientes[:5]])
 
         for cuota in cuotas_pendientes:
             if excedente <= 0:
@@ -589,12 +683,32 @@ class CuotasMasivasWizard(models.TransientModel):
                 break
 
             saldo_cuota = cuota.saldo or 0.0
-            if saldo_cuota <= 0:
-                _logger.debug('[_registrar_pago] Cuota %s tiene saldo 0, saltando', cuota.name)
+            mora_pendiente_actual = self._get_mora_pendiente_amount(cuota)
+            if saldo_cuota <= 0 and mora_pendiente_actual <= 0:
+                _logger.debug('[_registrar_pago] Cuota %s sin saldo ni mora pendiente, saltando', cuota.name)
                 continue
 
-            # Calcular mora automáticamente para esta cuota
-            mora, mora_dias = self._calcular_mora(cuota, fecha_pago, company_id)
+            if saldo_cuota <= 0 and mora_pendiente_actual > 0:
+                _logger.info(
+                    '[_registrar_pago] Cuota %s ya pagada en capital. Se pagará solo mora pendiente S/ %.2f',
+                    cuota.name, mora_pendiente_actual,
+                )
+                mora_pagada, excedente, mora_pendiente = self._pagar_mora_pendiente(
+                    cuota, excedente, fecha_pago, numero_operacion
+                )
+
+                if mora_pagada > 0:
+                    cuotas_pagadas.append('%s [solo mora pagada: %.2f]' % (cuota.name, mora_pagada))
+                    continue
+
+                _logger.warning(
+                    '[_registrar_pago]   ⚠ Mora pendiente en cuota %s: S/ %.2f. No se continuará con la siguiente cuota.',
+                    cuota.name, mora_pendiente,
+                )
+                break
+
+            # Determinar mora a registrar (prioriza mora pendiente visible de la cuota)
+            mora, mora_dias = self._get_mora_para_nuevo_pago(cuota, fecha_pago, company_id)
             _logger.info('[_registrar_pago] Procesando cuota %s | Saldo: S/ %.2f | Mora: S/ %.2f',
                         cuota.name, saldo_cuota, mora)
 
@@ -624,9 +738,32 @@ class CuotasMasivasWizard(models.TransientModel):
                 cuota.write({'state': 'pagado'})
                 _logger.info('[_registrar_pago]   ✓ Cuota marcada como pagado')
 
-                cuotas_pagadas.append(
-                    '%s%s' % (cuota.name, ' [mora: %.2f]' % mora if mora > 0 else '')
+                mora_pagada, excedente, mora_pendiente = self._pagar_mora_pendiente(
+                    cuota, excedente, fecha_pago, numero_operacion
                 )
+
+                if mora_pagada > 0:
+                    _logger.info(
+                        '[_registrar_pago]   ✓ Mora pagada para cuota %s: S/ %.2f',
+                        cuota.name, mora_pagada,
+                    )
+                elif mora_pendiente > 0:
+                    _logger.warning(
+                        '[_registrar_pago]   ⚠ Mora pendiente en cuota %s: S/ %.2f. '
+                        'No se continuará con la siguiente cuota.',
+                        cuota.name, mora_pendiente,
+                    )
+
+                cuotas_pagadas.append(
+                    '%s%s%s' % (
+                        cuota.name,
+                        ' [mora generada: %.2f]' % mora if mora > 0 else '',
+                        ' [mora pagada: %.2f]' % mora_pagada if mora_pagada > 0 else '',
+                    )
+                )
+
+                if mora_pendiente > 0:
+                    break
 
             else:
                 # ── Pago parcial: excedente < saldo_cuota ──
@@ -861,19 +998,21 @@ class CuotasMasivasWizard(models.TransientModel):
                             cuota.name, cuota.saldo or 0.0)
 
                 saldo_cuota = cuota.saldo or 0.0
+                mora_pendiente_cuota = self._get_mora_pendiente_amount(cuota)
 
                 # ══════════════════════════════════════════════════════════
                 # MODO EXACTAS: solo registrar si monto coincide exactamente
                 # ══════════════════════════════════════════════════════════
                 if modo == 'exactas':
-                    if round(monto, 2) != round(saldo_cuota, 2):
+                    monto_objetivo = saldo_cuota if round(saldo_cuota, 2) > 0 else mora_pendiente_cuota
+                    if round(monto, 2) != round(monto_objetivo, 2):
                         filas_no_reg.append({
                             'fila': idx,
                             'cuota': cuota.name or '—',
                             'doc': 'DNI %s' % numero_doc,
-                            'monto_sistema': saldo_cuota,
+                            'monto_sistema': monto_objetivo,
                             'monto_excel': monto,
-                            'razon': 'Monto no coincide: esperado S/%.2f, recibido S/%.2f' % (saldo_cuota, monto),
+                            'razon': 'Monto no coincide: esperado S/%.2f, recibido S/%.2f' % (monto_objetivo, monto),
                         })
                         continue
                     # monto coincide → registrar una sola cuota (sin cascada)
@@ -962,6 +1101,21 @@ class CuotasMasivasWizard(models.TransientModel):
         _logger.info('[_registrar_pago_exacto] Cuota: %s | Monto: S/ %.2f | Ref: %s',
                     cuota.name, monto, numero_operacion)
 
+        saldo_cuota = round(cuota.saldo or 0.0, 2)
+        mora_pendiente = self._get_mora_pendiente_amount(cuota)
+
+        if saldo_cuota <= 0 and mora_pendiente > 0:
+            _logger.info(
+                '[_registrar_pago_exacto] Detectado pago exacto solo de mora para cuota %s | Mora pendiente: S/ %.2f',
+                cuota.name, mora_pendiente,
+            )
+            mora_pagada, excedente, mora_restante = self._pagar_mora_pendiente(
+                cuota, monto, fecha_pago, numero_operacion
+            )
+            if mora_restante > 0 or round(excedente, 2) != 0.0:
+                raise UserError(_('El monto debe coincidir exactamente con la mora pendiente de la cuota.'))
+            return ['%s [solo mora pagada: %.2f]' % (cuota.name, mora_pagada)], 0.0
+
         # Verificar duplicado de número de operación
         existing = self.env['account.payment'].search(
             [('ref', '=', numero_operacion)], limit=1
@@ -984,7 +1138,7 @@ class CuotasMasivasWizard(models.TransientModel):
             _logger.error('[_registrar_pago_exacto] ✗ NO hay journal tipo bank/cash')
             raise UserError(_('No se encontró un diario de banco/caja para registrar el pago.'))
 
-        mora, mora_dias = self._calcular_mora(cuota, fecha_pago, cuota.company_id.id)
+        mora, mora_dias = self._get_mora_para_nuevo_pago(cuota, fecha_pago, cuota.company_id.id)
         _logger.info('[_registrar_pago_exacto] Mora calculada: S/ %.2f (%d días)', mora, mora_dias)
 
         payment = self.env['account.payment'].create({
