@@ -123,25 +123,34 @@ def extract_info(descripcion):
       4. Resto  →  tipo='unknown', numero_doc=None
     """
     if not descripcion:
+        _logger.debug('[extract_info] Descripción vacía o None')
         return 'unknown', None
 
     text = str(descripcion).strip().upper()
+    _logger.debug('[extract_info] Procesando descripción: "%s"', text)
 
     # Regla 1: PLACA
     placa_match = re.search(r'PLACA([A-Z0-9]+)', text)
     if placa_match:
-        return 'placa', placa_match.group(1)
+        placa_valor = placa_match.group(1)
+        _logger.info('[extract_info] ✓ PLACA extraída: %s', placa_valor)
+        return 'placa', placa_valor
 
     # Regla 2: DNI explícito  (8 dígitos + "DNI")
     dni_explicit = re.search(r'(\d{8})DNI', text)
     if dni_explicit:
-        return 'dni', dni_explicit.group(1)
+        dni_valor = dni_explicit.group(1)
+        _logger.info('[extract_info] ✓ DNI explícito (8dig+DNI): %s', dni_valor)
+        return 'dni', dni_valor
 
     # Regla 3: últimos 8 dígitos al final
     trailing_digits = re.search(r'(\d{8})\D*$', text)
     if trailing_digits:
-        return 'dni', trailing_digits.group(1)
+        dni_valor = trailing_digits.group(1)
+        _logger.info('[extract_info] ✓ DNI (últimos 8 dígitos): %s', dni_valor)
+        return 'dni', dni_valor
 
+    _logger.warning('[extract_info] ✗ No se pudo extraer DNI/placa de: "%s"', text)
     return 'unknown', None
 
 
@@ -152,32 +161,38 @@ def resolve_placa_to_dni(env, placa):
 
     Si no se puede resolver devuelve ('placa', placa) para mantener el original.
     """
+    _logger.info('[resolve_placa_to_dni] Iniciando búsqueda de placa: "%s"', placa)
     try:
         vehicle = env['fleet.vehicle'].search(
             [('license_plate', '=ilike', placa)], limit=1
         )
         if not vehicle:
-            _logger.warning('resolve_placa_to_dni: vehículo con placa "%s" no encontrado', placa)
+            _logger.warning('[resolve_placa_to_dni] ✗ Vehículo con placa "%s" NO encontrado en fleet.vehicle', placa)
             return 'placa', placa
+
+        _logger.info('[resolve_placa_to_dni] ✓ Vehículo encontrado ID=%s, placa=%s', vehicle.id, vehicle.license_plate)
 
         driver = vehicle.driver_id
         if not driver:
-            _logger.warning('resolve_placa_to_dni: vehículo %s no tiene driver_id', vehicle.id)
+            _logger.warning('[resolve_placa_to_dni] ✗ Vehículo %s (placa %s) NO tiene driver_id asignado', vehicle.id, placa)
             return 'placa', placa
+
+        _logger.info('[resolve_placa_to_dni] ✓ Driver encontrado ID=%s, name=%s', driver.id, driver.name)
 
         # Usar document_number (adt_clientes_extension) con fallback a vat
         doc = (getattr(driver, 'document_number', None) or driver.vat or '').strip()
         if not doc:
             _logger.warning(
-                'resolve_placa_to_dni: driver %s (veh %s) no tiene document_number ni vat',
-                driver.id, vehicle.id,
+                '[resolve_placa_to_dni] ✗ Driver %s (veh %s, placa %s) NO tiene document_number ni vat',
+                driver.id, vehicle.id, placa,
             )
             return 'placa', placa
 
+        _logger.info('[resolve_placa_to_dni] ✓ DNI convertido desde placa "%s" → %s', placa, doc)
         return 'dni', doc
 
     except Exception as e:
-        _logger.exception('resolve_placa_to_dni: error inesperado para placa "%s": %s', placa, e)
+        _logger.exception('[resolve_placa_to_dni] ✗ Error inesperado para placa "%s": %s', placa, e)
         return 'placa', placa
 
 
@@ -418,28 +433,49 @@ class CuotasMasivasWizard(models.TransientModel):
         en estado pendiente, retrasado o a_cuenta — de forma consecutiva.
         """
         # Buscar por document_number (adt_clientes_extension) con fallback a vat
+        _logger.info('[_find_cuota] Buscando partner con document_number=%s', dni)
         partners = self.env['res.partner'].search([('document_number', '=', dni)])
+        _logger.info('[_find_cuota] Partners encontrados por document_number: %d', len(partners))
+
         if not partners:
+            _logger.info('[_find_cuota] Reintentando búsqueda por vat=%s', dni)
             partners = self.env['res.partner'].search([('vat', '=', dni)])
+            _logger.info('[_find_cuota] Partners encontrados por vat: %d', len(partners))
+
         if not partners:
+            _logger.error('[_find_cuota] ✗ No se encontró cliente (document_number o vat) con DNI "%s"', dni)
             return None, 'No se encontró cliente con DNI "%s"' % dni
 
+        _logger.info('[_find_cuota] ✓ Partner(es) encontrado(s): IDs=%s', [p.id for p in partners])
+
+        _logger.info('[_find_cuota] Buscando cuentas activas (en_curso|aprobado) para partners: %s',
+                    [p.id for p in partners])
         cuentas = self.env['adt.comercial.cuentas'].search([
             ('partner_id', 'in', partners.ids),
             ('state', 'in', ('en_curso', 'aprobado')),
         ])
+        _logger.info('[_find_cuota] Cuentas activas encontradas: %d', len(cuentas))
+        if cuentas:
+            _logger.info('[_find_cuota] IDs cuentas: %s', [c.id for c in cuentas])
+
         if not cuentas:
+            _logger.error('[_find_cuota] ✗ No hay cuentas activas para DNI "%s"', dni)
             return None, 'No hay cuentas activas para DNI "%s"' % dni
 
         # Cuota más antigua por jerarquía (padre primero, luego hijos, luego siguiente padre)
+        _logger.info('[_find_cuota] Buscando cuotas en estado (retrasado|pendiente|a_cuenta) para cuentas: %s',
+                    [c.id for c in cuentas])
         cuota = self.env['adt.comercial.cuotas'].search([
             ('cuenta_id', 'in', cuentas.ids),
             ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
         ], order='parent_sort_id asc, id asc', limit=1)
 
         if not cuota:
+            _logger.error('[_find_cuota] ✗ No hay cuotas pendientes/retrasadas/a_cuenta para DNI "%s"', dni)
             return None, 'No hay cuotas pendientes para DNI "%s"' % dni
 
+        _logger.info('[_find_cuota] ✓ Cuota encontrada: ID=%s, nombre=%s, saldo=%.2f',
+                    cuota.id, cuota.name, cuota.saldo or 0.0)
         return cuota, None
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -499,11 +535,17 @@ class CuotasMasivasWizard(models.TransientModel):
           5. La mora se calcula automáticamente por cada cuota según su
              fecha_cronograma vs fecha_pago.
         """
+        _logger.info('[_registrar_pago] ═══ INICIANDO CASCADA DE PAGOS ═══')
+        _logger.info('[_registrar_pago] Cuota inicial: %s | Monto: S/ %.2f | Ref: %s',
+                    cuota_inicial.name, monto, numero_operacion)
+
         # Verificar duplicado de número de operación
         existing = self.env['account.payment'].search(
             [('ref', '=', numero_operacion)], limit=1
         )
         if existing:
+            _logger.error('[_registrar_pago] ✗ Ref duplicada: "%s" ya en payment ID=%s',
+                         numero_operacion, existing.id)
             raise UserError(
                 _('Número de operación "%s" ya registrado en la cuenta "%s"') % (
                     numero_operacion,
@@ -517,7 +559,11 @@ class CuotasMasivasWizard(models.TransientModel):
             ('company_id', '=', cuota_inicial.company_id.id),
         ], limit=1)
         if not journal:
+            _logger.error('[_registrar_pago] ✗ NO hay journal tipo bank/cash para company %s',
+                         cuota_inicial.company_id.id)
             raise UserError(_('No se encontró un diario de banco/caja para registrar el pago.'))
+
+        _logger.info('[_registrar_pago] ✓ Journal encontrado: %s (ID=%s)', journal.name, journal.id)
 
         cuenta = cuota_inicial.cuenta_id
         company_id = cuota_inicial.company_id.id
@@ -532,21 +578,33 @@ class CuotasMasivasWizard(models.TransientModel):
             ('state', 'in', ('retrasado', 'pendiente', 'a_cuenta')),
         ], order='parent_sort_id asc, id asc')
 
+        _logger.info('[_registrar_pago] Cuotas pendientes encontradas: %d', len(cuotas_pendientes))
+        if cuotas_pendientes:
+            _logger.info('[_registrar_pago] Detalle: %s',
+                        [(c.name, c.saldo, c.state) for c in cuotas_pendientes[:5]])
+
         for cuota in cuotas_pendientes:
             if excedente <= 0:
+                _logger.info('[_registrar_pago] Excedente agotado (%.2f), terminando cascada', excedente)
                 break
 
             saldo_cuota = cuota.saldo or 0.0
             if saldo_cuota <= 0:
+                _logger.debug('[_registrar_pago] Cuota %s tiene saldo 0, saltando', cuota.name)
                 continue
 
             # Calcular mora automáticamente para esta cuota
             mora, mora_dias = self._calcular_mora(cuota, fecha_pago, company_id)
+            _logger.info('[_registrar_pago] Procesando cuota %s | Saldo: S/ %.2f | Mora: S/ %.2f',
+                        cuota.name, saldo_cuota, mora)
 
             if excedente >= saldo_cuota:
                 # ── Pago completo de esta cuota ──
                 monto_pago = saldo_cuota
                 excedente = round(excedente - saldo_cuota, 2)
+
+                _logger.info('[_registrar_pago]   → PAGO COMPLETO: S/ %.2f | Excedente restante: S/ %.2f',
+                            monto_pago, excedente)
 
                 payment = self.env['account.payment'].create({
                     'payment_type': 'inbound',
@@ -561,7 +619,11 @@ class CuotasMasivasWizard(models.TransientModel):
                     'mora_state': 'pending',
                 })
                 payment.action_post()
+                _logger.info('[_registrar_pago]   ✓ Payment creado: ID=%s', payment.id)
+
                 cuota.write({'state': 'pagado'})
+                _logger.info('[_registrar_pago]   ✓ Cuota marcada como pagado')
+
                 cuotas_pagadas.append(
                     '%s%s' % (cuota.name, ' [mora: %.2f]' % mora if mora > 0 else '')
                 )
@@ -571,6 +633,9 @@ class CuotasMasivasWizard(models.TransientModel):
                 monto_pago = excedente
                 excedente = 0.0
 
+                _logger.info('[_registrar_pago]   → PAGO PARCIAL: S/ %.2f | Subcuota con S/ %.2f',
+                            monto_pago, saldo_cuota - monto_pago)
+
                 payment = self.env['account.payment'].create({
                     'payment_type': 'inbound',
                     'journal_id': journal.id,
@@ -584,14 +649,16 @@ class CuotasMasivasWizard(models.TransientModel):
                     'mora_state': 'pending',
                 })
                 payment.action_post()
+                _logger.info('[_registrar_pago]   ✓ Payment parcial creado: ID=%s', payment.id)
 
                 # Crear subcuota con el restante
                 restante = round(saldo_cuota - monto_pago, 2)
                 cuota.write({'monto': monto_pago})
+                _logger.info('[_registrar_pago]   ✓ Cuota original monto actualizado')
 
                 parent = cuota.parent_id or cuota
                 num_sub = len(parent.child_ids) + 1
-                self.env['adt.comercial.cuotas'].create({
+                subcuota = self.env['adt.comercial.cuotas'].create({
                     'name': '%s-%d' % (parent.name, num_sub),
                     'cuenta_id': cuenta.id,
                     'monto': restante,
@@ -600,10 +667,15 @@ class CuotasMasivasWizard(models.TransientModel):
                     'parent_id': parent.id,
                     'type': 'cuota',
                 })
+                _logger.info('[_registrar_pago]   ✓ Subcuota creada: %s (ID=%s)', subcuota.name, subcuota.id)
+
                 cuotas_pagadas.append(
                     '%s (parcial%s)' % (cuota.name, ', mora: %.2f' % mora if mora > 0 else '')
                 )
 
+        _logger.info('[_registrar_pago] ═══ CASCADA COMPLETADA ═══')
+        _logger.info('[_registrar_pago] Cuotas pagadas: %d | Excedente final: S/ %.2f',
+                    len(cuotas_pagadas), excedente)
         return cuotas_pagadas, excedente
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -623,6 +695,11 @@ class CuotasMasivasWizard(models.TransientModel):
             (comportamiento original, con división de cuotas).
         """
         self.ensure_one()
+        _logger.info('╔════════════════════════════════════════════════════════════')
+        _logger.info('║ [CuotasMasivas] INICIANDO IMPORTACIÓN DE PAGOS MASIVOS')
+        _logger.info('╚════════════════════════════════════════════════════════════')
+        _logger.info('[CuotasMasivas] Archivo: %s | Modo: %s', self.nombre_archivo, self.modo_pago or 'exceden')
+
         if not self.archivo_excel:
             raise UserError(_('Por favor, seleccione un archivo Excel antes de importar.'))
 
@@ -632,6 +709,7 @@ class CuotasMasivasWizard(models.TransientModel):
         try:
             rows = self._read_rows(file_data, filename)
         except Exception as e:
+            _logger.exception('[CuotasMasivas] Error al leer archivo')
             self.write({
                 'state': 'error',
                 'result_message': _('Error al leer el archivo: %s') % str(e),
@@ -645,6 +723,8 @@ class CuotasMasivasWizard(models.TransientModel):
         filas_no_reg      = []  # {'fila': N, 'cuota': '...', 'monto_sistema': X, 'monto_excel': Y, 'razon': '...'}
         omitidas = 0
         total_filas = len([r for r in rows if r and any(r)])
+
+        _logger.info('[CuotasMasivas] Total filas a procesar: %d', total_filas)
 
         modo = self.modo_pago or 'exceden'
 
@@ -743,28 +823,42 @@ class CuotasMasivasWizard(models.TransientModel):
                     )
 
                 # ── Extracción de DNI/placa para pago de cuotas ──
+                _logger.info('[CuotasMasivas] ─────────────────────────────────────')
+                _logger.info('[CuotasMasivas] Procesando fila %d | Descripción: "%s" | Monto: %.2f',
+                            idx, descripcion, monto)
                 tipo_doc, numero_doc = extract_info(descripcion)
 
                 if tipo_doc == 'placa':
+                    _logger.info('[CuotasMasivas] Placa detectada, intentando resolver a DNI...')
                     tipo_doc, numero_doc = resolve_placa_to_dni(self.env, numero_doc)
 
                 if tipo_doc == 'unknown' or not numero_doc:
+                    _logger.warning('[CuotasMasivas] ⚠️ OMITIDA: No se pudo extraer DNI (tipo=%s, numero=%s)',
+                                   tipo_doc, numero_doc)
                     omitidas += 1
                     continue
 
                 if tipo_doc == 'placa':
+                    _logger.warning('[CuotasMasivas] ⚠️ OMITIDA: Placa no se pudo resolver a DNI')
                     omitidas += 1
                     continue
 
+                _logger.info('[CuotasMasivas] ✓ Documento extraído: tipo=%s, valor=%s', tipo_doc, numero_doc)
+
                 # ── Buscar cuota ──
+                _logger.info('[CuotasMasivas] Buscando cuota para DNI: %s', numero_doc)
                 cuota, err_msg = self._find_cuota(numero_doc, fecha_pago)
                 if err_msg:
+                    _logger.warning('[CuotasMasivas] ❌ ERROR al buscar cuota: %s', err_msg)
                     filas_error.append({
                         'fila': idx,
                         'doc': 'DNI %s' % numero_doc,
                         'msg': err_msg,
                     })
                     continue
+
+                _logger.info('[CuotasMasivas] ✓ Cuota encontrada: %s (Saldo: S/ %.2f)',
+                            cuota.name, cuota.saldo or 0.0)
 
                 saldo_cuota = cuota.saldo or 0.0
 
@@ -796,6 +890,8 @@ class CuotasMasivasWizard(models.TransientModel):
 
                 detalle_cuotas = ', '.join(cuotas_pagadas) if cuotas_pagadas else '—'
                 excedente_txt = ' | Excedente: S/ %.2f' % excedente if excedente > 0 else ''
+                _logger.info('[CuotasMasivas] ✅ ÉXITO fila %d: %s | Detalle: %s%s',
+                            idx, numero_doc, detalle_cuotas, excedente_txt)
                 filas_exitosas.append({
                     'fila': idx,
                     'doc': 'DNI %s' % numero_doc,
@@ -829,6 +925,18 @@ class CuotasMasivasWizard(models.TransientModel):
         lines = ['Pagos registrados: %d | Errores: %d | Omitidos: %d | No registradas: %d' % (
             len(filas_exitosas), len(filas_error), omitidas, len(filas_no_reg)
         )]
+
+        _logger.info('╔════════════════════════════════════════════════════════════')
+        _logger.info('║ [CuotasMasivas] IMPORTACIÓN COMPLETADA')
+        _logger.info('╠════════════════════════════════════════════════════════════')
+        _logger.info('║ ✅ Exitosos:        %d', len(filas_exitosas))
+        _logger.info('║ ❌ Errores:         %d', len(filas_error))
+        _logger.info('║ ⚠️  Omitidos:        %d', omitidas)
+        if modo == 'exactas' and filas_no_reg:
+            _logger.info('║ ⚠️  No registradas:  %d (monto diferente)', len(filas_no_reg))
+        _logger.info('║ 📊 Total filas:     %d', total_filas)
+        _logger.info('╚════════════════════════════════════════════════════════════')
+
         self.write({
             'total_filas':          total_filas,
             'total_exitosos':       len(filas_exitosas),
@@ -850,11 +958,17 @@ class CuotasMasivasWizard(models.TransientModel):
         Registra el pago de UNA SOLA cuota cuando el monto coincide exactamente.
         No hay cascada ni división de cuotas.
         """
+        _logger.info('[_registrar_pago_exacto] ═══ PAGO EXACTO ═══')
+        _logger.info('[_registrar_pago_exacto] Cuota: %s | Monto: S/ %.2f | Ref: %s',
+                    cuota.name, monto, numero_operacion)
+
         # Verificar duplicado de número de operación
         existing = self.env['account.payment'].search(
             [('ref', '=', numero_operacion)], limit=1
         )
         if existing:
+            _logger.error('[_registrar_pago_exacto] ✗ Ref duplicada: "%s" ya en payment ID=%s',
+                         numero_operacion, existing.id)
             raise UserError(
                 _('Número de operación "%s" ya registrado en la cuenta "%s"') % (
                     numero_operacion,
@@ -867,9 +981,11 @@ class CuotasMasivasWizard(models.TransientModel):
             ('company_id', '=', cuota.company_id.id),
         ], limit=1)
         if not journal:
+            _logger.error('[_registrar_pago_exacto] ✗ NO hay journal tipo bank/cash')
             raise UserError(_('No se encontró un diario de banco/caja para registrar el pago.'))
 
         mora, mora_dias = self._calcular_mora(cuota, fecha_pago, cuota.company_id.id)
+        _logger.info('[_registrar_pago_exacto] Mora calculada: S/ %.2f (%d días)', mora, mora_dias)
 
         payment = self.env['account.payment'].create({
             'payment_type': 'inbound',
@@ -884,7 +1000,10 @@ class CuotasMasivasWizard(models.TransientModel):
             'mora_state': 'pending',
         })
         payment.action_post()
+        _logger.info('[_registrar_pago_exacto] ✓ Payment creado: ID=%s', payment.id)
+
         cuota.write({'state': 'pagado'})
+        _logger.info('[_registrar_pago_exacto] ✓ Cuota marcada como pagado')
 
         label = '%s%s' % (cuota.name, ' [mora: %.2f]' % mora if mora > 0 else '')
         return [label], 0.0

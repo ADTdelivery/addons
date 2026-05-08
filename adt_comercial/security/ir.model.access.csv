@@ -13,3 +13,5 @@ access_mobile_support_contact_admin,mobile.support.contact admin,model_mobile_su
 access_mobile_support_contact_user,mobile.support.contact user,model_mobile_support_contact,base.group_user,1,0,0,0
 access_adt_comercial_cuotas_pendientes_admin,adt.comercial.cuotas.pendientes admin,model_adt_comercial_cuotas_pendientes,base.group_system,1,1,1,1
 access_adt_comercial_cuotas_pendientes_user,adt.comercial.cuotas.pendientes user,model_adt_comercial_cuotas_pendientes,base.group_user,1,1,1,0
+access_adt_comercial_cuotas_pendientes_comprobante_admin,adt.comercial.cuotas.pendientes.comprobante admin,model_adt_comercial_cuotas_pendientes_comprobante,base.group_system,1,1,1,1
+access_adt_comercial_cuotas_pendientes_comprobante_user,adt.comercial.cuotas.pendientes.comprobante user,model_adt_comercial_cuotas_pendientes_comprobante,base.group_user,1,1,1,0

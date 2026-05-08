@@ -591,17 +591,49 @@ class MobileAPIController(http.Controller):
             body = json.loads(raw_body) if raw_body else {}
 
             credito_id = body.get('creditoId')
-            comprobante = (body.get('comprobante') or '').strip()
+            comprobantes_payload = body.get('comprobante')
+            if comprobantes_payload is None:
+                comprobantes_payload = body.get('comprobantes')
             monto_total_raw = body.get('montoTotal')
             comentario = (body.get('comentario') or '').strip()
             cuotas_payload = body.get('cuotas') or []
 
             if not credito_id:
                 return _contract_error(400, 'CUOTA_NOT_FOUND', 'creditoId es requerido.', 'creditoId')
-            if not comprobante:
-                return _contract_error(400, 'COMPROBANTE_DUPLICADO', 'comprobante es requerido.', 'comprobante')
             if not isinstance(cuotas_payload, list) or len(cuotas_payload) == 0:
                 return _contract_error(400, 'CUOTA_NOT_FOUND', 'Debe enviar al menos una cuota.', 'cuotas')
+
+            # Nuevo formato: comprobante/comprobantes como arreglo de objetos.
+            if isinstance(comprobantes_payload, str):
+                comprobantes_payload = [{'numero_operacion': comprobantes_payload.strip()}]
+            if not isinstance(comprobantes_payload, list) or len(comprobantes_payload) == 0:
+                return _contract_error(400, 'COMPROBANTE_DUPLICADO', 'Debe enviar al menos un comprobante.', 'comprobante')
+
+            comprobantes_normalizados = []
+            numeros_operacion = []
+            for idx, comp in enumerate(comprobantes_payload):
+                if not isinstance(comp, dict):
+                    return _contract_error(400, 'ESTADO_INCONSISTENTE', 'Formato inválido en comprobante.', 'comprobante[%s]' % idx)
+
+                numero_operacion = (comp.get('numero_operacion') or comp.get('numeroOperacion') or '').strip()
+                image_value = comp.get('image') if comp.get('image') is not None else comp.get('imagen')
+                if not numero_operacion:
+                    return _contract_error(400, 'COMPROBANTE_DUPLICADO', 'numero_operacion es requerido.', 'comprobante[%s].numero_operacion' % idx)
+
+                # Soporta image string o images arreglo.
+                if isinstance(image_value, list):
+                    images = [img for img in image_value if img]
+                elif image_value:
+                    images = [image_value]
+                else:
+                    images = [False]
+
+                for img in images:
+                    comprobantes_normalizados.append({
+                        'numero_operacion': numero_operacion,
+                        'image': img,
+                    })
+                numeros_operacion.append(numero_operacion)
 
             monto_total = _to_decimal(monto_total_raw)
             if monto_total is None:
@@ -743,12 +775,10 @@ class MobileAPIController(http.Controller):
 
             # h) Verificar comprobante duplicado
             payment_exist = request.env['account.payment'].sudo().search([
-                ('ref', '=', comprobante)
+                ('ref', 'in', list(set(numeros_operacion)))
             ], limit=1)
-            pending_exist = request.env['adt.comercial.cuotas.pendientes'].sudo().search([
-                '|',
-                ('numero_operacion_cuota', '=', comprobante),
-                ('numero_operacion_mora', '=', comprobante),
+            pending_exist = request.env['adt.comercial.cuotas.pendientes.comprobante'].sudo().search([
+                ('numero_operacion', 'in', list(set(numeros_operacion)))
             ], limit=1)
             if payment_exist or pending_exist:
                 return _contract_error(409, 'COMPROBANTE_DUPLICADO', 'El número de comprobante ya fue registrado.', 'comprobante')
@@ -760,19 +790,25 @@ class MobileAPIController(http.Controller):
             for c in cuotas_data:
                 cuota = c['cuota']
                 monto_mora = _money(c['monto_mora'])
-                request.env['adt.comercial.cuotas.pendientes'].sudo().create({
+                pendiente = request.env['adt.comercial.cuotas.pendientes'].sudo().create({
                     'cuota_id': cuota.id,
                     'monto_cuota': float(_money(c['monto_cuota'])),
-                    'numero_operacion_cuota': c['numero_operacion_cuota'] or comprobante,
+                    'numero_operacion_cuota': c['numero_operacion_cuota'] or comprobantes_normalizados[0]['numero_operacion'],
                     'monto_mora': float(monto_mora),
-                    'numero_operacion_mora': c['numero_operacion_mora'] or (comprobante if monto_mora > 0 else False),
+                    'numero_operacion_mora': c['numero_operacion_mora'] or False,
                     'fecha': fecha_pago,
                     'comentario': comentario or False,
                     'estado': 'PENDIENTE_VALIDAR',
                 })
 
-                cuota.invalidate_cache()
-                cuota._compute_pendiente_validar()
+                for comp in comprobantes_normalizados:
+                    request.env['adt.comercial.cuotas.pendientes.comprobante'].sudo().create({
+                        'pendiente_id': pendiente.id,
+                        'numero_operacion': comp['numero_operacion'],
+                        'image': comp['image'],
+                    })
+
+                request.env['adt.comercial.cuotas.pendientes'].sudo()._sync_cuota_pendiente_validar(cuota)
 
                 saldo_pendiente = _money(c['monto_cuota'] + c['monto_mora'] - c['monto_pagado'])
                 if saldo_pendiente < Decimal('0.00'):
@@ -794,7 +830,7 @@ class MobileAPIController(http.Controller):
 
             response = {
                 'pagoId': pago_id,
-                'comprobante': comprobante,
+                'comprobante': [{'numero_operacion': n} for n in list(dict.fromkeys(numeros_operacion))],
                 'montoTotal': float(monto_total),
                 'fechaPago': fecha_pago.replace(tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'cuotas': cuota_results,

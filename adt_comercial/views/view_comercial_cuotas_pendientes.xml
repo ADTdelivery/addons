@@ -3,12 +3,14 @@
         <field name="name">adt.comercial.cuotas.pendientes.tree</field>
         <field name="model">adt.comercial.cuotas.pendientes</field>
         <field name="arch" type="xml">
-            <tree string="Cuotas pendientes por validar" create="0" delete="0">
+            <tree string="Cuotas pendientes por validar" create="0" delete="1">
                 <field name="cuota_id"/>
+                <field name="cuenta_id"/>
+                <field name="placa"/>
+                <field name="numero_documento"/>
                 <field name="monto_cuota"/>
-                <field name="numero_operacion_cuota"/>
+                <field name="comprobante_count" string="Comprobantes"/>
                 <field name="monto_mora"/>
-                <field name="numero_operacion_mora"/>
                 <field name="fecha"/>
                 <field name="estado" widget="badge"
                        decoration-danger="estado == 'PENDIENTE_VALIDAR'"
@@ -21,11 +23,14 @@
         <field name="name">adt.comercial.cuotas.pendientes.form</field>
         <field name="model">adt.comercial.cuotas.pendientes</field>
         <field name="arch" type="xml">
-            <form string="Cuota pendiente por validar" create="0" delete="0">
+            <form string="Cuota pendiente por validar" create="0" delete="1">
                 <sheet>
                     <group>
                         <group>
                             <field name="cuota_id" readonly="1"/>
+                            <field name="cuenta_id" readonly="1"/>
+                            <field name="placa" readonly="1"/>
+                            <field name="numero_documento" readonly="1"/>
                             <field name="monto_cuota" readonly="1"/>
                             <field name="monto_mora" readonly="1"/>
                             <field name="fecha" readonly="1"/>
@@ -39,6 +44,20 @@
                     <group>
                         <field name="comentario" readonly="1"/>
                     </group>
+                    <group string="Comprobantes">
+                        <field name="comprobante_line_ids" nolabel="1">
+                            <tree create="0" delete="0">
+                                <field name="numero_operacion"/>
+                                <field name="image" widget="image"/>
+                            </tree>
+                            <form string="Comprobante" create="0" delete="0">
+                                <group>
+                                    <field name="numero_operacion" readonly="1"/>
+                                    <field name="image" widget="image" readonly="1"/>
+                                </group>
+                            </form>
+                        </field>
+                    </group>
                 </sheet>
             </form>
         </field>
@@ -50,6 +69,9 @@
         <field name="arch" type="xml">
             <search string="Buscar cuotas pendientes por validar">
                 <field name="cuota_id"/>
+                <field name="cuenta_id"/>
+                <field name="placa"/>
+                <field name="numero_documento"/>
                 <field name="numero_operacion_cuota"/>
                 <field name="numero_operacion_mora"/>
                 <field name="estado"/>
