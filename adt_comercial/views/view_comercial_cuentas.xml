@@ -235,6 +235,7 @@
                                         <field name="mora_last_payment_date" readonly="1"/>
                                         <field name="mora_estado_texto" widget="badge"
                                         decoration-danger="mora_estado_texto == 'Pendiente'"
+                                        decoration-warning="mora_estado_texto == 'Pago parcial'"
                                         decoration-success="mora_estado_texto == 'Pagado'"/>
                                         <field name="pendiente_validar" />
 

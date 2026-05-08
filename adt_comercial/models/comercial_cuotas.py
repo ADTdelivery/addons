@@ -19,8 +19,13 @@ class AccountPayment(models.Model):
         default='pending'
     )
     mora_operacion = fields.Char(string="# Operación")
-    mora_dias = fields.Integer(string="Días de mora")  # 👈 NUEVO
-    mora_payment_date = fields.Date(string="Fecha pago de mora")  # <-- new field
+    mora_dias = fields.Integer(string="Días de mora")
+    mora_payment_date = fields.Date(string="Fecha pago de mora")
+    mora_pagado = fields.Float(
+        string="Mora pagada parcialmente",
+        default=0.0,
+        help="Monto parcial de mora ya cobrado. mora - mora_pagado = mora pendiente real."
+    )
 
 class ADTComercialCuotas(models.Model):
     _name = "adt.comercial.cuotas"
@@ -204,6 +209,7 @@ class ADTComercialCuotas(models.Model):
     @api.depends(
         'payment_ids',
         'payment_ids.mora',
+        'payment_ids.mora_pagado',
         'payment_ids.mora_state',
         'payment_ids.mora_operacion',
         'payment_ids.mora_dias',
@@ -221,6 +227,7 @@ class ADTComercialCuotas(models.Model):
         for record in self:
             mora_total = 0.0
             mora_pendiente = 0.0
+            mora_ya_pagada = 0.0
             total_dias = 0
             tiene_pendiente = False
 
@@ -228,17 +235,23 @@ class ADTComercialCuotas(models.Model):
 
             for p in record.payment_ids:
                 mora = p.mora or 0.0
+                mora_pagado_parcial = p.mora_pagado or 0.0
+                mora_restante = max(0.0, mora - mora_pagado_parcial)
+
                 mora_total += mora
                 total_dias += p.mora_dias or 0
 
                 if p.mora_state == 'pending':
-                    mora_pendiente += mora
-                    tiene_pendiente = True
+                    mora_pendiente += mora_restante
+                    mora_ya_pagada += mora_pagado_parcial
+                    if mora_restante > 0:
+                        tiene_pendiente = True
                     # priorizar operación pendiente
                     if p.mora_operacion:
                         ultima_operacion = p.mora_operacion
                 else:
-                    # si no hay pendiente, tomar la última pagada
+                    # mora completamente pagada
+                    mora_ya_pagada += mora
                     if p.mora_operacion and not ultima_operacion:
                         ultima_operacion = p.mora_operacion
 
@@ -248,6 +261,7 @@ class ADTComercialCuotas(models.Model):
                 and record.fecha_cronograma
                 and record.state not in ('pagado', 'anulada')
                 and mora_pendiente <= 0
+                and mora_ya_pagada <= 0
             ):
                 hoy = fields.Date.context_today(record)
                 diff_days = (hoy - record.fecha_cronograma).days
@@ -264,8 +278,10 @@ class ADTComercialCuotas(models.Model):
             record.mora_operacion = ultima_operacion or ''
 
             # Texto de estado
-            if mora_total == 0:
+            if round(mora_total, 2) == 0.0:
                 record.mora_estado_texto = 'Sin mora'
+            elif round(mora_pendiente, 2) > 0 and round(mora_ya_pagada, 2) > 0:
+                record.mora_estado_texto = 'Pago parcial'
             elif tiene_pendiente:
                 record.mora_estado_texto = 'Pendiente'
             else:
@@ -520,7 +536,7 @@ class ADTPagarMoraWizard(models.TransientModel):
     _description = 'Pago de Mora'
 
     cuota_id = fields.Many2one('adt.comercial.cuotas', required=True)
-    amount = fields.Float(string="Monto mora", required=True)
+    amount = fields.Float(string="Monto a pagar", required=True)
     payment_date = fields.Date(default=fields.Date.context_today)
     journal_id = fields.Many2one(
         'account.journal',
@@ -529,20 +545,91 @@ class ADTPagarMoraWizard(models.TransientModel):
     )
     mora_operacion = fields.Char(string="N° Operación")
 
+    mora_pendiente_real = fields.Float(
+        string="Mora pendiente",
+        compute="_compute_mora_pendiente_real",
+    )
+
+    @api.depends('cuota_id')
+    def _compute_mora_pendiente_real(self):
+        for rec in self:
+            if not rec.cuota_id:
+                rec.mora_pendiente_real = 0.0
+                continue
+            pagos = rec.cuota_id.payment_ids.filtered(
+                lambda p: (p.mora or 0.0) > 0 and p.mora_state == 'pending'
+            )
+            rec.mora_pendiente_real = round(sum(
+                max(0.0, (p.mora or 0.0) - (p.mora_pagado or 0.0))
+                for p in pagos
+            ), 2)
+
     def action_confirm_pagar_mora(self):
         self.ensure_one()
-        pagos_pendientes = self.cuota_id.payment_ids.filtered(lambda p: p.mora > 0 and p.mora_state == 'pending')
-        
+        pagos_pendientes = self.cuota_id.payment_ids.filtered(
+            lambda p: (p.mora or 0.0) > 0 and p.mora_state == 'pending'
+        )
+
         if not pagos_pendientes:
             raise UserError("No hay mora pendiente para pagar.")
-            
-        # Marcar como pagada (NO crear nuevo payment)
-        pagos_pendientes.write({'mora_state': 'paid', 'mora_operacion': self.mora_operacion,'mora_payment_date': self.payment_date})
-        
+
+        # Calcular la mora pendiente real (descontando pagos parciales anteriores)
+        mora_total_pendiente = round(sum(
+            max(0.0, (p.mora or 0.0) - (p.mora_pagado or 0.0))
+            for p in pagos_pendientes
+        ), 2)
+
+        if mora_total_pendiente <= 0:
+            raise UserError("No hay mora pendiente para pagar.")
+
+        amount = round(self.amount, 2)
+
+        if amount > mora_total_pendiente:
+            raise UserError(
+                "El monto ingresado (S/ %.2f) supera la mora pendiente (S/ %.2f)." % (
+                    amount, mora_total_pendiente
+                )
+            )
+
+        if round(amount, 2) == round(mora_total_pendiente, 2):
+            # ── Pago completo: marcar todos como pagado ──
+            pagos_pendientes.write({
+                'mora_state': 'paid',
+                'mora_operacion': self.mora_operacion,
+                'mora_payment_date': self.payment_date,
+            })
+            _logger.info(
+                '[PagarMoraWizard] ✓ Mora pagada completamente para cuota %s | Monto: S/ %.2f',
+                self.cuota_id.name, amount,
+            )
+        else:
+            # ── Pago parcial: distribuir amount entre los pagos pendientes ──
+            restante_a_aplicar = amount
+            for p in pagos_pendientes:
+                if restante_a_aplicar <= 0:
+                    break
+                mora_restante_en_p = max(0.0, round(
+                    (p.mora or 0.0) - (p.mora_pagado or 0.0), 2
+                ))
+                if mora_restante_en_p <= 0:
+                    continue
+                aplicar = min(restante_a_aplicar, mora_restante_en_p)
+                nuevo_pagado = round((p.mora_pagado or 0.0) + aplicar, 2)
+                p.write({
+                    'mora_pagado': nuevo_pagado,
+                    'mora_operacion': self.mora_operacion,
+                    'mora_payment_date': self.payment_date,
+                })
+                restante_a_aplicar = round(restante_a_aplicar - aplicar, 2)
+                _logger.info(
+                    '[PagarMoraWizard] Pago parcial en payment %s | Aplicado: S/ %.2f | mora_pagado acumulado: S/ %.2f',
+                    p.id, aplicar, nuevo_pagado,
+                )
+
         # Forzar recálculo en cuota
         self.cuota_id.invalidate_cache()
         self.cuota_id._compute_mora_total()
-        
+
         return {'type': 'ir.actions.act_window_close'}
 
 

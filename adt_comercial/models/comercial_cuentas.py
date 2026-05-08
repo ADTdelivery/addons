@@ -508,8 +508,8 @@ class ADTComercialCuentas(models.Model):
 
             for cuota in record.cuota_ids:
             
-                # Si la cuota tiene mora pendiente
-                if cuota.mora_estado_texto == 'Pendiente':
+                # Si la cuota tiene mora pendiente (incluye pago parcial)
+                if cuota.mora_estado_texto in ('Pendiente', 'Pago parcial'):
                     mora_pendiente += cuota.mora_pendiente or 0.0
                     total_dias += cuota.mora_dias or 0
 

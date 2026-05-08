@@ -532,11 +532,13 @@ class CuotasMasivasWizard(models.TransientModel):
 
     @staticmethod
     def _get_mora_pendiente_amount(cuota):
-        return round(sum(
-            cuota.payment_ids.filtered(
-                lambda p: (p.mora or 0.0) > 0.0 and p.mora_state == 'pending'
-            ).mapped('mora')
-        ), 2)
+        """Retorna la mora pendiente real descontando pagos parciales (mora_pagado)."""
+        total = 0.0
+        for p in cuota.payment_ids.filtered(
+            lambda p: (p.mora or 0.0) > 0.0 and p.mora_state == 'pending'
+        ):
+            total += max(0.0, (p.mora or 0.0) - (p.mora_pagado or 0.0))
+        return round(total, 2)
 
     def _get_mora_para_nuevo_pago(self, cuota, fecha_pago, company_id):
         """
@@ -574,11 +576,13 @@ class CuotasMasivasWizard(models.TransientModel):
 
     def _pagar_mora_pendiente(self, cuota, monto_disponible, fecha_pago, numero_operacion):
         """
-        Paga la mora pendiente de una cuota marcando los payments con mora_state='paid'.
-        La mora NO se registra como un nuevo account.payment; sigue la misma lógica del
-        wizard manual de pago de mora.
+        Paga la mora pendiente de una cuota, total o parcialmente.
 
-        Retorna una tupla: (mora_pagada, monto_restante, mora_pendiente_restante)
+        - Si monto_disponible >= mora_pendiente_real  → paga todo, marca mora_state='paid'.
+        - Si monto_disponible <  mora_pendiente_real  → pago parcial mediante mora_pagado,
+          mantiene mora_state='pending' y la cascada se detiene (no avanza a siguiente cuota).
+
+        Retorna: (mora_pagada, monto_restante, mora_pendiente_restante)
         """
         pagos_pendientes = cuota.payment_ids.filtered(
             lambda p: (p.mora or 0.0) > 0.0 and p.mora_state == 'pending'
@@ -586,35 +590,68 @@ class CuotasMasivasWizard(models.TransientModel):
         mora_pendiente = self._get_mora_pendiente_amount(cuota)
 
         _logger.info(
-            '[_pagar_mora_pendiente] Cuota %s | Mora pendiente: S/ %.2f | Monto disponible: S/ %.2f',
+            '[_pagar_mora_pendiente] Cuota %s | Mora pendiente real: S/ %.2f | Monto disponible: S/ %.2f',
             cuota.name, mora_pendiente, monto_disponible,
         )
 
         if not pagos_pendientes or mora_pendiente <= 0:
             return 0.0, monto_disponible, 0.0
 
-        if monto_disponible < mora_pendiente:
-            _logger.warning(
-                '[_pagar_mora_pendiente] Monto insuficiente para pagar mora de cuota %s. '
-                'Disponible: S/ %.2f | Requerido: S/ %.2f',
-                cuota.name, monto_disponible, mora_pendiente,
+        if round(monto_disponible, 2) >= round(mora_pendiente, 2):
+            # ── Pago completo ──
+            pagos_pendientes.write({
+                'mora_state': 'paid',
+                'mora_operacion': numero_operacion,
+                'mora_payment_date': fecha_pago or date.today(),
+            })
+            cuota.invalidate_cache()
+            cuota._compute_mora_total()
+            monto_restante = round(monto_disponible - mora_pendiente, 2)
+            _logger.info(
+                '[_pagar_mora_pendiente] ✓ Mora pagada COMPLETA para cuota %s: S/ %.2f | Restante: S/ %.2f',
+                cuota.name, mora_pendiente, monto_restante,
             )
-            return 0.0, monto_disponible, mora_pendiente
+            return mora_pendiente, monto_restante, 0.0
 
-        pagos_pendientes.write({
-            'mora_state': 'paid',
-            'mora_operacion': numero_operacion,
-            'mora_payment_date': fecha_pago or date.today(),
-        })
-        cuota.invalidate_cache()
-        cuota._compute_mora_total()
+        else:
+            # ── Pago parcial: aplicar monto disponible como mora_pagado ──
+            restante_a_aplicar = round(monto_disponible, 2)
+            mora_aplicada = 0.0
 
-        monto_restante = round(monto_disponible - mora_pendiente, 2)
-        _logger.info(
-            '[_pagar_mora_pendiente] ✓ Mora pagada para cuota %s: S/ %.2f | Restante: S/ %.2f',
-            cuota.name, mora_pendiente, monto_restante,
-        )
-        return mora_pendiente, monto_restante, 0.0
+            for p in pagos_pendientes:
+                if restante_a_aplicar <= 0:
+                    break
+                mora_restante_en_p = max(0.0, round(
+                    (p.mora or 0.0) - (p.mora_pagado or 0.0), 2
+                ))
+                if mora_restante_en_p <= 0:
+                    continue
+                aplicar = min(restante_a_aplicar, mora_restante_en_p)
+                nuevo_pagado = round((p.mora_pagado or 0.0) + aplicar, 2)
+                p.write({
+                    'mora_pagado': nuevo_pagado,
+                    'mora_operacion': numero_operacion,
+                    'mora_payment_date': fecha_pago or date.today(),
+                })
+                mora_aplicada += aplicar
+                restante_a_aplicar = round(restante_a_aplicar - aplicar, 2)
+                _logger.info(
+                    '[_pagar_mora_pendiente]   Pago parcial payment %s | Abonado: S/ %.2f | mora_pagado acumulado: S/ %.2f',
+                    p.id, aplicar, nuevo_pagado,
+                )
+
+            cuota.invalidate_cache()
+            cuota._compute_mora_total()
+
+            mora_pendiente_restante = self._get_mora_pendiente_amount(cuota)
+            _logger.warning(
+                '[_pagar_mora_pendiente] ⚠ Mora PARCIALMENTE pagada para cuota %s | '
+                'Abonado: S/ %.2f | Pendiente: S/ %.2f',
+                cuota.name, mora_aplicada, mora_pendiente_restante,
+            )
+            # Devuelve monto_restante=0 ya que se consumió todo el disponible,
+            # y mora_pendiente_restante>0 para que la cascada se detenga.
+            return mora_aplicada, 0.0, mora_pendiente_restante
 
     # ──────────────────────────────────────────────────────────────────────────
     # Registrar pago en la cuota

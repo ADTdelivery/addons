@@ -52,7 +52,11 @@
             <form string="Pagar mora">
                 <group>
                     <field name="cuota_id" readonly="1"/>
-                    <field name="amount"/>
+                    <field name="mora_pendiente_real" readonly="1"
+                           string="Mora pendiente real"
+                           attrs="{'invisible': [('mora_pendiente_real', '=', 0.0)]}"/>
+                    <field name="amount"
+                           help="Puede ingresar un monto menor a la mora pendiente para un pago parcial."/>
                     <field name="payment_date"/>
                     <field name="journal_id"/>
                     <field name="mora_operacion"/>
