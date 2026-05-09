@@ -299,6 +299,24 @@ def _compute_server_mora(cuota, fecha_pago_dt):
     return _money(Decimal(str(diff_days)) * Decimal(str(factor)))
 
 
+def _build_attachment_url(res_model, res_id, res_field):
+    """Devuelve URL /web/content del attachment asociado a un campo binario."""
+    try:
+        attach = request.env['ir.attachment'].sudo().search([
+            ('res_model', '=', res_model),
+            ('res_id', '=', res_id),
+            ('res_field', '=', res_field),
+        ], limit=1)
+        base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+        if not attach:
+            # Fallback robusto: URL directa al campo binario.
+            return '%s/web/image/%s/%s/%s' % (base_url, res_model, res_id, res_field)
+        return '%s/web/content/%d' % (base_url, attach.id)
+    except Exception:
+        _logger.exception('Error generating attachment URL for %s(%s).%s', res_model, res_id, res_field)
+        return None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Controller
 # ─────────────────────────────────────────────────────────────────────────────
@@ -616,17 +634,33 @@ class MobileAPIController(http.Controller):
                     return _contract_error(400, 'ESTADO_INCONSISTENTE', 'Formato inválido en comprobante.', 'comprobante[%s]' % idx)
 
                 numero_operacion = (comp.get('numero_operacion') or comp.get('numeroOperacion') or '').strip()
-                image_value = comp.get('image') if comp.get('image') is not None else comp.get('imagen')
+                image_value = None
+                if comp.get('image') is not None:
+                    image_value = comp.get('image')
+                elif comp.get('imagen') is not None:
+                    image_value = comp.get('imagen')
+                elif comp.get('images') is not None:
+                    image_value = comp.get('images')
+                elif comp.get('imagenes') is not None:
+                    image_value = comp.get('imagenes')
                 if not numero_operacion:
                     return _contract_error(400, 'COMPROBANTE_DUPLICADO', 'numero_operacion es requerido.', 'comprobante[%s].numero_operacion' % idx)
 
                 # Soporta image string o images arreglo.
                 if isinstance(image_value, list):
-                    images = [img for img in image_value if img]
+                    images = [img for img in image_value if isinstance(img, str) and img.strip()]
                 elif image_value:
-                    images = [image_value]
+                    images = [image_value] if isinstance(image_value, str) and image_value.strip() else []
                 else:
-                    images = [False]
+                    images = []
+
+                if not images:
+                    return _contract_error(
+                        400,
+                        'COMPROBANTE_SIN_IMAGEN',
+                        'Cada comprobante debe incluir al menos una imagen válida.',
+                        'comprobante[%s].image' % idx,
+                    )
 
                 for img in images:
                     comprobantes_normalizados.append({
@@ -801,12 +835,44 @@ class MobileAPIController(http.Controller):
                     'estado': 'PENDIENTE_VALIDAR',
                 })
 
+                comprobante_urls = []
                 for comp in comprobantes_normalizados:
-                    request.env['adt.comercial.cuotas.pendientes.comprobante'].sudo().create({
+                    comprobante_line = request.env['adt.comercial.cuotas.pendientes.comprobante'].sudo().create({
                         'pendiente_id': pendiente.id,
                         'numero_operacion': comp['numero_operacion'],
                         'image': comp['image'],
                     })
+                    image_url = _build_attachment_url(
+                        'adt.comercial.cuotas.pendientes.comprobante',
+                        comprobante_line.id,
+                        'image',
+                    )
+                    if image_url:
+                        comprobante_urls.append(image_url)
+
+                # Guardar en la cuota una lista JSON con las URLs de comprobantes.
+                # Si ya existen URLs previas, se agregan sin duplicar.
+                existing_urls = []
+                try:
+                    if cuota.voucher_image_urls:
+                        parsed = json.loads(cuota.voucher_image_urls)
+                        if isinstance(parsed, list):
+                            existing_urls = [u for u in parsed if u]
+                        elif isinstance(parsed, str) and parsed.strip():
+                            existing_urls = [parsed.strip()]
+                except Exception:
+                    # Compatibilidad: si el valor anterior no es JSON, conservarlo como string simple.
+                    raw_prev = (cuota.voucher_image_urls or '').strip()
+                    if raw_prev:
+                        existing_urls = [raw_prev]
+                    _logger.warning('No se pudo parsear voucher_image_urls previo de cuota %s; se conservará valor previo como texto.', cuota.id)
+
+                merged_urls = list(dict.fromkeys(existing_urls + comprobante_urls))
+                cuota.sudo().write({'voucher_image_urls': json.dumps(merged_urls, ensure_ascii=False)})
+                _logger.info(
+                    'Cuota %s actualizada con %d URL(s) de comprobante (total guardado: %d).',
+                    cuota.id, len(comprobante_urls), len(merged_urls)
+                )
 
                 request.env['adt.comercial.cuotas.pendientes'].sudo()._sync_cuota_pendiente_validar(cuota)
 
@@ -826,6 +892,7 @@ class MobileAPIController(http.Controller):
                     'estado': estado_result,
                     'montoPagado': float(_money(c['monto_pagado'])),
                     'saldoPendiente': float(saldo_pendiente),
+                    'voucherUrls': merged_urls,
                 })
 
             response = {
@@ -835,7 +902,7 @@ class MobileAPIController(http.Controller):
                 'fechaPago': fecha_pago.replace(tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'cuotas': cuota_results,
             }
-            return _json_response(response, status=200)
+            return _json_response(_success(response), status=200)
 
         except Exception:
             _logger.exception('Error in POST /api/v1/pagos/registrar')

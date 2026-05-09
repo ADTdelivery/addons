@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime, date
+import json
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError, RedirectWarning, UserError
 import xmlrpc.client
@@ -155,6 +156,10 @@ class ADTComercialCuotas(models.Model):
         string="Voucher de Pago",
         attachment=True,
         help="Imagen del voucher asociado a esta cuota."
+    )
+    voucher_image_urls = fields.Text(
+        string='URLs comprobantes',
+        help='Lista JSON de URLs de comprobantes asociados a la cuota.'
     )
 
     def action_register_payment(self):
@@ -707,3 +712,50 @@ class ADTComercialCuotas(models.Model):
             # pick the latest date (ISO string comparison is safe here)
             dates = pagos.mapped('mora_payment_date')
             rec.mora_last_payment_date = max(dates)
+
+    def _parse_voucher_image_urls(self):
+        self.ensure_one()
+        raw = self.voucher_image_urls
+        urls = []
+
+        if isinstance(raw, list):
+            urls = raw
+        elif isinstance(raw, str):
+            payload = raw.strip()
+            if payload:
+                try:
+                    parsed = json.loads(payload)
+                    if isinstance(parsed, list):
+                        urls = parsed
+                    elif isinstance(parsed, str):
+                        urls = [parsed]
+                except Exception:
+                    urls = [item.strip() for item in payload.split(',') if item and item.strip()]
+
+        # Normaliza y elimina duplicados conservando orden.
+        normalized = []
+        for url in urls:
+            url_value = str(url).strip() if url is not None else ''
+            if url_value and url_value not in normalized:
+                normalized.append(url_value)
+        return normalized
+
+    def action_open_image_gallery(self):
+        self.ensure_one()
+        urls = self._parse_voucher_image_urls()
+
+        # Reescribe en JSON canonico para que el widget reciba una estructura consistente.
+        serialized = json.dumps(urls, ensure_ascii=False)
+        if serialized != (self.voucher_image_urls or ''):
+            self.sudo().write({'voucher_image_urls': serialized})
+
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Galería de Imágenes',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(self.env.ref('adt_comercial.view_image_gallery_popup').id, 'form')],
+            'target': 'new',
+        }
+

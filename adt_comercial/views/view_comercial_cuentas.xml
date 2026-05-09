@@ -250,6 +250,13 @@
                                                 attrs="{'invisible': [('state', 'in', ['anulada'])]}"/>
 
                                         <field name="voucher_image" widget="image"/>
+                                        <field name="voucher_image_urls" invisible="1"/>
+                                        <!-- Botón para ver galería de imágenes, solo visible si hay URLs -->
+                                        <button string="📷 Ver Fotos"
+                                                name="action_open_image_gallery"
+                                                type="object"
+                                                class="btn btn-primary"
+                                                 attrs="{'invisible': ['|', ('voucher_image_urls', '=', False), ('voucher_image_urls', '=', '')]}"/>
                                     </tree>
                                     <form string="Cuota" edit="0">
                                         <header>
@@ -357,5 +364,22 @@
               parent="menu_adt_comercial"
               sequence="3"/>
 
+
+    <record id="view_image_gallery_popup" model="ir.ui.view">
+        <field name="name">image.gallery.popup</field>
+        <field name="model">adt.comercial.cuotas</field>
+        <field name="arch" type="xml">
+            <form string="Galería de Imágenes">
+                <sheet>
+                    <div class="o_image_gallery_carousel">
+                        <field name="voucher_image_urls" widget="image_carousel" readonly="1"/>
+                    </div>
+                </sheet>
+                <footer>
+                    <button string="Cerrar" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
 
 </odoo>

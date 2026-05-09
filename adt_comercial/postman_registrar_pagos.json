@@ -3,7 +3,7 @@
     "_postman_id": "d1d4e0d8-6ef2-4bcb-8a16-2d8b0a3f1f21",
     "name": "ADT - Registrar Pagos Odoo",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Coleccion para probar POST /api/v1/pagos/registrar"
+    "description": "Coleccion para probar POST /api/v1/pagos/registrar (comprobante como arreglo con numero_operacion + image)."
   },
   "variable": [
     {
@@ -17,21 +17,34 @@
   ],
   "item": [
     {
-      "name": "Escenario 1 - Pago al dia",
+      "name": "Escenario 1 - Pago al dia (1 cuota)",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-001\",\n  \"montoTotal\": 450.00,\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 450.00,\n      \"estadoPago\": \"PAGADO\"\n    }\n  ]\n}"
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": [\n    {\n      \"numero_operacion\": \"REC-001\",\n      \"image\": \"BASE64_IMAGEN_1\"\n    }\n  ],\n  \"montoTotal\": 450.00,\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 450.00,\n      \"estadoPago\": \"PAGADO\",\n      \"numeroOperacionCuota\": \"REC-001\"\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/pagos/registrar",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "pagos", "registrar"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "pagos",
+            "registrar"
+          ]
         }
       }
     },
@@ -40,55 +53,94 @@
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-002\",\n  \"montoTotal\": 517.50,\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 67.50,\n      \"montoPagado\": 517.50,\n      \"estadoPago\": \"PAGADO\"\n    }\n  ]\n}"
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": [\n    {\n      \"numero_operacion\": \"REC-002\",\n      \"image\": \"BASE64_IMAGEN_1\"\n    }\n  ],\n  \"montoTotal\": 517.50,\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 67.50,\n      \"montoPagado\": 517.50,\n      \"estadoPago\": \"PAGADO\",\n      \"numeroOperacionCuota\": \"REC-002\",\n      \"numeroOperacionMora\": \"REC-002\"\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/pagos/registrar",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "pagos", "registrar"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "pagos",
+            "registrar"
+          ]
         }
       }
     },
     {
-      "name": "Escenario 3 - Multiples cuotas con mora",
+      "name": "Escenario 3 - Multiples cuotas + 3 imagenes",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-003\",\n  \"montoTotal\": 1485.00,\n  \"comentario\": \"Pago acumulado 3 cuotas\",\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-001\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 90.00,\n      \"montoPagado\": 540.00,\n      \"estadoPago\": \"PAGADO\"\n    },\n    {\n      \"cuotaId\": \"C-002\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 45.00,\n      \"montoPagado\": 495.00,\n      \"estadoPago\": \"PAGADO\"\n    },\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 450.00,\n      \"estadoPago\": \"PAGADO\"\n    }\n  ]\n}"
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": [\n    {\n      \"numero_operacion\": \"REC-003\",\n      \"image\": [\n        \"BASE64_IMAGEN_1\",\n        \"BASE64_IMAGEN_2\",\n        \"BASE64_IMAGEN_3\"\n      ]\n    }\n  ],\n  \"montoTotal\": 1485.00,\n  \"comentario\": \"Pago acumulado 3 cuotas\",\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-001\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 90.00,\n      \"montoPagado\": 540.00,\n      \"estadoPago\": \"PAGADO\",\n      \"numeroOperacionCuota\": \"REC-003\",\n      \"numeroOperacionMora\": \"REC-003\"\n    },\n    {\n      \"cuotaId\": \"C-002\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 45.00,\n      \"montoPagado\": 495.00,\n      \"estadoPago\": \"PAGADO\",\n      \"numeroOperacionCuota\": \"REC-003\",\n      \"numeroOperacionMora\": \"REC-003\"\n    },\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 450.00,\n      \"estadoPago\": \"PAGADO\",\n      \"numeroOperacionCuota\": \"REC-003\"\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/pagos/registrar",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "pagos", "registrar"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "pagos",
+            "registrar"
+          ]
         }
       }
     },
     {
-      "name": "Escenario 4 - Pago parcial con excedente",
+      "name": "Escenario 4 - Pago parcial",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{bearerToken}}" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": \"REC-004\",\n  \"montoTotal\": 620.00,\n  \"comentario\": \"Acuerdo de abono adelantado\",\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 45.00,\n      \"montoPagado\": 495.00,\n      \"estadoPago\": \"PAGADO\"\n    },\n    {\n      \"cuotaId\": \"C-004\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 125.00,\n      \"estadoPago\": \"PARCIAL\"\n    }\n  ]\n}"
+          "raw": "{\n  \"creditoId\": \"cred-001\",\n  \"comprobante\": [\n    {\n      \"numero_operacion\": \"REC-004\",\n      \"image\": \"BASE64_IMAGEN_1\"\n    }\n  ],\n  \"montoTotal\": 620.00,\n  \"comentario\": \"Acuerdo de abono adelantado\",\n  \"cuotas\": [\n    {\n      \"cuotaId\": \"C-003\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 45.00,\n      \"montoPagado\": 495.00,\n      \"estadoPago\": \"PAGADO\",\n      \"numeroOperacionCuota\": \"REC-004\",\n      \"numeroOperacionMora\": \"REC-004\"\n    },\n    {\n      \"cuotaId\": \"C-004\",\n      \"montoCuota\": 450.00,\n      \"montoMora\": 0.00,\n      \"montoPagado\": 125.00,\n      \"estadoPago\": \"PARCIAL\",\n      \"numeroOperacionCuota\": \"REC-004\"\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/pagos/registrar",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "pagos", "registrar"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "pagos",
+            "registrar"
+          ]
         }
       }
     }

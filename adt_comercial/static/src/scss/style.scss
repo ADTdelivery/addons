@@ -3,3 +3,31 @@
     border: 1px solid black !important;
     border-collapse: collapse !important;
 }
+
+.o_image_gallery_carousel {
+    min-height: 360px;
+}
+
+.o_image_carousel_container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.o_image_carousel_frame {
+    flex: 1;
+    text-align: center;
+}
+
+.o_image_carousel_image {
+    max-width: 100%;
+    max-height: 420px;
+    border-radius: 6px;
+    border: 1px solid #dcdcdc;
+}
+
+.o_image_carousel_counter {
+    margin-top: 8px;
+    color: #666;
+    font-size: 13px;
+}

@@ -34,9 +34,13 @@
         'views/report.xml',
         'views/view_mobile_models.xml',
     ],
-    # 'assets': {
-    #     'web.report_assets_common': [
-    #         '/adt_comercial/static/src/scss/style.scss',
-    #     ],
-    # },
+    'assets': {
+        'web.assets_backend': [
+            'adt_comercial/static/src/scss/style.scss',
+            'adt_comercial/static/src/js/image_carousel_widget.js',
+        ],
+        'web.assets_qweb': [
+            'adt_comercial/static/src/xml/image_carousel.xml',
+        ],
+    },
 }

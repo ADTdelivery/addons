@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="adt_comercial.ImageCarousel">
+        <div class="o_image_carousel_widget"/>
+    </t>
+
+    <t t-name="adt_comercial.ImageCarouselContent">
+        <t t-if="hasImages">
+            <div class="o_image_carousel_container">
+
+                <div class="o_image_carousel_frame">
+                    <img t-att-src="currentUrl" alt="Comprobante" class="o_image_carousel_image"/>
+                    <div class="o_image_carousel_counter">
+                        <t t-esc="currentIndex + 1"/> / <t t-esc="urls.length"/>
+                    </div>
+                </div>
+
+            </div>
+            <div>
+                <button type="button" class="btn btn-secondary o_image_carousel_prev">Anterior</button>
+                <button type="button" class="btn btn-secondary o_image_carousel_next">Siguiente</button>
+            </div>
+        </t>
+        <t t-else="">
+            <div class="text-muted">No hay imagenes disponibles.</div>
+        </t>
+    </t>
+</templates>
+
