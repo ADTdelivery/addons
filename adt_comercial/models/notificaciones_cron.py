@@ -140,9 +140,10 @@ class ADTComercialNotificacionesCron(models.Model):
     def action_test_cron_notificaciones(self):
         """
         Botón de prueba manual del cron (solo para administradores).
-        Ejecuta la lógica completa y muestra un resumen en pantalla.
+        Ejecuta la lógica completa y prueba el flujo real de envío al endpoint /send.
         """
-        payloads = self.env["adt.comercial.cuentas"].cron_notificar_cuotas(log_only=True)
+        # Ejecuta envio real para validar el flujo completo hacia el servicio de notificaciones.
+        payloads = self.env["adt.comercial.cuentas"].cron_notificar_cuotas(log_only=False)
 
         # Log detallado para validar exactamente el mensaje que se enviaria.
         for payload in payloads:
@@ -171,7 +172,7 @@ class ADTComercialNotificacionesCron(models.Model):
             mensaje = (
                 f"✅ Cron ejecutado. {len(payloads)} notificación(es) generada(s):\n\n"
                 + "\n".join(lineas)
-                + "\n\nRevisa los logs del servidor para ver los payloads completos."
+                + "\n\nSe ejecutó el envío real al endpoint configurado. Revisa los logs para validar respuesta del servicio."
             )
 
         return {
@@ -264,7 +265,7 @@ class ADTComercialNotificacionesCron(models.Model):
         endpoint = (
             IrConfig.get_param("adt_comercial.notificaciones_endpoint")
             or IrConfig.get_param("notification.service.url")
-            or "http://localhost:8030/send"
+            or "http://192.168.100.51:8030/send"
         )
 
         data_payload = payload.get("data", {})
@@ -332,7 +333,7 @@ class ADTComercialNotificacionesCron(models.Model):
                     "token": token,
                     "title": payload.get("title") or "",
                     "body": payload.get("body") or "",
-                    "data": data_payload,
+                    "data": {},
                 }
 
                 try:
