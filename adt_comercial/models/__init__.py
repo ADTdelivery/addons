@@ -12,5 +12,6 @@ from . import egreso_caja
 from . import mobile_models
 from . import ir_http
 from . import comercial_cuotas_pendientes
+from . import notificaciones_cron
 
 

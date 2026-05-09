@@ -49,6 +49,13 @@ def _request_id():
     return str(uuid.uuid4())
 
 
+def _mask_token(token_value):
+    token_str = str(token_value or '').strip()
+    if len(token_str) <= 10:
+        return token_str
+    return '%s...%s' % (token_str[:6], token_str[-4:])
+
+
 def _json_response(data, status=200):
     return Response(
         json.dumps(data, ensure_ascii=False, default=str),
@@ -1603,6 +1610,158 @@ class MobileAPIController(http.Controller):
                 status=500
             )
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-010 — POST /v1/fcm/register
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/fcm/register',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def register_fcm(self, **kwargs):
+        """
+        Registers or updates an FCM token for the authenticated mobile session.
+        The owner is resolved from bearer token -> mobile.token.partner_id.
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            if not token_rec.partner_id:
+                return _json_response(
+                    _error(
+                        422,
+                        'TOKEN_WITHOUT_PARTNER',
+                        'El token autenticado no tiene un cliente asociado.',
+                    ),
+                    status=422,
+                )
+
+            raw_body = request.httprequest.data
+            body = json.loads(raw_body) if raw_body else {}
+            if not isinstance(body, dict):
+                return _json_response(
+                    _error(400, 'BAD_REQUEST', 'El cuerpo del request debe ser un objeto JSON.'),
+                    status=400,
+                )
+
+            fcm_token = (body.get('fcm_token') or body.get('token') or '').strip()
+            platform = str(body.get('platform') or '').strip().lower()
+            device_info = body.get('device_info') or {}
+
+            if not isinstance(device_info, dict):
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'device_info debe ser un objeto JSON.'),
+                    status=422,
+                )
+
+            if not fcm_token:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'fcm_token (o token) es requerido.'),
+                    status=422,
+                )
+
+            allowed_platforms = ('android', 'ios', 'web')
+            if platform not in allowed_platforms:
+                return _json_response(
+                    _error(
+                        422,
+                        'VALIDATION_ERROR',
+                        'platform debe ser uno de: android, ios, web.',
+                    ),
+                    status=422,
+                )
+
+            device_id = str(device_info.get('device_id') or token_rec.device_id or '').strip()
+            if not device_id:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'device_info.device_id es requerido.'),
+                    status=422,
+                )
+
+            device_name = str(device_info.get('device_name') or '').strip() or False
+            device_os = str(device_info.get('device_os') or '').strip() or False
+            app_version = str(device_info.get('app_version') or token_rec.app_version or '').strip() or False
+
+            FCMModel = request.env['mobile.fcm.device'].sudo()
+
+            # Upsert by owner + device; if FCM token already exists elsewhere, reassign it.
+            rec = FCMModel.search([
+                ('partner_id', '=', token_rec.partner_id.id),
+                ('device_id', '=', device_id),
+            ], limit=1)
+
+            vals = {
+                'partner_id': token_rec.partner_id.id,
+                'mobile_token_id': token_rec.id,
+                'fcm_token': fcm_token,
+                'platform': platform,
+                'device_id': device_id,
+                'device_name': device_name,
+                'device_os': device_os,
+                'app_version': app_version,
+                'last_seen_at': odoo_fields.Datetime.now(),
+                'active': True,
+            }
+
+            operation = 'created'
+            if rec:
+                rec.write(vals)
+                operation = 'updated'
+            else:
+                existing_by_fcm = FCMModel.search([('fcm_token', '=', fcm_token)], limit=1)
+                if existing_by_fcm:
+                    existing_by_fcm.write(vals)
+                    rec = existing_by_fcm
+                    operation = 'reassigned'
+                else:
+                    rec = FCMModel.create(vals)
+
+            # Keep session metadata aligned with latest device info.
+            token_rec.sudo().write({
+                'device_id': device_id,
+                'platform': platform,
+                'app_version': app_version,
+            })
+
+            response_data = {
+                'id': rec.id,
+                'operation': operation,
+                'partnerId': token_rec.partner_id.id,
+                'partnerName': token_rec.partner_id.name or None,
+                'platform': rec.platform,
+                'fcmTokenMasked': _mask_token(rec.fcm_token),
+                'device': {
+                    'device_id': rec.device_id,
+                    'device_name': rec.device_name,
+                    'device_os': rec.device_os,
+                    'app_version': rec.app_version,
+                },
+                'lastSeenAt': _format_datetime(rec.last_seen_at),
+            }
+
+            _logger.info(
+                '[FCM Register] operation=%s partner_id=%s device_id=%s platform=%s fcm=%s',
+                operation,
+                token_rec.partner_id.id,
+                device_id,
+                platform,
+                _mask_token(fcm_token),
+            )
+
+            return _json_response(_success(response_data, message='FCM token registrado correctamente.'))
+
+        except Exception:
+            _logger.exception('Error in POST /v1/fcm/register')
+            return _json_response(
+                _error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'),
+                status=500,
+            )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Private helpers

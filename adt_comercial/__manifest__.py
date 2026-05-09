@@ -10,6 +10,7 @@
         'data/sequences.xml',
         'data/recuperacion_data.xml',
         'data/action_view_sms.xml',
+        'data/cron_notificaciones.xml',
         'security/res_groups.xml',
         'security/ir.model.access.csv',
         'views/view_comercial_socios.xml',

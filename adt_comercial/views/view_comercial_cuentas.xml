@@ -74,6 +74,11 @@
                     <button name="restablecer_vehiculo" type="object" string="Restablecer"
                             groups="adt_comercial.group_access_adt_comercial_restablecer" class="oe_highlight"
                             attrs="{'invisible': [('state', '!=', 'cancelado')]}"/>
+                    <!-- Botón de prueba del cron — solo visible para administradores del sistema -->
+                    <button name="action_test_cron_notificaciones" type="object"
+                            string="🔔 Test Notificaciones"
+                            groups="base.group_system"
+                            class="btn btn-warning"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>

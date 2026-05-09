@@ -189,3 +189,35 @@ class MobileSupportContact(models.Model):
     sequence = fields.Integer(string='Orden', default=10)
     active = fields.Boolean(default=True)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HU-009  Mobile FCM Device (for push notifications)
+# ─────────────────────────────────────────────────────────────────────────────
+class MobileFCMDevice(models.Model):
+    _name = 'mobile.fcm.device'
+    _description = 'Mobile FCM Device Token'
+    _order = 'write_date desc, id desc'
+
+    partner_id = fields.Many2one('res.partner', string='Cliente', required=True, index=True)
+    mobile_token_id = fields.Many2one('mobile.token', string='Sesion movil', index=True)
+
+    fcm_token = fields.Char(string='FCM Token', required=True, index=True)
+    platform = fields.Selection([
+        ('android', 'Android'),
+        ('ios', 'iOS'),
+        ('web', 'Web'),
+    ], string='Plataforma', required=True)
+
+    device_id = fields.Char(string='Device ID', required=True, index=True)
+    device_name = fields.Char(string='Device Name')
+    device_os = fields.Char(string='Device OS')
+    app_version = fields.Char(string='App Version')
+
+    last_seen_at = fields.Datetime(string='Ultima actividad', default=lambda self: fields.Datetime.now())
+    active = fields.Boolean(default=True)
+
+    _sql_constraints = [
+        ('mobile_fcm_unique_partner_device', 'unique(partner_id, device_id)',
+         'Ya existe un registro FCM para este cliente y dispositivo.'),
+    ]
+

@@ -386,4 +386,71 @@
               action="action_mobile_support_contact"
               sequence="30"/>
 
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-010  FCM Devices
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_fcm_device_tree" model="ir.ui.view">
+        <field name="name">mobile.fcm.device.tree</field>
+        <field name="model">mobile.fcm.device</field>
+        <field name="arch" type="xml">
+            <tree string="Dispositivos FCM">
+                <field name="partner_id"/>
+                <field name="platform"/>
+                <field name="device_id"/>
+                <field name="device_name"/>
+                <field name="app_version"/>
+                <field name="last_seen_at"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_fcm_device_form" model="ir.ui.view">
+        <field name="name">mobile.fcm.device.form</field>
+        <field name="model">mobile.fcm.device</field>
+        <field name="arch" type="xml">
+            <form string="Dispositivo FCM">
+                <sheet>
+                    <group string="Cliente y Sesion">
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="mobile_token_id"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="platform"/>
+                            <field name="last_seen_at"/>
+                        </group>
+                    </group>
+                    <group string="Dispositivo">
+                        <group>
+                            <field name="device_id"/>
+                            <field name="device_name"/>
+                        </group>
+                        <group>
+                            <field name="device_os"/>
+                            <field name="app_version"/>
+                        </group>
+                    </group>
+                    <group string="Token FCM">
+                        <field name="fcm_token"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_fcm_device" model="ir.actions.act_window">
+        <field name="name">Dispositivos FCM</field>
+        <field name="res_model">mobile.fcm.device</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_mobile_fcm_devices"
+              name="Dispositivos FCM"
+              parent="menu_mobile_root"
+              action="action_mobile_fcm_device"
+              sequence="45"/>
+
 </odoo>
