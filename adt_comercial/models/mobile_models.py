@@ -107,19 +107,174 @@ class MobileNotification(models.Model):
         ('EXTERNAL', 'External URL'),
         ('NONE', 'Sin acción'),
     ], string='Tipo de enlace', default='NONE')
+    broadcast_all_clients = fields.Boolean(
+        string='Notificación masiva (todos los clientes)',
+        default=False,
+        help='Si está activo, al guardar se replicará para todos los clientes con dispositivos FCM activos.'
+    )
 
     # To which partner / user this notification belongs
     partner_id = fields.Many2one('res.partner', string='Cliente', index=True)
     # Optionally link to plate / vehicle
     vehicle_id = fields.Many2one('fleet.vehicle', string='Vehículo', index=True)
 
-    read = fields.Boolean(string='Leído', default=False)
+    is_read = fields.Boolean(string='Leído', default=False, oldname='read')
     created_at = fields.Datetime(string='Fecha de creación',
                                   default=lambda self: fields.Datetime.now())
     active = fields.Boolean(default=True)
 
     def mark_as_read(self):
-        self.write({'read': True})
+        self.write({'is_read': True})
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+
+        # Evita recursión al crear registros hijos de una notificación masiva.
+        if self.env.context.get('skip_massive_expand'):
+            if not self.env.context.get('skip_auto_send'):
+                records._send_push_notifications()
+            return records
+
+        for rec in records:
+            if rec.broadcast_all_clients:
+                rec._expand_massive_notification()
+            else:
+                rec._send_push_notifications()
+        return records
+
+    def _expand_massive_notification(self):
+        """
+        Expande una notificación masiva creando una notificación por cliente
+        que tenga dispositivos FCM activos.
+        """
+        self.ensure_one()
+
+        DeviceModel = self.env['mobile.fcm.device'].sudo()
+        partners = DeviceModel.search([('active', '=', True)]).mapped('partner_id')
+
+        if not partners:
+            _logger.warning(
+                '[MobileNotification] Notificación masiva %s sin clientes con FCM activo.',
+                self.id,
+            )
+            return
+
+        child_vals = []
+        for partner in partners:
+            child_vals.append({
+                'title': self.title,
+                'body': self.body,
+                'notification_type': self.notification_type,
+                'deep_link': self.deep_link,
+                'external_url': self.external_url,
+                'link_type': self.link_type,
+                'partner_id': partner.id,
+                'vehicle_id': False,
+                'broadcast_all_clients': False,
+                'is_read': False,
+                'active': True,
+            })
+
+        # Crea registros hijos sin volver a expandir ni enviar automáticamente.
+        child_records = self.with_context(
+            skip_massive_expand=True,
+            skip_auto_send=True,
+        ).sudo().create(child_vals)
+
+        child_records._send_push_notifications()
+
+    def _send_push_notifications(self):
+        """
+        Envía notificaciones al servicio HTTP externo /send por cada dispositivo FCM
+        asociado al partner/vehicle del registro.
+        """
+        IrConfig = self.env['ir.config_parameter'].sudo()
+        endpoint = (
+            IrConfig.get_param('adt_comercial.notificaciones_endpoint')
+            or IrConfig.get_param('notification.service.url')
+            or 'http://localhost:8030/send'
+        )
+
+        DeviceModel = self.env['mobile.fcm.device'].sudo()
+
+        for rec in self:
+            # Las notificaciones masivas se envían mediante sus registros hijos.
+            if rec.broadcast_all_clients:
+                continue
+
+            partner = rec.partner_id
+            if not partner and rec.vehicle_id and rec.vehicle_id.driver_id:
+                partner = rec.vehicle_id.driver_id
+
+            if not partner:
+                _logger.info(
+                    '[MobileNotification] Notificación %s sin partner/vehicle destino, no se envía.',
+                    rec.id,
+                )
+                continue
+
+            devices = DeviceModel.search([
+                ('partner_id', '=', partner.id),
+                ('active', '=', True),
+            ])
+
+            if not devices:
+                _logger.info(
+                    '[MobileNotification] Partner %s sin dispositivos FCM activos para notificación %s.',
+                    partner.id,
+                    rec.id,
+                )
+                continue
+
+            sent = 0
+            failed = 0
+
+            for device in devices:
+                token = (device.fcm_token or '').strip()
+                if not token:
+                    failed += 1
+                    continue
+
+                payload = {
+                    'token': token,
+                    'title': rec.title or '',
+                    'body': rec.body or '',
+                    'data': {},
+                }
+
+                try:
+                    import requests
+
+                    response = requests.post(endpoint, json=payload, timeout=10)
+                    if response.status_code == 200:
+                        sent += 1
+                    else:
+                        failed += 1
+                        _logger.error(
+                            '[MobileNotification] Error %s enviando notificación %s a device=%s: %.300s',
+                            response.status_code,
+                            rec.id,
+                            device.device_id,
+                            response.text,
+                        )
+                except Exception as exc:
+                    failed += 1
+                    _logger.exception(
+                        '[MobileNotification] Error enviando notificación %s a device=%s: %s',
+                        rec.id,
+                        device.device_id,
+                        exc,
+                    )
+
+            _logger.info(
+                '[MobileNotification] Envío notificación %s -> partner=%s | sent=%s | failed=%s | total=%s',
+                rec.id,
+                partner.id,
+                sent,
+                failed,
+                len(devices),
+            )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

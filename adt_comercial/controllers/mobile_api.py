@@ -324,6 +324,24 @@ def _build_attachment_url(res_model, res_id, res_field):
         return None
 
 
+def _notification_domain_from_token(token_rec):
+    """
+    Build the notification domain for the authenticated mobile token.
+    Returns an empty list when the token is not linked to a partner/vehicle.
+    """
+    if not token_rec:
+        return []
+
+    domain = [('active', '=', True)]
+    if token_rec.partner_id:
+        domain.append(('partner_id', '=', token_rec.partner_id.id))
+        return domain
+    if token_rec.vehicle_id:
+        domain.append(('vehicle_id', '=', token_rec.vehicle_id.id))
+        return domain
+    return []
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Controller
 # ─────────────────────────────────────────────────────────────────────────────
@@ -589,11 +607,20 @@ class MobileAPIController(http.Controller):
             # ── Contacts ──────────────────────────────────────────────────
             contacts = _get_support_contacts(cuenta)
 
+            # ── Notifications summary ─────────────────────────────────────
+            notifications_domain = _notification_domain_from_token(token_rec)
+            unread_count = 0
+            if notifications_domain:
+                unread_count = request.env['mobile.notification'].sudo().search_count(
+                    notifications_domain + [('is_read', '=', False)]
+                )
+
             data = {
                 'customer': customer_data,
                 'loan': loan_data,
                 'paymentAccounts': payment_accounts,
                 'contacts': contacts,
+                'unreadCount': unread_count,
             }
 
             return _json_response(_success(data))
@@ -1127,12 +1154,8 @@ class MobileAPIController(http.Controller):
             unread_filter = str(unreadOnly).lower() in ('true', '1')
 
             # Build domain using the token's linked partner or vehicle
-            domain = [('active', '=', True)]
-            if token_rec.partner_id:
-                domain.append(('partner_id', '=', token_rec.partner_id.id))
-            elif token_rec.vehicle_id:
-                domain.append(('vehicle_id', '=', token_rec.vehicle_id.id))
-            else:
+            domain = _notification_domain_from_token(token_rec)
+            if not domain:
                 # No association → return empty
                 data = {'unreadCount': 0, 'notifications': []}
                 pagination = {
@@ -1143,10 +1166,10 @@ class MobileAPIController(http.Controller):
                 return _json_response(_success(data, pagination=pagination))
 
             NotifModel = request.env['mobile.notification'].sudo()
-            unread_count = NotifModel.search_count(domain + [('read', '=', False)])
+            unread_count = NotifModel.search_count(domain + [('is_read', '=', False)])
 
             if unread_filter:
-                domain.append(('read', '=', False))
+                domain.append(('is_read', '=', False))
 
             total_items = NotifModel.search_count(domain)
             total_pages = max(1, -(-total_items // page_size))
@@ -1164,7 +1187,7 @@ class MobileAPIController(http.Controller):
                     'deepLink': n.deep_link or None,
                     'externalUrl': n.external_url or None,
                     'linkType': n.link_type,
-                    'read': n.read,
+                    'read': n.is_read,
                     'createdAt': _format_datetime(n.created_at),
                 })
 
@@ -1346,13 +1369,82 @@ class MobileAPIController(http.Controller):
             if not notif.exists():
                 return _json_response(_error(404, 'NOT_FOUND', 'Notificación no encontrada.'), status=404)
 
-            notif.mark_as_read()
+            domain = _notification_domain_from_token(token_rec)
+            if not domain:
+                return _json_response(
+                    _error(403, 'FORBIDDEN', 'El token autenticado no está asociado a notificaciones.'),
+                    status=403,
+                )
+
+            owned_notif = NotifModel.search(domain + [('id', '=', notification_id)], limit=1)
+            if not owned_notif:
+                return _json_response(
+                    _error(403, 'FORBIDDEN', 'No tiene permisos para marcar esta notificación.'),
+                    status=403,
+                )
+
+            owned_notif.mark_as_read()
+            unread_count = NotifModel.search_count(domain + [('is_read', '=', False)])
             return _json_response(_success(
-                {'id': 'notif-%d' % notification_id, 'read': True},
+                {
+                    'id': 'notif-%d' % notification_id,
+                    'read': True,
+                    'unreadCount': unread_count,
+                },
                 message='Notificación marcada como leída.',
             ))
         except Exception:
             _logger.exception('Error in POST /v1/notifications/%s/read', notification_id)
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-011 — POST /v1/notifications/read-all
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/notifications/read-all',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def mark_all_notifications_read(self, **kwargs):
+        """
+        Marks all notifications as read for the authenticated token scope.
+        Requires Authorization: Bearer <token>
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            domain = _notification_domain_from_token(token_rec)
+            if not domain:
+                return _json_response(
+                    _error(403, 'FORBIDDEN', 'El token autenticado no está asociado a notificaciones.'),
+                    status=403,
+                )
+
+            NotifModel = request.env['mobile.notification'].sudo()
+            unread_recs = NotifModel.search(domain + [('is_read', '=', False)])
+            marked_count = len(unread_recs)
+
+            if unread_recs:
+                unread_recs.write({'is_read': True})
+
+            unread_count = NotifModel.search_count(domain + [('is_read', '=', False)])
+
+            return _json_response(_success(
+                {
+                    'read': True,
+                    'markedCount': marked_count,
+                    'unreadCount': unread_count,
+                },
+                message='Todas las notificaciones fueron marcadas como leídas.',
+            ))
+        except Exception:
+            _logger.exception('Error in POST /v1/notifications/read-all')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     # ══════════════════════════════════════════════════════════════════════════

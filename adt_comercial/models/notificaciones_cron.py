@@ -125,6 +125,9 @@ class ADTComercialNotificacionesCron(models.Model):
                     "data": data_payload,
                 }
 
+                # Persistir notificacion para que la app la recupere desde /v1/notifications.
+                self._guardar_notificacion_mobile(cuenta=cuenta, payload=notificacion)
+
                 notificaciones.append(notificacion)
                 self._enviar_notificacion(notificacion, log_only=log_only)
 
@@ -250,6 +253,30 @@ class ADTComercialNotificacionesCron(models.Model):
             "mora_pendiente_total": mora_pendiente_total,
             "mora_dias_total": cuenta.mora_dias_total,
         }
+
+    def _guardar_notificacion_mobile(self, cuenta, payload):
+        """
+        Registra la notificación generada por el cron en mobile.notification.
+        Si falla el guardado, no interrumpe el flujo de envío.
+        """
+        try:
+            self.env["mobile.notification"].sudo().create({
+                "title": payload.get("title") or "",
+                "body": payload.get("body") or "",
+                "notification_type": "PAYMENT_DUE",
+                "link_type": "NONE",
+                "partner_id": cuenta.partner_id.id if cuenta.partner_id else False,
+                "vehicle_id": cuenta.vehiculo_id.id if getattr(cuenta, "vehiculo_id", False) else False,
+                "is_read": False,
+                "active": True,
+                "created_at": fields.Datetime.now(),
+            })
+        except Exception as exc:
+            _logger.exception(
+                "[ADT Cron] Error guardando mobile.notification para cuenta=%s: %s",
+                cuenta.id if cuenta else None,
+                exc,
+            )
 
     def _enviar_notificacion(self, payload, log_only=False):
         """

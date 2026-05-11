@@ -131,9 +131,10 @@
             <tree string="Notificaciones Móviles">
                 <field name="title"/>
                 <field name="notification_type"/>
+                <field name="broadcast_all_clients"/>
                 <field name="partner_id"/>
                 <field name="vehicle_id"/>
-                <field name="read"/>
+                <field name="is_read"/>
                 <field name="created_at"/>
                 <field name="active"/>
             </tree>
@@ -148,19 +149,20 @@
                 <header>
                     <button name="mark_as_read" string="Marcar como Leído"
                             type="object" class="btn-primary"
-                            attrs="{'invisible': [('read', '=', True)]}"/>
+                            attrs="{'invisible': [('is_read', '=', True)]}"/>
                 </header>
                 <sheet>
                     <group string="Información General">
                         <group>
                             <field name="title"/>
                             <field name="notification_type"/>
-                            <field name="read"/>
+                            <field name="broadcast_all_clients"/>
+                            <field name="is_read"/>
                             <field name="active"/>
                         </group>
                         <group>
-                            <field name="partner_id"/>
-                            <field name="vehicle_id"/>
+                            <field name="partner_id" attrs="{'invisible': [('broadcast_all_clients', '=', True)]}"/>
+                            <field name="vehicle_id" attrs="{'invisible': [('broadcast_all_clients', '=', True)]}"/>
                             <field name="created_at"/>
                         </group>
                     </group>
