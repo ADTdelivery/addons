@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import http
+from odoo import http, SUPERUSER_ID
 from odoo.http import request
 from odoo.exceptions import AccessDenied
 import base64
@@ -1758,9 +1758,17 @@ class AdtExpedientesMobileAPI(http.Controller):
                     'phone': cliente.phone if cliente else None,
                     'mobile': cliente.mobile if cliente else None,
                     'nacionalidad': nat_code,
-                    'nacionalidad_label': sel_label(cliente, 'nationality', nat_code) if cliente else '' ,
+                    'nacionalidad_label': sel_label(cliente, 'nationality', nat_code) if cliente else '',
                     'ocupacion': occ_code,
-                    'ocupacion_label': sel_label(cliente, 'occupation', occ_code) if cliente else ''
+                    'ocupacion_label': sel_label(cliente, 'occupation', occ_code) if cliente else '',
+                    'numero_documento': getattr(cliente, 'document_number', None) if cliente else None,
+                    'estado_civil': getattr(cliente, 'marital_status', None) if cliente else None,
+                    'estado_civil_label': sel_label(cliente, 'marital_status', getattr(cliente, 'marital_status', '')) if cliente else '',
+                    'numero_hijos': getattr(cliente, 'children_count', None) if cliente else None,
+                    'correo_electronico': cliente.email if cliente else None,
+                    'direccion_domicilio': cliente.street if cliente else None,
+                    'ciudad_distrito': cliente.city if cliente else None,
+                    'departamento_provincia': cliente.state_id.name if cliente and cliente.state_id else None,
                 },
                 'asesora': {'id': r.asesora_id.id if r.asesora_id else None, 'nombre': r.asesora_id.name if r.asesora_id else None, 'email': getattr(r.asesora_id, 'email', None)}
             }
@@ -1787,4 +1795,50 @@ class AdtExpedientesMobileAPI(http.Controller):
             })
 
         return {'success': True, 'data': results}
+
+    @http.route('/adt_expedientes/mobile/expediente/download_pdf', type='json', auth='none', methods=['POST'], csrf=False)
+    def expediente_download_pdf(self, expediente_id=None, **kwargs):
+        """Return expediente PDF as base64 so the mobile app can save/download it locally.
+
+        Request:
+          {"expediente_id": 10}
+        """
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+
+        expediente_id = self._get_param('expediente_id', expediente_id, kwargs)
+        if not expediente_id:
+            return {'success': False, 'error': 'expediente_id required'}
+
+        try:
+            expediente_id = int(expediente_id)
+        except Exception:
+            return {'success': False, 'error': 'invalid expediente_id'}
+
+        rec = request.env['adt.expediente'].sudo().browse(expediente_id)
+        if not rec.exists():
+            return {'success': False, 'error': 'expediente not found'}
+
+        try:
+            report = request.env.ref('adt_expedientes.action_report_adt_expediente_pdf').with_user(SUPERUSER_ID).sudo()
+            pdf_content, _content_type = report._render_qweb_pdf([rec.id])
+
+            safe_client_name = (rec.cliente_id.name or 'cliente').replace(' ', '_')
+            filename = f'Expediente_{rec.id}_{safe_client_name}.pdf'
+
+            return {
+                'success': True,
+                'data': {
+                    'expediente_id': rec.id,
+                    'filename': filename,
+                    'mimetype': 'application/pdf',
+                    'size': len(pdf_content or b''),
+                    'content_base64': base64.b64encode(pdf_content or b'').decode('ascii'),
+                }
+            }
+        except Exception as e:
+            _logger.error('Error generating PDF for expediente %s: %s', rec.id, str(e), exc_info=True)
+            return {'success': False, 'error': 'failed to generate pdf'}
 

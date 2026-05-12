@@ -37,6 +37,7 @@
         'security/security.xml',
         'security/ir.model.access.csv',
         'data/notification_config.xml',
+        'reports/expediente_report.xml',
         'views/expediente_views.xml',
         'views/expediente_rechazo_wizard.xml',
         'views/res_partner_views.xml',

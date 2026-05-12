@@ -1,0 +1,161 @@
+<odoo>
+    <record id="action_report_adt_expediente_pdf" model="ir.actions.report">
+        <field name="name">Expediente PDF</field>
+        <field name="model">adt.expediente</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">adt_expedientes.report_adt_expediente_pdf</field>
+        <field name="report_file">adt_expedientes.report_adt_expediente_pdf</field>
+        <field name="print_report_name">'Expediente - %s' % (object.cliente_id.name or object.id)</field>
+        <field name="binding_model_id" ref="model_adt_expediente"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_adt_expediente_pdf">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Expediente</h2>
+
+                        <table class="table table-sm" style="width: 100%; margin-bottom: 16px;">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Expediente</strong></td>
+                                    <td><span t-esc="doc.id"/></td>
+                                    <td><strong>Fecha</strong></td>
+                                    <td><span t-esc="doc.fecha or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cliente</strong></td>
+                                    <td><span t-esc="doc.cliente_id.name or ''"/></td>
+                                    <td><strong>Asesora</strong></td>
+                                    <td><span t-esc="doc.asesora_id.name or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Documento</strong></td>
+                                    <td><span t-esc="doc.cliente_id.document_number or ''"/></td>
+                                    <td><strong>Estado</strong></td>
+                                    <td><span t-esc="doc.state or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Correo</strong></td>
+                                    <td><span t-esc="doc.cliente_id.email or ''"/></td>
+                                    <td><strong>Telefono</strong></td>
+                                    <td><span t-esc="doc.cliente_id.mobile or doc.cliente_id.phone or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Direccion</strong></td>
+                                    <td colspan="3">
+                                        <span t-esc="doc.cliente_id.street or ''"/>
+                                        <span t-if="doc.cliente_id.city"> - <t t-esc="doc.cliente_id.city"/></span>
+                                        <span t-if="doc.cliente_id.state_id"> - <t t-esc="doc.cliente_id.state_id.name"/></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Vehiculo</strong></td>
+                                    <td><span t-esc="doc.vehiculo or ''"/></td>
+                                    <td><strong>Placa / Chasis</strong></td>
+                                    <td>
+                                        <span t-esc="doc.placa or '-'"/> /
+                                        <span t-esc="doc.chasis or '-'"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h3>Imagenes del expediente</h3>
+                        <table class="table table-sm" style="width: 100%; border-collapse: collapse;">
+                            <tbody>
+                                <tr>
+                                    <td style="width: 50%; vertical-align: top; padding: 8px;">
+                                        <strong>DNI frente</strong>
+                                        <div t-if="doc.foto_dni_frente"><img t-att-src="doc.get_data_uri('foto_dni_frente')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_dni_frente">Sin imagen</div>
+                                    </td>
+                                    <td style="width: 50%; vertical-align: top; padding: 8px;">
+                                        <strong>DNI reverso</strong>
+                                        <div t-if="doc.foto_dni_reverso"><img t-att-src="doc.get_data_uri('foto_dni_reverso')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_dni_reverso">Sin imagen</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Licencia</strong>
+                                        <div t-if="doc.foto_licencia"><img t-att-src="doc.get_data_uri('foto_licencia')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_licencia">Sin imagen</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Recibo</strong>
+                                        <div t-if="doc.foto_recibo"><img t-att-src="doc.get_data_uri('foto_recibo')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_recibo">Sin imagen</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Sentinel 1</strong>
+                                        <div t-if="doc.foto_sentinel_1"><img t-att-src="doc.get_data_uri('foto_sentinel_1')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_sentinel_1">Sin imagen</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Sentinel 2</strong>
+                                        <div t-if="doc.foto_sentinel_2"><img t-att-src="doc.get_data_uri('foto_sentinel_2')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_sentinel_2">Sin imagen</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Foto moto</strong>
+                                        <div t-if="doc.foto_moto"><img t-att-src="doc.get_data_uri('foto_moto')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_moto">Sin imagen</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>SOAT</strong>
+                                        <div t-if="doc.foto_soat"><img t-att-src="doc.get_data_uri('foto_soat')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_soat">Sin imagen</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Tarjeta propiedad frente</strong>
+                                        <div t-if="doc.foto_tarjeta_propiedad_frente"><img t-att-src="doc.get_data_uri('foto_tarjeta_propiedad_frente')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_tarjeta_propiedad_frente">Sin imagen</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Tarjeta propiedad reverso</strong>
+                                        <div t-if="doc.foto_tarjeta_propiedad_reverso"><img t-att-src="doc.get_data_uri('foto_tarjeta_propiedad_reverso')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_tarjeta_propiedad_reverso">Sin imagen</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Ubicacion actual</strong>
+                                        <div t-if="doc.foto_ubicacion_actual"><img t-att-src="doc.get_data_uri('foto_ubicacion_actual')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_ubicacion_actual">Sin imagen</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Fachada domicilio</strong>
+                                        <div t-if="doc.foto_fachada_domicilio"><img t-att-src="doc.get_data_uri('foto_fachada_domicilio')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_fachada_domicilio">Sin imagen</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Contrato alquiler</strong>
+                                        <div t-if="doc.foto_contrato_alquiler"><img t-att-src="doc.get_data_uri('foto_contrato_alquiler')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_contrato_alquiler">Sin imagen</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding: 8px;">
+                                        <strong>Foto entrega</strong>
+                                        <div t-if="doc.foto_entrega"><img t-att-src="doc.get_data_uri('foto_entrega')" style="max-width: 100%; max-height: 220px;"/></div>
+                                        <div t-if="not doc.foto_entrega">Sin imagen</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
+

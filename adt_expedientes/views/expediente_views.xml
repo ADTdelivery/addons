@@ -392,6 +392,7 @@
                     <button string="Marcar incompleto - Fase Final" name="action_mark_incompleto_fase_final" type="object" class="btn-warning"/>
                     <button string="Marcar Completo" name="action_mark_completo" type="object" class="btn-success"/>
                     <button string="Aprobado sin desembolso" name="action_mark_aprobado_sin_desembolso" type="object" class="btn-info"/>
+                    <button string="Generar PDF" name="action_print_expediente_pdf" type="object" class="btn-secondary"/>
 
                     <field name="state" widget="statusbar"
                            statusbar_visible="por_revisar,incompleto_expediente,incompleto_fase_final,completo,aprobado_sin_desembolso,rechazado"/>

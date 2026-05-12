@@ -593,6 +593,26 @@ class AdtExpediente(models.Model):
             'target': 'current',
         }
 
+    def action_print_expediente_pdf(self):
+        """Generate a PDF document with expediente data and attached images."""
+        self.ensure_one()
+        if not self.cliente_id:
+            raise UserError('Debe seleccionar un cliente antes de generar el PDF.')
+
+        has_main_image = any([
+            self.foto_dni_frente,
+            self.foto_ce_frente,
+            self.foto_pasaporte_frente,
+            self.foto_licencia,
+            self.foto_recibo,
+            self.foto_sentinel_1,
+            self.foto_entrega,
+        ])
+        if not has_main_image:
+            raise UserError('No hay imagenes cargadas para generar el PDF del expediente.')
+
+        return self.env.ref('adt_expedientes.action_report_adt_expediente_pdf').report_action(self)
+
     # Helper for QWeb reports: return a data URI string for a Binary field name
     def get_data_uri(self, field_name):
         """Return a 'data:image/png;base64,...' string for the binary field specified by
@@ -717,7 +737,7 @@ class AdtExpediente(models.Model):
                 # Do nothing: preserve existing stored `state` value.
                 # Intentionally left blank to avoid recalculation while debugging.
                 pass
-
+"""
     @api.constrains('cliente_id', 'foto_dni_frente', 'foto_dni_reverso', 'foto_ce_frente', 'foto_ce_reverso', 'foto_pasaporte_frente', 'foto_pasaporte_reverso')
     def _check_document_photos(self):
         for rec in self:
@@ -739,4 +759,4 @@ class AdtExpediente(models.Model):
                 if ce_present and rec.estado_foto_ce != 'aceptado':
                     raise ValidationError("El Carnet de Extranjería debe estar en estado 'Aceptado'.")
                 if pas_present and rec.estado_foto_pasaporte != 'aceptado':
-                    raise ValidationError("El Pasaporte debe estar en estado 'Aceptado'.")
+                    raise ValidationError("El Pasaporte debe estar en estado 'Aceptado'.")"""

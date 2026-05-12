@@ -131,7 +131,6 @@
             <tree string="Notificaciones Móviles">
                 <field name="title"/>
                 <field name="notification_type"/>
-                <field name="broadcast_all_clients"/>
                 <field name="partner_id"/>
                 <field name="vehicle_id"/>
                 <field name="is_read"/>
@@ -156,13 +155,12 @@
                         <group>
                             <field name="title"/>
                             <field name="notification_type"/>
-                            <field name="broadcast_all_clients"/>
                             <field name="is_read"/>
                             <field name="active"/>
                         </group>
                         <group>
-                            <field name="partner_id" attrs="{'invisible': [('broadcast_all_clients', '=', True)]}"/>
-                            <field name="vehicle_id" attrs="{'invisible': [('broadcast_all_clients', '=', True)]}"/>
+                            <field name="partner_id"/>
+                            <field name="vehicle_id"/>
                             <field name="created_at"/>
                         </group>
                     </group>
