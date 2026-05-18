@@ -63,6 +63,7 @@ class ADTComercialCuentas(models.Model):
         return result
 
     partner_id = fields.Many2one("res.partner", "Socio", tracking=2)
+    partner_document = fields.Char(string="Documento", related="partner_id.vat", readonly=True)
     mobile = fields.Char(related="partner_id.phone_sanitized")
     user_id = fields.Many2one(
         "res.users", string="Vendedor", default=lambda self: self.env.user)

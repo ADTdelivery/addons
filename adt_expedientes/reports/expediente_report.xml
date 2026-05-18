@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="paperformat_adt_expediente_compacto" model="report.paperformat">
+        <field name="name">Expediente PDF Compacto</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">16</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="True"/>
+        <field name="header_spacing">6</field>
+        <field name="dpi">90</field>
+    </record>
+
     <record id="action_report_adt_expediente_pdf" model="ir.actions.report">
         <field name="name">Expediente PDF</field>
         <field name="model">adt.expediente</field>
@@ -7,6 +21,7 @@
         <field name="report_name">adt_expedientes.report_adt_expediente_pdf</field>
         <field name="report_file">adt_expedientes.report_adt_expediente_pdf</field>
         <field name="print_report_name">'Expediente - %s' % (object.cliente_id.name or object.id)</field>
+        <field name="paperformat_id" ref="adt_expedientes.paperformat_adt_expediente_compacto"/>
         <field name="binding_model_id" ref="model_adt_expediente"/>
         <field name="binding_type">report</field>
     </record>
@@ -15,261 +30,155 @@
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-call="web.external_layout">
-                    <div class="page">
+                    <div class="page" style="margin-top:0; padding-top:4mm;">
+                        <style>
+                            .page h4 { font-weight: 700; margin: 0 0 2mm 0; page-break-after: avoid; }
+                            .page img { margin-bottom: 4mm; page-break-before: avoid; page-break-inside: avoid; }
+                            .page .image-block { padding-top: 4mm; page-break-inside: avoid; break-inside: avoid; }
+                        </style>
+                        <h2 style="margin-top:0; padding-top:0; font-weight:700;">Expediente - Imagenes</h2>
 
-                        <h2>Expediente</h2>
+                        <t t-if="doc.foto_dni_frente">
+                            <div class="image-block">
+                                <h4>DNI - Imagen 1</h4>
+                                <img t-att-src="doc.get_data_uri('foto_dni_frente')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_dni_reverso">
+                            <div class="image-block">
+                                <h4>DNI - Imagen 2</h4>
+                                <img t-att-src="doc.get_data_uri('foto_dni_reverso')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_ce_frente">
+                            <div class="image-block">
+                                <h4>Carnet de Extranjeria - Imagen 1</h4>
+                                <img t-att-src="doc.get_data_uri('foto_ce_frente')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_ce_reverso">
+                            <div class="image-block">
+                                <h4>Carnet de Extranjeria - Imagen 2</h4>
+                                <img t-att-src="doc.get_data_uri('foto_ce_reverso')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_pasaporte_frente">
+                            <div class="image-block">
+                                <h4>Pasaporte - Imagen 1</h4>
+                                <img t-att-src="doc.get_data_uri('foto_pasaporte_frente')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_pasaporte_reverso">
+                            <div class="image-block">
+                                <h4>Pasaporte - Imagen 2</h4>
+                                <img t-att-src="doc.get_data_uri('foto_pasaporte_reverso')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_licencia">
+                            <div class="image-block">
+                                <h4>Licencia</h4>
+                                <img t-att-src="doc.get_data_uri('foto_licencia')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_recibo">
+                            <div class="image-block">
+                                <h4>Recibo</h4>
+                                <img t-att-src="doc.get_data_uri('foto_recibo')" style="width:100%; height:240mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_sentinel_1">
+                            <div class="image-block">
+                                <h4>Sentinel - Imagen 1</h4>
+                                <img t-att-src="doc.get_data_uri('foto_sentinel_1')" style="width:100%; height:240mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_sentinel_2">
+                            <div class="image-block">
+                                <h4>Sentinel - Imagen 2</h4>
+                                <img t-att-src="doc.get_data_uri('foto_sentinel_2')" style="width:100%; height:240mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_moto">
+                            <div class="image-block">
+                                <h4>Foto en la moto</h4>
+                                <img t-att-src="doc.get_data_uri('foto_moto')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_soat">
+                            <div class="image-block">
+                                <h4>SOAT</h4>
+                                <img t-att-src="doc.get_data_uri('foto_soat')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_tarjeta_propiedad_frente">
+                            <div class="image-block">
+                                <h4>Tarjeta de propiedad - Imagen 1</h4>
+                                <img t-att-src="doc.get_data_uri('foto_tarjeta_propiedad_frente')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_tarjeta_propiedad_reverso">
+                            <div class="image-block">
+                                <h4>Tarjeta de propiedad - Imagen 2</h4>
+                                <img t-att-src="doc.get_data_uri('foto_tarjeta_propiedad_reverso')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_ubicacion_actual">
+                            <div class="image-block">
+                                <h4>Ubicacion actual</h4>
+                                <img t-att-src="doc.get_data_uri('foto_ubicacion_actual')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_fachada_domicilio">
+                            <div class="image-block">
+                                <h4>Fachada de domicilio</h4>
+                                <img t-att-src="doc.get_data_uri('foto_fachada_domicilio')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_contrato_alquiler">
+                            <div class="image-block">
+                                <h4>Contrato de alquiler</h4>
+                                <img t-att-src="doc.get_data_uri('foto_contrato_alquiler')" style="width:100%; height:240mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
 
-                        <!-- ─── DATOS GENERALES ─── -->
+                        <div style="page-break-before: always;"/>
+                        <h2>Expediente - Datos</h2>
+
                         <table class="table table-sm" style="width:100%; margin-bottom:16px;">
                             <tbody>
                                 <tr>
-                                    <td><strong>Expediente</strong></td>
-                                    <td><span t-esc="doc.id"/></td>
-                                    <td><strong>Fecha</strong></td>
-                                    <td><span t-esc="doc.fecha or ''"/></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Cliente</strong></td>
+                                    <td><strong>Cliente:</strong></td>
                                     <td><span t-esc="doc.cliente_id.name or ''"/></td>
-                                    <td><strong>Asesora</strong></td>
+                                    <td><strong>Asesora:</strong></td>
                                     <td><span t-esc="doc.asesora_id.name or ''"/></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Documento</strong></td>
+                                    <td><strong>Documento:</strong></td>
                                     <td><span t-esc="doc.cliente_id.document_number or ''"/></td>
-                                    <td><strong>Estado</strong></td>
-                                    <td><span t-esc="doc.state or ''"/></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Correo</strong></td>
+                                    <td><strong>Correo:</strong></td>
                                     <td><span t-esc="doc.cliente_id.email or ''"/></td>
-                                    <td><strong>Telefono</strong></td>
-                                    <td><span t-esc="doc.cliente_id.mobile or doc.cliente_id.phone or ''"/></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Direccion</strong></td>
-                                    <td colspan="3">
+                                    <td><strong>Teléfono:</strong></td>
+                                    <td><span t-esc="doc.cliente_id.mobile or doc.cliente_id.phone or ''"/></td>
+                                    <td><strong>Nacionalidad:</strong></td>
+                                    <td><span t-esc="doc.cliente_nationality or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ocupación:</strong></td>
+                                    <td><span t-esc="doc.cliente_occupation or ''"/></td>
+                                    <td><strong>Dirección:</strong></td>
+                                    <td>
                                         <span t-esc="doc.cliente_id.street or ''"/>
                                         <span t-if="doc.cliente_id.city"> - <t t-esc="doc.cliente_id.city"/></span>
                                         <span t-if="doc.cliente_id.state_id"> - <t t-esc="doc.cliente_id.state_id.name"/></span>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Vehiculo</strong></td>
-                                    <td><span t-esc="doc.vehiculo or ''"/></td>
-                                    <td><strong>Placa / Chasis</strong></td>
-                                    <td>
-                                        <span t-esc="doc.placa or '-'"/> /
-                                        <span t-esc="doc.chasis or '-'"/>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Nacionalidad</strong></td>
-                                    <td><span t-esc="doc.cliente_nationality or ''"/></td>
-                                    <td><strong>Ocupacion</strong></td>
-                                    <td><span t-esc="doc.cliente_occupation or ''"/></td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- ══════════════════════════════════════════
-                             SECCION 1: DOCUMENTO DE IDENTIDAD
-                        ══════════════════════════════════════════ -->
-                        <h3>1. Documento de Identidad</h3>
-
-                        <h4>Carnet de Extranjeria</h4>
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Anverso</strong>
-                                        <div t-if="doc.foto_ce_frente">
-                                            <img t-att-src="doc.get_data_uri('foto_ce_frente')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_ce_frente">Sin imagen</div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Reverso</strong>
-                                        <div t-if="doc.foto_ce_reverso">
-                                            <img t-att-src="doc.get_data_uri('foto_ce_reverso')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_ce_reverso">Sin imagen</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" style="padding:8px;">
-                                        <strong>Estado Foto CE:</strong>
-                                        <span t-esc="doc.estado_foto_ce or ''"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <h4>Pasaporte</h4>
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Anverso</strong>
-                                        <div t-if="doc.foto_pasaporte_frente">
-                                            <img t-att-src="doc.get_data_uri('foto_pasaporte_frente')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_pasaporte_frente">Sin imagen</div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Reverso</strong>
-                                        <div t-if="doc.foto_pasaporte_reverso">
-                                            <img t-att-src="doc.get_data_uri('foto_pasaporte_reverso')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_pasaporte_reverso">Sin imagen</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" style="padding:8px;">
-                                        <strong>Estado Foto Pasaporte:</strong>
-                                        <span t-esc="doc.estado_foto_pasaporte or ''"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- ══════════════════════════════════════════
-                             SECCION 2: LICENCIA
-                        ══════════════════════════════════════════ -->
-                        <h3>2. Licencia</h3>
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <div t-if="doc.foto_licencia">
-                                            <img t-att-src="doc.get_data_uri('foto_licencia')"
-                                                 style="max-width:100%; max-height:370px; display:block;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_licencia">Sin imagen</div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Estado:</strong>
-                                        <span t-esc="doc.estado_foto_licencia or ''"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- ══════════════════════════════════════════
-                             SECCION 3: RECIBO DE LUZ O AGUA
-                        ══════════════════════════════════════════ -->
-                        <h3>3. Recibo de Luz o Agua (ultimos 2 meses)</h3>
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <div t-if="doc.foto_recibo">
-                                            <img t-att-src="doc.get_data_uri('foto_recibo')"
-                                                 style="max-width:100%; max-height:370px; display:block;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_recibo">Sin imagen</div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Estado:</strong>
-                                        <span t-esc="doc.estado_foto_recibo or ''"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- ══════════════════════════════════════════
-                             SECCION 4: SENTINEL - SCORE / DEUDAS
-                        ══════════════════════════════════════════ -->
-                        <h3>4. Sentinel - Score / Deudas</h3>
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Score (Imagen)</strong>
-                                        <div t-if="doc.foto_sentinel_1">
-                                            <img t-att-src="doc.get_data_uri('foto_sentinel_1')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_sentinel_1">Sin imagen</div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Deudas / Servicios (Imagen)</strong>
-                                        <div t-if="doc.foto_sentinel_2">
-                                            <img t-att-src="doc.get_data_uri('foto_sentinel_2')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_sentinel_2">Sin imagen</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" style="padding:8px;">
-                                        <strong>Estado:</strong>
-                                        <span t-esc="doc.estado_foto_sentinel or ''"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- ══════════════════════════════════════════
-                             SECCION 5: DOCUMENTOS MOTOTAXISTA
-                        ══════════════════════════════════════════ -->
-                        <h3>5. Documentos Mototaxista</h3>
-
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Foto en la moto</strong>
-                                        <div t-if="doc.foto_moto">
-                                            <img t-att-src="doc.get_data_uri('foto_moto')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_moto">Sin imagen</div>
-                                        <div style="margin-top:4px;">
-                                            <strong>Estado:</strong>
-                                            <span t-esc="doc.estado_foto_moto or ''"/>
-                                        </div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>SOAT</strong>
-                                        <div t-if="doc.foto_soat">
-                                            <img t-att-src="doc.get_data_uri('foto_soat')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_soat">Sin imagen</div>
-                                        <div style="margin-top:4px;">
-                                            <strong>Estado:</strong>
-                                            <span t-esc="doc.estado_foto_soat or ''"/>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Tarjeta de propiedad - Frente</strong>
-                                        <div t-if="doc.foto_tarjeta_propiedad_frente">
-                                            <img t-att-src="doc.get_data_uri('foto_tarjeta_propiedad_frente')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_tarjeta_propiedad_frente">Sin imagen</div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Tarjeta de propiedad - Reverso</strong>
-                                        <div t-if="doc.foto_tarjeta_propiedad_reverso">
-                                            <img t-att-src="doc.get_data_uri('foto_tarjeta_propiedad_reverso')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_tarjeta_propiedad_reverso">Sin imagen</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" style="padding:8px;">
-                                        <strong>Estado Tarjeta Propiedad:</strong>
-                                        <span t-esc="doc.estado_foto_tarjeta or ''"/>
-                                    </td>
+                                    <td><strong>Vehículo:</strong></td>
+                                    <td><span t-esc="dict(doc._fields['vehiculo'].selection).get(doc.vehiculo, doc.vehiculo or '')"/></td>
+                                    <td><strong>Fecha:</strong></td>
+                                    <td><span t-esc="doc.fecha or ''"/></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -277,104 +186,37 @@
                         <table class="table table-sm" style="width:100%; margin-top:8px;">
                             <tbody>
                                 <tr>
-                                    <td style="width:25%;"><strong>Ganancia diaria / mensual</strong></td>
-                                    <td style="width:25%;"><span t-esc="doc.ganancia_diaria_mensual or ''"/></td>
-                                    <td style="width:25%;"><strong>Tiempo trabajando</strong></td>
+                                    <td style="width:25%;"><strong>Ganancia diaria / mensual:</strong></td>
+                                    <td style="width:25%;">S/ <span t-esc="doc.ganancia_diaria_mensual or ''"/></td>
+                                    <td style="width:25%;"><strong>Tiempo trabajando:</strong></td>
                                     <td style="width:25%;"><span t-esc="doc.tiempo_trabajando or ''"/></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Empresa asociada</strong></td>
+                                    <td><strong>Empresa asociada:</strong></td>
                                     <td><span t-esc="doc.moto_empresa or ''"/></td>
-                                    <td><strong>Moto propia o alquilada</strong></td>
+                                    <td><strong>Moto propia o alquilada:</strong></td>
                                     <td><span t-esc="doc.moto_propiedad or ''"/></td>
                                 </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- ══════════════════════════════════════════
-                             SECCION 6: UBICACION Y FACHADA DEL DOMICILIO
-                        ══════════════════════════════════════════ -->
-                        <h3>6. Ubicacion y Fachada del Domicilio</h3>
-
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
                                 <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Ubicacion en tiempo actual</strong>
-                                        <div t-if="doc.foto_ubicacion_actual">
-                                            <img t-att-src="doc.get_data_uri('foto_ubicacion_actual')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_ubicacion_actual">Sin imagen</div>
-                                        <div style="margin-top:4px;">
-                                            <strong>Estado:</strong>
-                                            <span t-esc="doc.estado_foto_ubicacion or ''"/>
-                                        </div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Fachada de domicilio con cliente</strong>
-                                        <div t-if="doc.foto_fachada_domicilio">
-                                            <img t-att-src="doc.get_data_uri('foto_fachada_domicilio')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_fachada_domicilio">Sin imagen</div>
-                                        <div style="margin-top:4px;">
-                                            <strong>Estado:</strong>
-                                            <span t-esc="doc.estado_foto_fachada or ''"/>
-                                        </div>
-                                    </td>
+                                    <td><strong>Tipo de vivienda:</strong></td>
+                                    <td><span t-esc="doc.tipo_vivienda or ''"/></td>
+                                    <td><strong>Número dueño / contacto:</strong></td>
+                                    <td><span t-esc="doc.propietario_contacto or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tiempo en ese lugar:</strong></td>
+                                    <td colspan="3"><span t-esc="doc.tiempo_viviendo or ''"/></td>
                                 </tr>
                             </tbody>
                         </table>
 
-                        <table class="table table-sm" style="width:100%; margin-top:8px;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:25%;"><strong>Tipo de vivienda</strong></td>
-                                    <td style="width:25%;"><span t-esc="doc.tipo_vivienda or ''"/></td>
-                                    <td style="width:25%;"><strong>Numero dueno / contacto</strong></td>
-                                    <td style="width:25%;"><span t-esc="doc.propietario_contacto or ''"/></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Tiempo en ese lugar</strong></td>
-                                    <td colspan="3">
-                                        <span t-esc="doc.tiempo_viviendo or ''"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <h4>Contrato / Propietario</h4>
-                        <table class="table table-sm" style="width:100%; border-collapse:collapse;">
-                            <tbody>
-                                <tr>
-                                    <td style="width:50%; vertical-align:top; padding:8px;">
-                                        <strong>Contrato (si vive alquilado)</strong>
-                                        <div t-if="doc.foto_contrato_alquiler">
-                                            <img t-att-src="doc.get_data_uri('foto_contrato_alquiler')"
-                                                 style="max-width:100%; max-height:370px; display:block; margin-top:6px;"/>
-                                        </div>
-                                        <div t-if="not doc.foto_contrato_alquiler">Sin imagen</div>
-                                        <div style="margin-top:4px;">
-                                            <strong>Estado:</strong>
-                                            <span t-esc="doc.estado_foto_contrato or ''"/>
-                                        </div>
-                                    </td>
-                                    <td style="width:50%; vertical-align:top; padding:8px;"/>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- ══════════════════════════════════════════
-                             SECCION 7: REFERENCIAS
-                        ══════════════════════════════════════════ -->
-                        <h3>7. Referencias</h3>
+                        <h3>Referencias</h3>
                         <table class="table table-sm" style="width:100%; border-collapse:collapse;">
                             <thead>
                                 <tr style="background-color:#f2f2f2;">
                                     <th style="padding:6px; border:1px solid #dee2e6;">#</th>
                                     <th style="padding:6px; border:1px solid #dee2e6;">Nombre</th>
-                                    <th style="padding:6px; border:1px solid #dee2e6;">Telefono</th>
+                                    <th style="padding:6px; border:1px solid #dee2e6;">Teléfono</th>
                                     <th style="padding:6px; border:1px solid #dee2e6;">Vinculo</th>
                                 </tr>
                             </thead>

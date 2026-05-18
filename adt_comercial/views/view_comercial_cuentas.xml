@@ -15,6 +15,7 @@
 
                 <field name="fecha_entrega"/>
                 <field name="partner_id"/>
+                <field name="partner_document"/>
                 <field name="user_id"/>
                 <field name="tipo_financiera_id"/>
                 <field name="moto_modelo"/>
@@ -41,6 +42,7 @@
         <field name="arch" type="xml">
             <search string="Search Partner">
                 <field name="partner_id"/>
+                <field name="partner_document" string="Documento" filter_domain="[('partner_document', 'ilike', self)]"/>
                 <field name="moto_marca" filter_domain="[('moto_marca', 'ilike', self)]"/>
                 <field name="moto_modelo" filter_domain="[('moto_modelo', 'ilike', self)]"/>
                 <field name="user_id"/>
