@@ -17,3 +17,5 @@ access_adt_comercial_cuotas_pendientes_admin,adt.comercial.cuotas.pendientes adm
 access_adt_comercial_cuotas_pendientes_user,adt.comercial.cuotas.pendientes user,model_adt_comercial_cuotas_pendientes,base.group_user,1,1,1,0
 access_adt_comercial_cuotas_pendientes_comprobante_admin,adt.comercial.cuotas.pendientes.comprobante admin,model_adt_comercial_cuotas_pendientes_comprobante,base.group_system,1,1,1,1
 access_adt_comercial_cuotas_pendientes_comprobante_user,adt.comercial.cuotas.pendientes.comprobante user,model_adt_comercial_cuotas_pendientes_comprobante,base.group_user,1,1,1,0
+access_adt_comercial_financiera_admin,adt.comercial.financiera admin,model_adt_comercial_financiera,base.group_system,1,1,1,1
+access_adt_comercial_financiera_user,adt.comercial.financiera user,model_adt_comercial_financiera,base.group_user,1,1,1,0

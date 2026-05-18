@@ -1,0 +1,17 @@
+<odoo noupdate="1">
+    <record id="adt_financiera_qorilazo" model="adt.comercial.financiera">
+        <field name="name">Qorilazo</field>
+        <field name="code">qorilazo</field>
+    </record>
+
+    <record id="adt_financiera_los_andes" model="adt.comercial.financiera">
+        <field name="name">Los Andes</field>
+        <field name="code">los_andes</field>
+    </record>
+
+    <record id="adt_financiera_otro" model="adt.comercial.financiera">
+        <field name="name">Otro</field>
+        <field name="code">otro</field>
+    </record>
+</odoo>
+

@@ -16,6 +16,7 @@
                 <field name="fecha_entrega"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
+                <field name="tipo_financiera_id"/>
                 <field name="moto_modelo"/>
                 <field name="moto_marca"/>
                 <field name="moto_tarjeta"/>
@@ -43,6 +44,7 @@
                 <field name="moto_marca" filter_domain="[('moto_marca', 'ilike', self)]"/>
                 <field name="moto_modelo" filter_domain="[('moto_modelo', 'ilike', self)]"/>
                 <field name="user_id"/>
+                <field name="tipo_financiera_id"/>
                 <field name="fecha_cierre"/>
                 <separator/>
                 <group expand="0" name="group_by" string="Group By">
@@ -51,6 +53,8 @@
                             context="{'group_by' : 'moto_modelo'}"/>
                     <filter name="marca_moto" string="Marca de moto" domain="[]"
                             context="{'group_by' : 'moto_marca'}"/>
+                    <filter name="financiera" string="Tipo de financiera" domain="[]"
+                            context="{'group_by' : 'tipo_financiera_id'}"/>
                 </group>
             </search>
         </field>
@@ -87,7 +91,7 @@
                             <field name="partner_id"
                                    attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
                             <field name="mobile" readonly="1"/>
-                            <field name="tipo_financiera"/>
+                            <field name="tipo_financiera_id" options="{'no_create_edit': False}"/>
                         </group>
                         <group>
                             <field name="asesor" required="0"/>
@@ -365,9 +369,14 @@
 
     <menuitem id="adt_comercial_menu_cuentas"
               name="Cuentas"
-              action="action_cuentas"
               parent="menu_adt_comercial"
               sequence="3"/>
+
+    <menuitem id="adt_comercial_menu_cuentas_todas"
+              name="Todas las cuentas"
+              action="action_cuentas"
+              parent="adt_comercial_menu_cuentas"
+              sequence="10"/>
 
 
     <record id="view_image_gallery_popup" model="ir.ui.view">

@@ -97,12 +97,13 @@ class ADTComercialCuentas(models.Model):
         ('3', 'Jaico Cervera Luna')
     ], string='Asesor')
 
-    # Tipo de financiera: Qorilazo, Los Andes, Otro
-    tipo_financiera = fields.Selection([
-        ('qorilazo', 'Qorilazo'),
-        ('los_andes', 'Los Andes'),
-        ('otro', 'Otro')
-    ], string='Tipo de Financiera', tracking=True)
+    # Tipo de financiera dinamico desde catalogo.
+    tipo_financiera_id = fields.Many2one(
+        'adt.comercial.financiera',
+        string='Tipo de Financiera',
+        tracking=True,
+        ondelete='restrict',
+    )
 
     cuota_inicio_1 = fields.Integer(string="Cuota inicio 1", default=0)
     cuota_fin_1 = fields.Integer(string="Cuota fin 1", default=0)

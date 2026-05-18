@@ -1,6 +1,7 @@
 from . import res_partner
 from . import account_payment
 from . import comercial_cuentas
+from . import comercial_financiera
 from . import comercial_cuotas
 from . import comercial_observaciones
 from . import cobranza_reportes

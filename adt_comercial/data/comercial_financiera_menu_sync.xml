@@ -1,0 +1,4 @@
+<odoo>
+    <function model="adt.comercial.financiera" name="_sync_all_cuentas_menus"/>
+</odoo>
+
