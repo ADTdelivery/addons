@@ -85,6 +85,276 @@ def _money(v):
         return 0.0
 
 
+def _fmt_datetime(dt):
+    if not dt:
+        return None
+    try:
+        if hasattr(dt, 'strftime'):
+            return dt.strftime('%d/%m/%Y %H:%M:%S')
+        return str(dt)
+    except Exception:
+        return None
+
+
+def _base_url():
+    try:
+        return request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+    except Exception:
+        return ''
+
+
+def _model_available(model_name):
+    try:
+        return bool(request.env.registry.get(model_name))
+    except Exception:
+        return False
+
+
+def _attachment_url(attachment):
+    if not attachment:
+        return None
+    return '%s/web/content/%s' % (_base_url(), attachment.id)
+
+
+def _serialize_attachment(attachment):
+    return {
+        'id': attachment.id,
+        'nombre': attachment.name or None,
+        'tipo_mime': attachment.mimetype or None,
+        'url': _attachment_url(attachment),
+    }
+
+
+def _binary_field_url(record, field_name):
+    if not record or not getattr(record, field_name, False):
+        return None
+    try:
+        attach = request.env['ir.attachment'].sudo().search([
+            ('res_model', '=', record._name),
+            ('res_id', '=', record.id),
+            ('res_field', '=', field_name),
+        ], limit=1)
+        if attach:
+            return _attachment_url(attach)
+    except Exception:
+        _logger.exception('PlacaAPI: error generando URL binaria %s(%s).%s', record._name, record.id, field_name)
+    return '%s/web/image/%s/%s/%s' % (_base_url(), record._name, record.id, field_name)
+
+
+def _vehicle_brief(vehicle):
+    return {
+        'id': vehicle.id,
+        'placa': vehicle.license_plate or None,
+        'modelo': vehicle.model_id.name if vehicle.model_id else None,
+        'numero_chasis': vehicle.vin_sn or None,
+    }
+
+
+def _build_papeletas_data(vehicles):
+    data = {'aplica': True, 'disponible': _model_available('adt.papeleta'), 'total': 0, 'items': []}
+    if not data['disponible']:
+        return data
+
+    papeletas = request.env['adt.papeleta'].sudo().search(
+        [('vehicle_id', 'in', vehicles.ids)],
+        order='fecha_papeleta desc,id desc',
+    )
+    data['total'] = len(papeletas)
+    for papeleta in papeletas:
+        item = {
+            'id': papeleta.id,
+            'numero': papeleta.name or '',
+            'estado': papeleta.state or None,
+            'vehiculo': _vehicle_brief(papeleta.vehicle_id),
+            'fecha_papeleta': _fmt_date(papeleta.fecha_papeleta),
+            'monto': _money(papeleta.monto),
+            'detalle': papeleta.detalle or None,
+            'fecha_inicio_cuotas': _fmt_date(papeleta.fecha_inicio_cuotas),
+            'fecha_captura': _fmt_date(papeleta.fecha_captura),
+            'fecha_vencimiento_final': _fmt_date(papeleta.fecha_vencimiento_final),
+            'fecha_pago': _fmt_date(papeleta.fecha_pago),
+            'capturado': bool(papeleta.capturado),
+            'recolocada': bool(getattr(papeleta, 'recolocada', False)),
+            'tiene_prorroga': bool(papeleta.tiene_prorroga),
+            'dias_prorroga': papeleta.dias_prorroga or 0,
+            'motivo_prorroga': papeleta.motivo_prorroga or None,
+            'payment_method': papeleta.payment_method or None,
+            'cantidad_cuotas': papeleta.cantidad_cuotas or 0,
+            'proximo_a_vencerse': bool(papeleta.proximo_a_vencerse),
+            'dias_para_captura': papeleta.dias_para_captura or 0,
+            'texto_alerta': papeleta.texto_alerta or None,
+            'alert_badge': papeleta.alert_badge or None,
+            'evidencias': [_serialize_attachment(att) for att in papeleta.attachment_ids.sudo()],
+            'evidencias_cuotas': [_serialize_attachment(att) for att in papeleta.attachment_cuotas_ids.sudo()],
+            'cuotas': [],
+        }
+        for cuota in papeleta.cuotas_ids.sorted('id'):
+            item['cuotas'].append({
+                'id': cuota.id,
+                'nombre': cuota.name or '',
+                'fecha_cuota': _fmt_date(cuota.due_date),
+                'monto': _money(cuota.amount),
+                'estado': cuota.state or None,
+            })
+        data['items'].append(item)
+    return data
+
+
+def _build_taller_data(vehicles):
+    data = {'aplica': True, 'disponible': _model_available('maintenance.work.order'), 'total': 0, 'items': []}
+    if not data['disponible']:
+        return data
+
+    work_orders = request.env['maintenance.work.order'].sudo().search(
+        [('vehicle_id', 'in', vehicles.ids)],
+        order='create_date desc,id desc',
+    )
+    data['total'] = len(work_orders)
+    for wo in work_orders:
+        item = {
+            'id': wo.id,
+            'numero': wo.name or '',
+            'estado': wo.state or None,
+            'vehiculo': _vehicle_brief(wo.vehicle_id),
+            'cliente': wo.client_id.name if wo.client_id else None,
+            'mecanico': wo.mechanic_id.name if wo.mechanic_id else None,
+            'motivo_ingreso': wo.entry_reason or None,
+            'diagnostico': wo.diagnostic or None,
+            'kilometraje': wo.mileage or 0.0,
+            'payer_type': wo.payer_type or None,
+            'adt_contribution': _money(wo.adt_contribution),
+            'adt_amount': _money(wo.adt_amount),
+            'client_amount': _money(wo.client_amount),
+            'adt_note': wo.adt_note or None,
+            'parts_total': _money(wo.parts_total),
+            'labor_total': _money(wo.labor_total),
+            'total_amount': _money(wo.total_amount),
+            'start_date': _fmt_datetime(wo.start_date),
+            'end_date': _fmt_datetime(wo.end_date),
+            'service_duration_hours': wo.service_duration_hours or 0.0,
+            'days_in_taller': wo.days_in_taller or 0,
+            'final_state': wo.final_state or None,
+            'final_notes': wo.final_notes or None,
+            'next_revision_date': _fmt_date(wo.next_revision_date),
+            'imagenes': {
+                'evidence_image_url': _binary_field_url(wo, 'evidence_image'),
+                'key_delivery_photo_url': _binary_field_url(wo, 'key_delivery_photo'),
+                'mechanic_signature_url': _binary_field_url(wo, 'mechanic_signature'),
+                'client_signature_url': _binary_field_url(wo, 'client_signature'),
+            },
+            'repuestos': [],
+            'servicios': [],
+            'cronograma_pagos': [],
+        }
+        for part in wo.part_ids:
+            item['repuestos'].append({
+                'id': part.id,
+                'producto': part.product_id.display_name if part.product_id else None,
+                'cantidad': part.quantity or 0.0,
+                'precio_unitario': _money(part.unit_price),
+                'subtotal': _money(part.subtotal),
+                'notas': part.notes or None,
+            })
+        for service in wo.service_ids:
+            item['servicios'].append({
+                'id': service.id,
+                'servicio': service.name or (service.service_template_id.name if service.service_template_id else None),
+                'descripcion': service.description or None,
+                'precio_unitario': _money(service.unit_price),
+                'subtotal': _money(service.subtotal),
+            })
+        for payment in wo.payment_schedule_ids.sorted('due_date'):
+            item['cronograma_pagos'].append({
+                'id': payment.id,
+                'descripcion': payment.name or None,
+                'fecha_vencimiento': _fmt_date(payment.due_date),
+                'monto': _money(payment.amount),
+                'pagador': payment.payer or None,
+                'estado': payment.state or None,
+            })
+        data['items'].append(item)
+    return data
+
+
+def _build_mantenimiento_tvs_data(vehicles):
+    mantenimientos_disponible = _model_available('adt.tvs.mantenimiento')
+    records_disponible = _model_available('adt.tvs.vehicle_maintenance_record')
+    data = {
+        'aplica': True,
+        'disponible': mantenimientos_disponible or records_disponible,
+        'ingresos_taller': {'disponible': mantenimientos_disponible, 'total': 0, 'items': []},
+        'planes_km': {'disponible': records_disponible, 'total': 0, 'items': []},
+    }
+
+    if mantenimientos_disponible:
+        mantenimientos = request.env['adt.tvs.mantenimiento'].sudo().search(
+            [('vehicle_id', 'in', vehicles.ids)],
+            order='date_inicio_revision desc,id desc',
+        )
+        data['ingresos_taller']['total'] = len(mantenimientos)
+        for mt in mantenimientos:
+            data['ingresos_taller']['items'].append({
+                'id': mt.id,
+                'numero': mt.name or '',
+                'estado': mt.state or None,
+                'vehiculo': _vehicle_brief(mt.vehicle_id),
+                'punto_autorizado': mt.punto_autorizado_id.name if mt.punto_autorizado_id else None,
+                'direccion_punto_autorizado': mt.punto_autorizado_id.direccion if mt.punto_autorizado_id else None,
+                'motivo_ingreso': mt.motivo_ingreso or None,
+                'date_inicio_revision': _fmt_datetime(mt.date_inicio_revision),
+                'date_fin_revision': _fmt_datetime(mt.date_fin_revision),
+                'days_in_taller': mt.days_in_taller or 0,
+                'tiene_garantia': bool(mt.tiene_garantia),
+                'gasto_mantenimiento': _money(mt.gasto_mantenimiento),
+                'archivos': [_serialize_attachment(att) for att in mt.attachment_ids.sudo()],
+            })
+
+    if records_disponible:
+        records = request.env['adt.tvs.vehicle_maintenance_record'].sudo().search(
+            [('vehicle_id', 'in', vehicles.ids)],
+            order='id desc',
+        )
+        data['planes_km']['total'] = len(records)
+        for rec in records:
+            item = {
+                'id': rec.id,
+                'referencia': rec.name or '',
+                'vehiculo': _vehicle_brief(rec.vehicle_id),
+                'conductor': rec.conductor_id.name if rec.conductor_id else None,
+                'conductor_documento': rec.conductor_document or None,
+                'chassis': rec.chassis or None,
+                'motor': rec.motor or None,
+                'placa': rec.placa or None,
+                'estado_mantenimiento': rec.estado_mantenimiento or None,
+                'motivo_terceros': rec.motivo_terceros or None,
+                'lineas': [],
+            }
+            for line in rec.line_ids.sorted('km_objetivo'):
+                item['lineas'].append({
+                    'id': line.id,
+                    'km_objetivo': line.km_objetivo or 0,
+                    'realizado': bool(line.realizado),
+                    'fecha_inicio': _fmt_date(line.fecha_inicio),
+                    'fecha_fin': _fmt_date(line.fecha_fin),
+                    'archivos': [_serialize_attachment(att) for att in line.attachment_ids.sudo()],
+                })
+            data['planes_km']['items'].append(item)
+
+    return data
+
+
+def _build_local_related_data(vehicles, cuentas):
+    return {
+        'papeletas': _build_papeletas_data(vehicles),
+        'taller': _build_taller_data(vehicles),
+        'mantenimiento_tvs': _build_mantenimiento_tvs_data(vehicles),
+        'resumen': {
+            'vehiculos_locales_encontrados': len(vehicles),
+            'cuentas_locales_encontradas': len(cuentas),
+        },
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Local Odoo helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -205,6 +475,7 @@ def _search_local(plate_upper):
         'vehiculo': vehicle_data,
         'cuentas': cuentas_data,
         'financiera': financiera_name,
+        'relacionados_locales': _build_local_related_data(vehicles, cuentas),
     }
     return result, financiera_name
 
