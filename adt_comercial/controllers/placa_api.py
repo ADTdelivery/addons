@@ -143,17 +143,14 @@ def _search_local(plate_upper):
     Returns (result_dict, financiera_name) or (None, None).
     """
     VehicleModel = request.env['fleet.vehicle'].sudo()
-    vehicle = VehicleModel.search([('license_plate', '=ilike', plate_upper)], limit=1)
-    if not vehicle:
+    vehicles = VehicleModel.search([('license_plate', '=ilike', plate_upper)])
+    if not vehicles:
         return None, None
 
+    vehicle_ids = vehicles.ids
+
     # ── Partner ────────────────────────────────────────────────────────────
-    partner = vehicle.driver_id
-    if not partner:
-        # try through the account
-        CuentaModel = request.env['adt.comercial.cuentas'].sudo()
-        cuenta_any = CuentaModel.search([('vehiculo_id', '=', vehicle.id)], limit=1)
-        partner = cuenta_any.partner_id if cuenta_any else None
+    partner = vehicles[:1].driver_id
 
     partner_data = None
     if partner:
@@ -168,21 +165,37 @@ def _search_local(plate_upper):
 
     # ── Vehicle ────────────────────────────────────────────────────────────
     vehicle_data = {
-        'placa': vehicle.license_plate or '',
-        'modelo': vehicle.model_id.name if vehicle.model_id else None,
-        'numero_chasis': vehicle.vin_sn or None,
-        'total_cuentas': vehicle.cuenta_ids and len(vehicle.cuenta_ids) or 0,
+        'placa': plate_upper,
+        'modelo': vehicles[:1].model_id.name if vehicles[:1].model_id else None,
+        'numero_chasis': vehicles[:1].vin_sn or None,
+        'total_cuentas': 0,
     }
 
     # ── Cuentas ────────────────────────────────────────────────────────────
     CuentaModel = request.env['adt.comercial.cuentas'].sudo()
-    cuentas = CuentaModel.search([('vehiculo_id', '=', vehicle.id)])
+    cuentas = CuentaModel.search([('vehiculo_id', 'in', vehicle_ids)], order='id desc')
     cuentas_data = [_build_cuenta_data(c) for c in cuentas]
+    vehicle_data['total_cuentas'] = len(cuentas)
 
     # ── Financiera ─────────────────────────────────────────────────────────
     # Use the first active account's financiera; fall back to the latest account.
     financiera_name = None
-    cuenta_ref = cuentas.filtered(lambda c: c.state == 'en_curso')[:1] or cuentas[:1]
+    cuenta_ref = (
+        cuentas.filtered(lambda c: c.state == 'en_curso')[:1]
+        or cuentas.filtered(lambda c: c.state == 'aprobado')[:1]
+        or cuentas.filtered(lambda c: c.state != 'cancelado')[:1]
+        or cuentas[:1]
+    )
+    if not partner and cuenta_ref:
+        partner = cuenta_ref.partner_id
+        country_name = partner.country_id.name if partner and partner.country_id else None
+        partner_data = {
+            'nombre': partner.name or '',
+            'direccion': partner.street or None,
+            'numero_documento': partner.vat or None,
+            'pais': country_name,
+            'tipo_documento': partner.tipo_documento or None,
+        } if partner else None
     if cuenta_ref and cuenta_ref.tipo_financiera_id:
         financiera_name = cuenta_ref.tipo_financiera_id.name
 
@@ -259,13 +272,12 @@ def _search_legacy(plate_upper):
         'fleet.vehicle', 'search_read',
         [('license_plate', '=ilike', plate_upper)],
         ['id', 'license_plate', 'model_id', 'vin_sn', 'driver_id'],
-        limit=1,
     )
     if not vehicles:
         return None
 
     veh = vehicles[0]
-    vehicle_id = veh['id']
+    vehicle_ids = [v.get('id') for v in vehicles if v.get('id')]
 
     # Model name
     model_name = veh['model_id'][1] if veh.get('model_id') else None
@@ -296,7 +308,7 @@ def _search_legacy(plate_upper):
     # ── Cuentas ────────────────────────────────────────────────────────────
     cuentas_raw = execute(
         'adt.comercial.cuentas', 'search_read',
-        [('vehiculo_id', '=', vehicle_id)],
+        [('vehiculo_id', 'in', vehicle_ids)],
         [
             'id', 'reference_no', 'state',
             'fecha_desembolso', 'fecha_cierre', 'fecha_entrega',
