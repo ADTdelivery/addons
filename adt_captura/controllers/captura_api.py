@@ -82,6 +82,23 @@ class CapturaAPI(http.Controller):
 
         return (date_cls.today() - primera_fecha).days
 
+    def _get_tipo_financiera(self, cuenta):
+        """Return financiera name using the current model schema with legacy fallback."""
+        if not cuenta:
+            return ''
+        try:
+            tipo_financiera_rel = getattr(cuenta, 'tipo_financiera_id', False)
+            if tipo_financiera_rel and getattr(tipo_financiera_rel, 'name', False):
+                return tipo_financiera_rel.name or ''
+        except Exception:
+            _logger.warning('Could not read tipo_financiera_id on cuenta %s', getattr(cuenta, 'id', None), exc_info=True)
+
+        # Backward compatibility in case some DB still has a legacy plain field.
+        try:
+            return getattr(cuenta, 'tipo_financiera', '') or ''
+        except Exception:
+            return ''
+
     @http.route(
         '/api/adt/captura/mora',
         type='http',
@@ -245,7 +262,7 @@ class CapturaAPI(http.Controller):
                         'id': c.id,
                         'reference_no': c.reference_no or '',
                         'state': c.state or '',
-                        'tipo_financiera': c.tipo_financiera or '',
+                        'tipo_financiera': self._get_tipo_financiera(c),
                         'periodicidad': c.periodicidad or '',
                         'monto_total': c.monto_total or 0.0,
                         'monto_cuota': c.monto_cuota or 0.0,
@@ -397,7 +414,7 @@ class CapturaAPI(http.Controller):
                 'id': cuenta.id,
                 'reference_no': cuenta.reference_no or '',
                 'state': cuenta.state or '',
-                'tipo_financiera': cuenta.tipo_financiera or '',
+                'tipo_financiera': self._get_tipo_financiera(cuenta),
                 'periodicidad': cuenta.periodicidad or '',
                 'monto_total': cuenta.monto_total or 0.0,
                 'monto_cuota': cuenta.monto_cuota or 0.0,
@@ -826,7 +843,7 @@ class CapturaAPI(http.Controller):
                 'id': cuenta.id,
                 'reference_no': cuenta.reference_no or '',
                 'state': cuenta.state or '',
-                'tipo_financiera': cuenta.tipo_financiera or '',
+                'tipo_financiera': self._get_tipo_financiera(cuenta),
                 'periodicidad': cuenta.periodicidad or '',
                 'monto_total': cuenta.monto_total or 0.0,
                 'monto_cuota': cuenta.monto_cuota or 0.0,
