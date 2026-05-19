@@ -4,7 +4,7 @@
     'author': 'Bigodoo',
     'maintainer': 'Bigodoo',
     'depends': [
-        'base','sale', 'account', 'fleet','sms','mail','report_xlsx'
+        'base','sale', 'account', 'fleet','sms','mail','report_xlsx','adt_papeletas'
     ],
     'data': [
         'data/sequences.xml',

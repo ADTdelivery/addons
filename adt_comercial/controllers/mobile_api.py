@@ -23,6 +23,7 @@ import json
 import re
 import uuid
 import logging
+import base64
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import datetime, timezone
 
@@ -236,6 +237,24 @@ def _parse_iso_datetime(value):
         return dt
     except Exception:
         return None
+
+
+def _normalize_base64_image(value):
+    """Return a clean base64 payload string (supports data URLs)."""
+    if not value:
+        return None
+    if not isinstance(value, str):
+        return None
+    payload = value.strip()
+    if not payload:
+        return None
+    if payload.startswith('data:') and ',' in payload:
+        payload = payload.split(',', 1)[1].strip()
+    try:
+        base64.b64decode(payload, validate=True)
+    except Exception:
+        return None
+    return payload
 
 
 def _resolve_credit_record(credito_id):
@@ -1705,6 +1724,240 @@ class MobileAPIController(http.Controller):
     # ══════════════════════════════════════════════════════════════════════════
     # HU-010 — POST /v1/fcm/register
     # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/papeletas/register',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def register_papeleta(self, **kwargs):
+        """
+        Registra una papeleta con una o varias fotos.
+
+        Request JSON:
+        {
+          "numeroPapeleta": "PAP-001",
+          "fechaPapeleta": "2026-05-18",
+          "monto": 150.00,
+          "idVehiculo": 10,
+          "fotos": ["<base64>", "<base64>"]
+        }
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            raw_body = request.httprequest.data
+            body = json.loads(raw_body) if raw_body else {}
+            if not isinstance(body, dict):
+                return _json_response(
+                    _error(400, 'BAD_REQUEST', 'El cuerpo del request debe ser un objeto JSON.'),
+                    status=400,
+                )
+
+            numero = str(
+                body.get('numeroPapeleta') or body.get('numero_papeleta') or body.get('name') or ''
+            ).strip()
+            fecha = body.get('fechaPapeleta') or body.get('fecha_papeleta')
+            monto = _to_decimal(body.get('monto'))
+            vehicle_id_raw = body.get('idVehiculo') if body.get('idVehiculo') is not None else body.get('vehicle_id')
+            fotos_payload = body.get('fotos') if body.get('fotos') is not None else body.get('foto')
+
+            if not numero:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'numeroPapeleta es requerido.'),
+                    status=422,
+                )
+
+            if not fecha:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'fechaPapeleta es requerida.'),
+                    status=422,
+                )
+
+            fecha_dt = _parse_iso_datetime(fecha)
+            if fecha_dt:
+                fecha_val = fecha_dt.date()
+            else:
+                try:
+                    fecha_val = datetime.strptime(str(fecha), '%Y-%m-%d').date()
+                except Exception:
+                    return _json_response(
+                        _error(422, 'VALIDATION_ERROR', 'fechaPapeleta debe tener formato YYYY-MM-DD o ISO 8601.'),
+                        status=422,
+                    )
+
+            if monto is None or _money(monto) <= Decimal('0.00'):
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'monto debe ser mayor a 0.'),
+                    status=422,
+                )
+
+            try:
+                vehicle_id = int(vehicle_id_raw)
+            except Exception:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'idVehiculo es requerido y debe ser numérico.'),
+                    status=422,
+                )
+
+            vehicle = request.env['fleet.vehicle'].sudo().browse(vehicle_id)
+            if not vehicle.exists():
+                return _json_response(
+                    _error(404, 'VEHICLE_NOT_FOUND', 'El vehículo indicado no existe.'),
+                    status=404,
+                )
+
+            if token_rec.vehicle_id and token_rec.vehicle_id.id != vehicle.id:
+                return _json_response(
+                    _error(403, 'FORBIDDEN', 'El token no tiene permiso para registrar papeletas en este vehículo.'),
+                    status=403,
+                )
+
+            if isinstance(fotos_payload, str):
+                fotos_payload = [fotos_payload]
+            if not isinstance(fotos_payload, list) or not fotos_payload:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'fotos debe contener al menos una imagen en base64.'),
+                    status=422,
+                )
+
+            fotos = []
+            for idx, foto in enumerate(fotos_payload):
+                normalized = _normalize_base64_image(foto)
+                if not normalized:
+                    return _json_response(
+                        _error(422, 'VALIDATION_ERROR', 'Imagen base64 inválida.', details=[{'field': 'fotos[%s]' % idx}]),
+                        status=422,
+                    )
+                fotos.append(normalized)
+
+            PapeletaModel = request.env['adt.papeleta'].sudo()
+            if PapeletaModel.search_count([('name', '=', numero)]) > 0:
+                return _json_response(
+                    _error(409, 'PAPELETA_DUPLICADA', 'El número de papeleta ya existe.'),
+                    status=409,
+                )
+
+            papeleta = PapeletaModel.create({
+                'name': numero,
+                'fecha_papeleta': fecha_val,
+                'monto': float(_money(monto)),
+                'vehicle_id': vehicle.id,
+            })
+
+            AttachModel = request.env['ir.attachment'].sudo()
+            attachment_ids = []
+            for idx, foto in enumerate(fotos, 1):
+                attach = AttachModel.create({
+                    'name': 'papeleta_%s_%s.jpg' % (papeleta.id, idx),
+                    'type': 'binary',
+                    'datas': foto,
+                    'res_model': 'adt.papeleta',
+                    'res_id': papeleta.id,
+                    'mimetype': 'image/jpeg',
+                })
+                attachment_ids.append(attach.id)
+
+            if attachment_ids:
+                papeleta.write({'attachment_ids': [(6, 0, attachment_ids)]})
+
+            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+            urls = ['%s/web/content/%s' % (base_url, aid) for aid in attachment_ids]
+
+            return _json_response(_success({
+                'id': papeleta.id,
+                'numeroPapeleta': papeleta.name,
+                'fechaPapeleta': _format_date(papeleta.fecha_papeleta),
+                'monto': float(_money(papeleta.monto)),
+                'idVehiculo': papeleta.vehicle_id.id,
+                'fotosCount': len(attachment_ids),
+                'fotoUrls': urls,
+            }, message='Papeleta registrada correctamente.'))
+
+        except Exception:
+            _logger.exception('Error in POST /v1/papeletas/register')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/papeletas',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def list_papeletas(self, **kwargs):
+        """
+        Lista las papeletas de un vehículo.
+        Query params opcionales: idVehiculo o vehicle_id.
+        Si no se envía, usa el vehicle_id del token (cuando exista).
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            vehicle_id_raw = kwargs.get('idVehiculo') or kwargs.get('vehicle_id')
+            if vehicle_id_raw is None and token_rec.vehicle_id:
+                vehicle_id_raw = token_rec.vehicle_id.id
+
+            try:
+                vehicle_id = int(vehicle_id_raw)
+            except Exception:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'idVehiculo (o vehicle_id) es requerido y debe ser numérico.'),
+                    status=422,
+                )
+
+            vehicle = request.env['fleet.vehicle'].sudo().browse(vehicle_id)
+            if not vehicle.exists():
+                return _json_response(
+                    _error(404, 'VEHICLE_NOT_FOUND', 'El vehículo indicado no existe.'),
+                    status=404,
+                )
+
+            if token_rec.vehicle_id and token_rec.vehicle_id.id != vehicle.id:
+                return _json_response(
+                    _error(403, 'FORBIDDEN', 'El token no tiene permiso para consultar papeletas de este vehículo.'),
+                    status=403,
+                )
+
+            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+            papeletas = request.env['adt.papeleta'].sudo().search(
+                [('vehicle_id', '=', vehicle.id)],
+                order='fecha_papeleta desc, id desc',
+            )
+
+            papeletas_data = []
+            for papeleta in papeletas:
+                foto_urls = ['%s/web/content/%s' % (base_url, att.id) for att in papeleta.attachment_ids.sudo()]
+                papeletas_data.append({
+                    'id': papeleta.id,
+                    'numeroPapeleta': papeleta.name,
+                    'fechaPapeleta': _format_date(papeleta.fecha_papeleta),
+                    'monto': float(_money(papeleta.monto)),
+                    'idVehiculo': papeleta.vehicle_id.id,
+                    'fotosCount': len(foto_urls),
+                    'fotoUrls': foto_urls,
+                })
+
+            return _json_response(_success({
+                'idVehiculo': vehicle.id,
+                'placa': vehicle.license_plate or None,
+                'totalPapeletas': len(papeletas_data),
+                'papeletas': papeletas_data,
+            }))
+
+        except Exception:
+            _logger.exception('Error in GET /v1/papeletas')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
     @http.route(
         '/v1/fcm/register',
         type='http',
