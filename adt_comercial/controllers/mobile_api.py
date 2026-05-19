@@ -361,6 +361,55 @@ def _notification_domain_from_token(token_rec):
     return []
 
 
+def _notify_papeleta_channel(papeleta, vehicle, token_rec, foto_urls):
+    """Post papeleta registration details to Discuss channel 'papeleta'."""
+    try:
+        ChannelModel = request.env['mail.channel'].sudo()
+        channel = ChannelModel.search([('name', '=ilike', 'papeleta')], limit=1)
+        if not channel:
+            _logger.warning("No se encontro canal 'papeleta' para notificar registro %s", papeleta.id)
+            return
+
+        partner_name = (token_rec.partner_id.name if token_rec and token_rec.partner_id else 'N/A')
+        user_name = (token_rec.create_uid.name if token_rec and token_rec.create_uid else 'API Mobile')
+        body = (
+            "<p><b>Nueva papeleta registrada desde API móvil</b></p>"
+            "<ul>"
+            "<li><b>ID:</b> %s</li>"
+            "<li><b>Número:</b> %s</li>"
+            "<li><b>Fecha:</b> %s</li>"
+            "<li><b>Monto:</b> S/ %s</li>"
+            "<li><b>Vehículo ID:</b> %s</li>"
+            "<li><b>Placa:</b> %s</li>"
+            "<li><b>Cliente:</b> %s</li>"
+            "<li><b>Usuario:</b> %s</li>"
+            "<li><b>Fotos:</b> %s</li>"
+            "</ul>"
+        ) % (
+            papeleta.id,
+            papeleta.name or '',
+            _format_date(papeleta.fecha_papeleta) or '',
+            ('%.2f' % float(_money(papeleta.monto))),
+            vehicle.id if vehicle else '',
+            (vehicle.license_plate or '') if vehicle else '',
+            partner_name,
+            user_name,
+            len(foto_urls or []),
+        )
+
+        if foto_urls:
+            links = ''.join(["<li><a href='%s' target='_blank'>Foto %s</a></li>" % (u, i + 1) for i, u in enumerate(foto_urls)])
+            body += "<p><b>Adjuntos:</b></p><ul>%s</ul>" % links
+
+        channel.message_post(
+            body=body,
+            message_type='comment',
+            subtype_xmlid='mail.mt_comment',
+        )
+    except Exception:
+        # Do not break the API flow if Discuss notification fails.
+        _logger.exception('Error notificando papeleta %s al canal de conversaciones', getattr(papeleta, 'id', None))
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Controller
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1648,7 +1697,7 @@ class MobileAPIController(http.Controller):
 
                 # Create a new record with the fetched vehicle data
                 new_record = MaintenanceRecordModel.create({
-                    'vehicle_id': vehicle_id,
+                    'vehicle_id': vehicle.id,
                     'conductor_id': vehicle.driver_id.id if vehicle.driver_id else None,
                     'chassis': vehicle.vin_sn or '',
                     'motor':  '',  # Replace missing engine_no with an empty string
@@ -1868,6 +1917,13 @@ class MobileAPIController(http.Controller):
 
             base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
             urls = ['%s/web/content/%s' % (base_url, aid) for aid in attachment_ids]
+
+            _notify_papeleta_channel(
+                papeleta=papeleta,
+                vehicle=vehicle,
+                token_rec=token_rec,
+                foto_urls=urls,
+            )
 
             return _json_response(_success({
                 'id': papeleta.id,
