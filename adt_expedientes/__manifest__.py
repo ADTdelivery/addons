@@ -29,7 +29,7 @@
     ''',
     'author': 'ADT',
     'website': 'https://www.adt.com',
-    'depends': ['base', 'mail', 'adt_sentinel'],
+    'depends': ['base', 'mail', 'fleet', 'product', 'maintenance_workshop', 'adt_sentinel'],
     'external_dependencies': {
         'python': ['requests'],
     },

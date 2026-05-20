@@ -37,6 +37,25 @@ _logger = logging.getLogger(__name__)
 # Some plates in Peru use 4+2 variants; we accept both permissively.
 PLATE_RE = re.compile(r'^[A-Z0-9]{2,4}-?[A-Z0-9]{2,4}$', re.IGNORECASE)
 
+WORKSHOP_STATE_LABELS = {
+    'pending': 'Pendiente',
+    'in_progress': 'En progreso',
+    'blocked': 'Bloqueado',
+    'done': 'Finalizado',
+}
+
+WORKSHOP_PAYER_LABELS = {
+    'adt': 'ADT Corporación',
+    'cliente': 'Cliente',
+    'ambos': 'Ambos',
+}
+
+WORKSHOP_FINAL_STATE_LABELS = {
+    'optimal': 'Óptimo',
+    'with_observations': 'Con Observaciones',
+    'follow_up': 'Seguimiento',
+}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -2164,9 +2183,607 @@ class MobileAPIController(http.Controller):
                 status=500,
             )
 
+    @http.route(
+        '/v1/comercial/workshop/search-by-plate',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def workshop_search_by_plate(self, plate=None, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            model_err = _ensure_workshop_model('maintenance.work.order')
+            if model_err:
+                return _json_response(model_err, status=model_err['statusCode'])
+
+            plate_upper, plate_err = _validate_plate(plate)
+            if plate_err:
+                return _json_response(plate_err, status=plate_err['statusCode'])
+
+            vehicle, vehicle_err = _vehicle_by_plate(plate_upper)
+            if vehicle_err:
+                return _json_response(vehicle_err, status=vehicle_err['statusCode'])
+
+            if token_rec.vehicle_id and token_rec.vehicle_id.id != vehicle.id:
+                return _json_response(_error(403, 'FORBIDDEN', 'El token no tiene permiso para este vehículo.'), status=403)
+
+            partner = vehicle.driver_id or getattr(vehicle, 'partner_id', False) or getattr(vehicle, 'owner_id', False)
+            data = {
+                'cliente': {
+                    'id': partner.id if partner else None,
+                    'name': partner.name if partner else None,
+                    'document': getattr(partner, 'vat', None) if partner else None,
+                    'phone': (partner.phone or partner.mobile) if partner else None,
+                },
+                'vehiculo': {
+                    'id': vehicle.id,
+                    'plate': vehicle.license_plate or '',
+                    'model': vehicle.model_id.name if vehicle.model_id else None,
+                    'brand': vehicle.model_id.brand_id.name if vehicle.model_id and vehicle.model_id.brand_id else None,
+                    'vin': vehicle.vin_sn or None,
+                    'displayName': vehicle.display_name or None,
+                },
+            }
+            return _json_response(_success(data))
+        except Exception:
+            _logger.exception('Error in GET /v1/workshop/search-by-plate')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/comercial/workshop/products',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def workshop_products(self, q=None, page=1, pageSize=20, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            _, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            try:
+                page = max(1, int(page))
+                page_size = max(1, min(100, int(pageSize)))
+            except (TypeError, ValueError):
+                return _json_response(_error(400, 'BAD_REQUEST', 'Parámetros de paginación inválidos.'), status=400)
+
+            ProductModel = request.env['product.product'].sudo()
+            domain = [('active', '=', True)]
+            query = (q or '').strip()
+            if query:
+                domain.append(('display_name', 'ilike', query))
+
+            total_items = ProductModel.search_count(domain)
+            total_pages = max(1, -(-total_items // page_size))
+            offset = (page - 1) * page_size
+            products = ProductModel.search(domain, limit=page_size, offset=offset, order='name asc')
+
+            data = {
+                'items': [{
+                    'id': p.id,
+                    'name': p.display_name,
+                    'defaultPrice': float(_money(p.list_price)),
+                } for p in products]
+            }
+            pagination = {
+                'page': page,
+                'pageSize': page_size,
+                'totalItems': total_items,
+                'totalPages': total_pages,
+                'hasNext': page < total_pages,
+                'hasPrev': page > 1,
+            }
+            return _json_response(_success(data, pagination=pagination))
+        except Exception:
+            _logger.exception('Error in GET /v1/workshop/products')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/comercial/workshop/labor-templates',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def workshop_labor_templates(self, q=None, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            _, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            model_err = _ensure_workshop_model('maintenance.work.order.service.template')
+            if model_err:
+                return _json_response(model_err, status=model_err['statusCode'])
+
+            domain = []
+            query = (q or '').strip()
+            if query:
+                domain = ['|', ('name', 'ilike', query), ('description', 'ilike', query)]
+
+            templates = request.env['maintenance.work.order.service.template'].sudo().search(domain, order='name asc')
+            data = {
+                'items': [{
+                    'id': t.id,
+                    'name': t.name,
+                    'description': t.description or None,
+                    'defaultPrice': float(_money(t.default_unit_price)),
+                } for t in templates]
+            }
+            return _json_response(_success(data))
+        except Exception:
+            _logger.exception('Error in GET /v1/workshop/labor-templates')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/comercial/workshop/catalogs',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def workshop_catalogs(self, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            _, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            data = {
+                'payerTypes': [{'value': k, 'label': v} for k, v in WORKSHOP_PAYER_LABELS.items()],
+                'finalResultTypes': [{'value': k, 'label': v} for k, v in WORKSHOP_FINAL_STATE_LABELS.items()],
+                'workOrderStates': [{'value': k, 'label': v} for k, v in WORKSHOP_STATE_LABELS.items()],
+            }
+            return _json_response(_success(data))
+        except Exception:
+            _logger.exception('Error in GET /v1/workshop/catalogs')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/comercial/workshop/work-orders',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def workshop_work_orders(self, page=1, pageSize=20, state=None, plate=None, vehicleId=None, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            model_err = _ensure_workshop_model('maintenance.work.order')
+            if model_err:
+                return _json_response(model_err, status=model_err['statusCode'])
+
+            try:
+                page = max(1, int(page))
+                page_size = max(1, min(100, int(pageSize)))
+            except (TypeError, ValueError):
+                return _json_response(_error(400, 'BAD_REQUEST', 'Parámetros de paginación inválidos.'), status=400)
+
+            domain = []
+            if token_rec.vehicle_id:
+                domain.append(('vehicle_id', '=', token_rec.vehicle_id.id))
+
+            if state:
+                state_db = _map_workshop_state(str(state).strip())
+                if not state_db:
+                    return _json_response(_error(422, 'VALIDATION_ERROR', 'state inválido.'), status=422)
+                domain.append(('state', '=', state_db))
+
+            if vehicleId:
+                try:
+                    domain.append(('vehicle_id', '=', int(vehicleId)))
+                except Exception:
+                    return _json_response(_error(422, 'VALIDATION_ERROR', 'vehicleId debe ser numérico.'), status=422)
+
+            if plate:
+                plate_upper, plate_err = _validate_plate(plate)
+                if plate_err:
+                    return _json_response(plate_err, status=plate_err['statusCode'])
+                vehicle, vehicle_err = _vehicle_by_plate(plate_upper)
+                if vehicle_err:
+                    return _json_response(vehicle_err, status=vehicle_err['statusCode'])
+                domain.append(('vehicle_id', '=', vehicle.id))
+
+            WoModel = request.env['maintenance.work.order'].sudo()
+            total_items = WoModel.search_count(domain)
+            total_pages = max(1, -(-total_items // page_size))
+            offset = (page - 1) * page_size
+            recs = WoModel.search(domain, limit=page_size, offset=offset, order='create_date desc,id desc')
+
+            data = {
+                'items': [_serialize_work_order_card(rec) for rec in recs]
+            }
+            pagination = {
+                'page': page,
+                'pageSize': page_size,
+                'totalItems': total_items,
+                'totalPages': total_pages,
+                'hasNext': page < total_pages,
+                'hasPrev': page > 1,
+            }
+            return _json_response(_success(data, pagination=pagination))
+        except Exception:
+            _logger.exception('Error in GET /v1/workshop/work-orders')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/comercial/workshop/work-orders',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def workshop_work_order_save(self, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            model_err = _ensure_workshop_model('maintenance.work.order')
+            if model_err:
+                return _json_response(model_err, status=model_err['statusCode'])
+
+            raw_body = request.httprequest.data
+            body = json.loads(raw_body) if raw_body else {}
+            if not isinstance(body, dict):
+                return _json_response(_error(400, 'BAD_REQUEST', 'El cuerpo debe ser un objeto JSON.'), status=400)
+
+            work_order_id = body.get('workOrderId') or body.get('id')
+            WoModel = request.env['maintenance.work.order'].sudo()
+            is_create = not work_order_id
+            work_order = None
+            if not is_create:
+                try:
+                    work_order = WoModel.browse(int(work_order_id))
+                except Exception:
+                    return _json_response(_error(422, 'VALIDATION_ERROR', 'workOrderId debe ser numérico.'), status=422)
+                if not work_order.exists():
+                    return _json_response(_error(404, 'NOT_FOUND', 'Orden de trabajo no encontrada.'), status=404)
+
+            vehicle = None
+            vehicle_id_raw = body.get('vehicleId')
+            plate = body.get('plate')
+            if vehicle_id_raw is not None:
+                try:
+                    vehicle = request.env['fleet.vehicle'].sudo().browse(int(vehicle_id_raw))
+                except Exception:
+                    vehicle = None
+                if not vehicle or not vehicle.exists():
+                    return _json_response(_error(404, 'VEHICLE_NOT_FOUND', 'El vehículo indicado no existe.'), status=404)
+            elif plate:
+                plate_upper, plate_err = _validate_plate(plate)
+                if plate_err:
+                    return _json_response(plate_err, status=plate_err['statusCode'])
+                vehicle, vehicle_err = _vehicle_by_plate(plate_upper)
+                if vehicle_err:
+                    return _json_response(vehicle_err, status=vehicle_err['statusCode'])
+            elif is_create:
+                return _json_response(_error(422, 'VALIDATION_ERROR', 'vehicleId o plate es requerido para crear.'), status=422)
+
+            if token_rec.vehicle_id and vehicle and token_rec.vehicle_id.id != vehicle.id:
+                return _json_response(_error(403, 'FORBIDDEN', 'El token no tiene permiso para este vehículo.'), status=403)
+
+            vals = {}
+            if vehicle:
+                vals['vehicle_id'] = vehicle.id
+
+            client_id = body.get('clientId')
+            if client_id:
+                try:
+                    client = request.env['res.partner'].sudo().browse(int(client_id))
+                except Exception:
+                    client = None
+                if not client or not client.exists():
+                    return _json_response(_error(404, 'NOT_FOUND', 'Cliente no encontrado.'), status=404)
+                vals['client_id'] = client.id
+            elif is_create and vehicle:
+                partner = vehicle.driver_id or getattr(vehicle, 'partner_id', False) or getattr(vehicle, 'owner_id', False)
+                if partner:
+                    vals['client_id'] = partner.id
+
+            mechanic_id = body.get('mechanicId')
+            if mechanic_id is not None:
+                if mechanic_id:
+                    mechanic = request.env['res.users'].sudo().browse(int(mechanic_id))
+                    if not mechanic.exists():
+                        return _json_response(_error(404, 'NOT_FOUND', 'Mecánico no encontrado.'), status=404)
+                    vals['mechanic_id'] = mechanic.id
+                else:
+                    vals['mechanic_id'] = False
+
+            mapping = {
+                'entryReason': 'entry_reason',
+                'diagnostic': 'diagnostic',
+                'finalState': 'final_state',
+                'finalNotes': 'final_notes',
+                'adtNote': 'adt_note',
+            }
+            for src, dst in mapping.items():
+                if src in body:
+                    vals[dst] = body.get(src) or False
+
+            if 'mileage' in body:
+                vals['mileage'] = float(body.get('mileage') or 0.0)
+            if 'payerType' in body:
+                vals['payer_type'] = body.get('payerType') or 'cliente'
+            if 'adtContribution' in body:
+                vals['adt_contribution'] = float(body.get('adtContribution') or 0.0)
+
+            if 'nextRevisionDate' in body:
+                vals['next_revision_date'] = _parse_date(body.get('nextRevisionDate'))
+            if 'startDate' in body:
+                vals['start_date'] = _parse_iso_datetime(body.get('startDate'))
+            if 'endDate' in body:
+                vals['end_date'] = _parse_iso_datetime(body.get('endDate'))
+
+            if is_create and not vals.get('client_id'):
+                return _json_response(_error(422, 'VALIDATION_ERROR', 'No se pudo determinar el cliente para la orden.'), status=422)
+
+            if is_create:
+                work_order = WoModel.create(vals)
+            elif vals:
+                work_order.write(vals)
+
+            _sync_work_order_lines(work_order, body)
+
+            action = str(body.get('action') or '').strip().lower()
+            state_input = body.get('state')
+            state_to_set = _map_workshop_action_to_state(action)
+            if not state_to_set and state_input:
+                state_to_set = _map_workshop_state(str(state_input).strip())
+
+            if state_to_set:
+                state_vals = {'state': state_to_set}
+                if state_to_set == 'in_progress' and not work_order.start_date:
+                    state_vals['start_date'] = odoo_fields.Datetime.now()
+                if state_to_set == 'done' and not work_order.end_date:
+                    state_vals['end_date'] = odoo_fields.Datetime.now()
+                work_order.write(state_vals)
+
+            message = 'Orden de trabajo creada correctamente.' if is_create else 'Orden de trabajo actualizada correctamente.'
+            if action == 'pause':
+                message = 'Orden de trabajo pausada correctamente.'
+            elif action == 'resume':
+                message = 'Orden de trabajo reanudada correctamente.'
+            elif action == 'finalize':
+                message = 'Orden de trabajo finalizada correctamente.'
+
+            return _json_response(_success({'workOrder': _serialize_work_order_detail(work_order)}, message=message))
+        except Exception:
+            _logger.exception('Error in POST /v1/workshop/work-orders')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Private helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _ensure_workshop_model(model_name):
+    try:
+        if request.env.registry.get(model_name):
+            return None
+    except Exception:
+        pass
+    return _error(503, 'MODULE_NOT_AVAILABLE', 'El módulo de taller no está disponible (%s).' % model_name)
+
+
+def _map_workshop_state(state_input):
+    if not state_input:
+        return None
+    raw = str(state_input or '').strip().lower().replace(' ', '_')
+    aliases = {
+        'pendiente': 'pending',
+        'pending': 'pending',
+        'en_progreso': 'in_progress',
+        'in_progress': 'in_progress',
+        'bloqueado': 'blocked',
+        'blocked': 'blocked',
+        'finalizado': 'done',
+        'done': 'done',
+    }
+    return aliases.get(raw)
+
+
+def _map_workshop_action_to_state(action):
+    action = (action or '').strip().lower()
+    if action == 'pause':
+        return 'blocked'
+    if action == 'resume':
+        return 'in_progress'
+    if action == 'finalize':
+        return 'done'
+    return None
+
+
+def _parse_date(value):
+    if not value:
+        return False
+    try:
+        return datetime.strptime(str(value), '%Y-%m-%d').date()
+    except Exception:
+        return False
+
+
+def _work_order_relative_time(dt):
+    if not dt:
+        return None
+    try:
+        base_date = dt.date() if hasattr(dt, 'date') else dt
+        days = (datetime.now().date() - base_date).days
+        if days <= 0:
+            return 'hoy'
+        if days == 1:
+            return 'hace 1 día'
+        return 'hace %s días' % days
+    except Exception:
+        return None
+
+
+def _initials(name):
+    parts = [p for p in str(name or '').strip().split(' ') if p]
+    if not parts:
+        return None
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[-1][0]).upper()
+
+
+def _money_label(value):
+    try:
+        return 'S/ %s' % format(float(_money(value)), ',.2f')
+    except Exception:
+        return 'S/ 0.00'
+
+
+def _serialize_work_order_card(wo):
+    plate = wo.vehicle_id.license_plate if wo.vehicle_id else ''
+    model_name = wo.vehicle_id.model_id.name if wo.vehicle_id and wo.vehicle_id.model_id else ''
+    vehicle_label = ('%s · %s' % (plate, model_name)).strip(' ·')
+    days = wo.days_in_taller or 0
+    return {
+        'id': wo.id,
+        'code': wo.name or '',
+        'daysInWorkshop': days,
+        'daysLabel': '%s día%s' % (days, '' if days == 1 else 's'),
+        'state': wo.state or 'pending',
+        'stateLabel': WORKSHOP_STATE_LABELS.get(wo.state, wo.state or ''),
+        'clientName': wo.client_id.name if wo.client_id else None,
+        'vehicleLabel': vehicle_label,
+        'relativeTime': _work_order_relative_time(wo.create_date),
+        'mechanicInitials': _initials(wo.mechanic_id.name) if wo.mechanic_id else None,
+        'mechanicName': wo.mechanic_id.name if wo.mechanic_id else None,
+        'totalAmount': float(_money(wo.total_amount)),
+        'totalAmountLabel': _money_label(wo.total_amount),
+    }
+
+
+def _serialize_work_order_detail(wo):
+    data = _serialize_work_order_card(wo)
+    data.update({
+        'vehicle': {
+            'id': wo.vehicle_id.id if wo.vehicle_id else None,
+            'plate': wo.vehicle_id.license_plate if wo.vehicle_id else None,
+            'model': wo.vehicle_id.model_id.name if wo.vehicle_id and wo.vehicle_id.model_id else None,
+            'vin': wo.vehicle_id.vin_sn if wo.vehicle_id else None,
+        },
+        'client': {
+            'id': wo.client_id.id if wo.client_id else None,
+            'name': wo.client_id.name if wo.client_id else None,
+        },
+        'mechanic': {
+            'id': wo.mechanic_id.id if wo.mechanic_id else None,
+            'name': wo.mechanic_id.name if wo.mechanic_id else None,
+        },
+        'entryReason': wo.entry_reason or None,
+        'diagnostic': wo.diagnostic or None,
+        'mileage': wo.mileage or 0.0,
+        'payerType': wo.payer_type or None,
+        'payerTypeLabel': WORKSHOP_PAYER_LABELS.get(wo.payer_type, wo.payer_type or None),
+        'adtContribution': float(_money(wo.adt_contribution)),
+        'adtAmount': float(_money(wo.adt_amount)),
+        'clientAmount': float(_money(wo.client_amount)),
+        'adtNote': wo.adt_note or None,
+        'finalState': wo.final_state or None,
+        'finalStateLabel': WORKSHOP_FINAL_STATE_LABELS.get(wo.final_state, wo.final_state or None),
+        'finalNotes': wo.final_notes or None,
+        'startDate': _format_datetime(wo.start_date),
+        'endDate': _format_datetime(wo.end_date),
+        'nextRevisionDate': _format_date(wo.next_revision_date),
+        'parts': [],
+        'services': [],
+        'paymentSchedule': [],
+    })
+    for part in wo.part_ids:
+        data['parts'].append({
+            'id': part.id,
+            'productId': part.product_id.id if part.product_id else None,
+            'productName': part.product_id.display_name if part.product_id else None,
+            'quantity': part.quantity or 0.0,
+            'unitPrice': float(_money(part.unit_price)),
+            'subtotal': float(_money(part.subtotal)),
+            'notes': part.notes or None,
+        })
+    for service in wo.service_ids:
+        data['services'].append({
+            'id': service.id,
+            'serviceTemplateId': service.service_template_id.id if service.service_template_id else None,
+            'name': service.name or None,
+            'description': service.description or None,
+            'unitPrice': float(_money(service.unit_price)),
+            'subtotal': float(_money(service.subtotal)),
+        })
+    for pay in wo.payment_schedule_ids.sorted('due_date'):
+        data['paymentSchedule'].append({
+            'id': pay.id,
+            'name': pay.name or None,
+            'dueDate': _format_date(pay.due_date),
+            'amount': float(_money(pay.amount)),
+            'payer': pay.payer or None,
+            'state': pay.state or None,
+        })
+    return data
+
+
+def _sync_work_order_lines(work_order, body):
+    if 'parts' in body:
+        commands = [(5, 0, 0)]
+        for row in body.get('parts') or []:
+            if not isinstance(row, dict):
+                continue
+            product_id = row.get('productId')
+            if not product_id:
+                continue
+            commands.append((0, 0, {
+                'product_id': int(product_id),
+                'quantity': float(row.get('quantity') or 1.0),
+                'unit_price': float(row.get('unitPrice') or 0.0),
+                'notes': row.get('notes') or False,
+            }))
+        work_order.sudo().write({'part_ids': commands})
+
+    if 'services' in body:
+        commands = [(5, 0, 0)]
+        for row in body.get('services') or []:
+            if not isinstance(row, dict):
+                continue
+            commands.append((0, 0, {
+                'service_template_id': int(row.get('serviceTemplateId')) if row.get('serviceTemplateId') else False,
+                'name': row.get('name') or False,
+                'description': row.get('description') or False,
+                'unit_price': float(row.get('unitPrice') or 0.0),
+            }))
+        work_order.sudo().write({'service_ids': commands})
+
+    if 'paymentSchedule' in body:
+        commands = [(5, 0, 0)]
+        for row in body.get('paymentSchedule') or []:
+            if not isinstance(row, dict):
+                continue
+            commands.append((0, 0, {
+                'name': row.get('name') or False,
+                'due_date': _parse_date(row.get('dueDate')),
+                'amount': float(row.get('amount') or 0.0),
+                'payer': row.get('payer') or 'cliente',
+                'state': row.get('state') or 'pending',
+            }))
+        work_order.sudo().write({'payment_schedule_ids': commands})
 
 def _get_payment_accounts():
     """
