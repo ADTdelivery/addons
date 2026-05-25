@@ -361,6 +361,10 @@ def _build_local_related_data(vehicles, cuentas):
 
 def _build_cuota_data(cuota):
     """Serialize one adt.comercial.cuotas record."""
+    try:
+        mora = _money(cuota.mora_pendiente)
+    except Exception:
+        mora = 0.0
     return {
         'numero_cuota': cuota.name or '',
         'monto_cuota': _money(cuota.monto),
@@ -371,12 +375,15 @@ def _build_cuota_data(cuota):
         'numero_operacion': cuota.numero_operacion or None,
         'periodo': cuota.periodicidad or None,
         'estado': cuota.state or None,
+        'mora': mora,
     }
 
 
 def _build_cuenta_data(cuenta):
     """Serialize one adt.comercial.cuentas record (full cronograma)."""
     cuotas = cuenta.cuota_ids.filtered(lambda c: c.type == 'cuota').sorted('fecha_cronograma')
+    cuotas_list = [_build_cuota_data(c) for c in cuotas]
+    mora_total = _money(sum(c['mora'] for c in cuotas_list))
 
     return {
         'id': cuenta.id,
@@ -402,8 +409,10 @@ def _build_cuenta_data(cuenta):
         'cuotas_retrasadas': cuenta.qty_cuotas_retrasado,
         'total_pagado': _money(cuenta.cuotas_pagado),
         'cuotas_pagadas': cuenta.qty_cuotas_pagadas,
+        # Mora
+        'mora_total': mora_total,
         # Cuotas detalle
-        'cuotas': [_build_cuota_data(c) for c in cuotas],
+        'cuotas': cuotas_list,
     }
 
 
@@ -645,6 +654,7 @@ def _search_legacy(plate_upper):
                 'numero_operacion': c.get('numero_operacion') or None,
                 'periodo': c.get('periodicidad') or None,
                 'estado': c.get('state') or None,
+                'mora': None,
             })
 
         cuotas_restantes = 0
@@ -695,6 +705,7 @@ def _search_legacy(plate_upper):
             'cuotas_retrasadas': cuotas_retrasadas,
             'total_pagado': _money(total_pagado),
             'cuotas_pagadas': cuotas_pagadas,
+            'mora_total': None,
             'cuotas': cuotas_data,
         })
 

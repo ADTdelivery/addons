@@ -187,11 +187,17 @@ class CapturaAPI(http.Controller):
             for cid in cuenta_ids:
                 c_single = CuentaModel.browse(cid)
                 try:
+                    mora_total = sum(
+                        cuota.mora_pendiente or 0.0
+                        for cuota in c_single.cuota_ids
+                        if cuota.type == 'cuota'
+                    )
                     cuenta_computed[cid] = {
                         'qty_cuotas_pagadas': c_single.qty_cuotas_pagadas or 0,
                         'qty_cuotas_restantes': c_single.qty_cuotas_restantes or 0,
                         'qty_cuotas_retrasado': c_single.qty_cuotas_retrasado or 0,
                         'cuotas_saldo': c_single.cuotas_saldo or 0.0,
+                        'mora_total': mora_total,
                     }
                 except Exception:
                     _logger.warning(
@@ -202,6 +208,7 @@ class CapturaAPI(http.Controller):
                         'qty_cuotas_restantes': 0,
                         'qty_cuotas_retrasado': 0,
                         'cuotas_saldo': 0.0,
+                        'mora_total': 0.0,
                     }
 
             # ── pre-fetch adt.captura.record counts & latest date ─────────────
@@ -277,6 +284,7 @@ class CapturaAPI(http.Controller):
                         'qty_cuotas_restantes': cc.get('qty_cuotas_restantes', 0),
                         'qty_cuotas_retrasado': cc.get('qty_cuotas_retrasado', 0),
                         'cuotas_saldo': cc.get('cuotas_saldo', 0.0),
+                        'mora_total': cc.get('mora_total', 0.0),
                         'fecha_desembolso': c.fecha_desembolso.isoformat() if c.fecha_desembolso else None,
                     }
 
@@ -400,19 +408,26 @@ class CapturaAPI(http.Controller):
 
             # cuotas
             cuotas_data = []
+            mora_total_cuenta = 0.0
+            monto_total_vencido = 0.0
             for cuota in cuenta.cuota_ids.filtered(lambda c: c.type == 'cuota').sorted('id'):
+                cuota_mora_pendiente = self._safe_get(cuota, 'mora_pendiente', 0.0) or 0.0
+                cuota_saldo = self._safe_get(cuota, 'saldo', 0.0) or 0.0
+                mora_total_cuenta += cuota_mora_pendiente
+                if cuota.state == 'retrasado':
+                    monto_total_vencido += cuota_saldo
                 cuotas_data.append({
                     'id': cuota.id,
                     'name': cuota.name or '',
                     'fecha_vencimiento': cuota.fecha_cronograma.isoformat() if cuota.fecha_cronograma else None,
                     'fecha_pago': cuota.real_date or None,
                     'monto_cuota': cuota.monto or 0.0,
-                    'monto_pagado': (cuota.monto or 0.0) - (self._safe_get(cuota, 'saldo', 0.0) or 0.0),
-                    'monto_pendiente': self._safe_get(cuota, 'saldo', 0.0) or 0.0,
-                    'state': cuota.state or '',
+                    'monto_pagado': (cuota.monto or 0.0) - cuota_saldo,
+                    'monto_pendiente': cuota_saldo,
+                    'payment_state': cuota.state or '',
+                    'mora': cuota_mora_pendiente,
                     'dias_mora': self._safe_get(cuota, 'mora_dias', 0) or 0,
                     'monto_mora': self._safe_get(cuota, 'mora_total', 0.0) or 0.0,
-                    'mora_pendiente': self._safe_get(cuota, 'mora_pendiente', 0.0) or 0.0,
                     'numero_operacion': cuota.numero_operacion or None,
                 })
 
@@ -429,6 +444,8 @@ class CapturaAPI(http.Controller):
                 'qty_cuotas_restantes': self._safe_get(cuenta, 'qty_cuotas_restantes', 0) or 0,
                 'qty_cuotas_retrasado': self._safe_get(cuenta, 'qty_cuotas_retrasado', 0) or 0,
                 'cuotas_saldo': self._safe_get(cuenta, 'cuotas_saldo', 0.0) or 0.0,
+                'monto_total_vencido': monto_total_vencido,
+                'mora_total': mora_total_cuenta,
                 'fecha_desembolso': cuenta.fecha_desembolso.isoformat() if cuenta.fecha_desembolso else None,
                 'mora_pendiente': self._safe_get(cuenta, 'mora_pendiente', 0.0) or 0.0,
                 'moras_dias_total': self._safe_get(cuenta, 'mora_dias_total', 0) or 0,

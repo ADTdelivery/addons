@@ -92,7 +92,7 @@ class ADTCapturaMora(models.Model):
 
                     -- Información de cuotas vencidas
                     MIN(cuota.fecha_cronograma) as fecha_cronograma,
-                    COALESCE(SUM(cuota.monto), 0) as monto_vencido,
+                    COALESCE(SUM(cuota.saldo), 0) as monto_vencido,
                     COUNT(cuota.id) as numero_cuotas_vencidas,
 
                     -- Información de papeletas vencidas o capturadas (si aplica). Use conditional aggregation to
@@ -174,6 +174,7 @@ class ADTCapturaMora(models.Model):
 
                 FROM adt_comercial_cuentas cuenta
                 LEFT JOIN adt_comercial_cuotas cuota ON cuota.cuenta_id = cuenta.id
+                    AND cuota.type = 'cuota'
                     AND cuota.state IN ('pendiente', 'retrasado')
                     AND cuota.fecha_cronograma < now()
                 LEFT JOIN adt_papeleta p ON p.vehicle_id = cuenta.vehiculo_id
