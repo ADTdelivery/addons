@@ -407,21 +407,15 @@ def _build_cuenta_data(cuenta):
     }
 
 
-def _search_local(plate_upper):
+def _build_single_local_result(vehicle):
     """
-    Search for the vehicle in the current Odoo instance.
-    Returns (result_dict, financiera_name) or (None, None).
+    Construye el dict completo de respuesta para un único vehículo local.
+    Retorna (result_dict, financiera_name).
     """
-    VehicleModel = request.env['fleet.vehicle'].sudo()
-    vehicles = VehicleModel.search([('license_plate', '=ilike', plate_upper)])
-    if not vehicles:
-        return None, None
-
-    vehicle_ids = vehicles.ids
+    CuentaModel = request.env['adt.comercial.cuentas'].sudo()
 
     # ── Partner ────────────────────────────────────────────────────────────
-    partner = vehicles[:1].driver_id
-
+    partner = vehicle.driver_id
     partner_data = None
     if partner:
         country_name = partner.country_id.name if partner.country_id else None
@@ -435,20 +429,18 @@ def _search_local(plate_upper):
 
     # ── Vehicle ────────────────────────────────────────────────────────────
     vehicle_data = {
-        'placa': plate_upper,
-        'modelo': vehicles[:1].model_id.name if vehicles[:1].model_id else None,
-        'numero_chasis': vehicles[:1].vin_sn or None,
+        'placa': vehicle.license_plate or '',
+        'modelo': vehicle.model_id.name if vehicle.model_id else None,
+        'numero_chasis': vehicle.vin_sn or None,
         'total_cuentas': 0,
     }
 
     # ── Cuentas ────────────────────────────────────────────────────────────
-    CuentaModel = request.env['adt.comercial.cuentas'].sudo()
-    cuentas = CuentaModel.search([('vehiculo_id', 'in', vehicle_ids)], order='id desc')
+    cuentas = CuentaModel.search([('vehiculo_id', '=', vehicle.id)], order='id desc')
     cuentas_data = [_build_cuenta_data(c) for c in cuentas]
     vehicle_data['total_cuentas'] = len(cuentas)
 
     # ── Financiera ─────────────────────────────────────────────────────────
-    # Use the first active account's financiera; fall back to the latest account.
     financiera_name = None
     cuenta_ref = (
         cuentas.filtered(lambda c: c.state == 'en_curso')[:1]
@@ -475,9 +467,34 @@ def _search_local(plate_upper):
         'vehiculo': vehicle_data,
         'cuentas': cuentas_data,
         'financiera': financiera_name,
-        'relacionados_locales': _build_local_related_data(vehicles, cuentas),
+        'relacionados_locales': _build_local_related_data(vehicle, cuentas),
     }
     return result, financiera_name
+
+
+def _search_local(plate_upper):
+    """
+    Busca vehículos en el Odoo local por coincidencia parcial de placa (ilike).
+    Retorna (lista_de_resultados, primera_financiera) o ([], None).
+    """
+    VehicleModel = request.env['fleet.vehicle'].sudo()
+    vehicles = VehicleModel.search(
+        [('license_plate', 'ilike', plate_upper)],
+        limit=20,
+        order='license_plate asc',
+    )
+    if not vehicles:
+        return [], None
+
+    results = []
+    first_financiera = None
+    for vehicle in vehicles:
+        result, financiera = _build_single_local_result(vehicle)
+        results.append(result)
+        if financiera and not first_financiera:
+            first_financiera = financiera
+
+    return results, first_financiera
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -541,8 +558,9 @@ def _search_legacy(plate_upper):
     # ── Vehicle ────────────────────────────────────────────────────────────
     vehicles = execute(
         'fleet.vehicle', 'search_read',
-        [('license_plate', '=ilike', plate_upper)],
+        [('license_plate', 'ilike', plate_upper)],
         ['id', 'license_plate', 'model_id', 'vin_sn', 'driver_id'],
+        limit=1,
     )
     if not vehicles:
         return None
@@ -749,29 +767,37 @@ class PlacaAPIController(http.Controller):
                 )
             plate_upper = plate.strip().upper()
 
+            if len(plate_upper) < 4:
+                return _json_response(
+                    _error(422, 'VALIDATION_ERROR', 'Ingrese al menos 4 caracteres para buscar.'),
+                    status=422,
+                )
+
             # ── 1. Search in local Odoo ─────────────────────────────────────
-            result = None
+            vehiculos = []
             try:
-                result, _ = _search_local(plate_upper)
+                vehiculos, _ = _search_local(plate_upper)
             except Exception:
                 _logger.exception('PlacaAPI: Error buscando en Odoo local, placa=%s', plate_upper)
 
             # ── 2. Fallback to legacy Odoo ──────────────────────────────────
-            if not result:
+            if not vehiculos:
                 _logger.info('PlacaAPI: Placa %s no encontrada en local; buscando en legacy.', plate_upper)
                 try:
-                    result = _search_legacy(plate_upper)
+                    legacy_result = _search_legacy(plate_upper)
+                    if legacy_result:
+                        vehiculos = [legacy_result]
                 except Exception:
                     _logger.exception('PlacaAPI: Error buscando en Odoo legacy, placa=%s', plate_upper)
 
-            if not result:
+            if not vehiculos:
                 return _json_response(
                     _error(404, 'PLATE_NOT_FOUND',
                            'No se encontró ningún registro para la placa %s.' % plate_upper),
                     status=404,
                 )
 
-            return _json_response(_success(result))
+            return _json_response(_success({'vehiculos': vehiculos, 'total': len(vehiculos)}))
 
         except Exception:
             _logger.exception('PlacaAPI: Error inesperado en GET /api/v1/placa')

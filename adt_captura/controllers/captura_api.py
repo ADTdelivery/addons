@@ -161,7 +161,13 @@ class CapturaAPI(http.Controller):
 
             captura_existente = kwargs.get('captura_existente')
             if captura_existente is not None and captura_existente != '':
-                domain.append(('captura_existente', '=', captura_existente in ('1', 'true', 'True')))
+                if captura_existente in ('all', 'todos'):
+                    pass  # sin filtro: devuelve todos
+                else:
+                    domain.append(('captura_existente', '=', captura_existente in ('1', 'true', 'True')))
+            else:
+                # Por defecto excluir cuentas que ya tienen una captura activa
+                domain.append(('captura_existente', '=', False))
 
             # ── query ─────────────────────────────────────────────────────────
             MoraModel = request.env['adt.captura.mora'].sudo()

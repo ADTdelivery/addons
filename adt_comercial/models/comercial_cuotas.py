@@ -221,7 +221,9 @@ class ADTComercialCuotas(models.Model):
         'fecha_cronograma',
         'state',
         'type',
-        'company_id'
+        'company_id',
+        'cuenta_id.cuota_ids.fecha_cronograma',
+        'cuenta_id.cuota_ids.state',
     )
     @api.depends_context('today')
     def _compute_mora_total(self):
@@ -260,7 +262,7 @@ class ADTComercialCuotas(models.Model):
                     if p.mora_operacion and not ultima_operacion:
                         ultima_operacion = p.mora_operacion
 
-            # Si la cuota vencio y aun no existe mora pendiente registrada, calcularla en vivo.
+            # Si la cuota venció y aún no existe mora pendiente registrada, calcularla en vivo.
             if (
                 record.type == 'cuota'
                 and record.fecha_cronograma
@@ -269,7 +271,20 @@ class ADTComercialCuotas(models.Model):
                 and mora_ya_pagada <= 0
             ):
                 hoy = fields.Date.context_today(record)
-                diff_days = (hoy - record.fecha_cronograma).days
+
+                # La mora de esta cuota corre hasta la fecha de la siguiente cuota
+                # del cronograma (o hasta hoy si es la última).
+                next_cuota = self.search([
+                    ('cuenta_id', '=', record.cuenta_id.id),
+                    ('id', '!=', record.id),
+                    ('fecha_cronograma', '>', record.fecha_cronograma),
+                    ('type', '=', 'cuota'),
+                    ('parent_id', '=', False),
+                ], order='fecha_cronograma asc', limit=1)
+
+                fecha_limite = min(next_cuota.fecha_cronograma, hoy) if next_cuota else hoy
+                diff_days = (fecha_limite - record.fecha_cronograma).days
+
                 if diff_days > 0:
                     mora_auto = diff_days * default_factor
                     mora_total += mora_auto
@@ -305,6 +320,19 @@ class ADTComercialCuotas(models.Model):
                 'default_amount': self.mora_pendiente,
             }
             }
+
+    def action_eliminar_cuota(self):
+        self.ensure_one()
+        return {
+            'name': 'Eliminar Cuota',
+            'res_model': 'adt.eliminar.cuota.wizard',
+            'view_mode': 'form',
+            'context': {
+                'default_cuota_id': self.id,
+            },
+            'target': 'new',
+            'type': 'ir.actions.act_window',
+        }
 
 
 
@@ -476,7 +504,12 @@ class ADTComercialRegisterPayment(models.TransientModel):
             _logger.exception("ERROR registrando pago")
             raise
 
-    @api.depends('payment_date', 'cuota_id.fecha_cronograma', 'cuota_id.payment_ids.mora')
+    @api.depends(
+        'payment_date',
+        'cuota_id.fecha_cronograma',
+        'cuota_id.payment_ids.mora',
+        'cuota_id.cuenta_id.cuota_ids.fecha_cronograma',
+    )
     def _compute_mora(self):
         default_factor = float(self.env['ir.config_parameter'].sudo()
                                .get_param('adt_comercial.mora_factor', 2))
@@ -489,7 +522,23 @@ class ADTComercialRegisterPayment(models.TransientModel):
 
             fecha_pago = record.payment_date
             fecha_cronograma = record.cuota_id.fecha_cronograma
-            diff_days = (fecha_pago - fecha_cronograma).days
+
+            # La mora de esta cuota corre hasta la fecha de la siguiente cuota
+            # del cronograma (o hasta la fecha de pago si es la última).
+            cuota = record.cuota_id
+            if cuota.cuenta_id:
+                next_cuota = self.env['adt.comercial.cuotas'].search([
+                    ('cuenta_id', '=', cuota.cuenta_id.id),
+                    ('id', '!=', cuota.id),
+                    ('fecha_cronograma', '>', cuota.fecha_cronograma),
+                    ('type', '=', 'cuota'),
+                    ('parent_id', '=', False),
+                ], order='fecha_cronograma asc', limit=1)
+                fecha_limite = min(next_cuota.fecha_cronograma, fecha_pago) if next_cuota else fecha_pago
+            else:
+                fecha_limite = fecha_pago
+
+            diff_days = (fecha_limite - fecha_cronograma).days
 
             if diff_days <= 0:
                 continue
@@ -634,6 +683,76 @@ class ADTPagarMoraWizard(models.TransientModel):
         # Forzar recálculo en cuota
         self.cuota_id.invalidate_cache()
         self.cuota_id._compute_mora_total()
+
+        return {'type': 'ir.actions.act_window_close'}
+
+
+class ADTEliminarCuotaWizard(models.TransientModel):
+    _name = 'adt.eliminar.cuota.wizard'
+    _description = 'Confirmación de eliminación de cuota'
+
+    cuota_id = fields.Many2one('adt.comercial.cuotas', string='Cuota', required=True, readonly=True)
+    motivo = fields.Text(string='Motivo de eliminación')
+
+    cuota_name = fields.Char(related='cuota_id.name', readonly=True, string='# Cuota')
+    cuota_monto = fields.Monetary(related='cuota_id.monto', readonly=True, string='Monto')
+    cuota_fecha = fields.Date(related='cuota_id.fecha_cronograma', readonly=True, string='Fecha cronograma')
+    cuota_state = fields.Selection(related='cuota_id.state', readonly=True, string='Estado')
+    currency_id = fields.Many2one(related='cuota_id.currency_id', readonly=True)
+
+    def action_confirmar_eliminacion(self):
+        self.ensure_one()
+        cuota = self.cuota_id
+        cuenta = cuota.cuenta_id
+        usuario = self.env.user
+        ahora = fields.Datetime.now()
+
+        state_labels = {
+            'pendiente': 'Pendiente',
+            'a_cuenta': 'A cuenta',
+            'retrasado': 'Retrasado',
+            'pagado': 'Pagado',
+            'anulada': 'Anulada',
+        }
+
+        mensaje = (
+            "<b>Cuota eliminada</b><br/>"
+            "<b>Cuota:</b> %s<br/>"
+            "<b>Monto:</b> S/ %.2f<br/>"
+            "<b>Fecha cronograma:</b> %s<br/>"
+            "<b>Estado:</b> %s<br/>"
+            "<b>Eliminado por:</b> %s<br/>"
+            "<b>Fecha de eliminación:</b> %s<br/>"
+        ) % (
+            cuota.name,
+            cuota.monto,
+            cuota.fecha_cronograma.strftime('%d/%m/%Y') if cuota.fecha_cronograma else '-',
+            state_labels.get(cuota.state, cuota.state),
+            usuario.name,
+            ahora.strftime('%d/%m/%Y %H:%M'),
+        )
+
+        if self.motivo:
+            mensaje += "<b>Motivo:</b> %s<br/>" % self.motivo
+
+        if cuenta:
+            cuenta.message_post(
+                body=mensaje,
+                message_type='comment',
+                subtype_xmlid='mail.mt_note',
+            )
+
+        # Eliminar observaciones de subcuotas y luego las subcuotas
+        for child in cuota.child_ids.sudo():
+            child.observacion_ids.sudo().unlink()
+        cuota.child_ids.sudo().unlink()
+
+        # Eliminar observaciones de la cuota principal
+        cuota.observacion_ids.sudo().unlink()
+
+        # Los pagos (account.payment) mantienen su cuota_id en null via ORM (set null)
+        # para preservar la integridad contable
+        cuota.sudo().unlink()
 
         return {'type': 'ir.actions.act_window_close'}
 

@@ -344,6 +344,15 @@ def _compute_server_mora(cuota, fecha_pago_dt):
     return _money(Decimal(str(diff_days)) * Decimal(str(factor)))
 
 
+def _public_attachment_url(attach, base_url):
+    """Genera una URL pública con access_token para que sea accesible sin sesión de Odoo."""
+    token = attach.access_token
+    if not token:
+        token = str(uuid.uuid4())
+        attach.sudo().write({'access_token': token})
+    return '%s/web/content/%d?access_token=%s' % (base_url, attach.id, token)
+
+
 def _build_attachment_url(res_model, res_id, res_field):
     """Devuelve URL /web/content del attachment asociado a un campo binario."""
     try:
@@ -356,7 +365,7 @@ def _build_attachment_url(res_model, res_id, res_field):
         if not attach:
             # Fallback robusto: URL directa al campo binario.
             return '%s/web/image/%s/%s/%s' % (base_url, res_model, res_id, res_field)
-        return '%s/web/content/%d' % (base_url, attach.id)
+        return _public_attachment_url(attach, base_url)
     except Exception:
         _logger.exception('Error generating attachment URL for %s(%s).%s', res_model, res_id, res_field)
         return None
@@ -631,7 +640,7 @@ class MobileAPIController(http.Controller):
                     ], limit=1)
                     if attach:
                         base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
-                        voucher_url = f"{base_url}/web/content/{attach.id}"
+                        voucher_url = _public_attachment_url(attach, base_url)
 
                 installments_data.append({
                     'number': cuota.id,
@@ -1102,7 +1111,7 @@ class MobileAPIController(http.Controller):
                         ], limit=1)
 
                         if attach:
-                            url = '%s/web/content/%d' % (base_url, attach.id)
+                            url = _public_attachment_url(attach, base_url)
                             size_kb = int((attach.file_size or 0) / 1024)
                             mime = attach.mimetype or 'application/octet-stream'
                             uploaded_at = _format_datetime(attach.create_date)
@@ -1935,7 +1944,8 @@ class MobileAPIController(http.Controller):
                 papeleta.write({'attachment_ids': [(6, 0, attachment_ids)]})
 
             base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
-            urls = ['%s/web/content/%s' % (base_url, aid) for aid in attachment_ids]
+            attach_records = AttachModel.browse(attachment_ids)
+            urls = [_public_attachment_url(att, base_url) for att in attach_records]
 
             _notify_papeleta_channel(
                 papeleta=papeleta,
@@ -2011,7 +2021,7 @@ class MobileAPIController(http.Controller):
 
             papeletas_data = []
             for papeleta in papeletas:
-                foto_urls = ['%s/web/content/%s' % (base_url, att.id) for att in papeleta.attachment_ids.sudo()]
+                foto_urls = [_public_attachment_url(att, base_url) for att in papeleta.attachment_ids.sudo()]
                 papeletas_data.append({
                     'id': papeleta.id,
                     'numeroPapeleta': papeleta.name,
@@ -2895,7 +2905,7 @@ def _build_expediente_documents(expediente):
         ], limit=1)
 
         if attach:
-            url = '%s/web/content/%d' % (base_url, attach.id)
+            url = _public_attachment_url(attach, base_url)
             size_kb = int((attach.file_size or 0) / 1024)
             mime = attach.mimetype or 'image/jpeg'
             uploaded_at = _format_datetime(attach.create_date)

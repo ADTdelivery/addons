@@ -110,4 +110,35 @@
         </field>
     </record>
 
+
+    <record id="view_adt_eliminar_cuota_wizard_form" model="ir.ui.view">
+        <field name="name">adt.eliminar.cuota.wizard.form</field>
+        <field name="model">adt.eliminar.cuota.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Eliminar Cuota">
+                <sheet>
+                    <group string="Información de la cuota">
+                        <group>
+                            <field name="cuota_name" readonly="1"/>
+                            <field name="cuota_fecha" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="cuota_monto" readonly="1"/>
+                            <field name="cuota_state" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Eliminación">
+                        <field name="motivo" placeholder="Ingrese el motivo de eliminación (opcional)..." nolabel="1" colspan="2"/>
+                    </group>
+                    <field name="cuota_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                </sheet>
+                <footer>
+                    <button name="action_confirmar_eliminacion" string="Confirmar eliminación" type="object" class="btn-danger"/>
+                    <button string="Cancelar" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
 </odoo>

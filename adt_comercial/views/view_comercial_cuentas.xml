@@ -257,6 +257,9 @@
                                                 attrs="{'invisible': [('mora_pendiente', '=', 0)]}"/>
 
 
+                                        <button string="Eliminar cuota" name="action_eliminar_cuota" type="object"
+                                                class="btn-danger"/>
+
                                         <button string="Observaciones" name="registrar_observacion" type="object"
                                                 attrs="{'invisible': [('state', 'in', ['anulada'])]}"/>
 
