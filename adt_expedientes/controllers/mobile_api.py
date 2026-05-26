@@ -2057,7 +2057,12 @@ class AdtExpedientesMobileAPI(http.Controller):
             offset = (page - 1) * page_size
             recs = WoModel.search(domain, limit=page_size, offset=offset, order='create_date desc,id desc')
 
-            data = {'items': [_ws_serialize_work_order_card(rec) for rec in recs]}
+            def _full_detail(rec):
+                detail = _ws_serialize_work_order_detail(rec)
+                detail['formProgress'] = _ws_work_order_form_progress(rec)
+                return detail
+
+            data = {'items': [_full_detail(rec) for rec in recs]}
             pagination = {
                 'page': page,
                 'pageSize': page_size,
@@ -2069,6 +2074,32 @@ class AdtExpedientesMobileAPI(http.Controller):
             return _ws_json_response(_ws_success(data, pagination=pagination))
         except Exception:
             _logger.exception('Error in GET /v1/workshop/work-orders')
+            return _ws_json_response(_ws_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route('/v1/workshop/work-orders/<int:work_order_id>', type='http', auth='none', methods=['GET'], csrf=False, cors='*')
+    def workshop_work_order_detail(self, work_order_id, **kwargs):
+        try:
+            _, auth_error = self._workshop_auth_or_error()
+            if auth_error:
+                return auth_error
+
+            model_err = _ws_ensure_workshop_model('maintenance.work.order')
+            if model_err:
+                return _ws_json_response(model_err, status=model_err['statusCode'])
+
+            env = request.env(user=SUPERUSER_ID)
+            wo = env['maintenance.work.order'].browse(work_order_id)
+            if not wo.exists():
+                return _ws_json_response(
+                    _ws_error(404, 'NOT_FOUND', 'Orden de trabajo no encontrada.'),
+                    status=404,
+                )
+
+            detail = _ws_serialize_work_order_detail(wo)
+            detail['formProgress'] = _ws_work_order_form_progress(wo)
+            return _ws_json_response(_ws_success({'workOrder': detail}))
+        except Exception:
+            _logger.exception('Error in GET /v1/workshop/work-orders/%s', work_order_id)
             return _ws_json_response(_ws_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     @http.route('/v1/workshop/work-orders', type='http', auth='none', methods=['POST'], csrf=False, cors='*')
@@ -2434,6 +2465,11 @@ def _ws_serialize_work_order_detail(wo):
         'startDate': _ws_format_datetime(wo.start_date),
         'endDate': _ws_format_datetime(wo.end_date),
         'nextRevisionDate': _ws_format_date(wo.next_revision_date),
+        'serviceDurationHours': wo.service_duration_hours or 0.0,
+        'evidenceImage': bool(wo.evidence_image),
+        'mechanicSignature': bool(wo.mechanic_signature),
+        'clientSignature': bool(wo.client_signature),
+        'keyDeliveryPhoto': bool(wo.key_delivery_photo),
         'parts': [],
         'services': [],
         'paymentSchedule': [],
@@ -2467,6 +2503,85 @@ def _ws_serialize_work_order_detail(wo):
             'state': pay.state or None,
         })
     return data
+
+
+def _ws_work_order_form_progress(wo):
+    """
+    Returns filled/missing field analysis so the mobile app can resume
+    form entry at the correct step.
+
+    Each step contains a list of field keys that belong to it.  A field
+    is considered 'filled' when it has a truthy value (non-empty string,
+    non-zero number, non-False binary, non-empty one2many).
+    """
+    steps = [
+        {
+            'step': 1,
+            'label': 'Informacion del vehiculo',
+            'fields': {
+                'vehicleId':   bool(wo.vehicle_id),
+                'clientId':    bool(wo.client_id),
+                'mileage':     bool(wo.mileage),
+                'entryReason': bool(wo.entry_reason and wo.entry_reason.strip()),
+                'evidenceImage': bool(wo.evidence_image),
+            },
+        },
+        {
+            'step': 2,
+            'label': 'Diagnostico y mecanico',
+            'fields': {
+                'mechanicId':  bool(wo.mechanic_id),
+                'diagnostic':  bool(wo.diagnostic and wo.diagnostic.strip()),
+            },
+        },
+        {
+            'step': 3,
+            'label': 'Repuestos y servicios',
+            'fields': {
+                'parts':    bool(wo.part_ids),
+                'services': bool(wo.service_ids),
+            },
+        },
+        {
+            'step': 4,
+            'label': 'Costos y pagos',
+            'fields': {
+                'payerType':       bool(wo.payer_type),
+                'paymentSchedule': bool(wo.payment_schedule_ids),
+            },
+        },
+        {
+            'step': 5,
+            'label': 'Cierre y entrega',
+            'fields': {
+                'finalState':      bool(wo.final_state),
+                'finalNotes':      bool(wo.final_notes and wo.final_notes.strip()),
+                'nextRevisionDate': bool(wo.next_revision_date),
+                'keyDeliveryPhoto': bool(wo.key_delivery_photo),
+                'mechanicSignature': bool(wo.mechanic_signature),
+                'clientSignature':   bool(wo.client_signature),
+            },
+        },
+    ]
+
+    all_filled = []
+    all_missing = []
+    for step in steps:
+        step['filledCount'] = sum(1 for v in step['fields'].values() if v)
+        step['totalCount'] = len(step['fields'])
+        step['complete'] = step['filledCount'] == step['totalCount']
+        for key, filled in step['fields'].items():
+            (all_filled if filled else all_missing).append(key)
+
+    first_incomplete = next((s['step'] for s in steps if not s['complete']), None)
+
+    return {
+        'steps': steps,
+        'filledFields': all_filled,
+        'missingFields': all_missing,
+        'firstIncompleteStep': first_incomplete,
+        'isComplete': first_incomplete is None,
+    }
 
 
 def _ws_sync_work_order_lines(work_order, body):
