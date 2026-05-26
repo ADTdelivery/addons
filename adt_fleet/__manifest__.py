@@ -6,11 +6,13 @@
     'author': 'Your Name',
     'website': 'http://www.example.com',
     'category': 'Fleet',
-    'depends': ['fleet'],
+    'depends': ['fleet', 'adt_comercial'],
     'data': [
         'views/fleet_state.xml',
         'views/adt_fleet_views.xml',
-        'views/adt_fleet_documents.xml'
+        'report/report_acta_vehicular.xml',
+        'report/report_contrato_tvs.xml',
+        'views/adt_fleet_documents.xml',
     ],
     'installable': True,
     'application': False,

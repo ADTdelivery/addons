@@ -1,0 +1,771 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+         QWeb template &#8212; replica fiel de CONTRATO_TVS_ANDES_ACTUAL.docx
+         Datos din&#225;micos: fleet.vehicle + adt.comercial.cuentas + res.partner
+    &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <template id="report_contrato_tvs">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+
+                <!-- &#9472;&#9472; Resoluci&#243;n de datos din&#225;micos &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; -->
+                <t t-set="cuenta"           t-value="o._get_cuenta_for_report()"/>
+                <t t-set="partner"          t-value="o._get_partner_for_report()"/>
+                <t t-set="rep"              t-value="o._get_company_rep_info()"/>
+                <t t-set="fecha"            t-value="o._fecha_es()"/>
+                <t t-set="company"          t-value="o.env.company"/>
+                <t t-set="marca"            t-value="o.model_id.brand_id.name if o.model_id and o.model_id.brand_id else ''"/>
+                <t t-set="color"            t-value="o.color or ''"/>
+                <t t-set="chasis"           t-value="o.vin_sn or ''"/>
+                <t t-set="placa"            t-value="o.license_plate or ''"/>
+                <t t-set="nombre"           t-value="partner.name or ''"/>
+                <t t-set="dni_cliente"      t-value="partner.vat or ''"/>
+                <t t-set="dir_cliente"      t-value="partner.street or ''"/>
+                <t t-set="tipo_doc"         t-value="'DNI' if (not partner or not partner.country_id or partner.country_id.code == 'PE') else 'CE'"/>
+                <t t-set="financiera"       t-value="cuenta.tipo_financiera_id.name if cuenta and cuenta.tipo_financiera_id else ''"/>
+                <t t-set="monto_total_val"      t-value="cuenta.monto_total if cuenta else 0"/>
+                <t t-set="monto_inicial_val"    t-value="cuenta.monto_inicial if cuenta else 0"/>
+                <t t-set="monto_fraccionado_val" t-value="cuenta.monto_fraccionado if cuenta else 0"/>
+                <t t-set="qty_cuotas_val"       t-value="cuenta.qty_cuotas if cuenta else 0"/>
+                <t t-set="monto_cuota_val"      t-value="cuenta.monto_cuota if cuenta else 0"/>
+                <t t-set="plazo_meses"          t-value="o._plazo_meses(cuenta)"/>
+                <t t-set="periodicidad_label"   t-value="o._periodicidad_label(cuenta)"/>
+
+                <div class="page" style="
+                    font-family: Arial, sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.7;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                ">
+
+                    <!-- &#9552;&#9552; [0] T&#205;TULO &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <h1 style="
+                        text-align: center;
+                        font-size: 14pt;
+                        font-weight: bold;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 20pt;
+                        margin-top: 10pt;
+                    ">
+                        CONTRATO DE ALQUILER VENTA DE BIEN MUEBLE A PLAZO DETERMINADO
+                    </h1>
+
+                    <!-- &#9552;&#9552; [1-4] INTRO: ARRENDADOR + ARRENDATARIO &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="text-align: justify; margin-bottom: 10pt;">
+                        Conste por el presente documento, el CONTRATO DE ALQUILER VENTA que, celebran de una parte
+                        la empresa denominada <t t-esc="company.name"/>,
+                        con RUC <t t-esc="company.vat or ''"/>,
+                        con domicilio fiscal <t t-esc="company.street or ''"/>
+                        - <t t-esc="company.city or ''"/>,
+                        debidamente representada por <t t-esc="rep['nombre']"/>,
+                        identificada con DNI N&#176;&#160;<t t-esc="rep['dni']"/>,
+                        con domicilio fiscal en <t t-esc="company.street or ''"/>
+                        - <t t-esc="company.city or ''"/>,
+                        con poderes inscritos en la Partida Registral N&#186;&#160;<t t-esc="rep['partida']"/>,
+                        de los Registros P&#250;blicos de Lima, a quien en adelante se le denominar&#225;
+                        <strong>EL ARRENDADOR</strong>; y de la otra parte a&#160;<t t-esc="nombre"/>,
+                        con <t t-esc="tipo_doc"/> N&#176;&#160;<t t-esc="dni_cliente"/>
+                        con domicilio real <t t-esc="dir_cliente"/> &#8211; Provincia y Departamento de Lima,
+                        a quien en lo sucesivo se le denominar&#225; <strong>EL ARRENDATARIO</strong>;
+                        en los t&#233;rminos contenidos en las cl&#225;usulas siguientes:
+                    </p>
+
+                    <!-- &#9552;&#9552; [5] ANTECEDENTES &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        ANTECEDENTES:
+                    </p>
+
+                    <!-- &#9552;&#9552; [6] PRIMERA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="font-weight: bold; margin-bottom: 6pt;">PRIMERA: FINES DEL ARRENDADOR COMPRADOR</p>
+
+                    <!-- &#9552;&#9552; [7] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        El ARRENDADOR, es una empresa que cuenta con respaldo crediticio para la adquisici&#243;n de
+                        diversos veh&#237;culos, los mismos que son adquiridos a requerimiento de nuestros clientes,
+                        de modo tal que para su adquisici&#243;n se cuenta con el respaldo de una Financiera, quien nos
+                        otorga el financiamiento para poder adquirir estos bienes y luego poder venderlos o darlos
+                        en alquiler venta, de modo tal que podamos cumplir con nuestras obligaciones crediticias
+                        con dicha entidad financiera.
+                    </p>
+
+                    <!-- &#9552;&#9552; [8] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        La principal actividad es la Distribuci&#243;n y Comercializaci&#243;n de trimotos, otorgando ventas
+                        al contado, cr&#233;ditos directos o trav&#233;s de una financiera, en las condiciones m&#225;s favorables
+                        de acuerdo a su normatividad vigente. Su principal objetivo es el apoyo a la renovaci&#243;n del
+                        Parque Automotor de Veh&#237;culos Menores a trav&#233;s de cr&#233;ditos accesibles, con garant&#237;a y
+                        trayectoria para lograr un desarrollo econ&#243;mico, social y ambiental sostenible que respalda
+                        dicha funci&#243;n.
+                    </p>
+
+                    <!-- &#9552;&#9552; [9] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDATARIO, es persona natural, dedicada a la actividad de Transporte de Veh&#237;culos
+                        Menores (Trimoto), acreditado a trav&#233;s de la documentaci&#243;n presentada para su evaluaci&#243;n,
+                        no teniendo inconvenientes o impedimentos legales para poder realizar un contrato, ni multas
+                        o mandatos de otra naturaleza que le impidan realizar el Acto Jur&#237;dico, establecido en el
+                        art&#237;culo 140&#186; del c&#243;digo civil.
+                    </p>
+
+                    <!-- &#9552;&#9552; [10] Descripci&#243;n veh&#237;culo &#8212; CHASIS en negrita &#9552;&#9552; -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDADOR es titular del bien mueble consistente en una trimoto, de marca
+                        <t t-esc="marca"/>, color <t t-esc="color"/>,
+                        Con Chasis N&#186;&#160;<strong><t t-esc="chasis"/></strong>,
+                        con Placa de Rodaje N&#176;&#160;<t t-esc="placa"/> la misma que ha sido adquirida por un
+                        financiamiento con la entidad <t t-esc="financiera"/>, es por ello que obra inscrita
+                        una Garant&#237;a Mobiliaria a favor de dicha entidad, hasta por la suma de
+                        S/&#160;<t t-esc="'%.2f' % monto_total_val"/> Soles, sin embargo, seg&#250;n el contrato de
+                        Garant&#237;a Mobiliaria estamos autorizados para poder vender o dar en alquiler venta
+                        este veh&#237;culo, para lo cual a la cancelaci&#243;n total de su precio del bien se coordinar&#225;
+                        con este acreedor para el levantamiento de dicho gravamen y as&#237; poder transferir sin
+                        ninguna carga o gravamen al comprador o al Arrendatario Comprador.
+                    </p>
+
+                    <!-- &#9552;&#9552; [13] SEGUNDA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        SEGUNDA: CONDICIONES DEL VEH&#205;CULO
+                    </p>
+
+                    <!-- &#9552;&#9552; [14] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        LAS PARTES dejan constancia que el bien descrito en la cl&#225;usula precedente, es nuevo y
+                        est&#225; operativo en todas sus dimensiones, seg&#250;n la marca y modelo, el cual ser&#225; destinado
+                        para fines de transporte en sus diferentes modalidades, de acuerdo al tipo de veh&#237;culo y
+                        categor&#237;a, siempre y cuando sean de actividad l&#237;cita, para ello el ARRENDATARIO est&#225;
+                        obligado, bajo causal de resoluci&#243;n de contrato, de adquirir los permisos, p&#243;lizas de
+                        seguro y otros documentos que requiera el veh&#237;culo, por lo que el ARRENDATARIO no est&#225;
+                        autorizado a dar otro tipo de uso sin previa autorizaci&#243;n del ARRENDADOR, bajo
+                        apercibimiento de resoluci&#243;n de contrato.
+                    </p>
+
+                    <!-- &#9552;&#9552; [15] OBJETO DEL CONTRATO &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        OBJETO DEL CONTRATO:
+                    </p>
+
+                    <!-- &#9552;&#9552; [16] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        TERCERA: Por el presente contrato, EL ARRENDADOR, se obliga a ceder el uso del bien
+                        descrito en la cl&#225;usula primera a favor del EL ARRENDATARIO, a t&#237;tulo de arrendamiento,
+                        el mismo que reci&#233;n al concluir con el pago de la totalidad del precio pactado, se
+                        otorgar&#225; a t&#237;tulo de venta. Por su parte, EL ARRENDATARIO, se obliga a pagar al
+                        ARRENDADOR el monto total del precio, como renta pactada y por el plazo correspondiente,
+                        detallado en las cl&#225;usulas siguientes, en la forma y oportunidad convenidas.
+                    </p>
+
+                    <!-- &#9552;&#9552; [17] RENTA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        RENTA: PRECIO DEL BIEN, FORMA Y OPORTUNIDAD DE PAGO:
+                    </p>
+
+                    <!-- &#9552;&#9552; [18] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        CUARTA: Las partes acuerdan que el monto total del Veh&#237;culo descrito l&#237;neas abajo, en
+                        el que est&#225; incluido los gastos por la obtenci&#243;n de la tarjeta de propiedad, placa de
+                        rodaje, SOAT, GPS, fondo de contingencia y monitoreo por un a&#241;o, las 24 horas del d&#237;a;
+                        as&#237; como tambi&#233;n incluye un fondo interno de contingencias, el mismo que ser&#225; administrado
+                        por EL ARRENDADOR, condici&#243;n claramente aceptada y autorizada por EL ARRENDATARIO.
+                    </p>
+
+                    <!-- &#9552;&#9552; [19] Montos din&#225;micos &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Ambas partes acuerdan que, el total del precio del bien, descrito inicial
+                        <t t-esc="'%.2f' % monto_inicial_val"/>, Soles y el resto que asciende a
+                        S/&#160;<t t-esc="'%.2f' % monto_fraccionado_val"/> ser&#225; cancelado en un periodo de
+                        <t t-esc="qty_cuotas_val"/> Cuotas, en calidad de renta, tal como se describe
+                        a continuaci&#243;n:
+                    </p>
+
+                    <!-- &#9552;&#9552; [20] TABLA DE DETALLES &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <table style="width: 65%; border-collapse: collapse; margin-bottom: 14pt; margin-left: auto; margin-right: auto;">
+                        <tr style="background-color: #4472C4; color: #fff; font-weight: bold; text-align: center;">
+                            <td colspan="2" style="border: 1pt solid #000; padding: 4pt 8pt;">
+                                DETALLES DEL PRECIO DEL VEH&#205;CULO
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt; font-weight: bold;">CUOTA INICIAL</td>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt;"><t t-esc="'%.2f' % monto_inicial_val"/></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt; font-weight: bold;">MONTO A FRACCIONAR EN CUOTAS</td>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt;">S/<t t-esc="'%.2f' % monto_cuota_val"/></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt; font-weight: bold;">NUMERO DE CUOTAS</td>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt;"><t t-esc="qty_cuotas_val"/></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt; font-weight: bold;">PERIODO A CANCELAR</td>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt;"><t t-esc="periodicidad_label"/></td>
+                        </tr>
+                    </table>
+
+                    <!-- &#9552;&#9552; [21] QUINTA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        QUINTA: FORMA DE PAGO.
+                    </p>
+
+                    <!-- &#9552;&#9552; [22] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        La forma de pago de la cuota inicial y de las rentas fraccionadas ser&#225;n de acuerdo a las
+                        fechas previstas en el cronograma de pago, el mismo que formar&#225; parte de este contrato,
+                        por tanto, estas ser&#225;n canceladas en la fecha pactada y el monto acordado y descrito en
+                        el cronograma.
+                    </p>
+
+                    <!-- &#9552;&#9552; [23] Cuenta bancaria din&#225;mica &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Ambas partes acuerdan que, el monto inicial y el monto fraccionado, es a t&#237;tulo de
+                        arrendamiento, por tanto, este ser&#225; cancelado en dinero y depositado a la cuenta de
+                        ahorros N&#176;&#160;<t t-esc="rep['cuenta_bancaria']"/> del Banco de Cr&#233;dito del Per&#250;
+                        (BCP), a nombre de la empresa denominada <t t-esc="company.name"/>, la misma que para
+                        efectos del presente documento, EL ARRENDADOR, autoriza expresamente para que esta cobre
+                        y recaude dichos montos, ello debido a que entre ella y el ARRENDADOR, existe una cesi&#243;n
+                        de derechos crediticios, por lo que el incumplimiento por parte del ARRENDATARIO implica
+                        una transgresi&#243;n a las obligaciones de las partes, por lo que de persistir en dos o m&#225;s
+                        cuotas, ya sea correlativas o alternativas, ser&#225; causal de resoluci&#243;n de contrato.
+                    </p>
+
+                    <!-- &#9552;&#9552; [24] SEXTA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        SEXTA: PLAZO DEL CONTRATO Y GARANT&#205;A:
+                    </p>
+
+                    <!-- &#9552;&#9552; [25] Plazo din&#225;mico &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Las partes convienen fijar un plazo de duraci&#243;n determinada para el presente contrato,
+                        equivalente a (<t t-esc="plazo_meses"/> meses seg&#250;n el tiempo del cronograma de pago),
+                        pudiendo prorrogar el plazo previo acuerdo de las partes.
+                    </p>
+
+                    <!-- &#9552;&#9552; [26] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Asimismo, las partes han establecido, en el caso que el ARRENDATARIO no cumpla con
+                        cancelar oportunamente la renta y se resuelva el contrato por su responsabilidad, el
+                        monto cancelado como inicial y renta mensual, ser&#225;n adjudicadas en su totalidad por el
+                        ARRENDADOR, por concepto de alquiler del veh&#237;culo, no estando obligado a devolver ning&#250;n
+                        monto, por lo que el ARRENDATARIO acepta esta condici&#243;n y asume la responsabilidad;
+                    </p>
+
+                    <!-- &#9552;&#9552; [27] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        Asimismo, se acuerda que frente a una resoluci&#243;n de contrato por causa imputable al
+                        ARRENDADOR este se obligada de asumir los costos y gastos que implique la recuperaci&#243;n
+                        del veh&#237;culo en el estado &#243;ptimo que deber&#225; entregar el ARRENDATARIO, no dando lugar a
+                        la devoluci&#243;n de la inicial del precio o de las cuotas pagadas.
+                    </p>
+
+                    <!-- &#9552;&#9552; [28] OBLIGACIONES &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        OBLIGACIONES DE LAS PARTES:
+                    </p>
+
+                    <!-- &#9552;&#9552; [29] OCTAVA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-weight: bold; margin-bottom: 6pt;">OCTAVA. OBLIGACIONES DEL ARRENDADOR</p>
+
+                    <!-- &#9552;&#9552; [30] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDADOR, se obliga a realizar la entrega del veh&#237;culo automotor descrito en el
+                        presente contrato, en perfecto estado mec&#225;nico, interiores, accesorios y de carrocer&#237;a,
+                        con cero Km. (1) de recorrido, con un dispositivo GPS, tal y como lo faculta EL ART&#205;CULO
+                        N&#176; 1550&#176; DEL C&#211;DIGO CIVIL, de igual forma se obliga a realizar el seguimiento sobre la
+                        ubicaci&#243;n y seguridad del bien, que est&#233; libre de multas, impuestos, pactos de reserva de
+                        dominio, por tal raz&#243;n, la trimoto, estar&#225; a nombre del ARRENDADOR, hasta la cancelaci&#243;n
+                        del presente contrato.
+                    </p>
+
+                    <!-- &#9552;&#9552; [31] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDADOR se obliga a realizar las gestiones pertinentes ante los organismos
+                        competentes, a efectos de que se emita la respectiva tarjeta de propiedad vehicular y
+                        las placas de rodaje correspondiente conforme a lo establecido en el ART&#205;CULO N&#176; 1511&#176;
+                        DEL C&#211;DIGO CIVIL.
+                    </p>
+
+                    <!-- &#9552;&#9552; [32] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        EL ARRENDADOR, se compromete a que el bien mueble sea entregado en el lugar pactado al
+                        momento de celebrarse el contrato, de conformidad con el ART&#205;CULO N&#176;1553&#176; DEL C&#211;DIGO CIVIL.
+                    </p>
+
+                    <!-- &#9552;&#9552; [33] NOVENA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        NOVENA: OBLIGACIONES DEL ARRENDATARIO
+                    </p>
+
+                    <!-- &#9552;&#9552; [34] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDATARIO se obliga a pagar puntualmente el monto de la renta y dem&#225;s obligaciones
+                        pactados, en la forma, oportunidad y lugar pactados, con sujeci&#243;n a lo convenido en las
+                        cl&#225;usulas cuarta, quinta y dem&#225;s de este documento.
+                    </p>
+
+                    <!-- &#9552;&#9552; [35] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        EL ARRENDATARIO se obliga a destinar el bien arrendado &#250;nica y exclusivamente para fines
+                        o giros l&#237;citos, por lo que, en caso de hacer otro giro comercial o actividad il&#237;cita, EL
+                        ARRENDADOR, sin tr&#225;mite alguno recuperara el veh&#237;culo y se exigir&#225; el pago de las
+                        obligaciones o responsabilidades que su accionar inadecuado o il&#237;cito haya generado al
+                        ARRENDADOR y a terceros de ser el caso. De otro lado, EL ARRENDATARIO est&#225; obligado a
+                        permitir la inspecci&#243;n del bien arrendado por parte del ARRENDADOR, para cuyo efecto &#233;ste
+                        deber&#225; comunicar telef&#243;nicamente, para que el bien sea tra&#237;do al domicilio del ARRENDADOR
+                        o al lugar requerido, con una anticipaci&#243;n de no menos de 2 d&#237;as calendario, salvo acuerdo
+                        de las partes, ello con el fin de verificar, el estado del veh&#237;culo, las condiciones
+                        mec&#225;nicas, su estructura, pintura y tambi&#233;n para verificar si no cuenta con multas o
+                        infracciones de tr&#225;nsito, en el caso de existir observaciones, el veh&#237;culo quedar&#225; bajo
+                        custodia del ARRENDADOR hasta que el ARRENDATARIO cumpla con levanta la integridad de las
+                        observaciones, en caso de no cumplirlas dentro del plazo otorgado, se dar&#225; por resuelto
+                        el contrato y se aplicar&#225; las penalidades y dem&#225;s condiciones atribuibles al ARRENDATARIO.
+                    </p>
+
+                    <!-- &#9552;&#9552; [36] D&#201;CIMA PRIMERA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        D&#201;CIMA PRIMERA: RECUPERACI&#211;N DEL VEH&#205;CULO POR INCUMPLIMIENTO DE PAGO O RESOLUCI&#211;N DE CONTRATO
+                    </p>
+
+                    <!-- &#9552;&#9552; [37] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        El procedimiento de cobranza correctivo, se iniciar&#225; cuando EL ARRENDATARIO incumpla los
+                        pagos consecutivos o alternados de una cuota y la mitad de la siguiente, establecidos en
+                        el CRONOGRAMA DE PAGO se&#241;alados en la CUARTA CL&#193;USULA DEL PRESENTE CONTRATO.
+                    </p>
+
+                    <!-- &#9552;&#9552; [38] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        La cobranza correctiva comprende las siguientes etapas:
+                    </p>
+
+                    <!-- &#9552;&#9552; [39-43] Lista etapas de cobranza &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <ul style="margin-left: 20pt; margin-bottom: 0; text-align: justify; list-style-type: disc;">
+                        <li style="margin-bottom: 6pt;">
+                            EL ARRENDADOR, procurara ubicar a EL ARRENDATARIO, v&#237;a llamadas telef&#243;nicas o por
+                            cualquier otro medio de comunicaci&#243;n y/o visitas domiciliarias durante las siguientes
+                            24 Horas.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Transcurridas las 24 Horas, se ubicar&#225; el veh&#237;culo mediante el sistema de GPS, por
+                            lo que se proceder&#225; con el apagado del equipo y con ello la captura del veh&#237;culo,
+                            asimismo, si en el transcurso de dicho procedimiento, EL ARRENDATARIO hace alg&#250;n
+                            acuerdo con EL ARRENDADOR se podr&#225; paralizar la cobranza correctiva.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            El ARRENDATARIO har&#225; un pago de S/. 50.00 (CINCUENTA Y 00/100 SOLES) por concepto
+                            de captura, cada vez que el veh&#237;culo menor sea intervenido por el equipo de COBRANZA
+                            de EL ARRENDADOR.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            El veh&#237;culo menor luego de la cancelaci&#243;n de las rentas atrasadas por parte de EL
+                            ARRENDATARIO, ser&#225; liberado y entregado; enti&#233;ndase que este deber&#225; estar al d&#237;a con
+                            el cronograma de rentas.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            EL SISTEMA GPS y EL ARRENDADOR, se eximen de cualquier responsabilidad civil, por
+                            cualquier hecho ocurrido que afecte al ARRENDATARIO, desde la aplicaci&#243;n del inicio
+                            del procedimiento de cobranza correctiva.
+                        </li>
+                    </ul>
+
+                    <!-- &#9552;&#9552; [45] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <ul style="margin-left: 20pt; margin-bottom: 0; text-align: justify; list-style-type: disc;">
+                        <li style="margin-bottom: 6pt;">
+                            En caso de que el ARRENDATARIO se rehusara a la entrega del veh&#237;culo menor conforme
+                            lo establece el procedimiento de cobranza correctiva, inmediatamente EL ARRENDADOR,
+                            dar&#225; por resuelto el contrato y con ello vencidas todas las cuotas pendientes, por
+                            lo que habilitara para que inicie las acciones legales para recuperar el veh&#237;culo,
+                            as&#237; como para poder cobrar las obligaciones de las rentas atrasadas y los gastos que
+                            haya generado la recuperaci&#243;n del bien. As&#237; mismo se solicitar&#225; el auxilio de la
+                            Polic&#237;a Nacional del Per&#250;, a efectos de ejecutarse la entrega inmediata.
+                        </li>
+                    </ul>
+
+                    <!-- &#9552;&#9552; [46] Body text &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-top: 6pt; margin-bottom: 6pt;">
+                        EL ARRENDADOR podr&#225; realizar la Resoluci&#243;n del Contrato, aplicando lo establecido en el
+                        ART&#205;CULO N&#176; 1429&#176; DEL C&#211;DIGO CIVIL VIGENTE, por lo que, EL ARRENDATARIO, renuncia a toda
+                        comunicaci&#243;n o notificaci&#243;n de resoluci&#243;n de contrato, en las siguientes causales:
+                    </p>
+
+                    <!-- &#9552;&#9552; [47-60] Causales de resoluci&#243;n &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <ul style="margin-left: 20pt; margin-bottom: 14pt; text-align: justify; list-style-type: disc;">
+                        <li style="margin-bottom: 6pt;">
+                            El traslado del veh&#237;culo automotor menor fuera de la jurisdicci&#243;n de
+                            Lima-Metropolitana. Sin poner en conocimiento a EL ARRENDADOR.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            El incumplimiento por parte del ARRENDATARIO de 1 (UNA) rentas m&#225;s la mitad de la
+                            siguiente, de conformidad al cronograma de pago.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            El traspaso, transferencia o cesi&#243;n a terceras personas, sin conocimiento de EL
+                            ARRENDADOR.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            La utilizaci&#243;n del veh&#237;culo menor para realizar actividades il&#237;citas de cualquier
+                            &#237;ndole (Robo, Violaciones ID y otros).
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            La manipulaci&#243;n o desinstalaci&#243;n del GPS ubicado en el veh&#237;culo menor.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Las papeletas, multas e infracciones en general ser&#225;n de responsabilidad de EL
+                            ARRENDATARIO, las cuales deber&#225;n ser canceladas en los primeros 5 d&#237;as de haber sido
+                            impuesta, se otorgara un segundo plazo de 10 d&#237;as, luego de trascurrido este plazo
+                            se proceder&#225; a la resoluci&#243;n de contrato y la captura inmediata del mismo.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            De la captura del veh&#237;culo automotor menor por falta de pago, tendr&#225; 7 d&#237;as para
+                            ponerse al d&#237;a en su pago caso contrario ser&#225; causal de resoluci&#243;n de contrato.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            En caso de impedir o poner resistencia a las intervenciones por el &#225;rea de cobranza
+                            por falta de pago, ser&#225; causal de resoluci&#243;n de contrato.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            La falta de comunicaci&#243;n con su asesor de cobranza (registro de Boucher), ser&#225; causa
+                            de resoluci&#243;n de contrato.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Y dem&#225;s causales previstas en el contrato o en la Ley.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Todo intento de fraude, enga&#241;o o estafa hacia el ARRENDADOR, ser&#225; causal de
+                            disoluci&#243;n de contrato, sin ning&#250;n tipo de devoluci&#243;n monetaria, enti&#233;ndase a
+                            v&#225;uchers falsos, duplicados, etc.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            El internamiento del veh&#237;culo a causa del ARRENDATARIO por incumplir con alg&#250;n
+                            permiso municipal o multa administrativa, deber&#225; ser resuelto en la primera semana
+                            de internamiento, adem&#225;s esto no deber&#225; afectar las cuotas de su cronograma de
+                            pagos, de no asumir la responsabilidad del mismo. El contrato ser&#225; disuelto por
+                            incumplimiento de clausulas.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            En caso el ARRENDADOR se niegue a pagar la mora acumulada por mas de una semana
+                            esto ser&#225; motivo para ingresar a CAPTURA por lo cual el veh&#237;culo ser&#225; rastreado,
+                            ubicado e intervenido por parte de COBRANZA ADT, aun estando al d&#237;a en sus pagos
+                            seg&#250;n su cronograma.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Todos los problemas mec&#225;nicos, cuenten o no con garant&#237;a vigente deber&#225;n ser
+                            informados a ATENCION AL CLIENTE ADT debidamente sustentados.
+                        </li>
+                    </ul>
+
+                    <!-- &#9552;&#9552; [61] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        EL ARRENDATARIO no podr&#225; ceder a terceros el bien materia del presente contrato bajo
+                        ning&#250;n t&#237;tulo, ni subarrendarlo, total o parcialmente, ni ceder su posici&#243;n contractual,
+                        salvo que cuente con el consentimiento expreso y por escrito del ARRENDADOR, en cuyo caso
+                        se suscribir&#225;n los documentos que fuesen necesarios.
+                    </p>
+
+                    <!-- &#9552;&#9552; [62] DECIMA SEGUNDA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        DECIMA SEGUNDA: OTRAS PENALIDADES O CONSIDERACIONES.
+                    </p>
+
+                    <!-- &#9552;&#9552; [63-74] Lista de penalidades &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <ul style="margin-left: 20pt; margin-bottom: 14pt; text-align: justify; list-style-type: disc;">
+                        <li style="margin-bottom: 6pt;">
+                            De llegar a un acuerdo del pago de las cuotas adeudadas despu&#233;s del plazo de siete
+                            d&#237;as de haber sido capturado, el ARRENDATARIO deber&#225; asumir los gastos que esto
+                            genere a la empresa tales como, cochera, guardian&#237;a y otros.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            De la retenci&#243;n del veh&#237;culo automotor menor por falta de pago, la empresa no se
+                            hace responsable por la p&#233;rdida de los objetos personales que sean olvidados en el
+                            veh&#237;culo.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Las reparaciones mec&#225;nicas productos del uso o desgaste del veh&#237;culo, no exime del
+                            pago de sus cuotas conforme a su cronograma de pago.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Para el registro de pago el cliente debe realizar el pago hasta el mediod&#237;a antes
+                            de la fecha de vencimiento de su cronograma de pago.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            El SOAT brindado por la empresa es por un a&#241;o y no es renovable, pasado el a&#241;o el
+                            ARRENDATARIO deber&#225; asumir la compra de un nuevo SOAT.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Si el ARRENDATARIO incumpliera con el cronograma de pago se aplicar&#225; el cobro de
+                            los intereses por concepto de MORA de S/ 1.00 (un sol) por cada d&#237;a de vencido y
+                            despu&#233;s del segundo atraso se tomara como atraso persistente, la mora subir&#225; a
+                            S/ 2.00 (dos soles) por cada d&#237;a de vencido.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            De los gastos operativos por falta de pago que se realicen por cada intervenci&#243;n
+                            del &#225;rea de cobranza deber&#225; ser asumida &#237;ntegramente por el ARRENDATARIO, Con un
+                            costo de S/ 50.00 (cincuenta soles). por cada intervenci&#243;n. De ser retenido el
+                            veh&#237;culo el ARRENDATARIO ser&#225; responsable del costo por traslado del veh&#237;culo
+                            (gasolina, gas, etc) Debiendo ser cancelada la penalidad por d&#237;a y las cuotas
+                            pendientes para evitar la retenci&#243;n del veh&#237;culo.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            En caso de impedir o poner resistencia a las intervenciones por el &#225;rea de cobranza
+                            por falta de pago, ser&#225; causal de resoluci&#243;n de contrato.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            La resoluci&#243;n del contrato o devoluci&#243;n vehicular por parte del ARRENDATARIO no dar&#225;
+                            lugar a la devoluci&#243;n de la cuota inicial y de las cuotas canceladas a la fecha de
+                            la resoluci&#243;n.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            Una vez culminado el cr&#233;dito el plazo para realizar el traspaso notarial ser&#225; de 15
+                            d&#237;as calendario luego de la &#250;ltima fecha de pago, el costo total deber&#225; ser asumido
+                            por el ARRENDATARIO.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            En caso no se realice el traspaso luego del plazo de 15 d&#237;as calendario se realizara
+                            la baja definitiva de la placa de rodaje.
+                        </li>
+                        <li style="margin-bottom: 6pt;">
+                            El equipo GPS deber&#225; ser devuelto a la empresa antes de la transferencia notarial,
+                            este ser&#225; un requisito para el traspaso notarial.
+                        </li>
+                    </ul>
+
+                    <!-- &#9552;&#9552; [75] DECIMA TERCERA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        DECIMA TERCERA: INOPONIBILIDAD DE RESPONSABILIDADES Y PAGO DE OBLIGACIONES DEL ARRENDATARIO
+                    </p>
+
+                    <!-- &#9552;&#9552; [76] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDADOR mediante el presente documento deja establecido de manera expresa que no
+                        es responsable por ning&#250;n tipo de obligaciones que EL ARRENDATARIO genere a nombre de &#233;l
+                        o del bien para el cual se arrienda el bien mueble, ya sea con entidades p&#250;blicas o
+                        privadas, por lo que el ARRENDATARIO no est&#225; autorizado para generar alg&#250;n t&#237;tulo
+                        posesorio o real sobre el veh&#237;culo, salvo autorizaci&#243;n del Arrendador.
+                    </p>
+
+                    <!-- &#9552;&#9552; [77] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDATARIO se obliga a pagar de manera oportuna todas las obligaciones que genere
+                        el, con el veh&#237;culo, ya sea por la actividad que le da o por infracciones de tr&#225;nsito,
+                        ello durante la vigencia del contrato, en caso de incumplimiento, ser&#225; causal de
+                        resoluci&#243;n de contrato. Asimismo, pagar&#225; &#237;ntegramente a las entidades p&#250;blicas los
+                        tributos u obligaciones que su acci&#243;n con el veh&#237;culo genere, ya sea por multas,
+                        sanciones de fiscalizaci&#243;n u otros.
+                    </p>
+
+                    <!-- &#9552;&#9552; [78] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDADOR no asume responsabilidad alguna por ning&#250;n tipo de p&#233;rdida o robo de alg&#250;n
+                        objeto o bien que se encuentre en el bien mueble, materia del presente contrato, por lo
+                        que el ARRENDATARIO deber&#225; tomar todas las acciones de seguridad para evitar este tipo
+                        de circunstancias.
+                    </p>
+
+                    <!-- &#9552;&#9552; [79] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        EL ARRENDATARIO se obliga a gestionar todas las licencias o permisos que requiera el uso
+                        del bien arrendado, asumiendo todas las responsabilidades sobre multas u otras acciones
+                        impuestas en caso de su incumplimiento, por ende, se libera de toda responsabilidad al
+                        ARRENDADOR en caso se suscite inconvenientes sobre este tema.
+                    </p>
+
+                    <!-- &#9552;&#9552; [80] D&#201;CIMA CUARTA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        D&#201;CIMA CUARTA: MEJORAS DEL BIEN Y TR&#193;MITES DE INSCRIPCI&#211;N DEL BIEN. MEJORAS DEL BIEN
+                    </p>
+
+                    <!-- &#9552;&#9552; [81] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Las mejoras que realice el ARRENDATARIO sobre el bien materia del presente contrato,
+                        obligatoriamente tendr&#225;n que ser autorizadas de manera expresa y formal por parte del
+                        ARRENDADOR.
+                    </p>
+
+                    <!-- &#9552;&#9552; [82] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        En el caso que el ARRENDADOR no haya autorizado realizar las mejoras, estas quedar&#225;n
+                        para beneficio del ARRENDADOR, el mismo que no reconocer&#225; ning&#250;n monto por haber
+                        realizado esta mejora, as&#237; haya sido necesaria para el bien.
+                    </p>
+
+                    <!-- &#9552;&#9552; [83] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        En caso que el ARRENDADOR haya autorizado las mejoras, solo se valorizara y devolver&#225;
+                        lo invertido cuando se trate de mejoras necesarias y &#250;tiles para beneficio del bien, no
+                        cuando sean necesarias y &#250;tiles para el giro del negocio o el uso del bien por parte del
+                        ARRENDATARIO, en dicho supuesto no se reconocer&#225; ning&#250;n monto.
+                    </p>
+
+                    <!-- &#9552;&#9552; [84] TRAMITES E INSCRIPCION &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        TRAMITES E INSCRIPCION
+                    </p>
+
+                    <!-- &#9552;&#9552; [85] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        La inscripci&#243;n al Registro de Propiedad Vehicular, as&#237; como los gastos de prenda
+                        vehicular que origine la compra - venta, as&#237; como la resoluci&#243;n del mismo, de producirse
+                        ser&#225;n asumidos por EL ARRENDADOR. Los gastos que demande la transferencia a la
+                        cancelaci&#243;n total de las rentas del veh&#237;culo ser&#225;n exclusividad de EL ARRENDATARIO.
+                    </p>
+
+                    <!-- &#9552;&#9552; [86] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDADOR se reserva el derecho de inscribir el presente Contrato en los Registros
+                        P&#250;blicos de Propiedad de Lima, registro fiscal de Ventas a Cr&#233;ditos y/o direcciones el
+                        Parque Automotor de Circulaci&#243;n Vial y registro del Ministerio de transporte y
+                        comunicaciones.
+                    </p>
+
+                    <!-- &#9552;&#9552; [87] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        El Presente Contrato de Alquiler de Venta est&#225; enmarcado por las normas contenidas en
+                        los ART&#205;CULOS N&#176; 1666&#176; AL 1712&#176; C&#211;DIGO CIVIL y las normas vigentes estipuladas sobre
+                        la presente materia por el C&#243;digo Procesal Civil.
+                    </p>
+
+                    <!-- &#9552;&#9552; [88] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        EL ARRENDATARIO se RESPONSABILIZA a partir de la fecha de suscripci&#243;n del presente
+                        contrato, a asumir personalmente cualquier problema judicial o extrajudicial que pudiera
+                        ocurrir en el veh&#237;culo. Asimismo, EL ARRENDATARIO declara como domicilio el indicado en
+                        la introducci&#243;n del presente documento, as&#237; como tener capacidad para celebrar el
+                        presente contrato y asumir sus obligaciones, garantizado desde ya el fiel cumplimiento
+                        del mismo.
+                    </p>
+
+                    <!-- &#9552;&#9552; [89] D&#201;CIMA QUINTA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        D&#201;CIMA QUINTA: APLICACI&#211;N SUPLETORIA DE LA LEY
+                    </p>
+
+                    <!-- &#9552;&#9552; [90] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        En todo lo no previsto por las partes en el presente contrato, ambas partes se someten
+                        a lo establecido por las normas relativas al contrato de arrendamiento contenidas en el
+                        C&#243;digo Civil y dem&#225;s normas legales que resulten aplicables.
+                    </p>
+
+                    <!-- &#9552;&#9552; [91] DECIMA SEXTA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        DECIMA SEXTA: SOLUCION DE CONTROVERSIAS
+                    </p>
+
+                    <!-- &#9552;&#9552; [92] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        Las partes acuerdan que en caso de alguna controversia que no pueda ser solucionada por
+                        el trato directo, estas se someten al fuero de la conciliaci&#243;n extrajudicial y en &#250;ltima
+                        instancia al fuero judicial, para lo cual ambas renuncian al fuero de su domicilio y se
+                        someten al fuero del distrito judicial de Lima.
+                    </p>
+
+                    <!-- &#9552;&#9552; [93] DECIMA SEPTIMA &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 14pt; margin-bottom: 6pt;">
+                        DECIMA SEPTIMA: CLAUSULA ESPECIAL
+                    </p>
+
+                    <!-- &#9552;&#9552; [94] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Ambas partes se&#241;alan que, al cumplimiento de la totalidad del precio del veh&#237;culo, EL
+                        ARRENDADOR transferir&#225; al ARRENDATARIO, el bien materia del presente contrato, a t&#237;tulo
+                        de COMPRA VENTA, por lo que, a partir de ello, este ser&#225; el titular del bien y podr&#225;
+                        gozar de todas las prerrogativas que por ley le corresponde, por tanto, el ARRENDADOR
+                        deber&#225; coordinar con quien corresponda para levantar todas las cargas o grav&#225;menes que
+                        pese sobre el bien a fin de entregarle libre de todas estas.
+                    </p>
+
+                    <!-- &#9552;&#9552; [95] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        EL ARRENDADOR, se&#241;ala que el veh&#237;culo dado en alquiler, cuenta con un gravamen inscrito,
+                        como es una Garant&#237;a Mobiliaria, la misma que est&#225; inscrita a favor de Corporaci&#243;n adt,
+                        hasta por el monto de S/19,000.00, gravamen que es de conocimiento del ARRENDATARIO, el
+                        mismo que acepta y no se opone, por lo que en caso que se genere cualquier obligaci&#243;n
+                        sobre este veh&#237;culo, durante la vigencia del contrato de arrendamiento, en primer orden
+                        se cobertura el monto garantizado, y, si hay un excedente se cobertura las dem&#225;s
+                        obligaciones de acuerdo al orden de los acreedores. Asimismo, EL ARRENDADOR se&#241;ala que
+                        una vez cumplido el pago de todas las rentas del ARRENDATARIO, esta garant&#237;a Mobiliaria
+                        ser&#225; levantada por el ARRENDADOR, para lo cual coordinar&#225; con el CONSTITUYENTE/ACREEDOR
+                        de la Garant&#237;a Mobiliaria para el tr&#225;mite y levantamiento correspondiente, de modo tal
+                        que se haga la transferencia del bien al ARRENDATARIO, el cual debe estar sin ninguna
+                        carga o gravamen, es as&#237; que el ARRENDATARIO declara conocer este aspecto y acepta las
+                        condiciones.
+                    </p>
+
+                    <!-- &#9552;&#9552; [96] &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Finalmente, EL ARRENDATARIO, declara bajo juramento y deja expresa constancia en caso
+                        de ocurrencia de alg&#250;n siniestro, tales como Robo, Accidente e infracciones de tr&#225;nsito
+                        (PAPELETAS) donde implique responsabilidad civil y/o pecuniarios causados a terceros y
+                        derivados directa o indirectamente de la posesi&#243;n, transporte u operaci&#243;n del bien objeto
+                        del presente contrato, tocar&#225; &#250;nica y exclusivamente a EL ARRENDATARIO la responsabilidad
+                        relativa a esta ocurrencia. En tal sentido, ante cualquier incumplimiento de las
+                        obligaciones descritas precedentemente o ante cualquier da&#241;o que el arrendatario ocasione
+                        por el uso del bien ya sea de manera adecuada o no, as&#237; como en el caso que con el uso
+                        del bien se cometa alguna infracci&#243;n o delito que determine p&#233;rdida o incomodidad para el
+                        arrendador, el Arrendatario ser&#225; responsable por estas acciones, por lo que el arrendador
+                        queda autorizado para interponer las acciones legales correspondientes.
+                    </p>
+
+                    <!-- &#9552;&#9552; [97] Firma + Fecha din&#225;mica &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="text-align: justify; margin-top: 20pt; margin-bottom: 50pt;">
+                        En se&#241;al de conformidad, las partes declaran haber le&#237;do el contenido del presente
+                        documento e indican que no existe ning&#250;n error, dolo o violencia que conlleve a la
+                        nulidad o anulabilidad del acto jur&#237;dico, por lo que proceden a suscribir este documento
+                        en la ciudad de LIMA el
+                        <strong><t t-esc="fecha['dia']"/></strong>
+                        d&#237;a del mes de
+                        <strong><t t-esc="fecha['mes']"/></strong>
+                        del a&#241;o <t t-esc="fecha['anio']"/>
+                    </p>
+
+                    <!-- &#9552;&#9552; Bloque de firmas &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 8pt;">
+                        <tr>
+                            <td style="width: 45%; text-align: center; vertical-align: bottom;">
+                                <div style="border-top: 1pt solid #000; padding-top: 6pt; margin-top: 60pt;">
+                                    El ARRENDADOR<br/>
+                                </div>
+                            </td>
+                            <td style="width: 10%;"/>
+                            <td style="width: 45%; text-align: center; vertical-align: bottom;">
+                                <div style="border-top: 1pt solid #000; padding-top: 6pt; margin-top: 60pt;">
+                                    EL ARRENDATARIO<br/>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+         ir.actions.report &#8212; aparece en el men&#250; Imprimir (&#128424;) del veh&#237;culo
+    &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <record id="action_report_contrato_tvs" model="ir.actions.report">
+        <field name="name">Contrato TVS Andes</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">adt_fleet.report_contrato_tvs</field>
+        <field name="report_file">adt_fleet.report_contrato_tvs</field>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+         ir.actions.server &#8212; aparece en el men&#250; Acci&#243;n (&#9881;) del veh&#237;culo
+    &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <record id="action_server_contrato_tvs" model="ir.actions.server">
+        <field name="name">Descargar Contrato TVS</field>
+        <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_type">action</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_print_contrato_tvs()</field>
+    </record>
+
+</odoo>

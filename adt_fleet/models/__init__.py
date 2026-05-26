@@ -2,3 +2,4 @@
 # This file initializes the models for the adt_fleet module
 
 from . import adt_fleet_model
+from . import adt_report_encoding

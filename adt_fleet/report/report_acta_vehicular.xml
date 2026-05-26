@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+         QWeb template &#8212; replica fiel de ACTA_VEHICULAR_TVS.docx
+         Datos din&#225;micos: fleet.vehicle + adt.comercial.cuentas + res.partner
+    &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <template id="report_acta_vehicular">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+
+                <!-- &#9472;&#9472; Resoluci&#243;n de datos din&#225;micos &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; -->
+                <t t-set="cuenta"   t-value="o._get_cuenta_for_report()"/>
+                <t t-set="partner"  t-value="o._get_partner_for_report()"/>
+                <t t-set="fecha" t-value="o._fecha_es()"/>
+
+                <t t-set="marca"   t-value="o.model_id.brand_id.name if o.model_id and o.model_id.brand_id else ''"/>
+                <t t-set="modelo"  t-value="o.model_id.name if o.model_id else ''"/>
+                <t t-set="color"   t-value="o.color or ''"/>
+                <t t-set="chasis"  t-value="o.vin_sn or ''"/>
+                <t t-set="placa"   t-value="o.license_plate or ''"/>
+                <t t-set="nombre"   t-value="partner.name or ''"/>
+                <t t-set="dni"      t-value="partner.vat or ''"/>
+                <t t-set="tipo_doc" t-value="'DNI' if (not partner or not partner.country_id or partner.country_id.code == 'PE') else 'CE'"/>
+
+                <div class="page" style="
+                    font-family: Arial, sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.7;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                ">
+
+                    <!-- &#9552;&#9552; [2] T&#205;TULO &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <h1 style="
+                        text-align: center;
+                        font-size: 16pt;
+                        font-weight: bold;
+                        letter-spacing: 1px;
+                        margin-bottom: 24pt;
+                        margin-top: 10pt;
+                    ">
+                        ACTA DE ENTREGA VEHICULAR
+                    </h1>
+
+                    <!-- &#9552;&#9552; [5-6] DECLARACI&#211;N PRINCIPAL &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <!-- P&#225;rrafos 5 y 6 del docx son un bloque continuo -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        Yo:&#160;<t t-esc="nombre"/>,
+                        identificado con Nro. <t t-esc="tipo_doc"/>:&#160;<t t-esc="dni"/>
+                        declaro que he recibido de parte de
+                        <strong>CORPORACION ADT S.A.C</strong>,
+                        el veh&#237;culo (motocicleta) de las siguientes caracter&#237;sticas:
+                        Marca:&#160;<t t-esc="marca"/>;
+                        Modelo:&#160;<t t-esc="modelo"/>;
+                        Color:&#160;<t t-esc="color"/>
+                        N&#250;mero de CHASIS:&#160;<strong><t t-esc="chasis"/></strong>,
+                        N&#250;mero de PLACA:&#160;<t t-esc="placa"/>;
+                        la cual recibo en perfecto estado de funcionamiento
+                        (En todas sus partes y piezas) y de forma correcta.
+                    </p>
+
+                    <!-- &#9552;&#9552; [7] GARANTIA (Heading 1) &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 16pt; margin-bottom: 8pt;">
+                        GARANTIA:
+                    </p>
+
+                    <!-- &#9552;&#9552; [9-11] Lista de garant&#237;a &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <ol style="margin-left: 20pt; margin-bottom: 14pt; text-align: justify;">
+                        <!-- [9] -->
+                        <li style="margin-bottom: 6pt;">
+                            La garant&#237;a del veh&#237;culo es por un plazo de 18,000 km.(solo motor)
+                        </li>
+                        <!-- [10] -->
+                        <li style="margin-bottom: 6pt;">
+                            EL mantenimiento es obligatorio que se realize a los 750 km y 1500 km 3000km
+                            y luego cada 3000 km (estos mantenimientos ser&#225;n realizados &#250;nica y exclusivamente
+                            en el servicio t&#233;cnico de TVS AUTORIZADO esto para llevar un adecuado control
+                            y garantizar la calidad del veh&#237;culo).
+                        </li>
+                        <!-- [11] -->
+                        <li style="margin-bottom: 6pt;">
+                            Los mantenimientos en sus kilometrajes indicados , el cliente asume el costo
+                            del servicio t&#233;cnico.
+                        </li>
+                    </ol>
+
+                    <!-- &#9552;&#9552; [14] CONDICIONES DE LA GARANTIA (Heading 1) &#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 16pt; margin-bottom: 8pt;">
+                        CONDICIONES DE LA GARANTIA.
+                    </p>
+
+                    <!-- &#9552;&#9552; [16-20] Primera parte de la lista &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <ol style="margin-left: 20pt; margin-bottom: 0; text-align: justify;" start="4">
+                        <!-- [16] -->
+                        <li style="margin-bottom: 6pt;">
+                            El propietario tendr&#225; que llevar su unidad al taller autorizado designado por
+                            el establecimiento cuando se cumplan los kil&#243;metros sugeridos para que se efect&#250;en
+                            los servicios de mantenimiento requisito indispensable para mantener la garant&#237;a vigente.
+                        </li>
+                        <!-- [17] -->
+                        <li style="margin-bottom: 6pt;">
+                            La garant&#237;a no cubre los da&#241;os en las superficies pintadas y oxidaci&#243;n de las
+                            partes cromadas o met&#225;licas.
+                        </li>
+                        <!-- [18] -->
+                        <li style="margin-bottom: 6pt;">
+                            La garant&#237;a no cubre las fallas del veh&#237;culo resultado de negligencias de quien
+                            lo opere, de manejo incorrecta, por la utilizaci&#243;n del veh&#237;culo en competencias
+                            deportivas y como veh&#237;culo para aprendizaje de conductores.
+                        </li>
+                        <!-- [19] -->
+                        <li style="margin-bottom: 6pt;">
+                            La garant&#237;a no cubre da&#241;os motivos de choques, robo e incendio y los da&#241;os
+                            debido a almacenaje.
+                        </li>
+                        <!-- [20] -->
+                        <li style="margin-bottom: 6pt;">
+                            La garant&#237;a no cubre da&#241;os producto de uso del veh&#237;culo fuera de los l&#237;mites
+                            y especificaciones Indicadas.
+                        </li>
+                    </ol>
+
+                    <!-- &#9552;&#9552; [21] Body Text intercalado &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="text-align: justify; margin-top: 6pt; margin-bottom: 6pt; margin-left: 20pt;">
+                        La garant&#237;a se mantiene activa siempre y cuando el cliente este al dia en sus pagos
+                    </p>
+
+                    <!-- &#9552;&#9552; [25-27] Contin&#250;a la lista &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <ol style="margin-left: 20pt; margin-bottom: 14pt; text-align: justify;" start="10">
+                        <!-- [25] -->
+                        <li style="margin-bottom: 6pt;">
+                            La garant&#237;a no cubre las modificaciones o alteraciones en los mecanismos y partes
+                            y/o accesorios del veh&#237;culo ocasionados por el uso de repuestos no originales
+                        </li>
+                        <!-- [26] -->
+                        <li style="margin-bottom: 6pt;">
+                            La garant&#237;a solo cubre fallas de fabricaci&#243;n del motor, previa revisi&#243;n del
+                            servicio t&#233;cnico de la empresa.
+                        </li>
+                        <!-- [27] -->
+                        <li style="margin-bottom: 6pt;">
+                            Los amortiguadores, catalinas, cadenas de arrastre, zapatas de freno, discos de
+                            embrague, llantas, c&#225;maras, rayos de rueda, focos, relays, filtros, fusibles,
+                            pernos, esp&#225;rragos, tuercas, estructuras Met&#225;licas, pedal de arranque, cables;
+                            accesorios el&#233;ctricos, bater&#237;as no est&#225;n cubiertos por la garant&#237;a, pues las
+                            vidas &#250;tiles de estos est&#225;n sujetos a m&#250;ltiples factores de uso ajenos a
+                            cualquier control.
+                        </li>
+                    </ol>
+
+                    <!-- &#9552;&#9552; [29] SE PIERDE LA GARANTIA (Heading 1) &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 16pt; margin-bottom: 8pt;">
+                        SE PIERDE LA GARANTIA.
+                    </p>
+
+                    <!-- &#9552;&#9552; [31-32] Body Text (no son lista en el docx) &#9552;&#9552;&#9552;&#9552; -->
+                    <p style="text-align: justify; margin-bottom: 6pt;">
+                        Se detecta alguna alteraci&#243;n en el kilometraje mediante manipulaciones en el
+                        od&#243;metro y/o cable de veloc&#237;metro.
+                    </p>
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        Si se detecta que el motor ya ha sido destapado por un mec&#225;nico no autorizado.
+                        Si no realiza los matenimientos en los kilometrajes indicados
+                    </p>
+
+                    <!-- &#9552;&#9552; [34] SE RECOMIENDA (Heading 1) &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="font-size: 12pt; font-weight: bold; margin-top: 16pt; margin-bottom: 8pt;">
+                        SE RECOMIENDA
+                    </p>
+
+                    <!-- &#9552;&#9552; [36] Recomendaci&#243;n &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="text-align: justify; margin-bottom: 14pt;">
+                        La gasolina recomendada para el funcionamiento del veh&#237;culo es de 95, el uso de
+                        otro combustible menor al recomendado perjudica al motor cascabeleo y una
+                        carbonizaci&#243;n acelerada por lo cual perjudica el funcionamiento, produciendo un
+                        deterioro prematuro a las partes del motor.
+                    </p>
+
+                    <!-- &#9552;&#9552; [38] Firma de conformidad &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <p style="margin-top: 20pt; margin-bottom: 36pt;">
+                        Firmo en conformidad a todo lo que en este documento se ha expuesto.
+                    </p>
+
+                    <!-- &#9552;&#9552; [41] Fecha &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <!-- D&#237;a y mes van en negrita, tal como en el original  -->
+                    <p style="margin-bottom: 50pt;">
+                        San Juan de Miraflores,
+                        <strong><t t-esc="fecha['dia']"/></strong>
+                        de
+                        <strong><t t-esc="fecha['mes']"/></strong>
+                        del <t t-esc="fecha['anio']"/>
+                    </p>
+
+                    <!-- &#9552;&#9552; [48] Bloque de firma &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;= -->
+                    <div style="width: 45%; text-align: center; margin-top: 8pt;">
+                        <div style="border-top: 1pt solid #000; padding-top: 6pt; margin-top: 40pt;">
+                            <t t-esc="nombre"/>,
+                            identificado con Nro. <t t-esc="tipo_doc"/>:&#160;<t t-esc="dni"/>
+                        </div>
+                    </div>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+         ir.actions.report &#8212; aparece en el men&#250; Imprimir (&#128424;) del veh&#237;culo
+    &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <record id="action_report_acta_vehicular" model="ir.actions.report">
+        <field name="name">Acta de Entrega Vehicular TVS</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">adt_fleet.report_acta_vehicular</field>
+        <field name="report_file">adt_fleet.report_acta_vehicular</field>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+         ir.actions.server &#8212; aparece en el men&#250; Acci&#243;n (&#9881;) del veh&#237;culo
+    &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+    <record id="action_server_acta_vehicular" model="ir.actions.server">
+        <field name="name">Descargar Acta de Entrega TVS</field>
+        <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_type">action</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_print_acta_vehicular()</field>
+    </record>
+
+</odoo>

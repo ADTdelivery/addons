@@ -1,19 +1,35 @@
 <odoo>
+    <!-- Herencia del formulario de fleet.vehicle -->
     <record id="view_fleet_vehicle_form_inherit_documents" model="ir.ui.view">
         <field name="name">fleet.vehicle.form.inherit.documents</field>
         <field name="model">fleet.vehicle</field>
         <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
         <field name="arch" type="xml">
 
+            <!-- ── Botones en la cabecera del formulario ────────────────── -->
+            <xpath expr="//header" position="inside">
+                <button name="action_print_acta_vehicular"
+                        string="Acta de Entrega TVS"
+                        type="object"
+                        class="btn-primary"
+                        icon="fa-file-pdf-o"/>
+                <button name="action_print_contrato_tvs"
+                        string="Contrato TVS"
+                        type="object"
+                        class="btn-secondary"
+                        icon="fa-file-pdf-o"/>
+            </xpath>
+
+            <!-- ── Campos de documentos adjuntos + color ────────────────── -->
             <xpath expr="//field[@name='next_assignation_date']" position="after">
-
-
-                <field name="tarjeta_propiedad_attachment" filename="tarjeta_propiedad_filename"/>
-
-                <field name="chip_gnv_attachment" filename="chip_gnv_filename"/>
-
-                <field name="soat_attachment" filename="soat_filename"/>
-
+                <field name="tarjeta_propiedad_attachment"
+                       filename="tarjeta_propiedad_filename"/>
+                <field name="chip_gnv_attachment"
+                       filename="chip_gnv_filename"/>
+                <field name="soat_attachment"
+                       filename="soat_filename"/>
+                <field name="contrato_attachment"
+                       filename="contrato_filename"/>
             </xpath>
 
         </field>
