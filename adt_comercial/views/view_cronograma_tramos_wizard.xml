@@ -8,9 +8,10 @@
         <field name="arch" type="xml">
             <form string="Cronograma por Tramos">
 
-                <!-- Campo técnico de control de paso -->
+                <!-- Campos técnicos -->
                 <field name="wizard_state" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
+                <field name="tiene_cuota_gracia" invisible="1"/>
 
                 <!-- ══ PASO 1: Configurar ════════════════════════════════════ -->
                 <group attrs="{'invisible': [('wizard_state', '!=', 'configurar')]}">
@@ -18,9 +19,12 @@
                     <group string="Parámetros del cronograma">
                         <field name="cuenta_id" readonly="1"/>
                         <field name="periodicidad"/>
-                        <field name="fecha_inicio"
-                               string="Fecha base (Cuota 0)"
-                               help="Fecha de inicio. Las cuotas se generan a partir de esta fecha."/>
+                        <field name="cuota_gracia" string="Cuota de gracia (Cuota 0)"/>
+
+                        <field name="fecha_inicio" string="Fecha de Cuota 0"
+                               attrs="{'invisible': [('tiene_cuota_gracia', '=', False)]}"/>
+                        <field name="fecha_inicio_cuota1" string="Fecha inicio Cuota 1"
+                               attrs="{'invisible': [('tiene_cuota_gracia', '=', True)]}"/>
                     </group>
 
                     <group string="Resumen">

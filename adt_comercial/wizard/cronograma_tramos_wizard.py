@@ -62,13 +62,31 @@ class AdtCronogramaTramos(models.TransientModel):
         [('semanal', 'Semanal'), ('quincena', 'Quincenal'), ('mensual', 'Mensual')],
         string='Periodicidad', required=True, default='quincena')
     fecha_inicio = fields.Date(
-        string='Fecha base (Cuota 0)', required=True,
+        string='Fecha de Cuota 0', required=True,
         help='Fecha de la cuota de gracia. Las cuotas del cronograma se generan a partir de esta fecha.')
-    # cuota_gracia se mantiene en el modelo (valor 0 por defecto) para que
-    # action_confirmar pueda crear la Cuota 0, pero no se expone en la vista.
+
+    # Campo proxy para mostrar fecha_inicio con un label diferente cuando no hay cuota_gracia
+    fecha_inicio_cuota1 = fields.Date(
+        string='Fecha inicio Cuota 1',
+        compute='_compute_fecha_inicio_cuota1',
+        inverse='_set_fecha_inicio_cuota1',
+        help='Fecha a partir de la cual arranca la Cuota 1 (sin cuota de gracia).')
+
+    @api.depends('fecha_inicio')
+    def _compute_fecha_inicio_cuota1(self):
+        for r in self:
+            r.fecha_inicio_cuota1 = r.fecha_inicio
+
+    def _set_fecha_inicio_cuota1(self):
+        for r in self:
+            r.fecha_inicio = r.fecha_inicio_cuota1
     cuota_gracia = fields.Monetary(
         string='Cuota de gracia (Cuota 0)', currency_field='currency_id',
-        default=0.0)
+        default=0.0,
+        help='Si es 0 no se genera Cuota 0 y la fecha ingresada corresponde a la Cuota 1.')
+
+    tiene_cuota_gracia = fields.Boolean(
+        compute='_compute_tiene_cuota_gracia', store=False)
 
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
     currency_id = fields.Many2one(
@@ -92,6 +110,11 @@ class AdtCronogramaTramos(models.TransientModel):
         string='Monto fraccionado total', compute='_compute_totales',
         currency_field='currency_id',
         help='Suma automática de todos los subtotales de tramos.')
+
+    @api.depends('cuota_gracia')
+    def _compute_tiene_cuota_gracia(self):
+        for r in self:
+            r.tiene_cuota_gracia = (r.cuota_gracia or 0.0) > 0.0
 
     @api.depends('tramo_ids.cantidad', 'tramo_ids.total_tramo')
     def _compute_totales(self):
@@ -137,7 +160,14 @@ class AdtCronogramaTramos(models.TransientModel):
         days = self._days_for_periodicidad()
         tramos = self.tramo_ids.sorted('cuota_desde')
         lines = []
-        fecha = self.fecha_inicio
+        # Con cuota_gracia: fecha_inicio es la fecha de Cuota 0;
+        #   la primera cuota del tramo cae en fecha_inicio + days.
+        # Sin cuota_gracia: fecha_inicio ES la fecha de Cuota 1;
+        #   retrocedemos un período para que el primer += days dé fecha_inicio.
+        if (self.cuota_gracia or 0.0) > 0:
+            fecha = self.fecha_inicio
+        else:
+            fecha = self.fecha_inicio - timedelta(days=days)
         for idx, tramo in enumerate(tramos, start=1):
             label = 'Tramo %d  (cuotas %d – %d)' % (idx, tramo.cuota_desde, tramo.cuota_hasta)
             for num in range(tramo.cuota_desde, tramo.cuota_hasta + 1):
@@ -193,16 +223,20 @@ class AdtCronogramaTramos(models.TransientModel):
 
         new_ids = []
 
-        # Cuota 0 — pago de gracia (siempre se incluye, aunque sea S/0)
-        new_ids.append(Cuota.create({
-            'name': 'Cuota 0',
-            'monto': self.cuota_gracia,
-            'fecha_cronograma': self.fecha_inicio,
-            'periodicidad': self.periodicidad,
-            'cuenta_id': cuenta.id,
-        }).id)
+        # Cuota 0 solo si hay monto de gracia > 0
+        if (self.cuota_gracia or 0.0) > 0:
+            new_ids.append(Cuota.create({
+                'name': 'Cuota 0',
+                'monto': self.cuota_gracia,
+                'fecha_cronograma': self.fecha_inicio,
+                'periodicidad': self.periodicidad,
+                'cuenta_id': cuenta.id,
+            }).id)
+            fecha = self.fecha_inicio
+        else:
+            # Sin cuota gracia: fecha_inicio ES la fecha de Cuota 1
+            fecha = self.fecha_inicio - timedelta(days=days)
 
-        fecha = self.fecha_inicio
         for tramo in self.tramo_ids.sorted('cuota_desde'):
             for num in range(tramo.cuota_desde, tramo.cuota_hasta + 1):
                 fecha = fecha + timedelta(days=days)

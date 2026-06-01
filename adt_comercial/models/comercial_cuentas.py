@@ -414,10 +414,11 @@ class ADTComercialCuentas(models.Model):
         a = []
         fecha_inicial = self.fecha_gracia + timedelta(days=0)
 
-        # ? ASIGNACION DE CUOTAS
-        a.append(self.env["adt.comercial.cuotas"].create(
-            {'name': 'Cuota 0', 'monto': cuota_gracia, 'fecha_cronograma': self.fecha_gracia,
-             'periodicidad': self.periodicidad}).id)
+        # Cuota 0 solo se crea cuando hay un monto de gracia mayor a 0
+        if cuota_gracia > 0:
+            a.append(self.env["adt.comercial.cuotas"].create(
+                {'name': 'Cuota 0', 'monto': cuota_gracia, 'fecha_cronograma': self.fecha_gracia,
+                 'periodicidad': self.periodicidad}).id)
 
         if monto_cuota == 0:
             monto_cuota_mod = (monto_fraccionado - cuota_gracia) % qty_cuotas
