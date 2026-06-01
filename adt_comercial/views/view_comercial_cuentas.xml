@@ -173,6 +173,15 @@
 
                             </group>
 
+                            <separator string="Cronograma por tramos"/>
+                            <group>
+                                <button name="action_cronograma_tramos"
+                                        type="object"
+                                        string="Configurar cronograma por tramos"
+                                        class="oe_highlight"
+                                        icon="fa-calendar"
+                                        attrs="{'invisible': [('state', '=', 'cancelado')]}"/>
+                            </group>
                         </page>
 
                         <page string="Cuotas">

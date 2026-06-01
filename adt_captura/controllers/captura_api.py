@@ -174,42 +174,42 @@ class CapturaAPI(http.Controller):
             total_count = MoraModel.search_count(domain)
             records = MoraModel.search(domain, limit=limit, offset=offset)
 
-            # ── pre-fetch cuenta computed fields safely ────────────────────────
-            # _compute_qty_cuotas in comercial_cuentas uses bare `self.state`
-            # (no for-loop), so Odoo crashes when it tries to batch-compute on
-            # more than one record.
-            # Browsing each cuenta ID individually in a separate env call
-            # guarantees the prefetch set contains exactly one record, making
-            # `self` a true singleton inside the compute method.
+            # ── batch SQL aggregation for cuota fields ────────────────────────
+            # A single query replaces N per-cuenta ORM calls.
+            # _compute_qty_cuotas uses bare `self.state` (no for-loop) so it
+            # crashes on multi-record sets; raw SQL avoids that entirely.
             cuenta_ids = records.mapped('cuenta_id').ids  # plain list of ints
             CuentaModel = request.env['adt.comercial.cuentas'].sudo()
             cuenta_computed = {}
-            for cid in cuenta_ids:
-                c_single = CuentaModel.browse(cid)
+            if cuenta_ids:
                 try:
-                    mora_total = sum(
-                        cuota.mora_pendiente or 0.0
-                        for cuota in c_single.cuota_ids
-                        if cuota.type == 'cuota'
-                    )
-                    cuenta_computed[cid] = {
-                        'qty_cuotas_pagadas': c_single.qty_cuotas_pagadas or 0,
-                        'qty_cuotas_restantes': c_single.qty_cuotas_restantes or 0,
-                        'qty_cuotas_retrasado': c_single.qty_cuotas_retrasado or 0,
-                        'cuotas_saldo': c_single.cuotas_saldo or 0.0,
-                        'mora_total': mora_total,
-                    }
+                    request.env.cr.execute("""
+                        SELECT
+                            cuenta_id,
+                            COUNT(*) FILTER (WHERE type = 'cuota' AND state = 'pagado')
+                                AS qty_pagadas,
+                            COUNT(*) FILTER (WHERE type = 'cuota' AND state IN ('pendiente','retrasado','a_cuenta'))
+                                AS qty_restantes,
+                            COUNT(*) FILTER (WHERE type = 'cuota' AND state = 'retrasado')
+                                AS qty_retrasado,
+                            COALESCE(SUM(CASE WHEN type = 'cuota' AND state IN ('pendiente','retrasado','a_cuenta')
+                                THEN saldo ELSE 0 END), 0) AS cuotas_saldo,
+                            COALESCE(SUM(CASE WHEN type = 'cuota'
+                                THEN COALESCE(mora_pendiente, 0) ELSE 0 END), 0) AS mora_total
+                        FROM adt_comercial_cuotas
+                        WHERE cuenta_id = ANY(%s)
+                        GROUP BY cuenta_id
+                    """, (cuenta_ids,))
+                    for row in request.env.cr.dictfetchall():
+                        cuenta_computed[row['cuenta_id']] = {
+                            'qty_cuotas_pagadas': row['qty_pagadas'] or 0,
+                            'qty_cuotas_restantes': row['qty_restantes'] or 0,
+                            'qty_cuotas_retrasado': row['qty_retrasado'] or 0,
+                            'cuotas_saldo': float(row['cuotas_saldo'] or 0),
+                            'mora_total': float(row['mora_total'] or 0),
+                        }
                 except Exception:
-                    _logger.warning(
-                        'Could not compute cuota fields for cuenta id=%s', cid, exc_info=True
-                    )
-                    cuenta_computed[cid] = {
-                        'qty_cuotas_pagadas': 0,
-                        'qty_cuotas_restantes': 0,
-                        'qty_cuotas_retrasado': 0,
-                        'cuotas_saldo': 0.0,
-                        'mora_total': 0.0,
-                    }
+                    _logger.warning('Batch cuota SQL failed, falling back', exc_info=True)
 
             # ── pre-fetch adt.captura.record counts & latest date ─────────────
             vehicle_ids = [r for r in records.mapped('vehicle_id').ids if r]
@@ -231,12 +231,14 @@ class CapturaAPI(http.Controller):
                 else:
                     cap_domain = [('cuenta_id', 'in', all_cuenta_ids)]
 
-                for cap in CapturaRecordModel.search(cap_domain):
-                    dt = cap.create_date
-                    if cap.vehicle_id:
-                        cap_dates_by_vehicle.setdefault(cap.vehicle_id.id, []).append(dt)
-                    if cap.cuenta_id:
-                        cap_dates_by_cuenta.setdefault(cap.cuenta_id.id, []).append(dt)
+                for cap in CapturaRecordModel.search_read(
+                    cap_domain, ['vehicle_id', 'cuenta_id', 'create_date']
+                ):
+                    dt = cap['create_date']
+                    if cap.get('vehicle_id'):
+                        cap_dates_by_vehicle.setdefault(cap['vehicle_id'][0], []).append(dt)
+                    if cap.get('cuenta_id'):
+                        cap_dates_by_cuenta.setdefault(cap['cuenta_id'][0], []).append(dt)
 
             result = []
             for rec in records:

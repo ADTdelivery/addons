@@ -9,6 +9,7 @@
             <xpath expr="//search" position="inside">
                 <field name="driver_id" string="Documento"
                        filter_domain="[('driver_id.vat', 'ilike', self)]"/>
+                <field name="vin_sn" string="Chasis"/>
             </xpath>
         </field>
     </record>

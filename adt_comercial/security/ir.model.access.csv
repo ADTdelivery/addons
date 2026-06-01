@@ -21,3 +21,9 @@ access_adt_comercial_financiera_admin,adt.comercial.financiera admin,model_adt_c
 access_adt_comercial_financiera_user,adt.comercial.financiera user,model_adt_comercial_financiera,base.group_user,1,1,1,0
 access_adt_eliminar_cuota_wizard_admin,adt.eliminar.cuota.wizard admin,model_adt_eliminar_cuota_wizard,base.group_system,1,1,1,1
 access_adt_eliminar_cuota_wizard_user,adt.eliminar.cuota.wizard user,model_adt_eliminar_cuota_wizard,base.group_user,1,1,1,1
+access_adt_cronograma_tramos_wizard_admin,adt.cronograma.tramos.wizard admin,model_adt_cronograma_tramos_wizard,base.group_system,1,1,1,1
+access_adt_cronograma_tramos_wizard_user,adt.cronograma.tramos.wizard user,model_adt_cronograma_tramos_wizard,base.group_user,1,1,1,1
+access_adt_cronograma_tramo_line_admin,adt.cronograma.tramo.line admin,model_adt_cronograma_tramo_line,base.group_system,1,1,1,1
+access_adt_cronograma_tramo_line_user,adt.cronograma.tramo.line user,model_adt_cronograma_tramo_line,base.group_user,1,1,1,1
+access_adt_cronograma_preview_line_admin,adt.cronograma.preview.line admin,model_adt_cronograma_preview_line,base.group_system,1,1,1,1
+access_adt_cronograma_preview_line_user,adt.cronograma.preview.line user,model_adt_cronograma_preview_line,base.group_user,1,1,1,1

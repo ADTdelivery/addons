@@ -36,7 +36,26 @@ class ADTComercialCuentas(models.Model):
             cuenta.write({'state': 'en_curso',
                           'reference_no': self.env['ir.sequence'].next_by_code('comercial.cuentas')})
             cuenta.vehiculo_id.write({'disponible': False})
-            cuenta.generar_cuotas()
+            # Si ya existen cuotas pre-generadas (por ej. via cronograma por tramos), no sobreescribir
+            if not cuenta.cuota_ids:
+                cuenta.generar_cuotas()
+
+    def action_cronograma_tramos(self):
+        self.ensure_one()
+        return {
+            'name': 'Cronograma por Tramos',
+            'res_model': 'adt.cronograma.tramos.wizard',
+            'view_mode': 'form',
+            'context': {
+                'default_cuenta_id': self.id,
+                'default_periodicidad': self.periodicidad or 'quincena',
+                'default_fecha_inicio': self.fecha_gracia,
+                'default_monto_fraccionado': self.monto_fraccionado,
+                'default_cuota_gracia': self.cuota_gracia,
+            },
+            'target': 'new',
+            'type': 'ir.actions.act_window',
+        }
 
     def cancelar_cuenta(self):
         for cuenta in self:
@@ -291,10 +310,12 @@ class ADTComercialCuentas(models.Model):
             self.state = 'en_curso'
 
         for rec in self:
-            # ... existing code above ...
-
-            pagadas_all = len(rec.cuota_ids.filtered(lambda x: x.state == 'pagado')) == len(rec.cuota_ids)
-            no_mora_pending = not rec.cuota_ids.filtered(lambda x: (x.mora_pendiente or 0) > 0)
+            cuotas = rec.cuota_ids
+            # Si no hay cuotas, no hay nada pagado: evita 0==0 → True
+            pagadas_all = bool(cuotas) and (
+                len(cuotas.filtered(lambda x: x.state == 'pagado')) == len(cuotas)
+            )
+            no_mora_pending = not cuotas.filtered(lambda x: (x.mora_pendiente or 0) > 0)
 
             if pagadas_all:
                 if rec.is_available_pay_mora:

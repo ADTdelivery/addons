@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Wizard: Cronograma por Tramos ─────────────────────────────────── -->
+    <record id="view_cronograma_tramos_wizard_form" model="ir.ui.view">
+        <field name="name">adt.cronograma.tramos.wizard.form</field>
+        <field name="model">adt.cronograma.tramos.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Cronograma por Tramos">
+
+                <!-- Campo técnico de control de paso -->
+                <field name="wizard_state" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+
+                <!-- ══ PASO 1: Configurar ════════════════════════════════════ -->
+                <group attrs="{'invisible': [('wizard_state', '!=', 'configurar')]}">
+
+                    <group string="Parámetros del cronograma">
+                        <field name="cuenta_id" readonly="1"/>
+                        <field name="periodicidad"/>
+                        <field name="fecha_inicio"
+                               string="Fecha base (Cuota 0)"
+                               help="Fecha de inicio. Las cuotas se generan a partir de esta fecha."/>
+                    </group>
+
+                    <group string="Resumen">
+                        <field name="total_cuotas" readonly="1"/>
+                        <field name="monto_fraccionado" readonly="1"
+                               string="Monto fraccionado total"
+                               help="Se calcula automáticamente sumando los subtotales de cada tramo."/>
+                    </group>
+
+                </group>
+
+                <!-- Tabla de tramos -->
+                <group string="Tramos del cronograma"
+                       attrs="{'invisible': [('wizard_state', '!=', 'configurar')]}">
+                    <field name="tramo_ids" nolabel="1" colspan="2">
+                        <tree editable="bottom">
+                            <field name="cuota_desde" string="Cuota desde"/>
+                            <field name="cuota_hasta" string="Cuota hasta"/>
+                            <field name="monto_cuota" string="Monto por cuota"/>
+                            <field name="cantidad" string="Cant. cuotas" readonly="1"/>
+                            <field name="total_tramo" string="Subtotal" readonly="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </tree>
+                    </field>
+                </group>
+
+                <!-- ══ PASO 2: Previsualizar ════════════════════════════════ -->
+                <group attrs="{'invisible': [('wizard_state', '!=', 'previsualizar')]}">
+                    <group string="Resumen del cronograma generado">
+                        <field name="total_cuotas" readonly="1"/>
+                        <field name="monto_fraccionado" readonly="1"
+                               string="Monto fraccionado total"/>
+                    </group>
+                </group>
+
+                <group string="Vista previa del cronograma"
+                       attrs="{'invisible': [('wizard_state', '!=', 'previsualizar')]}">
+                    <field name="preview_ids" nolabel="1" colspan="2" readonly="1">
+                        <tree>
+                            <field name="numero" string="# Cuota"/>
+                            <field name="fecha" string="Fecha"/>
+                            <field name="monto" string="Monto"/>
+                            <field name="tramo_label" string="Tramo"/>
+                            <field name="currency_id" invisible="1"/>
+                        </tree>
+                    </field>
+                </group>
+
+                <!-- ══ Botones de acción ════════════════════════════════════ -->
+                <footer>
+                    <!-- Paso 1: Configurar -->
+                    <button name="action_previsualizar"
+                            string="Previsualizar cronograma"
+                            type="object"
+                            class="oe_highlight"
+                            attrs="{'invisible': [('wizard_state', '!=', 'configurar')]}"/>
+
+                    <button string="Cancelar"
+                            class="btn-secondary"
+                            special="cancel"
+                            attrs="{'invisible': [('wizard_state', '!=', 'configurar')]}"/>
+
+                    <!-- Paso 2: Previsualizar -->
+                    <button name="action_confirmar"
+                            string="Confirmar y generar cuotas"
+                            type="object"
+                            class="oe_highlight btn-success"
+                            attrs="{'invisible': [('wizard_state', '!=', 'previsualizar')]}"/>
+
+                    <button name="action_volver"
+                            string="Volver a configurar"
+                            type="object"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('wizard_state', '!=', 'previsualizar')]}"/>
+                </footer>
+
+            </form>
+        </field>
+    </record>
+
+    <!-- Action para abrir el wizard -->
+    <record id="action_cronograma_tramos_wizard" model="ir.actions.act_window">
+        <field name="name">Cronograma por Tramos</field>
+        <field name="res_model">adt.cronograma.tramos.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_cronograma_tramos_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+
+</odoo>
