@@ -111,6 +111,13 @@ Solo para `POST /api/v1/pagos/registrar`:
 }
 ```
 
+### Documentos vehiculares adicionales posibles
+
+- `Tarjeta de Propiedad` → `GUARANTEE`
+- `Chip GNV` → `OTHER`
+- `SOAT` → `GUARANTEE`
+- `Contrato` (`contrato_attachment`) → `CONTRACT`
+
 ---
 
 ## 4) Core app
@@ -212,6 +219,165 @@ Solo para `POST /api/v1/pagos/registrar`:
         "uploadedAt": "2026-05-19T10:00:00Z"
       }
     ]
+  }
+}
+```
+
+---
+
+## 4.4 Catálogo de productos móviles
+
+Los productos del catálogo se administran en Odoo desde:
+
+- `Móvil > Catálogo > Productos`
+
+Campos móviles importantes del producto:
+
+- `Disponible en App Móvil`
+- `Orden App Móvil`
+- `Etiqueta App`
+- `Descripción corta App`
+- `Stock visible App` (campo usado por `qtyAvailable`)
+- `Galería App` (imágenes adicionales)
+
+Configuración global del botón de compra (aplica a todos los productos):
+
+- Menú: `Móvil > Configuración > Botón comprar catálogo`
+- `Botón comprar activo`
+- `WhatsApp de ventas`
+- `Texto botón comprar`
+- `Color botón comprar`
+- `Ícono botón comprar`
+
+### Listar productos
+
+- **Servicio**: `Catalog Products List`
+- **Metodo/Ruta**: `GET /v1/catalog/products?q=filtro&page=1&pageSize=20&categoryId=5&vehicleModelId=10`
+- **Auth**: Bearer
+
+### Response (200)
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": 15,
+        "name": "Casco Certificado",
+        "sku": "CAS-001",
+        "barcode": "7751234567890",
+        "price": 199.9,
+        "currency": "S/",
+        "shortDescription": "Casco integral color negro",
+        "badge": "Oferta",
+        "imageUrl": "https://.../web/content/123?access_token=...",
+        "hasImage": true,
+        "category": {
+          "id": 8,
+          "name": "Accesorios"
+        },
+        "vehicleModel": {
+          "id": 3,
+          "name": "Ntorq 125",
+          "brand": "TVS"
+        },
+        "buyCta": {
+          "enabled": true,
+          "phone": "51999111222",
+          "buttonText": "Comprar por WhatsApp",
+          "buttonColor": "#25D366",
+          "buttonIcon": "whatsapp",
+          "whatsappUrl": "https://wa.me/51999111222?text=Hola%2C+deseo+consultar+por+el+producto+Casco+Certificado+%28SKU%3A+CAS-001%29"
+        }
+      }
+    ]
+  },
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "pageSize": 20,
+      "totalItems": 1,
+      "totalPages": 1,
+      "hasNext": false,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+### Detalle de producto
+
+- **Servicio**: `Catalog Product Detail`
+- **Metodo/Ruta**: `GET /v1/catalog/products/15`
+- **Auth**: Bearer
+
+### Response (200)
+```json
+{
+  "success": true,
+  "data": {
+    "product": {
+      "id": 15,
+      "name": "Casco Certificado",
+      "sku": "CAS-001",
+      "barcode": "7751234567890",
+      "price": 199.9,
+      "currency": "S/",
+      "shortDescription": "Casco integral color negro",
+      "badge": "Oferta",
+      "imageUrl": "https://.../web/content/123?access_token=...",
+      "hasImage": true,
+      "category": {
+        "id": 8,
+        "name": "Accesorios"
+      },
+      "vehicleModel": {
+        "id": 3,
+        "name": "Ntorq 125",
+        "brand": "TVS"
+      },
+      "buyCta": {
+        "enabled": true,
+        "phone": "51999111222",
+        "buttonText": "Comprar por WhatsApp",
+        "buttonColor": "#25D366",
+        "buttonIcon": "whatsapp",
+        "whatsappUrl": "https://wa.me/51999111222?text=Hola%2C+deseo+consultar+por+el+producto+Casco+Certificado+%28SKU%3A+CAS-001%29"
+      },
+      "saleDescription": "Ideal para uso urbano",
+      "description": "Casco integral con visor y certificación.",
+      "mobilePublished": true,
+      "sequence": 10,
+      "canSell": true,
+      "qtyAvailable": 8.0,
+      "uom": "Unidades",
+      "images": [
+        {
+          "id": "main-15",
+          "name": "Casco Certificado",
+          "url": "https://.../web/content/123?access_token=...",
+          "isMain": true
+        },
+        {
+          "id": 4,
+          "name": "Vista lateral",
+          "url": "https://.../web/content/124?access_token=...",
+          "isMain": false
+        }
+      ]
+    }
+  }
+}
+```
+
+### Error posible
+```json
+{
+  "success": false,
+  "statusCode": 404,
+  "error": {
+    "code": "PRODUCT_NOT_FOUND",
+    "message": "Producto no encontrado."
   }
 }
 ```

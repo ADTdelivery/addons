@@ -25,8 +25,10 @@
                         </group>
                     </group>
 
-                    <group string="Mora" attrs="{'invisible':[('mora','=',0),('mora','=',False)]}">
+                    <group string="Mora" attrs="{'invisible':[('mora_auto','=',0),('mora','=',0),('mora_manual','=',False)]}">
                         <group>
+                            <field name="mora_manual"/>
+                            <field name="mora_auto" string="Mora automática" readonly="1"/>
                             <field name="mora" string="Mora"/>
                             <field name="mora_dias" string="Días mora" readonly="1"/>
                         </group>

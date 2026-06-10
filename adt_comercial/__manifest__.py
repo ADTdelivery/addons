@@ -38,6 +38,7 @@
         'views/dashboard_caja.xml',
         'views/report.xml',
         'views/view_mobile_models.xml',
+        'views/view_mobile_product_catalog.xml',
     ],
     'assets': {
         'web.assets_backend': [

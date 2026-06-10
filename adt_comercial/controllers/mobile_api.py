@@ -9,6 +9,8 @@ Implements the following endpoints:
   HU-004  GET  /v1/promotions               (bearer token, pagination)
   HU-005  GET  /v1/notifications            (bearer token, pagination)
   HU-006  POST /v1/auth/logout              (bearer token)
+  HU-012  GET  /v1/catalog/products         (bearer token)
+  HU-013  GET  /v1/catalog/products/<id>    (bearer token)
 
 Authentication
   - All endpoints except HU-001 require the header:
@@ -24,6 +26,7 @@ import re
 import uuid
 import logging
 import base64
+from urllib.parse import quote_plus
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import datetime, timezone
 
@@ -1089,6 +1092,7 @@ class MobileAPIController(http.Controller):
                     ('tarjeta_propiedad_attachment', 'Tarjeta de Propiedad', 'GUARANTEE'),
                     ('chip_gnv_attachment', 'Chip GNV', 'OTHER'),
                     ('soat_attachment', 'SOAT', 'GUARANTEE'),
+                    ('contrato_attachment', 'Contrato', 'CONTRACT'),
                 ]
 
                 # Only proceed if we have a vehicle record
@@ -2581,6 +2585,103 @@ class MobileAPIController(http.Controller):
             _logger.exception('Error in POST /v1/workshop/work-orders')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
+    @http.route(
+        '/v1/catalog/products',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def catalog_products(self, q=None, page=1, pageSize=20, categoryId=None, vehicleModelId=None, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            _, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            try:
+                page = max(1, int(page))
+                page_size = max(1, min(100, int(pageSize)))
+            except (TypeError, ValueError):
+                return _json_response(_error(400, 'BAD_REQUEST', 'Parámetros de paginación inválidos.'), status=400)
+
+            ProductTemplate = request.env['product.template'].sudo()
+            domain = [('active', '=', True), ('sale_ok', '=', True), ('mobile_published', '=', True)]
+
+            query = (q or '').strip()
+            if query:
+                domain.extend([
+                    '|', '|', '|',
+                    ('name', 'ilike', query),
+                    ('default_code', 'ilike', query),
+                    ('barcode', 'ilike', query),
+                    ('mobile_short_description', 'ilike', query),
+                ])
+
+            if categoryId not in (None, ''):
+                try:
+                    domain.append(('categ_id', '=', int(categoryId)))
+                except (TypeError, ValueError):
+                    return _json_response(_error(400, 'BAD_REQUEST', 'categoryId debe ser numérico.'), status=400)
+
+            if vehicleModelId not in (None, '') and 'product_model_id' in ProductTemplate._fields:
+                try:
+                    domain.append(('product_model_id', '=', int(vehicleModelId)))
+                except (TypeError, ValueError):
+                    return _json_response(_error(400, 'BAD_REQUEST', 'vehicleModelId debe ser numérico.'), status=400)
+
+            total_items = ProductTemplate.search_count(domain)
+            total_pages = max(1, -(-total_items // page_size))
+            offset = (page - 1) * page_size
+            products = ProductTemplate.search(domain, limit=page_size, offset=offset, order='mobile_sequence asc, name asc, id asc')
+
+            data = {
+                'items': [_serialize_catalog_product_summary(product) for product in products]
+            }
+            pagination = {
+                'page': page,
+                'pageSize': page_size,
+                'totalItems': total_items,
+                'totalPages': total_pages,
+                'hasNext': page < total_pages,
+                'hasPrev': page > 1,
+            }
+            return _json_response(_success(data, pagination=pagination))
+        except Exception:
+            _logger.exception('Error in GET /v1/catalog/products')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/catalog/products/<int:product_id>',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def catalog_product_detail(self, product_id, **kwargs):
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            _, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            ProductTemplate = request.env['product.template'].sudo()
+            product = ProductTemplate.search([
+                ('id', '=', product_id),
+                ('active', '=', True),
+                ('sale_ok', '=', True),
+                ('mobile_published', '=', True),
+            ], limit=1)
+            if not product:
+                return _json_response(_error(404, 'PRODUCT_NOT_FOUND', 'Producto no encontrado.'), status=404)
+
+            return _json_response(_success({'product': _serialize_catalog_product_detail(product)}))
+        except Exception:
+            _logger.exception('Error in GET /v1/catalog/products/%s', product_id)
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Private helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2794,6 +2895,146 @@ def _sync_work_order_lines(work_order, body):
                 'state': row.get('state') or 'pending',
             }))
         work_order.sudo().write({'payment_schedule_ids': commands})
+
+
+def _catalog_currency_symbol(product_tmpl):
+    currency = getattr(product_tmpl, 'currency_id', False) or request.env.company.currency_id
+    return currency.symbol or 'S/'
+
+
+def _catalog_product_main_image_url(product_tmpl):
+    if not product_tmpl or not getattr(product_tmpl, 'image_1920', False):
+        return None
+    return _build_attachment_url('product.template', product_tmpl.id, 'image_1920')
+
+
+def _catalog_product_gallery(product_tmpl):
+    images = []
+    main_image_url = _catalog_product_main_image_url(product_tmpl)
+    if main_image_url:
+        images.append({
+            'id': 'main-%s' % product_tmpl.id,
+            'name': product_tmpl.name or 'Imagen principal',
+            'url': main_image_url,
+            'isMain': True,
+        })
+
+    for image in product_tmpl.mobile_product_image_ids.filtered(lambda img: img.active).sorted('sequence'):
+        image_url = _build_attachment_url('mobile.catalog.product.image', image.id, 'image_1920')
+        if not image_url:
+            continue
+        images.append({
+            'id': image.id,
+            'name': image.name or 'Imagen',
+            'url': image_url,
+            'isMain': False,
+        })
+
+    return images
+
+
+def _catalog_vehicle_model_data(product_tmpl):
+    if 'product_model_id' not in product_tmpl._fields:
+        return None
+    vehicle_model = product_tmpl.product_model_id
+    if not vehicle_model:
+        return None
+    brand_name = vehicle_model.brand_id.name if getattr(vehicle_model, 'brand_id', False) else None
+    return {
+        'id': vehicle_model.id,
+        'name': vehicle_model.name,
+        'brand': brand_name,
+    }
+
+
+def _normalize_whatsapp_phone(phone_raw):
+    if not phone_raw:
+        return None
+    digits = ''.join(ch for ch in str(phone_raw).strip() if ch.isdigit())
+    return digits or None
+
+
+def _get_catalog_cta_config():
+    try:
+        ConfigModel = request.env['mobile.catalog.cta.config'].sudo()
+        candidates = ConfigModel.search([('active', '=', True)], order='write_date desc, id desc', limit=20)
+        for rec in candidates:
+            has_phone = bool(_normalize_whatsapp_phone(rec.whatsapp_phone))
+            has_url = bool((rec.whatsapp_url or '').strip())
+            if rec.cta_enabled and (has_phone or has_url):
+                return rec
+        return candidates[:1]
+    except Exception:
+        return None
+
+
+def _catalog_buy_cta(product_tmpl):
+    config = _get_catalog_cta_config()
+    phone = _normalize_whatsapp_phone(config.whatsapp_phone if config else None)
+    configured_url = (config.whatsapp_url or '').strip() if config else ''
+    configured_enabled = bool(config and config.cta_enabled)
+    enabled = configured_enabled and bool(configured_url or phone)
+
+    message = 'Hola, deseo consultar por el producto %s' % (product_tmpl.name or '')
+    if product_tmpl.default_code:
+        message += ' (SKU: %s)' % product_tmpl.default_code
+
+    whatsapp_url = None
+    if enabled:
+        whatsapp_url = configured_url or 'https://wa.me/%s?text=%s' % (phone, quote_plus(message))
+
+    button_icon_url = None
+    if config and config.id and config.button_icon_image:
+        button_icon_url = _build_attachment_url('mobile.catalog.cta.config', config.id, 'button_icon_image')
+
+    return {
+        'enabled': enabled,
+        'phone': phone,
+        'buttonText': (config.button_text if config and config.button_text else 'Comprar por WhatsApp'),
+        'buttonColor': (config.button_color if config and config.button_color else '#25D366'),
+        'buttonIcon': 'uploaded_image' if button_icon_url else 'whatsapp',
+        'buttonIconUrl': button_icon_url,
+        'whatsappUrl': whatsapp_url,
+    }
+
+
+def _serialize_catalog_product_summary(product_tmpl):
+    category = product_tmpl.categ_id
+    vehicle_model = _catalog_vehicle_model_data(product_tmpl)
+    image_url = _catalog_product_main_image_url(product_tmpl)
+    return {
+        'id': product_tmpl.id,
+        'name': product_tmpl.name,
+        'sku': product_tmpl.default_code or None,
+        'barcode': product_tmpl.barcode or None,
+        'price': float(_money(product_tmpl.list_price)),
+        'currency': _catalog_currency_symbol(product_tmpl),
+        'shortDescription': product_tmpl.mobile_short_description or product_tmpl.description_sale or None,
+        'badge': product_tmpl.mobile_badge or None,
+        'imageUrl': image_url,
+        'hasImage': bool(image_url),
+        'category': {
+            'id': category.id if category else None,
+            'name': category.name if category else None,
+        },
+        'vehicleModel': vehicle_model,
+        'buyCta': _catalog_buy_cta(product_tmpl),
+    }
+
+
+def _serialize_catalog_product_detail(product_tmpl):
+    summary = _serialize_catalog_product_summary(product_tmpl)
+    summary.update({
+        'saleDescription': product_tmpl.description_sale or None,
+        'description': product_tmpl.description or None,
+        'mobilePublished': bool(product_tmpl.mobile_published),
+        'sequence': product_tmpl.mobile_sequence or 0,
+        'canSell': bool(product_tmpl.sale_ok),
+        'qtyAvailable': float(product_tmpl.mobile_qty_available or 0.0),
+        'uom': product_tmpl.uom_id.name if getattr(product_tmpl, 'uom_id', False) else None,
+        'images': _catalog_product_gallery(product_tmpl),
+    })
+    return summary
 
 def _get_payment_accounts():
     """

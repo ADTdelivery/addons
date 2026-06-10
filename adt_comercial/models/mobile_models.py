@@ -9,8 +9,10 @@ Models for Mobile App API
 
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
+from markupsafe import Markup, escape
 import uuid
 import logging
+import re
 
 _logger = logging.getLogger(__name__)
 
@@ -220,4 +222,136 @@ class MobileFCMDevice(models.Model):
         ('mobile_fcm_unique_partner_device', 'unique(partner_id, device_id)',
          'Ya existe un registro FCM para este cliente y dispositivo.'),
     ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HU-012  Mobile Catalog Global CTA (WhatsApp buy button)
+# ─────────────────────────────────────────────────────────────────────────────
+class MobileCatalogCTAConfig(models.Model):
+    _name = 'mobile.catalog.cta.config'
+    _description = 'Configuración global CTA catálogo móvil'
+    _order = 'sequence asc, id asc'
+
+    name = fields.Char(string='Nombre', required=True, default='Configuración principal')
+    cta_enabled = fields.Boolean(string='Botón comprar activo', default=True)
+    whatsapp_phone = fields.Char(
+        string='WhatsApp de ventas',
+        help='Número en formato internacional sin +, ejemplo: 51999111222',
+    )
+    whatsapp_url = fields.Char(
+        string='URL WhatsApp',
+        help='Opcional. Si se define, esta URL se usa directamente al tocar el botón.',
+    )
+    button_text = fields.Char(string='Texto botón comprar', default='Comprar por WhatsApp')
+    button_color = fields.Char(string='Color botón comprar', default='#25D366')
+    button_icon_image = fields.Binary(string='Ícono botón (imagen)', attachment=True)
+    button_icon_image_filename = fields.Char(string='Nombre archivo ícono')
+    preview_html = fields.Html(
+        string='Vista previa',
+        compute='_compute_preview_html',
+        sanitize=False,
+    )
+    sequence = fields.Integer(string='Orden', default=10)
+    active = fields.Boolean(default=True)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super(MobileCatalogCTAConfig, self).create(vals_list)
+        # Keep a single active config to avoid ambiguity in API selection.
+        for rec in records.filtered(lambda r: r.active):
+            others = self.search([('id', '!=', rec.id), ('active', '=', True)])
+            if others:
+                others.write({'active': False})
+        return records
+
+    def write(self, vals):
+        res = super(MobileCatalogCTAConfig, self).write(vals)
+        if vals.get('active'):
+            for rec in self.filtered(lambda r: r.active):
+                others = self.search([('id', '!=', rec.id), ('active', '=', True)])
+                if others:
+                    others.write({'active': False})
+        return res
+
+    @api.model
+    def _get_or_create_active_config(self):
+        config = self.search([('active', '=', True)], order='write_date desc, id desc', limit=1)
+        if config:
+            return config
+        config = self.search([], order='write_date desc, id desc', limit=1)
+        if config and not config.active:
+            config.write({'active': True})
+            return config
+        return self.create({'name': 'Configuración principal', 'active': True})
+
+    @api.model
+    def action_open_singleton(self):
+        config = self._get_or_create_active_config()
+        form_view = self.env.ref('adt_comercial.view_mobile_catalog_cta_config_form', raise_if_not_found=False)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Botón comprar catálogo',
+            'res_model': 'mobile.catalog.cta.config',
+            'view_mode': 'form',
+            'views': [(form_view.id, 'form')] if form_view else [(False, 'form')],
+            'res_id': config.id,
+            'target': 'current',
+            'context': dict(self.env.context, form_view_initial_mode='edit'),
+        }
+
+    @api.constrains('whatsapp_phone')
+    def _check_whatsapp_phone(self):
+        for rec in self:
+            if not rec.whatsapp_phone:
+                continue
+            digits = ''.join(ch for ch in rec.whatsapp_phone if ch.isdigit())
+            if len(digits) < 8 or len(digits) > 15:
+                raise ValidationError(
+                    'El número de WhatsApp debe tener entre 8 y 15 dígitos (sin espacios ni símbolos).'
+                )
+
+    @api.constrains('button_color')
+    def _check_button_color(self):
+        hex_pattern = re.compile(r'^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$')
+        for rec in self:
+            if rec.button_color and not hex_pattern.match(rec.button_color.strip()):
+                raise ValidationError('El color del botón debe estar en formato HEX, por ejemplo: #25D366')
+
+    @api.depends('button_text', 'button_color', 'button_icon_image', 'cta_enabled', 'whatsapp_phone', 'whatsapp_url')
+    def _compute_preview_html(self):
+        hex_pattern = re.compile(r'^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$')
+        for rec in self:
+            color = (rec.button_color or '').strip()
+            if not hex_pattern.match(color):
+                color = '#25D366'
+            state_label = 'Activo' if rec.cta_enabled else 'Desactivado'
+            phone_label = rec.whatsapp_phone or 'Sin número configurado'
+            url_label = rec.whatsapp_url or 'No definida (se genera con número + producto)'
+            icon_data = rec.button_icon_image
+            if isinstance(icon_data, bytes):
+                icon_data = icon_data.decode('utf-8')
+            icon_html = '<span style="font-size:16px;line-height:1;">&#128241;</span>'
+            if icon_data:
+                icon_html = '<img src="data:image/*;base64,%s" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;"/>' % escape(icon_data)
+            rec.preview_html = Markup(
+                '<div style="border:1px solid #d9d9d9;border-radius:10px;padding:16px;background:#f7f8fa;max-width:420px;">'
+                '<div style="font-size:12px;color:#666;margin-bottom:8px;">Vista previa en app móvil</div>'
+                '<button type="button" style="width:100%%;background:%s;border:none;color:#fff;padding:12px 14px;'
+                'border-radius:8px;font-size:14px;font-weight:600;opacity:%s;display:flex;align-items:center;justify-content:center;gap:8px;">'
+                '%s<span>%s</span>'
+                '</button>'
+                '<div style="margin-top:10px;font-size:12px;color:#444;">Estado: <strong>%s</strong></div>'
+                '<div style="font-size:12px;color:#444;">WhatsApp: %s</div>'
+                '<div style="font-size:12px;color:#444;">URL WhatsApp: %s</div>'
+                '</div>'
+            ) % (
+                escape(color),
+                '1' if rec.cta_enabled else '0.55',
+                Markup(icon_html),
+                escape((rec.button_text or 'Comprar por WhatsApp').strip()),
+                escape(state_label),
+                escape(phone_label),
+                escape(url_label),
+            )
+
 

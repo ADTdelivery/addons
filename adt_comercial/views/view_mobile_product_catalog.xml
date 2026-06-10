@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="view_mobile_catalog_product_tree" model="ir.ui.view">
+		<field name="name">product.template.mobile.catalog.tree</field>
+		<field name="model">product.template</field>
+		<field name="arch" type="xml">
+			<tree string="Productos App Móvil">
+				<field name="mobile_sequence" widget="handle"/>
+				<field name="name"/>
+				<field name="default_code"/>
+				<field name="barcode"/>
+				<field name="categ_id"/>
+				<field name="list_price"/>
+				<field name="mobile_qty_available"/>
+				<field name="mobile_badge"/>
+				<field name="mobile_published"/>
+				<field name="sale_ok"/>
+				<field name="active"/>
+			</tree>
+		</field>
+	</record>
+
+	<record id="view_mobile_catalog_product_form" model="ir.ui.view">
+		<field name="name">product.template.mobile.catalog.form</field>
+		<field name="model">product.template</field>
+		<field name="arch" type="xml">
+			<form string="Producto App Móvil">
+				<sheet>
+					<div class="oe_title">
+						<label for="name" class="oe_edit_only"/>
+						<h1>
+							<field name="name" placeholder="Nombre del producto"/>
+						</h1>
+					</div>
+					<group>
+						<group string="Información Comercial">
+							<field name="image_1920" widget="image" class="oe_avatar" options="{'size': [256, 256]}"/>
+							<field name="default_code"/>
+							<field name="barcode"/>
+							<field name="categ_id"/>
+							<field name="list_price"/>
+						</group>
+						<group string="Configuración Móvil">
+							<field name="mobile_published"/>
+							<field name="mobile_sequence"/>
+							<field name="mobile_qty_available"/>
+							<field name="mobile_badge"/>
+							<field name="mobile_short_description"/>
+							<field name="sale_ok"/>
+							<field name="active"/>
+						</group>
+					</group>
+					<notebook>
+						<page string="Descripciones">
+							<group>
+								<field name="description_sale" placeholder="Descripción comercial para la app"/>
+								<field name="description" placeholder="Descripción interna o ampliada"/>
+							</group>
+						</page>
+						<page string="Galería App">
+							<field name="mobile_product_image_ids" context="{'default_product_tmpl_id': active_id}">
+								<tree editable="bottom" string="Imágenes adicionales">
+									<field name="sequence" widget="handle"/>
+									<field name="name"/>
+									<field name="image_1920" widget="image" options="{'size': [128, 128]}"/>
+									<field name="active"/>
+								</tree>
+								<form string="Imagen adicional">
+									<sheet>
+										<group>
+											<field name="name"/>
+											<field name="sequence"/>
+											<field name="active"/>
+											<field name="image_1920" widget="image" options="{'size': [512, 512]}"/>
+										</group>
+									</sheet>
+								</form>
+							</field>
+						</page>
+					</notebook>
+				</sheet>
+			</form>
+		</field>
+	</record>
+
+	<record id="action_mobile_catalog_products" model="ir.actions.act_window">
+		<field name="name">Productos App Móvil</field>
+		<field name="res_model">product.template</field>
+		<field name="view_mode">tree,form</field>
+		<field name="domain">[("sale_ok", "=", True)]</field>
+		<field name="context">{'default_sale_ok': True}</field>
+	</record>
+
+	<record id="action_mobile_catalog_products_tree" model="ir.actions.act_window.view">
+		<field name="sequence" eval="1"/>
+		<field name="view_mode">tree</field>
+		<field name="view_id" ref="view_mobile_catalog_product_tree"/>
+		<field name="act_window_id" ref="action_mobile_catalog_products"/>
+	</record>
+
+	<record id="action_mobile_catalog_products_form" model="ir.actions.act_window.view">
+		<field name="sequence" eval="2"/>
+		<field name="view_mode">form</field>
+		<field name="view_id" ref="view_mobile_catalog_product_form"/>
+		<field name="act_window_id" ref="action_mobile_catalog_products"/>
+	</record>
+
+	<menuitem id="menu_mobile_catalog_root" name="Catálogo" parent="menu_mobile_root" sequence="50"/>
+	<menuitem id="menu_mobile_catalog_products" name="Productos" parent="menu_mobile_catalog_root" action="action_mobile_catalog_products" sequence="10"/>
+</odoo>
+
+

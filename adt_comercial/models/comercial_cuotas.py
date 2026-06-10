@@ -369,11 +369,17 @@ class ADTComercialRegisterPayment(models.TransientModel):
 
     cuota_id = fields.Many2one('adt.comercial.cuotas', string="Id de cuota")
     
-    mora = fields.Float(string="Mora", compute="_compute_mora", readonly=False)
-    
+    mora = fields.Float(string="Mora")
+    mora_manual = fields.Boolean(
+        string="Editar mora manualmente",
+        default=False,
+        help="Activa esta opción para ajustar la mora calculada automáticamente.",
+    )
+    mora_auto = fields.Float(string="Mora automática", compute="_compute_mora_auto")
+
     mora_state = fields.Selection([('paid', 'Mora pagada'),('pending', 'Mora pendiente')],string="Estado de mora",default='pending',required=True)
 
-    mora_dias = fields.Integer(string="Días de mora",compute="_compute_mora",store=True)
+    mora_dias = fields.Integer(string="Días de mora", compute="_compute_mora_auto", store=True)
 
     def _generate_subcuota_name(self):
         self.ensure_one()
@@ -510,11 +516,11 @@ class ADTComercialRegisterPayment(models.TransientModel):
         'cuota_id.payment_ids.mora',
         'cuota_id.cuenta_id.cuota_ids.fecha_cronograma',
     )
-    def _compute_mora(self):
+    def _compute_mora_auto(self):
         default_factor = float(self.env['ir.config_parameter'].sudo()
                                .get_param('adt_comercial.mora_factor', 2))
         for record in self:
-            record.mora = 0.0
+            record.mora_auto = 0.0
             record.mora_dias = 0
 
             if not (record.payment_date and record.cuota_id and record.cuota_id.fecha_cronograma):
@@ -563,7 +569,25 @@ class ADTComercialRegisterPayment(models.TransientModel):
                 factor = float(factors[index].factor_mora)
 
             record.mora_dias = diff_days
-            record.mora = diff_days * factor
+            record.mora_auto = diff_days * factor
+
+    @api.onchange('payment_date', 'cuota_id')
+    def _onchange_set_mora_from_auto(self):
+        for record in self:
+            if not record.mora_manual:
+                record.mora = record.mora_auto
+
+    @api.onchange('mora_manual')
+    def _onchange_mora_manual(self):
+        for record in self:
+            if not record.mora_manual:
+                record.mora = record.mora_auto
+
+    @api.onchange('mora')
+    def _onchange_mora_mark_manual(self):
+        for record in self:
+            if not record.mora_manual and abs((record.mora or 0.0) - (record.mora_auto or 0.0)) > 0.0001:
+                record.mora_manual = True
 
 
 class ADTRegistrarObservacion(models.TransientModel):
