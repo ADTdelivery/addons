@@ -31,3 +31,5 @@ access_adt_cronograma_tramo_line_admin,adt.cronograma.tramo.line admin,model_adt
 access_adt_cronograma_tramo_line_user,adt.cronograma.tramo.line user,model_adt_cronograma_tramo_line,base.group_user,1,1,1,1
 access_adt_cronograma_preview_line_admin,adt.cronograma.preview.line admin,model_adt_cronograma_preview_line,base.group_system,1,1,1,1
 access_adt_cronograma_preview_line_user,adt.cronograma.preview.line user,model_adt_cronograma_preview_line,base.group_user,1,1,1,1
+access_adt_editar_mora_wizard_admin,adt.editar.mora.wizard admin,model_adt_editar_mora_wizard,base.group_system,1,1,1,1
+access_adt_editar_mora_wizard_user,adt.editar.mora.wizard user,model_adt_editar_mora_wizard,base.group_user,1,1,1,1

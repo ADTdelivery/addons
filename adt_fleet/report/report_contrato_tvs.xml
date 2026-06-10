@@ -28,6 +28,7 @@
                 <t t-set="monto_inicial_val"    t-value="cuenta.monto_inicial if cuenta else 0"/>
                 <t t-set="monto_fraccionado_val" t-value="cuenta.monto_fraccionado if cuenta else 0"/>
                 <t t-set="qty_cuotas_val"       t-value="cuenta.qty_cuotas if cuenta else 0"/>
+                <t t-set="qty_cuotas_display"   t-value="qty_cuotas_val + (1 if (cuenta and (cuenta.cuota_gracia or 0) &gt; 0) else 0)"/>
                 <t t-set="monto_cuota_val"      t-value="cuenta.monto_cuota if cuenta else 0"/>
                 <t t-set="plazo_meses"          t-value="o._plazo_meses(cuenta)"/>
                 <t t-set="periodicidad_label"   t-value="o._periodicidad_label(cuenta)"/>
@@ -118,7 +119,7 @@
                         con Placa de Rodaje N&#176;&#160;<t t-esc="placa"/> la misma que ha sido adquirida por un
                         financiamiento con la entidad <t t-esc="financiera"/>, es por ello que obra inscrita
                         una Garant&#237;a Mobiliaria a favor de dicha entidad, hasta por la suma de
-                        S/&#160;<t t-esc="'%.2f' % monto_total_val"/> Soles, sin embargo, seg&#250;n el contrato de
+                        S/&#160;<t t-esc="'%.2f' % monto_fraccionado_val"/> Soles, sin embargo, seg&#250;n el contrato de
                         Garant&#237;a Mobiliaria estamos autorizados para poder vender o dar en alquiler venta
                         este veh&#237;culo, para lo cual a la cancelaci&#243;n total de su precio del bien se coordinar&#225;
                         con este acreedor para el levantamiento de dicho gravamen y as&#237; poder transferir sin
@@ -176,7 +177,7 @@
                         Ambas partes acuerdan que, el total del precio del bien, descrito inicial
                         <t t-esc="'%.2f' % monto_inicial_val"/>, Soles y el resto que asciende a
                         S/&#160;<t t-esc="'%.2f' % monto_fraccionado_val"/> ser&#225; cancelado en un periodo de
-                        <t t-esc="qty_cuotas_val"/> Cuotas, en calidad de renta, tal como se describe
+                        <t t-esc="qty_cuotas_display"/> Cuotas, en calidad de renta, tal como se describe
                         a continuaci&#243;n:
                     </p>
 
@@ -197,7 +198,7 @@
                         </tr>
                         <tr>
                             <td style="border: 1pt solid #000; padding: 4pt 8pt; font-weight: bold;">NUMERO DE CUOTAS</td>
-                            <td style="border: 1pt solid #000; padding: 4pt 8pt;"><t t-esc="qty_cuotas_val"/></td>
+                            <td style="border: 1pt solid #000; padding: 4pt 8pt;"><t t-esc="qty_cuotas_display"/></td>
                         </tr>
                         <tr>
                             <td style="border: 1pt solid #000; padding: 4pt 8pt; font-weight: bold;">PERIODO A CANCELAR</td>

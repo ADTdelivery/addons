@@ -71,7 +71,18 @@ class ADTComercialCuotas(models.Model):
     periodicidad = fields.Char(string="Periodo")
     
     x_asesora = fields.Char(string='Asesora')
-    
+
+    mora_manual = fields.Boolean(
+        string='Editar mora manualmente',
+        default=False,
+        help='Activa esta opción para definir manualmente la mora de la cuota.',
+    )
+    mora_manual_monto = fields.Float(
+        string='Mora manual',
+        default=0.0,
+        help='Monto de mora definido manualmente para esta cuota.',
+    )
+
     mora_total = fields.Float(string="Mora total", compute="_compute_mora_total")
 
     mora_pendiente = fields.Float(string="Mora pendiente", compute="_compute_mora_total")
@@ -84,6 +95,18 @@ class ADTComercialCuotas(models.Model):
     )
 
     mora_dias = fields.Integer(string="Días de mora", compute="_compute_mora_total")
+
+    @api.onchange('mora_manual')
+    def _onchange_mora_manual(self):
+        for record in self:
+            if record.mora_manual and not record.mora_manual_monto:
+                record.mora_manual_monto = record.mora_pendiente or record.mora_total or 0.0
+
+    @api.onchange('mora_manual_monto')
+    def _onchange_mora_manual_monto(self):
+        for record in self:
+            if abs(record.mora_manual_monto or 0.0) > 0.0001:
+                record.mora_manual = True
 
     @api.model
     def _change_real_date(self):
@@ -224,6 +247,8 @@ class ADTComercialCuotas(models.Model):
         'company_id',
         'cuenta_id.cuota_ids.fecha_cronograma',
         'cuenta_id.cuota_ids.state',
+        'mora_manual',
+        'mora_manual_monto',
     )
     @api.depends_context('today')
     def _compute_mora_total(self):
@@ -262,8 +287,18 @@ class ADTComercialCuotas(models.Model):
                     if p.mora_operacion and not ultima_operacion:
                         ultima_operacion = p.mora_operacion
 
+            if record.mora_manual:
+                mora_configurada = max(record.mora_manual_monto or 0.0, 0.0)
+                mora_total = max(mora_configurada, mora_ya_pagada)
+                mora_pendiente = max(mora_total - mora_ya_pagada, 0.0)
+
+                if total_dias <= 0 and record.fecha_cronograma and record.state not in ('pagado', 'anulada'):
+                    hoy = fields.Date.context_today(record)
+                    diff_days = max((hoy - record.fecha_cronograma).days, 0)
+                    total_dias = diff_days
+
             # Si la cuota venció y aún no existe mora pendiente registrada, calcularla en vivo.
-            if (
+            elif (
                 record.type == 'cuota'
                 and record.fecha_cronograma
                 and record.state not in ('pagado', 'anulada')
@@ -272,15 +307,22 @@ class ADTComercialCuotas(models.Model):
             ):
                 hoy = fields.Date.context_today(record)
 
+                # Skip search for unsaved (NewId) records to avoid SQL type errors.
+                record_id = record.id
+                is_new_record = not isinstance(record_id, int)
+
                 # La mora de esta cuota corre hasta la fecha de la siguiente cuota
                 # del cronograma (o hasta hoy si es la última).
-                next_cuota = self.search([
-                    ('cuenta_id', '=', record.cuenta_id.id),
-                    ('id', '!=', record.id),
-                    ('fecha_cronograma', '>', record.fecha_cronograma),
-                    ('type', '=', 'cuota'),
-                    ('parent_id', '=', False),
-                ], order='fecha_cronograma asc', limit=1)
+                if is_new_record:
+                    next_cuota = self.env['adt.comercial.cuotas'].browse()
+                else:
+                    next_cuota = self.search([
+                        ('cuenta_id', '=', record.cuenta_id.id),
+                        ('id', '!=', record_id),
+                        ('fecha_cronograma', '>', record.fecha_cronograma),
+                        ('type', '=', 'cuota'),
+                        ('parent_id', '=', False),
+                    ], order='fecha_cronograma asc', limit=1)
 
                 fecha_limite = min(next_cuota.fecha_cronograma, hoy) if next_cuota else hoy
                 diff_days = (fecha_limite - record.fecha_cronograma).days
@@ -307,6 +349,24 @@ class ADTComercialCuotas(models.Model):
             else:
                 record.mora_estado_texto = 'Pagado'
 
+    def action_editar_mora(self):
+        self.ensure_one()
+        return {
+            'name': 'Editar mora',
+            'type': 'ir.actions.act_window',
+            'res_model': 'adt.editar.mora.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_cuota_id': self.id,
+                'default_mora_manual': self.mora_manual,
+                'default_mora_manual_monto': self.mora_manual_monto if self.mora_manual else self.mora_pendiente,
+                'default_mora_total': self.mora_total,
+                'default_mora_pendiente': self.mora_pendiente,
+                'default_mora_dias': self.mora_dias,
+            },
+        }
+
     def action_pagar_mora(self):
         self.ensure_one()
         return {
@@ -332,6 +392,19 @@ class ADTComercialCuotas(models.Model):
             },
             'target': 'new',
             'type': 'ir.actions.act_window',
+        }
+
+    def action_open_edit_cuota(self):
+        self.ensure_one()
+        return {
+            'name': 'Editar Cuota',
+            'type': 'ir.actions.act_window',
+            'res_model': 'adt.comercial.cuotas',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(self.env.ref('adt_comercial.adt_comercial_cuotas_edit_form').id, 'form')],
+            'target': 'new',
+            'context': dict(self.env.context, form_view_initial_mode='edit'),
         }
 
 
@@ -515,6 +588,8 @@ class ADTComercialRegisterPayment(models.TransientModel):
         'cuota_id.fecha_cronograma',
         'cuota_id.payment_ids.mora',
         'cuota_id.cuenta_id.cuota_ids.fecha_cronograma',
+        'cuota_id.mora_manual',
+        'cuota_id.mora_manual_monto',
     )
     def _compute_mora_auto(self):
         default_factor = float(self.env['ir.config_parameter'].sudo()
@@ -532,6 +607,11 @@ class ADTComercialRegisterPayment(models.TransientModel):
             # La mora de esta cuota corre hasta la fecha de la siguiente cuota
             # del cronograma (o hasta la fecha de pago si es la última).
             cuota = record.cuota_id
+            if cuota.mora_manual:
+                record.mora_dias = cuota.mora_dias or 0
+                record.mora_auto = cuota.mora_pendiente or cuota.mora_manual_monto or 0.0
+                continue
+
             if cuota.cuenta_id:
                 next_cuota = self.env['adt.comercial.cuotas'].search([
                     ('cuenta_id', '=', cuota.cuenta_id.id),
@@ -781,33 +861,6 @@ class ADTEliminarCuotaWizard(models.TransientModel):
         return {'type': 'ir.actions.act_window_close'}
 
 
-class ResConfigSettings(models.TransientModel):
-    _inherit = 'res.config.settings'
-
-    mora_factor = fields.Float(
-        string="Factor de mora por día",
-        config_parameter='adt_comercial.mora_factor',
-        default=2.0
-    )
-
-    def set_values(self):
-        super().set_values()
-        self.env['ir.config_parameter'].sudo().set_param(
-            'adt_comercial.mora_factor',
-            self.mora_factor
-        )
-
-    def get_values(self):
-        res = super().get_values()
-        param = self.env['ir.config_parameter'].sudo().get_param(
-            'adt_comercial.mora_factor',
-            default=2.0
-        )
-        res.update(
-            mora_factor=float(param)
-        )
-        return res
-# python
 class ADTComercialCuotas(models.Model):
     _inherit = "adt.comercial.cuotas"
 
@@ -852,7 +905,6 @@ class ADTComercialCuotas(models.Model):
             if not pagos:
                 rec.mora_last_payment_date = False
                 continue
-            # pick the latest date (ISO string comparison is safe here)
             dates = pagos.mapped('mora_payment_date')
             rec.mora_last_payment_date = max(dates)
 
@@ -875,7 +927,6 @@ class ADTComercialCuotas(models.Model):
                 except Exception:
                     urls = [item.strip() for item in payload.split(',') if item and item.strip()]
 
-        # Normaliza y elimina duplicados conservando orden.
         normalized = []
         for url in urls:
             url_value = str(url).strip() if url is not None else ''
@@ -887,7 +938,6 @@ class ADTComercialCuotas(models.Model):
         self.ensure_one()
         urls = self._parse_voucher_image_urls()
 
-        # Reescribe en JSON canonico para que el widget reciba una estructura consistente.
         serialized = json.dumps(urls, ensure_ascii=False)
         if serialized != (self.voucher_image_urls or ''):
             self.sudo().write({'voucher_image_urls': serialized})
@@ -902,3 +952,69 @@ class ADTComercialCuotas(models.Model):
             'target': 'new',
         }
 
+
+class ADTEditarMoraWizard(models.TransientModel):
+    _name = 'adt.editar.mora.wizard'
+    _description = 'Editar mora de cuota'
+
+    cuota_id = fields.Many2one('adt.comercial.cuotas', string='Cuota', required=True, readonly=True)
+
+    # Informational read-only
+    mora_total = fields.Float(string='Mora calculada', readonly=True)
+    mora_pendiente = fields.Float(string='Mora pendiente actual', readonly=True)
+    mora_dias = fields.Integer(string='Días de mora', readonly=True)
+
+    # Editable
+    mora_manual = fields.Boolean(string='Editar mora manualmente', default=False)
+    mora_manual_monto = fields.Float(string='Mora manual')
+
+    @api.onchange('mora_manual')
+    def _onchange_mora_manual(self):
+        if self.mora_manual and not self.mora_manual_monto:
+            self.mora_manual_monto = self.mora_pendiente or self.mora_total or 0.0
+        if not self.mora_manual:
+            self.mora_manual_monto = 0.0
+
+    def action_guardar_mora(self):
+        self.ensure_one()
+        self.cuota_id.write({
+            'mora_manual': self.mora_manual,
+            'mora_manual_monto': self.mora_manual_monto if self.mora_manual else 0.0,
+        })
+        return {'type': 'ir.actions.act_window_close'}
+
+    def action_limpiar_mora(self):
+        self.ensure_one()
+        self.cuota_id.write({
+            'mora_manual': False,
+            'mora_manual_monto': 0.0,
+        })
+        return {'type': 'ir.actions.act_window_close'}
+
+
+class ResConfigSettings(models.TransientModel):
+    _inherit = 'res.config.settings'
+
+    mora_factor = fields.Float(
+        string="Factor de mora por día",
+        config_parameter='adt_comercial.mora_factor',
+        default=2.0
+    )
+
+    def set_values(self):
+        super().set_values()
+        self.env['ir.config_parameter'].sudo().set_param(
+            'adt_comercial.mora_factor',
+            self.mora_factor
+        )
+
+    def get_values(self):
+        res = super().get_values()
+        param = self.env['ir.config_parameter'].sudo().get_param(
+            'adt_comercial.mora_factor',
+            default=2.0
+        )
+        res.update(
+            mora_factor=float(param)
+        )
+        return res

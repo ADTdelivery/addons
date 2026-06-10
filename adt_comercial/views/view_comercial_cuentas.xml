@@ -225,16 +225,16 @@
 
                                 <field name="cuota_ids" nolabel="1" colspan="4">
                                     <tree editable="top" delete="false" limit="120" multi_edit="1" create="false">
-                                        <field name="name" readonly="1"/>
-                                        <field name="monto" readonly="1"/>
+                                        <field name="name" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                        <field name="monto" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
                                         <field name="saldo"/>
                                         <field name="type" string="Tipo" optional="hide" readonly="1"/>
-                                        <field name="fecha_cronograma" readonly="1"/>
-                                        <field name="real_date"/>
-                                        <field name="x_asesora"/>
-                                        <field name="numero_operacion"/>
-                                        <field name="periodicidad"/>
-                                        <field name="fecha_compromiso" optional="1"/>
+                                        <field name="fecha_cronograma" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                        <field name="real_date" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                        <field name="x_asesora" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                        <field name="numero_operacion" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                        <field name="periodicidad" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                        <field name="fecha_compromiso" optional="1" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
                                         <field name="resumen_observaciones" optional="hide"/>
                                         <field name="state" widget="badge" decoration-info="state == 'a_cuenta'"
                                                decoration-success="state == 'pagado'"/>
@@ -265,6 +265,12 @@
                                                 class="oe_highlight"
                                                 attrs="{'invisible': [('mora_pendiente', '=', 0)]}"/>
 
+                                        <button name="action_editar_mora"
+                                                string="Editar mora"
+                                                type="object"
+                                                class="btn-secondary"
+                                                attrs="{'invisible': [('state', 'in', ['pagado', 'anulada'])]}"/>
+
 
                                         <button string="Eliminar cuota" name="action_eliminar_cuota" type="object"
                                                 class="btn-danger"/>
@@ -281,17 +287,32 @@
                                                 class="btn btn-primary"
                                                  attrs="{'invisible': ['|', ('voucher_image_urls', '=', False), ('voucher_image_urls', '=', '')]}"/>
                                     </tree>
-                                    <form string="Cuota" edit="0">
+                                    <form string="Cuota">
                                         <header>
                                             <field name="state" widget="statusbar"/>
                                         </header>
                                         <group>
                                             <group>
-                                                <field name="name" readonly="1"/>
+                                                <field name="name" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                                <field name="type" readonly="1"/>
+                                                <field name="periodicidad" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
                                             </group>
                                             <group>
-                                                <field name="monto" readonly="1"/>
-                                                <field name="fecha_cronograma" readonly="1"/>
+                                                <field name="monto" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                                <field name="fecha_cronograma" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                                <field name="fecha_compromiso" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                            </group>
+                                        </group>
+                                        <group>
+                                            <group>
+                                                <field name="mora_manual" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                                <field name="mora_manual_monto" attrs="{'readonly': ['|', ('mora_manual', '=', False), ('state', 'in', ['pagado', 'anulada'])]}"/>
+                                                <field name="real_date" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                                <field name="numero_operacion" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                            </group>
+                                            <group>
+                                                <field name="x_asesora" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                                                <field name="voucher_image" widget="image" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
                                             </group>
                                         </group>
                                         <notebook>
@@ -406,6 +427,56 @@
                 <footer>
                     <button string="Cerrar" class="btn btn-secondary" special="cancel"/>
                 </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="adt_comercial_cuotas_edit_form" model="ir.ui.view">
+        <field name="name">adt.comercial.cuotas.edit.form</field>
+        <field name="model">adt.comercial.cuotas</field>
+        <field name="arch" type="xml">
+            <form string="Editar cuota">
+                <header>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="cuenta_id" readonly="1"/>
+                            <field name="name" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="monto" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="type" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="fecha_cronograma" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="fecha_compromiso" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="periodicidad" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="x_asesora" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="saldo" readonly="1"/>
+                            <field name="mora_manual" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="mora_manual_monto" attrs="{'readonly': ['|', ('mora_manual', '=', False), ('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="real_date" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="numero_operacion" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                            <field name="pendiente_validar" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="mora_total" readonly="1"/>
+                            <field name="mora_pendiente" readonly="1"/>
+                            <field name="mora_dias" readonly="1"/>
+                            <field name="mora_last_payment_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Comprobante">
+                        <field name="voucher_image" widget="image" attrs="{'readonly': [('state', 'in', ['pagado', 'anulada'])]}"/>
+                    </group>
+                    <group string="Observaciones">
+                        <field name="resumen_observaciones" readonly="1"/>
+                    </group>
+                </sheet>
             </form>
         </field>
     </record>
