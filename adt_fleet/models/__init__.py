@@ -3,3 +3,4 @@
 
 from . import adt_fleet_model
 from . import adt_report_encoding
+from . import ir_actions_report
