@@ -21,6 +21,10 @@ class AdtFleetVehicleModel(models.Model):
 class FieldModels(models.Model):
     _inherit = 'fleet.vehicle'
 
+    fecha_entrega = fields.Date(string="Fecha de Entrega")
+    foto_entrega = fields.Binary(string="Foto de Entrega", attachment=True)
+    foto_entrega_filename = fields.Char(string="Nombre foto entrega")
+
     tarjeta_propiedad_attachment = fields.Binary(
         string="Tarjeta de Propiedad (PDF/Imagen)", attachment=True,
     )

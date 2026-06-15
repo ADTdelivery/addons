@@ -20,16 +20,26 @@
                         icon="fa-file-pdf-o"/>
             </xpath>
 
-            <!-- ── Campos de documentos adjuntos + color ────────────────── -->
-            <xpath expr="//field[@name='next_assignation_date']" position="after">
-                <field name="tarjeta_propiedad_attachment"
-                       filename="tarjeta_propiedad_filename"/>
-                <field name="chip_gnv_attachment"
-                       filename="chip_gnv_filename"/>
-                <field name="soat_attachment"
-                       filename="soat_filename"/>
-                <field name="contrato_attachment"
-                       filename="contrato_filename"/>
+            <!-- ── Pestaña Documentos ────────────────────────────────────── -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Documentos" name="documentos_entrega">
+                    <group string="Adjuntos">
+                        <field name="tarjeta_propiedad_attachment"
+                               filename="tarjeta_propiedad_filename"/>
+                        <field name="chip_gnv_attachment"
+                               filename="chip_gnv_filename"/>
+                        <field name="soat_attachment"
+                               filename="soat_filename"/>
+                        <field name="contrato_attachment"
+                               filename="contrato_filename"/>
+                    </group>
+                    <group string="Entrega">
+                        <field name="fecha_entrega"/>
+                        <field name="foto_entrega" widget="image"
+                               string="Foto de Entrega"
+                               filename="foto_entrega_filename"/>
+                    </group>
+                </page>
             </xpath>
 
         </field>

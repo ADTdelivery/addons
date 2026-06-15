@@ -1227,11 +1227,12 @@ class CapturaAPI(http.Controller):
                 return kwargs[key]
             return body.get(key)
 
-        tipo_captura       = _get('tipo_captura')
-        moto_recogida      = _get('moto_recogida')
-        motivo_no_recogida = (_get('motivo_no_recogida') or '').strip()
-        vehiculo_id_raw    = _get('vehiculo_id')
-        registrado_por     = _get('registrado_por')
+        tipo_captura          = _get('tipo_captura')
+        moto_recogida         = _get('moto_recogida')
+        motivo_no_recogida    = (_get('motivo_no_recogida') or '').strip()
+        vehiculo_id_raw       = _get('vehiculo_id')
+        registrado_por        = _get('registrado_por')
+        comentarios_captura   = (_get('comentarios_captura') or '').strip() or False
 
         # ── Validate tipo_captura ─────────────────────────────────────────────
         if not tipo_captura or tipo_captura not in ('inmediata', 'compromiso'):
@@ -1298,6 +1299,8 @@ class CapturaAPI(http.Controller):
         }
         if motivo_no_recogida:
             vals['motivo_no_recogida'] = motivo_no_recogida
+        if comentarios_captura:
+            vals['comentarios_captura'] = comentarios_captura
 
         captura = request.env['adt.captura.record'].sudo().create(vals)
 

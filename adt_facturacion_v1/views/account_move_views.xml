@@ -22,13 +22,21 @@
                 </xpath>
                 <!-- Campos debajo de invoice_vendor_bill_id -->
                 <xpath expr="//field[@name='invoice_vendor_bill_id']" position="after">
+                    <field name="x_facturacion_es_vehiculo" invisible="1"/>
                     <field name="x_facturacion_vehicle_id" invisible="1"/>
-                    <field name="x_facturacion_chasis"/>
-                    <field name="x_facturacion_modelo_id"/>
-                    <field name="x_facturacion_motor"/>
-                    <field name="x_facturacion_ano_modelo"/>
-                    <field name="x_facturacion_color"/>
-                    <field name="x_facturacion_dua"/>
+                    <field name="x_facturacion_tipo_id" string="Tipo de Facturación"/>
+                    <field name="x_facturacion_chasis"
+                           attrs="{'invisible': [('x_facturacion_es_vehiculo', '=', False)]}"/>
+                    <field name="x_facturacion_modelo_id"
+                           attrs="{'invisible': [('x_facturacion_es_vehiculo', '=', False)]}"/>
+                    <field name="x_facturacion_motor"
+                           attrs="{'invisible': [('x_facturacion_es_vehiculo', '=', False)]}"/>
+                    <field name="x_facturacion_ano_modelo"
+                           attrs="{'invisible': [('x_facturacion_es_vehiculo', '=', False)]}"/>
+                    <field name="x_facturacion_color"
+                           attrs="{'invisible': [('x_facturacion_es_vehiculo', '=', False)]}"/>
+                    <field name="x_facturacion_dua"
+                           attrs="{'invisible': [('x_facturacion_es_vehiculo', '=', False)]}"/>
                     <field name="x_facturacion_adjunto_factura" filename="x_facturacion_adjunto_factura_nombre"/>
                     <field name="x_facturacion_adjunto_factura_nombre" invisible="1"/>
                 </xpath>

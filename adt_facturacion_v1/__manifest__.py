@@ -19,6 +19,7 @@
     'depends': ['base', 'account', 'fleet'],
     'data': [
         'security/ir.model.access.csv',
+        'data/facturacion_tipo_data.xml',
         'views/account_move_views.xml',
     ],
     'installable': True,

@@ -9,6 +9,20 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
+    x_facturacion_tipo_id = fields.Many2one(
+        comodel_name='adt.facturacion.tipo',
+        string='Tipo de Facturación',
+    )
+    x_facturacion_es_vehiculo = fields.Boolean(
+        compute='_compute_es_vehiculo',
+        store=True,
+    )
+
+    @api.depends('x_facturacion_tipo_id')
+    def _compute_es_vehiculo(self):
+        for rec in self:
+            rec.x_facturacion_es_vehiculo = rec.x_facturacion_tipo_id.es_vehiculo
+
     x_facturacion_chasis = fields.Char(
         string='Chasis',
     )
@@ -45,6 +59,8 @@ class AccountMove(models.Model):
     def _sync_fleet_vehicle(self):
         """Crea o actualiza el registro en fleet.vehicle con los datos del vehículo."""
         for move in self:
+            if not move.x_facturacion_es_vehiculo:
+                continue
             if not move.x_facturacion_modelo_id:
                 continue
 

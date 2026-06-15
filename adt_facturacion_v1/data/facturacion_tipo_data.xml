@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="tipo_vehiculo" model="adt.facturacion.tipo">
+        <field name="name">Vehículo</field>
+        <field name="es_vehiculo">True</field>
+    </record>
+    <record id="tipo_fibra_vidrio" model="adt.facturacion.tipo">
+        <field name="name">Fibra de Vidrio</field>
+        <field name="es_vehiculo">False</field>
+    </record>
+</odoo>

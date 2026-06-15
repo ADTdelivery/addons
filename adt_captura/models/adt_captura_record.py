@@ -43,6 +43,7 @@ class ADTCapturaRecord(models.Model):
                                                help='Adjunta imágenes o videos como evidencia de la captura')
 
     notes = fields.Text(string='Observaciones', tracking=True)
+    comentarios_captura = fields.Text(string='Comentarios de Captura', tracking=True)
 
     # Deuda de intervención
     intervention_fee = fields.Float(string='Monto Intervención (S/)',

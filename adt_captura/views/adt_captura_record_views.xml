@@ -120,6 +120,7 @@
                     <group>
                         <group string="Tipo de Captura">
                             <field name="capture_type"/>
+                            <field name="comentarios_captura"/>
                             <field name="commitment_date"
                                    attrs="{'invisible': [('capture_type', '!=', 'compromiso')],
                                            'required': [('capture_type', '=', 'compromiso')]}"/>
@@ -153,7 +154,36 @@
 
                     <notebook>
                         <page string="Evidencia" name="evidencia">
-                            <field name="evidencia_archivos" widget="many2many_binary" nolabel="1" string="Evidencias (Fotos/Videos)"/>
+                            <field name="evidencia_archivos" nolabel="1" mode="kanban">
+                                <kanban>
+                                    <field name="id"/>
+                                    <field name="name"/>
+                                    <field name="mimetype"/>
+                                    <templates>
+                                        <t t-name="kanban-box">
+                                            <div class="o_kanban_card" style="text-align:center; padding:8px; min-height:160px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                                                <t t-if="record.mimetype.raw_value and record.mimetype.raw_value.indexOf('image') === 0">
+                                                    <a t-att-href="'/web/image/ir.attachment/' + record.id.raw_value + '/datas'" target="_blank">
+                                                        <img t-att-src="'/web/image/ir.attachment/' + record.id.raw_value + '/datas'"
+                                                             style="max-width:200px; max-height:160px; object-fit:contain; border-radius:4px;"/>
+                                                    </a>
+                                                </t>
+                                                <t t-elif="record.mimetype.raw_value and record.mimetype.raw_value.indexOf('video') === 0">
+                                                    <a t-att-href="'/web/content/' + record.id.raw_value + '?download=true'" target="_blank" style="color:#875a7b;">
+                                                        <i class="fa fa-file-video-o fa-4x" style="display:block; margin:16px auto;"/>
+                                                    </a>
+                                                </t>
+                                                <t t-else="">
+                                                    <a t-att-href="'/web/content/' + record.id.raw_value + '?download=true'" target="_blank" style="color:#875a7b;">
+                                                        <i class="fa fa-file-o fa-4x" style="display:block; margin:16px auto;"/>
+                                                    </a>
+                                                </t>
+                                                <span style="font-size:11px; color:#555; word-break:break-all; margin-top:6px;" t-esc="record.name.value"/>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                </kanban>
+                            </field>
                         </page>
                         <page string="Cuotas Pendientes" name="cuotas_pendientes">
                             <field name="cuotas_pendientes_ids" widget="one2many_list" readonly="1">
