@@ -353,6 +353,39 @@ class ADTComercialCuentas(models.Model):
 
     attachment_ids = fields.Many2many("ir.attachment", string="Adjuntos")
 
+    contrato_ids = fields.Many2many(
+        "ir.attachment",
+        "adt_comercial_cuentas_contrato_rel",
+        "cuenta_id",
+        "attachment_id",
+        string="Contrato",
+        help="Documentos del contrato. Solo se permiten archivos PDF o Word (.doc/.docx).",
+    )
+
+    @api.constrains('contrato_ids')
+    def _check_contrato_ids_extension(self):
+        allowed_ext = ('.pdf', '.doc', '.docx')
+        for cuenta in self:
+            for attachment in cuenta.contrato_ids:
+                name = (attachment.name or '').lower()
+                if not name.endswith(allowed_ext):
+                    raise ValidationError(
+                        'El archivo "%s" no es válido. Solo se permiten documentos PDF o Word (.doc/.docx) en Contrato.'
+                        % attachment.name
+                    )
+
+    def action_ver_contrato(self):
+        self.ensure_one()
+        return {
+            'name': 'Contrato',
+            'res_model': 'adt.comercial.cuentas',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'view_id': self.env.ref('adt_comercial.adt_comercial_cuentas_contrato_form').id,
+            'target': 'new',
+            'type': 'ir.actions.act_window',
+        }
+
     def refinanciar_cuotas(self):
         return {
             'name': "Refinanciar",

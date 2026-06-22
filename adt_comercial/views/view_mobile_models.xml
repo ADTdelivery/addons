@@ -459,6 +459,61 @@
               sequence="40"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════
+         HU-013  Mobile App Image
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_app_image_tree" model="ir.ui.view">
+        <field name="name">mobile.app.image.tree</field>
+        <field name="model">mobile.app.image</field>
+        <field name="arch" type="xml">
+            <tree string="Imágenes de la App">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_app_image_form" model="ir.ui.view">
+        <field name="name">mobile.app.image.form</field>
+        <field name="model">mobile.app.image</field>
+        <field name="arch" type="xml">
+            <form string="Imagen de la Aplicación Móvil">
+                <sheet>
+                    <group string="Información General">
+                        <group>
+                            <field name="name"/>
+                            <field name="code" placeholder="banner_home"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="image" filename="image_filename" widget="image"/>
+                            <field name="image_filename" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Descripción">
+                        <field name="description" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_app_image" model="ir.actions.act_window">
+        <field name="name">Imágenes de la App</field>
+        <field name="res_model">mobile.app.image</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_mobile_app_images"
+              name="Imágenes de la App"
+              parent="menu_mobile_config"
+              action="action_mobile_app_image"
+              sequence="50"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
          HU-010  FCM Devices
     ═══════════════════════════════════════════════════════════════════ -->
 

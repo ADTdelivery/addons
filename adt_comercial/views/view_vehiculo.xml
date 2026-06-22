@@ -19,6 +19,8 @@
                         <field name="recuperado"/>
                         <field name="create_date" invisible="1"/>
                         <field name="state" widget="badge" decoration-info="state == 'en_curso'" decoration-success="state == 'pagado'"/>
+                        <button name="action_ver_contrato" type="object" string="Contrato"
+                                icon="fa-file-pdf-o" class="btn-secondary"/>
                     </tree>
                 </field>
             </page>

@@ -225,6 +225,40 @@ class MobileFCMDevice(models.Model):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# HU-013  Mobile App Image (imagen genérica para mostrar en la app)
+# ─────────────────────────────────────────────────────────────────────────────
+class MobileAppImage(models.Model):
+    _name = 'mobile.app.image'
+    _description = 'Imagen de la Aplicación Móvil'
+    _order = 'sequence asc, id asc'
+
+    name = fields.Char(string='Nombre', required=True, help='Etiqueta interna para identificar la imagen.')
+    code = fields.Char(
+        string='Código',
+        required=True,
+        index=True,
+        help='Identificador que usa la app para solicitar esta imagen, ej: splash, banner_home, login_bg.',
+    )
+    description = fields.Text(string='Descripción')
+    image = fields.Binary(string='Imagen', required=True, attachment=True)
+    image_filename = fields.Char(string='Nombre de archivo')
+    sequence = fields.Integer(string='Orden', default=10)
+    active = fields.Boolean(default=True)
+
+    _sql_constraints = [
+        ('mobile_app_image_code_uniq', 'unique(code)', 'Ya existe una imagen registrada con ese código.'),
+    ]
+
+    @api.constrains('code')
+    def _check_code(self):
+        for rec in self:
+            if rec.code and not re.match(r'^[a-z0-9_]+$', rec.code):
+                raise ValidationError(
+                    'El código solo puede contener letras minúsculas, números y guión bajo (_).'
+                )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # HU-012  Mobile Catalog Global CTA (WhatsApp buy button)
 # ─────────────────────────────────────────────────────────────────────────────
 class MobileCatalogCTAConfig(models.Model):

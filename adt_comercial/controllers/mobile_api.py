@@ -1092,7 +1092,6 @@ class MobileAPIController(http.Controller):
                     ('tarjeta_propiedad_attachment', 'Tarjeta de Propiedad', 'GUARANTEE'),
                     ('chip_gnv_attachment', 'Chip GNV', 'OTHER'),
                     ('soat_attachment', 'SOAT', 'GUARANTEE'),
-                    ('contrato_attachment', 'Contrato', 'CONTRACT'),
                 ]
 
                 # Only proceed if we have a vehicle record
@@ -1138,6 +1137,37 @@ class MobileAPIController(http.Controller):
                             'urlExpiresAt': None,  # Odoo URLs don't expire
                             'uploadedAt': uploaded_at,
                         })
+
+                    # Documentos del contrato (adt.comercial.cuentas.contrato_ids) de la cuenta activa del vehículo
+                    CuentaModel = request.env['adt.comercial.cuentas'].sudo()
+                    cuenta = CuentaModel.search(
+                        [('vehiculo_id', '=', vehicle.id), ('state', 'in', ('en_curso', 'aprobado'))],
+                        limit=1,
+                    )
+                    if not cuenta:
+                        cuenta = CuentaModel.search(
+                            [('vehiculo_id', '=', vehicle.id), ('state', '!=', 'cancelado')],
+                            limit=1,
+                        )
+
+                    if cuenta and cuenta.contrato_ids:
+                        for attach in cuenta.contrato_ids:
+                            url = _public_attachment_url(attach, base_url)
+                            size_kb = int((attach.file_size or 0) / 1024)
+                            mime = attach.mimetype or 'application/octet-stream'
+                            uploaded_at = _format_datetime(attach.create_date)
+
+                            doc_idx = len(documents_data)
+                            documents_data.append({
+                                'id': 'doc-%d-%d' % (cuenta.id, doc_idx),
+                                'name': attach.name,
+                                'type': 'CONTRACT',
+                                'mimeType': mime,
+                                'sizeKb': size_kb,
+                                'url': url,
+                                'urlExpiresAt': None,  # Odoo URLs don't expire
+                                'uploadedAt': uploaded_at,
+                            })
             except Exception:
                 _logger.exception('Error while building vehicle documents for GET /v1/documents')
 
@@ -1220,6 +1250,65 @@ class MobileAPIController(http.Controller):
 
         except Exception:
             _logger.exception('Error in GET /v1/promotions')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-013 — GET /v1/app-images
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/app-images',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_app_images(self, code=None, **kwargs):
+        """
+        Devuelve las imágenes configuradas en mobile.app.image (subidas desde Odoo).
+
+        - GET /v1/app-images          -> lista todas las imágenes activas, ordenadas por secuencia.
+        - GET /v1/app-images?code=xxx -> devuelve una sola imagen por su código.
+
+        Requires Authorization: Bearer <token>
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            ImageModel = request.env['mobile.app.image'].sudo()
+            domain = [('active', '=', True)]
+            if code:
+                domain.append(('code', '=', code))
+
+            images = ImageModel.search(domain, order='sequence asc, id asc')
+
+            if code and not images:
+                return _json_response(
+                    _error(404, 'APP_IMAGE_NOT_FOUND', 'No existe una imagen activa con ese código.'),
+                    status=404,
+                )
+
+            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+            images_data = []
+            for img in images:
+                images_data.append({
+                    'code': img.code,
+                    'name': img.name,
+                    'description': img.description or None,
+                    'imageUrl': _build_attachment_url('mobile.app.image', img.id, 'image'),
+                    'updatedAt': _format_datetime(img.write_date),
+                })
+
+            if code:
+                return _json_response(_success(images_data[0]))
+
+            return _json_response(_success({'images': images_data}))
+
+        except Exception:
+            _logger.exception('Error in GET /v1/app-images')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     # ══════════════════════════════════════════════════════════════════════════

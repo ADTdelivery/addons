@@ -182,6 +182,11 @@
                                         icon="fa-calendar"
                                         attrs="{'invisible': [('state', '=', 'cancelado')]}"/>
                             </group>
+
+                            <separator string="Contrato"/>
+                            <group>
+                                <field name="contrato_ids" nolabel="1" widget="many2many_binary"/>
+                            </group>
                         </page>
 
                         <page string="Cuotas">
@@ -377,6 +382,28 @@
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
                 </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="adt_comercial_cuentas_contrato_form" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.contrato.form</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="priority" eval="99"/>
+        <field name="arch" type="xml">
+            <form string="Contrato">
+                <sheet>
+                    <group>
+                        <field name="reference_no" readonly="1"/>
+                        <field name="partner_id" readonly="1"/>
+                    </group>
+                    <separator string="Contrato"/>
+                    <field name="contrato_ids" nolabel="1" widget="many2many_binary"/>
+                </sheet>
+                <footer>
+                    <button string="Guardar" class="btn-primary" special="save"/>
+                    <button string="Cerrar" class="btn btn-secondary" special="cancel"/>
+                </footer>
             </form>
         </field>
     </record>
