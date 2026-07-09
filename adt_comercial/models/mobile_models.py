@@ -252,7 +252,7 @@ class MobileAppImage(models.Model):
     @api.constrains('code')
     def _check_code(self):
         for rec in self:
-            if rec.code and not re.match(r'^[a-z0-9_]+$', rec.code):
+            if rec.code and not re.match(r'^[A-Za-z0-9_]+$', rec.code):
                 raise ValidationError(
                     'El código solo puede contener letras minúsculas, números y guión bajo (_).'
                 )

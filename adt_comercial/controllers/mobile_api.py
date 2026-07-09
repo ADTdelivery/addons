@@ -6,6 +6,7 @@ Implements the following endpoints:
   HU-001  GET  /v1/app/version              (no auth)
   HU-002  GET  /v1/loans?plate=ABC-123      (bearer token)
   HU-003  GET  /v1/documents?plate=ABC-123  (bearer token)
+          GET  /v1/vehicles/captura-status?plate=ABC-123  (bearer token)
   HU-004  GET  /v1/promotions               (bearer token, pagination)
   HU-005  GET  /v1/notifications            (bearer token, pagination)
   HU-006  POST /v1/auth/logout              (bearer token)
@@ -26,6 +27,7 @@ import re
 import uuid
 import logging
 import base64
+import mimetypes
 from urllib.parse import quote_plus
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import datetime, timezone
@@ -347,13 +349,44 @@ def _compute_server_mora(cuota, fecha_pago_dt):
     return _money(Decimal(str(diff_days)) * Decimal(str(factor)))
 
 
+def _get_base_url():
+    """
+    URL base a usar para construir links absolutos (imágenes, etc.).
+
+    Se usa el host real con el que el cliente llamó al servidor
+    (request.httprequest.host_url), en vez del parámetro fijo 'web.base.url',
+    porque en redes locales el servidor puede ser accesible por varias IPs
+    (ej. 192.168.100.62 y 192.168.100.68) y 'web.base.url' solo guarda una.
+    Si el link se genera con la IP equivocada, el dispositivo que hizo la
+    petición no puede alcanzar esa otra IP y la imagen nunca carga.
+    """
+    host_url = request.httprequest.host_url
+    if host_url:
+        return host_url.rstrip('/')
+    return request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+
+
 def _public_attachment_url(attach, base_url):
-    """Genera una URL pública con access_token para que sea accesible sin sesión de Odoo."""
+    """Genera una URL pública con access_token para que sea accesible sin sesión de Odoo.
+
+    El access_token va como query param (?access_token=...), que es donde Odoo
+    realmente valida el acceso público en /web/content. Se agrega además un
+    filename con extensión real en el path (derivada del mimetype si el nombre
+    del adjunto no la trae) para que los clientes (apps móviles) reconozcan que
+    es una imagen a partir de la URL.
+    """
     token = attach.access_token
     if not token:
         token = str(uuid.uuid4())
         attach.sudo().write({'access_token': token})
-    return '%s/web/content/%d?access_token=%s' % (base_url, attach.id, token)
+
+    filename = attach.name or 'image'
+    if '.' not in filename:
+        ext = mimetypes.guess_extension(attach.mimetype or '') or '.jpg'
+        filename = '%s%s' % (filename, ext)
+
+    return '%s/web/content/%d/%s?access_token=%s' % (
+        base_url, attach.id, quote_plus(filename), token)
 
 
 def _build_attachment_url(res_model, res_id, res_field):
@@ -364,7 +397,7 @@ def _build_attachment_url(res_model, res_id, res_field):
             ('res_id', '=', res_id),
             ('res_field', '=', res_field),
         ], limit=1)
-        base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+        base_url = _get_base_url()
         if not attach:
             # Fallback robusto: URL directa al campo binario.
             return '%s/web/image/%s/%s/%s' % (base_url, res_model, res_id, res_field)
@@ -440,6 +473,53 @@ def _notify_papeleta_channel(papeleta, vehicle, token_rec, foto_urls):
     except Exception:
         # Do not break the API flow if Discuss notification fails.
         _logger.exception('Error notificando papeleta %s al canal de conversaciones', getattr(papeleta, 'id', None))
+
+
+def _captura_record_reasons(rec):
+    """
+    Junta en una lista los distintos campos de motivo/observaciones de una
+    adt.captura.record, para mostrarlos como texto en el full screen de la app.
+    """
+    reasons = []
+    if not rec.moto_recogida and rec.motivo_no_recogida:
+        reasons.append(rec.motivo_no_recogida.strip())
+    if rec.comentarios_captura:
+        reasons.append(rec.comentarios_captura.strip())
+    if rec.retention_reason:
+        label = dict(rec._fields['retention_reason'].selection).get(rec.retention_reason)
+        if label:
+            reasons.append(label)
+    if rec.observaciones:
+        reasons.append(rec.observaciones.strip())
+
+    seen = set()
+    unique_reasons = []
+    for reason in reasons:
+        if reason and reason not in seen:
+            seen.add(reason)
+            unique_reasons.append(reason)
+    return unique_reasons
+
+
+def _serialize_captura_record(rec):
+    """Serializa un adt.captura.record para la respuesta de /v1/vehicles/captura-status."""
+    state_label = dict(rec._fields['state'].selection).get(rec.state, rec.state)
+    type_label = dict(rec._fields['capture_type'].selection).get(rec.capture_type, rec.capture_type)
+    return {
+        'id': rec.id,
+        'reference': rec.name or None,
+        'captureType': (rec.capture_type or '').upper(),
+        'captureTypeLabel': type_label,
+        'state': (rec.state or '').upper(),
+        'stateLabel': state_label,
+        'capturedAt': _format_datetime(rec.create_date),
+        'motoRecogida': bool(rec.moto_recogida),
+        'commitmentDate': _format_date(rec.commitment_date) if rec.capture_type == 'compromiso' else None,
+        'intervencionMonto': rec.intervention_fee or 0.0,
+        'paymentState': (rec.payment_state or '').upper(),
+        'reasons': _captura_record_reasons(rec),
+    }
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Controller
@@ -642,7 +722,7 @@ class MobileAPIController(http.Controller):
                         ('res_field', '=', 'voucher_image'),
                     ], limit=1)
                     if attach:
-                        base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+                        base_url = _get_base_url()
                         voucher_url = _public_attachment_url(attach, base_url)
 
                 installments_data.append({
@@ -1086,7 +1166,7 @@ class MobileAPIController(http.Controller):
 
             # Also include specific vehicle attachments (Tarjeta de Propiedad, Chip GNV, SOAT)
             try:
-                base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+                base_url = _get_base_url()
                 # fields on fleet.vehicle that can contain pdf/image
                 VEHICLE_DOC_FIELDS = [
                     ('tarjeta_propiedad_attachment', 'Tarjeta de Propiedad', 'GUARANTEE'),
@@ -1176,6 +1256,69 @@ class MobileAPIController(http.Controller):
 
         except Exception:
             _logger.exception('Error in GET /v1/documents')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # GET /v1/vehicles/captura-status?plate=ABC-123
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/vehicles/captura-status',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_vehicle_captura_status(self, plate=None, **kwargs):
+        """
+        Indica si el vehículo está actualmente en captura (con los motivos) y
+        cuántas capturas anteriores tuvo, para mostrar en un full screen de
+        alerta antes de operar sobre el vehículo/cuenta.
+
+        Requiere el módulo adt_captura instalado (adt.captura.record).
+        Requires Authorization: Bearer <token>
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            plate_upper, plate_err = _validate_plate(plate)
+            if plate_err:
+                return _json_response(plate_err, status=plate_err['statusCode'])
+
+            vehicle, vehicle_err = _vehicle_by_plate(plate_upper)
+            if vehicle_err:
+                return _json_response(vehicle_err, status=vehicle_err['statusCode'])
+
+            if 'adt.captura.record' not in request.env:
+                return _json_response(
+                    _error(503, 'CAPTURA_MODULE_NOT_AVAILABLE',
+                           'El módulo de capturas no está instalado.'),
+                    status=503,
+                )
+
+            CapturaModel = request.env['adt.captura.record'].sudo()
+            capturas = CapturaModel.search(
+                [('vehicle_id', '=', vehicle.id)], order='create_date desc'
+            )
+
+            current = capturas.filtered(lambda c: c.state == 'capturado')[:1]
+            previous = capturas - current
+
+            data = {
+                'plate': plate_upper,
+                'vehicleId': vehicle.id,
+                'isInCaptura': bool(current),
+                'currentCapture': _serialize_captura_record(current[0]) if current else None,
+                'previousCapturesCount': len(previous),
+                'previousCaptures': [_serialize_captura_record(c) for c in previous],
+            }
+            return _json_response(_success(data))
+
+        except Exception:
+            _logger.exception('Error in GET /v1/vehicles/captura-status')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -1270,18 +1413,16 @@ class MobileAPIController(http.Controller):
         - GET /v1/app-images          -> lista todas las imágenes activas, ordenadas por secuencia.
         - GET /v1/app-images?code=xxx -> devuelve una sola imagen por su código.
 
-        Requires Authorization: Bearer <token>
+        Endpoint público: no requiere Authorization, ya que se consume antes del login
+        (ej. splash screen, banners previos a iniciar sesión).
         """
         try:
-            auth = request.httprequest.headers.get('Authorization', '')
-            token_rec, token_err = _get_token_record(auth)
-            if token_err:
-                return _json_response(token_err, status=token_err['statusCode'])
-
             ImageModel = request.env['mobile.app.image'].sudo()
             domain = [('active', '=', True)]
             if code:
-                domain.append(('code', '=', code))
+                # '=ilike' evita fallos por diferencia de mayúsculas/minúsculas
+                # entre el código enviado por la app y el guardado en Odoo.
+                domain.append(('code', '=ilike', code))
 
             images = ImageModel.search(domain, order='sequence asc, id asc')
 
@@ -1291,14 +1432,14 @@ class MobileAPIController(http.Controller):
                     status=404,
                 )
 
-            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+            base_url = _get_base_url()
             images_data = []
             for img in images:
                 images_data.append({
                     'code': img.code,
                     'name': img.name,
                     'description': img.description or None,
-                    'imageUrl': _build_attachment_url('mobile.app.image', img.id, 'image'),
+                    'imageUrl': '%s/v1/app-images/%s/file' % (base_url, quote_plus(img.code)),
                     'updatedAt': _format_datetime(img.write_date),
                 })
 
@@ -1310,6 +1451,51 @@ class MobileAPIController(http.Controller):
         except Exception:
             _logger.exception('Error in GET /v1/app-images')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/app-images/<string:code>/file',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_app_image_file(self, code, **kwargs):
+        """
+        Sirve el binario de la imagen directamente (sin access_token ni /web/content),
+        para que la app pueda usar esta URL tal cual en un <img>/Image.network/Coil.
+
+        Nosotros controlamos el Content-Type y el Content-Disposition, evitando
+        depender del comportamiento del controlador binario nativo de Odoo.
+        """
+        try:
+            img = request.env['mobile.app.image'].sudo().search([
+                ('active', '=', True),
+                ('code', '=ilike', code),
+            ], limit=1)
+            if not img or not img.image:
+                return request.not_found()
+
+            attach = request.env['ir.attachment'].sudo().search([
+                ('res_model', '=', 'mobile.app.image'),
+                ('res_id', '=', img.id),
+                ('res_field', '=', 'image'),
+            ], limit=1)
+            mimetype = (attach.mimetype if attach else None) or 'image/png'
+            filename = img.image_filename or (attach.name if attach else None) or ('%s.png' % img.code)
+
+            data = base64.b64decode(img.image)
+            return request.make_response(
+                data,
+                headers=[
+                    ('Content-Type', mimetype),
+                    ('Content-Disposition', 'inline; filename="%s"' % filename),
+                    ('Cache-Control', 'public, max-age=3600'),
+                ],
+            )
+        except Exception:
+            _logger.exception('Error in GET /v1/app-images/%s/file', code)
+            return request.not_found()
 
     # ══════════════════════════════════════════════════════════════════════════
     # HU-005 — GET /v1/notifications
@@ -2036,7 +2222,7 @@ class MobileAPIController(http.Controller):
             if attachment_ids:
                 papeleta.write({'attachment_ids': [(6, 0, attachment_ids)]})
 
-            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+            base_url = _get_base_url()
             attach_records = AttachModel.browse(attachment_ids)
             urls = [_public_attachment_url(att, base_url) for att in attach_records]
 
@@ -2106,7 +2292,7 @@ class MobileAPIController(http.Controller):
                     status=403,
                 )
 
-            base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+            base_url = _get_base_url()
             papeletas = request.env['adt.papeleta'].sudo().search(
                 [('vehicle_id', '=', vehicle.id)],
                 order='fecha_papeleta desc, id desc',
@@ -3214,7 +3400,7 @@ def _build_expediente_documents(expediente):
         ('foto_contrato_alquiler', 'Contrato de Alquiler', 'CONTRACT'),
     ]
 
-    base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
+    base_url = _get_base_url()
 
     for idx, (field_name, display_name, doc_type) in enumerate(IMAGE_FIELDS):
         try:

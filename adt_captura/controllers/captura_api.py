@@ -1303,8 +1303,83 @@ class CapturaAPI(http.Controller):
             vals['comentarios_captura'] = comentarios_captura
 
         captura = request.env['adt.captura.record'].sudo().create(vals)
+        request.env.cr.commit()
+
+        self._notify_captura_fcm(
+            db=request.env.cr.dbname,
+            uid=request.env.uid or request.env.ref('base.user_admin').id,
+            context=dict(request.env.context),
+            captura_id=captura.id,
+        )
 
         return {'id': captura.id}
+
+    # ── Helper: push FCM notification al crear una captura ────────────────────
+    def _notify_captura_fcm(self, db, uid, context, captura_id):
+        """
+        Envía la notificación push (FCM) al cliente dueño del vehículo capturado.
+
+        Se ejecuta en un hilo aparte con su propio cursor (mismo patrón que
+        _save_attachments más abajo) para no bloquear ni arriesgar la respuesta
+        del endpoint si el servicio de notificaciones está caído o es lento.
+        Reutiliza el servicio ya existente en adt_comercial
+        (adt.comercial.cuentas._enviar_notificacion), el mismo que usa el cron
+        de notificaciones de cuotas, y además registra el mensaje en
+        mobile.notification para que aparezca en el feed de la app.
+        """
+        def _run(db, uid, context, captura_id):
+            try:
+                import odoo
+                with odoo.api.Environment.manage():
+                    with odoo.registry(db).cursor() as cr:
+                        env = odoo.api.Environment(cr, uid, context)
+                        captura = env['adt.captura.record'].browse(captura_id)
+                        if not captura.exists() or not captura.partner_id:
+                            return
+
+                        capture_label = dict(
+                            captura._fields['capture_type'].selection
+                        ).get(captura.capture_type, captura.capture_type)
+                        plate = captura.vehicle_id.license_plate or ''
+
+                        title = 'Captura de vehículo registrada'
+                        body = 'Se registró una captura (%s) para el vehículo %s.' % (
+                            capture_label, plate or 'sin placa',
+                        )
+                        payload = {
+                            'title': title,
+                            'body': body,
+                            'data': {
+                                'partner_id': captura.partner_id.id,
+                                'tipo': 'CAPTURA',
+                                'referencia': captura.name,
+                                'captura_id': captura.id,
+                            },
+                        }
+
+                        env['mobile.notification'].sudo().create({
+                            'title': title,
+                            'body': body,
+                            'notification_type': 'SYSTEM',
+                            'link_type': 'NONE',
+                            'partner_id': captura.partner_id.id,
+                            'vehicle_id': captura.vehicle_id.id if captura.vehicle_id else False,
+                            'is_read': False,
+                            'active': True,
+                            'created_at': odoo.fields.Datetime.now(),
+                        })
+
+                        env['adt.comercial.cuentas']._enviar_notificacion(payload)
+                        cr.commit()
+            except Exception:
+                _logger.exception('Error enviando notificación FCM para captura id=%s', captura_id)
+
+        t = threading.Thread(
+            target=_run,
+            args=(db, uid, context, captura_id),
+            daemon=True,
+        )
+        t.start()
 
     # ─────────────────────────────────────────────────────────────────────────
     # POST /api/adt/captura/record/<int:captura_id>/evidencias
