@@ -1,0 +1,884 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<template id="dashboard_cobranzas" name="Reporte de Cobranzas">
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Reporte de Cobranzas</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  .dash-wrapper   { max-width: 1500px; margin: 0 auto; padding: 24px 20px 48px; }
+  .dash-topbar    { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 22px; }
+  .dash-title     { font-size: 1.6rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.3px; }
+  .dash-title span{ color: #38bdf8; }
+  .dash-subtitle  { font-size: 0.82rem; color: #94a3b8; margin-top: 3px; }
+  .period-tabs    { display: flex; gap: 6px; background: #1e293b; border-radius: 12px; padding: 5px; flex-wrap: wrap; }
+  .period-btn     { padding: 7px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+                    background: transparent; color: #94a3b8; transition: all .2s; text-decoration: none; display: inline-block; font-family: inherit; }
+  .period-btn:hover  { background: #334155; color: #e2e8f0; }
+  .period-btn.active { background: #0ea5e9; color: #fff; box-shadow: 0 2px 8px rgba(14,165,233,.4); }
+  .rp-trigger { display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:8px;border:1px solid #334155;
+                background:#0f172a;color:#94a3b8;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit; }
+  .rp-trigger:hover,.rp-trigger.active { border-color:#0ea5e9;color:#38bdf8;background:#0c1a2e; }
+  .rp-trigger.has-filter { border-color:#a855f7;color:#c084fc;background:#1e1033; }
+  .btn-back { display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:10px;border:none;
+              background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:.85rem;font-weight:700;
+              cursor:pointer;text-decoration:none;box-shadow:0 4px 14px rgba(99,102,241,.45);transition:all .2s; }
+  .btn-back:hover { background:linear-gradient(135deg,#4f46e5,#7c3aed);transform:translateY(-1px); }
+  .btn-back svg { width:16px;height:16px;flex-shrink:0; }
+
+  .highlight-banner { display:flex; align-items:center; gap:14px; background:linear-gradient(90deg, rgba(168,85,247,.16), rgba(56,189,248,.10));
+                       border:1px solid #334155; border-radius:14px; padding:14px 20px; margin-bottom:22px; flex-wrap:wrap; }
+  .highlight-banner .medal { font-size:1.8rem; }
+  .highlight-banner .hb-text { font-size:.85rem; color:#cbd5e1; }
+  .highlight-banner .hb-text b { color:#f8fafc; }
+  .highlight-banner .hb-amount { margin-left:auto; font-size:1.3rem; font-weight:800; color:#4ade80; }
+
+  .kpi-grid       { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .kpi-card       { background: #1e293b; border-radius: 16px; padding: 18px 20px; position: relative; overflow: hidden;
+                    border: 1px solid #334155; transition: transform .2s, box-shadow .2s; }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
+  .kpi-card.c-recaudo::before     { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .kpi-card.c-pagos::before       { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+  .kpi-card.c-ticket::before      { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+  .kpi-card.c-cobradores::before  { background: linear-gradient(90deg, #a855f7, #c084fc); }
+  .kpi-card.c-clientes::before    { background: linear-gradient(90deg, #6366f1, #818cf8); }
+  .kpi-card.c-mora::before        { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .kpi-card.c-puntualidad::before { background: linear-gradient(90deg, #10b981, #34d399); }
+  .kpi-card.c-mejordia::before    { background: linear-gradient(90deg, #ec4899, #f472b6); }
+  .kpi-icon  { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; margin-bottom: 12px; }
+  .kpi-card.c-recaudo     .kpi-icon { background: rgba(34,197,94,.15); }
+  .kpi-card.c-pagos       .kpi-icon { background: rgba(14,165,233,.15); }
+  .kpi-card.c-ticket      .kpi-icon { background: rgba(6,182,212,.15); }
+  .kpi-card.c-cobradores  .kpi-icon { background: rgba(168,85,247,.15); }
+  .kpi-card.c-clientes    .kpi-icon { background: rgba(99,102,241,.15); }
+  .kpi-card.c-mora        .kpi-icon { background: rgba(245,158,11,.15); }
+  .kpi-card.c-puntualidad .kpi-icon { background: rgba(16,185,129,.15); }
+  .kpi-card.c-mejordia    .kpi-icon { background: rgba(236,72,153,.15); }
+  .kpi-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: #64748b; margin-bottom: 6px; }
+  .kpi-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+  .kpi-card.c-recaudo     .kpi-value { color: #4ade80; }
+  .kpi-card.c-pagos       .kpi-value { color: #38bdf8; }
+  .kpi-card.c-ticket      .kpi-value { color: #22d3ee; }
+  .kpi-card.c-cobradores  .kpi-value { color: #c084fc; }
+  .kpi-card.c-clientes    .kpi-value { color: #818cf8; }
+  .kpi-card.c-mora        .kpi-value { color: #fbbf24; }
+  .kpi-card.c-puntualidad .kpi-value { color: #34d399; }
+  .kpi-card.c-mejordia    .kpi-value { color: #f472b6; }
+  .kpi-sub   { font-size: 0.72rem; color: #64748b; margin-top: 6px; }
+
+  .charts-grid  { display: flex; flex-direction: column; gap: 18px; margin-bottom: 26px; }
+  .charts-row   { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+  .panel        { background: #1e293b; border-radius: 16px; padding: 20px 22px; border: 1px solid #334155; }
+  .panel-title  { font-size: 0.86rem; font-weight: 700; color: #cbd5e1; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .panel-title .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .panel-sub    { font-size: 0.72rem; color: #64748b; font-weight: 400; margin-left: auto; }
+
+  .bar-scroll-wrap { overflow-x: auto; overflow-y: hidden; width: 100%; padding-bottom: 4px; }
+  .bar-fixed-wrap  { width: 100%; }
+  .bar-scroll-wrap::-webkit-scrollbar { height: 6px; }
+  .bar-scroll-wrap::-webkit-scrollbar-track { background: #0f172a; border-radius: 3px; }
+  .bar-scroll-wrap::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  .bar-scroll-wrap::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+  .rc-tooltip { position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+                padding: 8px 12px; font-size: 0.78rem; color: #e2e8f0; pointer-events: none;
+                z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+
+  .donut-wrap  { display: flex; align-items: center; gap: 24px; justify-content: center; flex-wrap: wrap; }
+  .donut-legend { display: flex; flex-direction: column; gap: 10px; max-height: 210px; overflow-y: auto; padding-right: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; }
+  .legend-dot  { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .legend-val  { font-weight: 700; color: #f8fafc; }
+  .legend-lbl  { color: #64748b; font-size: 0.72rem; }
+
+  .ranking-list { display: flex; flex-direction: column; gap: 12px; }
+  .ranking-row  { display: grid; grid-template-columns: 22px 110px 1fr 90px; align-items: center; gap: 10px; }
+  .ranking-rank { font-size: 0.72rem; font-weight: 800; color: #64748b; text-align: center; }
+  .ranking-name { font-size: 0.8rem; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ranking-bar-track { position: relative; height: 20px; background: #0f172a; border-radius: 6px; overflow: hidden; }
+  .ranking-bar-fill  { position: absolute; top: 0; left: 0; height: 100%; border-radius: 6px; transition: width .4s ease; }
+  .ranking-value { font-size: 0.78rem; font-weight: 700; color: #f1f5f9; text-align: right; white-space: nowrap; }
+  .ranking-meta  { font-size: 0.68rem; color: #64748b; grid-column: 2 / 5; margin-top: -6px; }
+  .ranking-empty { text-align:center; padding: 30px; color:#475569; font-size:.85rem; }
+
+  .table-wrap  { overflow-x: auto; }
+  table        { width: 100%; border-collapse: collapse; font-size: 0.81rem; }
+  thead tr     { border-bottom: 1px solid #334155; }
+  th           { padding: 10px 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; font-weight: 600; white-space: nowrap; }
+  tbody tr     { border-bottom: 1px solid #1e293b; transition: background .15s; }
+  tbody tr:hover { background: #273549; }
+  td           { padding: 9px 12px; color: #cbd5e1; white-space: nowrap; }
+  .td-strong   { color: #f1f5f9; font-weight: 700; }
+  .badge-puntual { background: rgba(10,163,10,.15); color: #34d399; border-radius: 6px; padding: 2px 8px; font-size: 0.68rem; font-weight: 700; }
+  .badge-mora    { background: rgba(250,178,25,.16); color: #fbbf24; border-radius: 6px; padding: 2px 8px; font-size: 0.68rem; font-weight: 700; }
+  .cobrador-chip { display:inline-flex; align-items:center; gap:6px; }
+  .cobrador-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; background:#38bdf8; }
+
+  .empty-state { text-align: center; padding: 44px 20px; color: #475569; }
+  .empty-state .icon { font-size: 2.6rem; margin-bottom: 10px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .search-input { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 7px 12px; font-size: 0.82rem; outline: none; width: 220px; font-family: inherit; }
+  .search-input:focus { border-color: #38bdf8; }
+  .filter-select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 7px 10px; font-size: 0.82rem; outline: none; cursor: pointer; font-family: inherit; }
+
+  .rp-overlay  { position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center; }
+  .rp-overlay.open { display:flex; }
+  .rp-panel    { background:#1e293b;border-radius:16px;padding:28px 32px;border:1px solid #334155;
+                 box-shadow:0 20px 60px rgba(0,0,0,.7);width:380px;max-width:95%;max-height:85vh;overflow-y:auto; }
+  .rp-title    { font-size:1rem;font-weight:700;color:#f1f5f9;margin-bottom:20px;display:flex;align-items:center;gap:8px; }
+  .rp-field    { margin-bottom:18px; }
+  .rp-field label { display:block;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px; }
+  .rp-field input[type="date"] { width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;
+                                  border-radius:8px;padding:10px 12px;font-size:.9rem;outline:none;cursor:pointer;font-family:inherit; }
+  .rp-field input[type="date"]:focus { border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.2); }
+  .rp-field input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1);opacity:.6;cursor:pointer; }
+  .rp-actions  { display:flex;gap:8px;margin-top:24px; }
+  .rp-btn-cancel { flex:1;padding:10px;border-radius:8px;border:1px solid #334155;background:transparent;
+                   color:#94a3b8;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit; }
+  .rp-btn-cancel:hover { background:#334155;color:#e2e8f0; }
+  .rp-btn-apply  { flex:2;padding:10px;border-radius:8px;border:none;background:#0ea5e9;color:#fff;
+                   font-size:.85rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(14,165,233,.4);font-family:inherit; }
+  .rp-btn-apply:hover { background:#0284c7; }
+
+  .cf-search { width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; border-radius:8px; padding:9px 12px; font-size:.85rem; outline:none; margin-bottom:14px; font-family:inherit; }
+  .cf-search:focus { border-color:#a855f7; }
+  .cf-list { display:flex; flex-direction:column; gap:2px; max-height: 280px; overflow-y:auto; margin-bottom: 8px; }
+  .cf-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:.83rem; color:#cbd5e1; }
+  .cf-item:hover { background:#273549; }
+  .cf-item input { accent-color:#a855f7; width:15px; height:15px; cursor:pointer; }
+  .cf-quick { display:flex; gap:8px; margin-bottom: 14px; }
+  .cf-quick button { flex:1; padding:6px; border-radius:7px; border:1px solid #334155; background:#0f172a; color:#94a3b8; font-size:.72rem; font-weight:600; cursor:pointer; font-family:inherit; }
+  .cf-quick button:hover { background:#334155; color:#e2e8f0; }
+  .cf-empty { text-align:center; color:#475569; font-size:.8rem; padding: 20px 0; }
+
+  .pagination    { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .page-btns     { display: flex; gap: 4px; flex-wrap: wrap; }
+  .page-btn      { padding: 5px 11px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #94a3b8;
+                   font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all .15s; font-family: inherit; }
+  .page-btn:hover  { background: #334155; color: #e2e8f0; }
+  .page-btn.active { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+  .page-info     { font-size: 0.78rem; color: #64748b; }
+  @media (max-width: 600px) { .kpi-value { font-size: 1.25rem; } .dash-title { font-size: 1.2rem; } .period-btn { padding: 6px 12px; font-size: 0.75rem; } .ranking-row { grid-template-columns: 18px 80px 1fr 74px; } }
+</style>
+</head>
+<body>
+<div class="dash-wrapper">
+
+  <div class="dash-topbar">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <a href="/web" class="btn-back">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Volver a Odoo
+      </a>
+      <div>
+        <div class="dash-title">&#x1F4CA; Reporte de <span>Cobranzas</span></div>
+        <div class="dash-subtitle">
+          Periodo: <t t-esc="periodo_activo.capitalize()"/> &#xB7;
+          <t t-esc="fecha_inicio_val"/> &#x2014; <t t-esc="fecha_fin_val"/> &#xB7;
+          <t t-esc="total_pagos"/> pagos de cronograma
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div class="period-tabs">
+        <button type="button" class="period-btn" id="tabDia" onclick="setPeriodo('dia')">Hoy</button>
+        <button type="button" class="period-btn" id="tabSemana" onclick="setPeriodo('semana')">Semana</button>
+        <button type="button" class="period-btn" id="tabMes" onclick="setPeriodo('mes')">Mes</button>
+        <button type="button" class="period-btn rp-trigger" id="tabRango" onclick="openRangePicker()">
+          &#x1F4C5; Rango
+        </button>
+      </div>
+      <button type="button" class="rp-trigger" id="cobradorTrigger" onclick="openCobradorPicker()">
+        &#x1F465; Cobradores
+        <t t-if="cobrador_ids_sel">(<t t-esc="cobradores_sel_count"/>)</t>
+      </button>
+    </div>
+  </div>
+
+  <t t-if="mejor_cobrador">
+    <div class="highlight-banner">
+      <div class="medal">&#x1F3C6;</div>
+      <div class="hb-text">
+        Mejor cobrador del periodo: <b><t t-esc="mejor_cobrador['nombre']"/></b>
+        &#xB7; <t t-esc="mejor_cobrador['pagos']"/> pagos registrados
+        &#xB7; <t t-esc="'{:.1f}'.format(mejor_cobrador['pct'])"/>% del total recaudado
+      </div>
+      <div class="hb-amount">S/ <t t-esc="'{:,.2f}'.format(mejor_cobrador['monto'])"/></div>
+    </div>
+  </t>
+
+  <div class="kpi-grid">
+    <div class="kpi-card c-recaudo">
+      <div class="kpi-icon">&#x1F4B0;</div>
+      <div class="kpi-label">Total recaudado</div>
+      <div class="kpi-value">S/ <t t-esc="'{:,.2f}'.format(total_recaudado)"/></div>
+      <div class="kpi-sub">S/ <t t-esc="'{:,.2f}'.format(promedio_recaudo_dia)"/> promedio / dia</div>
+    </div>
+    <div class="kpi-card c-pagos">
+      <div class="kpi-icon">&#x1F9FE;</div>
+      <div class="kpi-label">Pagos registrados</div>
+      <div class="kpi-value"><t t-esc="total_pagos"/></div>
+      <div class="kpi-sub"><t t-esc="'{:.1f}'.format(promedio_pagos_dia)"/> pagos / dia</div>
+    </div>
+    <div class="kpi-card c-ticket">
+      <div class="kpi-icon">&#x1F3AF;</div>
+      <div class="kpi-label">Ticket promedio</div>
+      <div class="kpi-value">S/ <t t-esc="'{:,.2f}'.format(ticket_promedio)"/></div>
+      <div class="kpi-sub">Maximo: S/ <t t-esc="'{:,.2f}'.format(pago_maximo)"/></div>
+    </div>
+    <div class="kpi-card c-cobradores">
+      <div class="kpi-icon">&#x1F465;</div>
+      <div class="kpi-label">Cobradores activos</div>
+      <div class="kpi-value"><t t-esc="cobradores_activos"/></div>
+      <div class="kpi-sub">Registraron pagos en el periodo</div>
+    </div>
+    <div class="kpi-card c-clientes">
+      <div class="kpi-icon">&#x1F64B;</div>
+      <div class="kpi-label">Clientes atendidos</div>
+      <div class="kpi-value"><t t-esc="clientes_atendidos"/></div>
+      <div class="kpi-sub">Socios con pago en el periodo</div>
+    </div>
+    <div class="kpi-card c-mora">
+      <div class="kpi-icon">&#x23F1;</div>
+      <div class="kpi-label">Mora recuperada</div>
+      <div class="kpi-value">S/ <t t-esc="'{:,.2f}'.format(mora_recuperada)"/></div>
+      <div class="kpi-sub"><t t-esc="pagos_con_mora"/> pagos con mora cobrada</div>
+    </div>
+    <div class="kpi-card c-puntualidad">
+      <div class="kpi-icon">&#x2705;</div>
+      <div class="kpi-label">Puntualidad</div>
+      <div class="kpi-value"><t t-esc="'{:.1f}'.format(pct_puntualidad)"/>%</div>
+      <div class="kpi-sub"><t t-esc="pagos_puntuales"/> de <t t-esc="total_pagos"/> pagos sin mora</div>
+    </div>
+    <div class="kpi-card c-mejordia">
+      <div class="kpi-icon">&#x1F4C8;</div>
+      <div class="kpi-label">Mejor dia</div>
+      <div class="kpi-value" style="font-size:1.05rem;"><t t-esc="dia_mayor_recaudo or 'Sin datos'"/></div>
+      <div class="kpi-sub">Dia de mayor recaudo del periodo</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+
+    <div class="panel">
+      <div class="panel-title">
+        <span class="dot" style="background:#38bdf8;"></span>
+        Recaudo diario del periodo
+        <span class="panel-sub">Monto cobrado por dia (cuota + mora)</span>
+      </div>
+      <t t-if="registros">
+        <div class="bar-scroll-wrap">
+          <div id="dailyChartSvg" style="min-height:240px;"></div>
+        </div>
+      </t>
+      <t t-else="">
+        <div class="empty-state"><div class="icon">&#x1F4ED;</div><div>Sin pagos registrados en este periodo</div></div>
+      </t>
+    </div>
+
+    <div class="charts-row">
+      <div class="panel">
+        <div class="panel-title">
+          <span class="dot" style="background:#c084fc;"></span>
+          Ranking de cobradores
+          <span class="panel-sub">Rendimiento y recaudo por cobrador</span>
+        </div>
+        <t t-if="ranking_chart">
+          <div class="ranking-list">
+            <t t-foreach="ranking_chart" t-as="c">
+              <div class="ranking-row">
+                <div class="ranking-rank"><t t-esc="c_index + 1"/></div>
+                <div class="ranking-name" t-att-title="c['nombre']"><t t-esc="c['nombre']"/></div>
+                <div class="ranking-bar-track">
+                  <div class="ranking-bar-fill" t-attf-style="width:#{c['barra_pct']}%;background:#{c['color']};"></div>
+                </div>
+                <div class="ranking-value">S/ <t t-esc="'{:,.0f}'.format(c['monto'])"/></div>
+                <div class="ranking-meta">
+                  <t t-esc="c['pagos']"/> pagos &#xB7; <t t-esc="c['clientes']"/> clientes &#xB7; <t t-esc="'{:.1f}'.format(c['pct'])"/>% del total
+                </div>
+              </div>
+            </t>
+          </div>
+        </t>
+        <t t-else="">
+          <div class="ranking-empty">Sin cobradores con pagos en este periodo</div>
+        </t>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <span class="dot" style="background:#22d3ee;"></span>
+          Forma de pago
+        </div>
+        <t t-if="datos_forma_pago">
+          <div class="donut-wrap">
+            <div id="formaPagoSvg" style="width:190px;height:190px;flex-shrink:0;"></div>
+            <div class="donut-legend">
+              <t t-foreach="datos_forma_pago" t-as="fp">
+                <div class="legend-item">
+                  <div class="legend-dot" t-attf-style="background:#{fp['color']};"></div>
+                  <div>
+                    <div class="legend-val">S/ <t t-esc="'{:,.2f}'.format(fp['monto'])"/></div>
+                    <div class="legend-lbl"><t t-esc="fp['forma']"/> &#xB7; <t t-esc="fp['pagos']"/> pagos</div>
+                  </div>
+                </div>
+              </t>
+            </div>
+          </div>
+        </t>
+        <t t-else="">
+          <div class="empty-state"><div class="icon">&#x1F4B3;</div><div>Sin datos</div></div>
+        </t>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="panel">
+        <div class="panel-title">
+          <span class="dot" style="background:#f59e0b;"></span>
+          Recaudo por dia de la semana
+          <span class="panel-sub">Identifica los dias de mayor cobranza</span>
+        </div>
+        <t t-if="registros">
+          <div class="bar-fixed-wrap">
+            <div id="weekdayChartSvg" style="min-height:220px;"></div>
+          </div>
+        </t>
+        <t t-else="">
+          <div class="empty-state"><div class="icon">&#x1F4C5;</div><div>Sin datos</div></div>
+        </t>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <span class="dot" style="background:#34d399;"></span>
+          Puntualidad de pago
+        </div>
+        <t t-if="registros">
+          <div class="donut-wrap">
+            <div id="puntualidadSvg" style="width:190px;height:190px;flex-shrink:0;"></div>
+            <div class="donut-legend">
+              <div class="legend-item">
+                <div class="legend-dot" t-attf-style="background:#{color_puntual};"></div>
+                <div>
+                  <div class="legend-val"><t t-esc="pagos_puntuales"/> pagos</div>
+                  <div class="legend-lbl">A tiempo (sin mora)</div>
+                </div>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" t-attf-style="background:#{color_mora};"></div>
+                <div>
+                  <div class="legend-val"><t t-esc="pagos_con_mora"/> pagos</div>
+                  <div class="legend-lbl">Con mora cobrada</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </t>
+        <t t-else="">
+          <div class="empty-state"><div class="icon">&#x2696;</div><div>Sin datos</div></div>
+        </t>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="table-header">
+      <div class="panel-title" style="margin-bottom:0;">
+        <span class="dot" style="background:#f59e0b;"></span>
+        Detalle de pagos
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input class="search-input" type="text" id="tableSearch" placeholder="Buscar cliente, cuenta, cobrador..." oninput="filterTable()"/>
+        <select class="filter-select" id="tableFilter" onchange="filterTable()">
+          <option value="all">Todos los pagos</option>
+          <option value="puntual">Solo puntuales</option>
+          <option value="mora">Solo con mora</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-top:16px;">
+      <t t-if="registros">
+        <table id="payTable">
+          <thead>
+            <tr>
+              <th>#</th><th>Fecha</th><th>Hora</th><th>Cobrador</th><th>Cliente</th><th>Cuenta</th>
+              <th># Cuota</th><th>Vehiculo</th><th>Monto cuota</th><th>Mora cobrada</th><th>Total</th>
+              <th>Forma pago</th><th># Operacion</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <t t-foreach="registros" t-as="r">
+              <tr t-attf-data-tipo="#{r['puntual'] and 'puntual' or 'mora'}"
+                  t-attf-data-search="#{(r['cliente'] + ' ' + r['cuenta'] + ' ' + r['cobrador'] + ' ' + r['numero_operacion']).lower()}">
+                <td style="color:#475569;"><t t-esc="r_index + 1"/></td>
+                <td><t t-esc="r['fecha']"/></td>
+                <td style="color:#94a3b8;"><t t-esc="r['hora']"/></td>
+                <td>
+                  <span class="cobrador-chip"><span class="cobrador-dot"></span><t t-esc="r['cobrador']"/></span>
+                </td>
+                <td><t t-esc="r['cliente']"/></td>
+                <td style="color:#94a3b8;"><t t-esc="r['cuenta']"/></td>
+                <td style="color:#94a3b8;"><t t-esc="r['cuota']"/></td>
+                <td style="color:#94a3b8;"><t t-esc="r['vehiculo']"/></td>
+                <td>S/ <t t-esc="'{:,.2f}'.format(r['monto'])"/></td>
+                <td t-attf-style="color:#{r['mora_cobrada'] and '#fbbf24' or '#475569'};">
+                  S/ <t t-esc="'{:,.2f}'.format(r['mora_cobrada'])"/>
+                </td>
+                <td class="td-strong">S/ <t t-esc="'{:,.2f}'.format(r['total'])"/></td>
+                <td style="color:#94a3b8;"><t t-esc="r['forma_pago']"/></td>
+                <td style="color:#94a3b8;"><t t-esc="r['numero_operacion']"/></td>
+                <td>
+                  <t t-if="r['puntual']"><span class="badge-puntual">A tiempo</span></t>
+                  <t t-else=""><span class="badge-mora">Con mora</span></t>
+                </td>
+              </tr>
+            </t>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="page-info" id="pageInfo"> </div>
+          <div class="page-btns" id="pageBtns"> </div>
+        </div>
+      </t>
+      <t t-else="">
+        <div class="empty-state">
+          <div class="icon">&#x1F4C2;</div>
+          <div>No hay pagos registrados en este periodo</div>
+        </div>
+      </t>
+    </div>
+  </div>
+
+</div><!-- /.dash-wrapper -->
+
+<!-- ── Range Picker Modal ───────────── -->
+<div id="rpOverlay" class="rp-overlay">
+  <div class="rp-panel">
+    <div class="rp-title">&#x1F4C5; Seleccionar rango de fechas</div>
+    <div class="rp-field">
+      <label>Fecha inicio (Desde)</label>
+      <input type="date" id="rpInputStart"/>
+    </div>
+    <div class="rp-field">
+      <label>Fecha fin (Hasta)</label>
+      <input type="date" id="rpInputEnd"/>
+    </div>
+    <div class="rp-actions">
+      <button class="rp-btn-cancel" id="rpBtnCancel" type="button">Cancelar</button>
+      <button class="rp-btn-apply" id="rpBtnApply" type="button">Aplicar rango</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Cobrador Picker Modal ───────────── -->
+<div id="cfOverlay" class="rp-overlay">
+  <div class="rp-panel">
+    <div class="rp-title">&#x1F465; Filtrar por cobrador</div>
+    <input type="text" id="cfSearch" class="cf-search" placeholder="Buscar cobrador..." oninput="filterCobradorList()"/>
+    <div class="cf-quick">
+      <button type="button" id="cfSelectAll">Seleccionar todos</button>
+      <button type="button" id="cfClearAll">Limpiar seleccion</button>
+    </div>
+    <div class="cf-list" id="cfList">
+      <t t-if="lista_cobradores">
+        <t t-foreach="lista_cobradores" t-as="cb">
+          <label class="cf-item" t-att-data-name="cb['name'].lower()">
+            <input type="checkbox" class="cf-checkbox" t-att-value="cb['id']" t-att-checked="cb['selected'] or None"/>
+            <span><t t-esc="cb['name']"/></span>
+          </label>
+        </t>
+      </t>
+      <t t-else="">
+        <div class="cf-empty">Aun no hay pagos con cobrador asignado</div>
+      </t>
+    </div>
+    <div class="rp-actions">
+      <button class="rp-btn-cancel" id="cfBtnCancel" type="button">Cancelar</button>
+      <button class="rp-btn-apply" id="cfBtnApply" type="button" style="background:#a855f7;box-shadow:0 2px 8px rgba(168,85,247,.4);">Aplicar filtro</button>
+    </div>
+  </div>
+</div>
+
+<div id="rcTooltip" class="rc-tooltip"></div>
+
+<div id="dashData"
+     style="display:none;"
+     t-att-data-daily="datos_grafico_json"
+     t-att-data-weekday="datos_semana_json"
+     t-att-data-formapago="datos_forma_pago_json"
+     t-att-data-puntuales="pagos_puntuales"
+     t-att-data-mora="pagos_con_mora"
+     t-att-data-color-puntual="color_puntual"
+     t-att-data-color-mora="color_mora"
+     t-att-data-periodo="periodo_activo"
+     t-att-data-fi="fecha_inicio_input"
+     t-att-data-ff="fecha_fin_input"
+     t-att-data-cobradores="','.join(str(x) for x in cobrador_ids_sel)">
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var el = document.getElementById('dashData');
+  var dailyData = [], weekdayData = [], formaPagoData = [];
+  var pagosPuntuales = 0, pagosMora = 0, colorPuntual = '#0ca30c', colorMora = '#fab219';
+  var STATE = { periodo: 'mes', fi: '', ff: '', cobradores: [] };
+
+  if (el) {
+    try { dailyData = JSON.parse(el.getAttribute('data-daily') || '[]'); } catch(e){}
+    try { weekdayData = JSON.parse(el.getAttribute('data-weekday') || '[]'); } catch(e){}
+    try { formaPagoData = JSON.parse(el.getAttribute('data-formapago') || '[]'); } catch(e){}
+    pagosPuntuales = parseInt(el.getAttribute('data-puntuales') || '0', 10) || 0;
+    pagosMora = parseInt(el.getAttribute('data-mora') || '0', 10) || 0;
+    colorPuntual = el.getAttribute('data-color-puntual') || colorPuntual;
+    colorMora = el.getAttribute('data-color-mora') || colorMora;
+    STATE.periodo = el.getAttribute('data-periodo') || 'mes';
+    STATE.fi = el.getAttribute('data-fi') || '';
+    STATE.ff = el.getAttribute('data-ff') || '';
+    var cobStr = el.getAttribute('data-cobradores') || '';
+    STATE.cobradores = cobStr ? cobStr.split(',').filter(function(x){ return x; }) : [];
+  }
+
+  function markActiveTab() {
+    ['dia','semana','mes'].forEach(function(p){
+      var btn = document.getElementById('tab' + p.charAt(0).toUpperCase() + p.slice(1));
+      if (btn) btn.classList.toggle('active', STATE.periodo === p);
+    });
+    var rangoBtn = document.getElementById('tabRango');
+    if (rangoBtn) {
+      rangoBtn.classList.toggle('active', STATE.periodo === 'rango');
+      rangoBtn.innerHTML = STATE.periodo === 'rango'
+        ? '📅 Rango &#xB7; ' + STATE.fi + ' → ' + STATE.ff
+        : '📅 Rango';
+    }
+    var cobBtn = document.getElementById('cobradorTrigger');
+    if (cobBtn) cobBtn.classList.toggle('has-filter', STATE.cobradores.length &gt; 0);
+  }
+
+  function goTo() {
+    var url = '/web/dashboard/cobranzas?periodo=' + encodeURIComponent(STATE.periodo);
+    if (STATE.periodo === 'rango' &amp;&amp; STATE.fi &amp;&amp; STATE.ff) {
+      url += '&amp;fecha_inicio=' + encodeURIComponent(STATE.fi) + '&amp;fecha_fin=' + encodeURIComponent(STATE.ff);
+    }
+    if (STATE.cobradores.length) {
+      url += '&amp;cobradores=' + encodeURIComponent(STATE.cobradores.join(','));
+    }
+    window.location.href = url;
+  }
+
+  window.setPeriodo = function(p) {
+    STATE.periodo = p;
+    goTo();
+  };
+
+  /* ── RANGE PICKER ─────────────────────────────────────────── */
+  window.openRangePicker = function() {
+    document.getElementById('rpInputStart').value = STATE.fi;
+    document.getElementById('rpInputEnd').value = STATE.ff;
+    document.getElementById('rpOverlay').classList.add('open');
+  };
+  function initRangePicker() {
+    document.getElementById('rpBtnCancel').addEventListener('click', function() {
+      document.getElementById('rpOverlay').classList.remove('open');
+    });
+    document.getElementById('rpBtnApply').addEventListener('click', function() {
+      var s = document.getElementById('rpInputStart').value;
+      var e = document.getElementById('rpInputEnd').value;
+      if (!s || !e) { alert('Selecciona ambas fechas'); return; }
+      if (s &gt; e) { alert('La fecha inicio debe ser menor o igual a la fecha fin'); return; }
+      STATE.periodo = 'rango';
+      STATE.fi = s;
+      STATE.ff = e;
+      goTo();
+    });
+    document.getElementById('rpOverlay').addEventListener('click', function(ev) {
+      if (ev.target === this) this.classList.remove('open');
+    });
+  }
+
+  /* ── COBRADOR PICKER ──────────────────────────────────────── */
+  window.openCobradorPicker = function() {
+    document.getElementById('cfOverlay').classList.add('open');
+  };
+  window.filterCobradorList = function() {
+    var q = (document.getElementById('cfSearch').value || '').toLowerCase();
+    document.querySelectorAll('#cfList .cf-item').forEach(function(item){
+      var name = item.getAttribute('data-name') || '';
+      item.style.display = (!q || name.indexOf(q) !== -1) ? 'flex' : 'none';
+    });
+  };
+  function initCobradorPicker() {
+    document.getElementById('cfBtnCancel').addEventListener('click', function() {
+      document.getElementById('cfOverlay').classList.remove('open');
+    });
+    document.getElementById('cfSelectAll').addEventListener('click', function() {
+      document.querySelectorAll('#cfList .cf-checkbox').forEach(function(cb){ cb.checked = true; });
+    });
+    document.getElementById('cfClearAll').addEventListener('click', function() {
+      document.querySelectorAll('#cfList .cf-checkbox').forEach(function(cb){ cb.checked = false; });
+    });
+    document.getElementById('cfBtnApply').addEventListener('click', function() {
+      var ids = [];
+      document.querySelectorAll('#cfList .cf-checkbox').forEach(function(cb){
+        if (cb.checked) ids.push(cb.value);
+      });
+      STATE.cobradores = ids;
+      goTo();
+    });
+    document.getElementById('cfOverlay').addEventListener('click', function(ev) {
+      if (ev.target === this) this.classList.remove('open');
+    });
+  }
+
+  /* ── TOOLTIP ──────────────────────────────────────────────── */
+  var _tip = null;
+  var _S = '\x3C', _E = '\x3E';
+  function fmt(n){ return 'S/ ' + parseFloat(n).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  window.showTip = function(e, node) {
+    if (!_tip) _tip = document.getElementById('rcTooltip');
+    if (!_tip) return;
+    var label = node.getAttribute('data-label') || '';
+    var monto = node.getAttribute('data-monto');
+    var value = node.getAttribute('data-value');
+    var pagos = node.getAttribute('data-pagos');
+    var pct   = node.getAttribute('data-pct');
+    var amount = monto !== null ? monto : value;
+    var html = _S+'div style="font-weight:700;color:#f1f5f9;margin-bottom:4px;"'+_E+label+_S+'/div'+_E;
+    if (amount !== null) {
+      html += _S+'div style="font-size:1rem;font-weight:800;color:#38bdf8;"'+_E+fmt(amount)+_S+'/div'+_E;
+    }
+    if (pagos !== null) {
+      html += _S+'div style="font-size:.72rem;color:#94a3b8;"'+_E+pagos+' pago(s)'+_S+'/div'+_E;
+    }
+    if (pct !== null) {
+      html += _S+'div style="font-size:.72rem;color:#94a3b8;"'+_E+pct+'% del total'+_S+'/div'+_E;
+    }
+    _tip.innerHTML = html;
+    _tip.style.display = 'block';
+    window.moveTip(e);
+  };
+  window.moveTip = function(e) {
+    if (!_tip || _tip.style.display === 'none') return;
+    var x = e.clientX + 14, y = e.clientY - 10;
+    if (x + 170 &gt; window.innerWidth)  x = e.clientX - 180;
+    if (y + 90  &gt; window.innerHeight) y = e.clientY - 100;
+    _tip.style.left = x + 'px';
+    _tip.style.top  = y + 'px';
+  };
+  window.hideTip = function() {
+    if (!_tip) _tip = document.getElementById('rcTooltip');
+    if (_tip) _tip.style.display = 'none';
+  };
+
+  /* ── GENERIC BAR SERIES CHART (SVG) ──────────────────────── */
+  function buildBarSeries(containerId, data, color, opts) {
+    var container = document.getElementById(containerId);
+    if (!container || !data.length) return;
+    opts = opts || {};
+    var H = opts.height || 240;
+    var padL = 58, padR = 18, padT = 20, padB = 40;
+    var n = data.length;
+    var scrollMode = !!opts.scroll;
+    var wrapWidth = container.parentElement.clientWidth || 600;
+    var groupW = scrollMode
+      ? Math.max(38, Math.floor((wrapWidth - padL - padR) / n))
+      : Math.max(60, Math.floor((wrapWidth - padL - padR) / n));
+    var W = padL + groupW * n + padR;
+    var chartH = H - padT - padB;
+    var barW = Math.max(10, Math.min(30, groupW * 0.48));
+
+    var maxVal = 0;
+    data.forEach(function(d){ if (d.monto &gt; maxVal) maxVal = d.monto; });
+    if (maxVal === 0) maxVal = 1;
+
+    var p = [];
+    p.push('&lt;svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" style="display:block;"&gt;');
+
+    for (var s = 0; s &lt;= 4; s++) {
+      var yg = padT + chartH - (s / 4) * chartH;
+      var val = (s / 4) * maxVal;
+      var vlbl = val &gt;= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toFixed(0);
+      p.push('&lt;line x1="'+padL+'" y1="'+yg+'" x2="'+(W-padR)+'" y2="'+yg+'" stroke="rgba(51,65,85,.55)" stroke-width="1"/&gt;');
+      p.push('&lt;text x="'+(padL-8)+'" y="'+(yg+4)+'" text-anchor="end" font-size="9" fill="#64748b"&gt;'+vlbl+'&lt;/text&gt;');
+    }
+
+    data.forEach(function(d, i){
+      var cx = padL + (i + 0.5) * groupW;
+      var h = (d.monto / maxVal) * chartH;
+      var x = cx - barW / 2;
+      var y = padT + chartH - h;
+      var label = d.fecha || d.dia || '';
+      if (h &gt; 0) {
+        p.push('&lt;rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+h+'" rx="4" fill="'+color+'"'
+          +' data-label="'+label+'" data-monto="'+d.monto+'" data-pagos="'+(d.pagos||0)+'"'
+          +' style="cursor:pointer;transition:opacity .15s"'
+          +' onmouseenter="showTip(event,this)" onmousemove="moveTip(event)" onmouseleave="hideTip()"/&gt;');
+      }
+      var shortLbl = opts.dayLabels ? label.slice(0,3) : label.slice(0,5);
+      p.push('&lt;text x="'+cx+'" y="'+(H-8)+'" text-anchor="middle" font-size="9" fill="#64748b"&gt;'+shortLbl+'&lt;/text&gt;');
+    });
+
+    p.push('&lt;/svg&gt;');
+
+    if (scrollMode) container.style.width = W + 'px';
+    container.innerHTML = p.join('').replace(/&lt;/g,'\x3C').replace(/&gt;/g,'\x3E');
+  }
+
+  /* ── GENERIC MULTI-SLICE DONUT (SVG) ─────────────────────── */
+  function buildDonutMulti(containerId, slices, opts) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    opts = opts || {};
+    var total = 0;
+    slices.forEach(function(s){ total += s.value; });
+    if (total &lt;= 0) return;
+
+    var R = 70, r = 46, cx = 95, cy = 95, size = 190;
+    var circ = 2 * Math.PI * R;
+    var offset = circ * 0.25;
+    var acc = 0;
+    var gap = slices.length &gt; 1 ? 2 : 0;
+
+    var parts = [];
+    parts.push('&lt;svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'"&gt;');
+    parts.push('&lt;circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="#334155" stroke-width="'+(R-r)+'"/&gt;');
+
+    slices.forEach(function(s){
+      var frac = s.value / total;
+      var len = frac * circ;
+      var dash = Math.max(len - gap, 0);
+      parts.push('&lt;circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="'+s.color+'" stroke-width="'+(R-r)+'"'
+        +' stroke-dasharray="'+dash+' '+(circ-dash)+'"'
+        +' stroke-dashoffset="'+(offset-acc)+'"'
+        +' data-label="'+s.label+'" data-value="'+s.value+'" data-pct="'+(frac*100).toFixed(1)+'"'
+        +' style="cursor:pointer"'
+        +' onmouseenter="showTip(event,this)" onmousemove="moveTip(event)" onmouseleave="hideTip()"'
+        +' transform="rotate(-90 '+cx+' '+cy+')"/&gt;');
+      acc += len;
+    });
+
+    if (opts.centerValue) {
+      parts.push('&lt;text x="'+cx+'" y="'+(cy-4)+'" text-anchor="middle" font-size="17" font-weight="800" fill="'+(opts.centerColor||'#e2e8f0')+'"&gt;'+opts.centerValue+'&lt;/text&gt;');
+      parts.push('&lt;text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" font-size="9" fill="#64748b"&gt;'+(opts.centerLabel||'')+'&lt;/text&gt;');
+    }
+
+    parts.push('&lt;/svg&gt;');
+    container.innerHTML = parts.join('').replace(/&lt;/g,'\x3C').replace(/&gt;/g,'\x3E');
+  }
+
+  /* ── TABLE: SEARCH + FILTER + PAGINATION ─────────────────── */
+  var PAGE_SIZE = 20;
+  var currentPage = 1;
+
+  function getFilteredRows() {
+    var search = ((document.getElementById('tableSearch') || {}).value || '').toLowerCase();
+    var filter = (document.getElementById('tableFilter') || {}).value || 'all';
+    var rows = document.querySelectorAll('#payTable tbody tr');
+    var visible = [];
+    rows.forEach(function(row){
+      var tipo = row.getAttribute('data-tipo') || '';
+      var text = row.getAttribute('data-search') || '';
+      var match = (filter === 'all' || tipo === filter) &amp;&amp; (!search || text.indexOf(search) !== -1);
+      if (match) visible.push(row);
+    });
+    return visible;
+  }
+
+  function renderPage(page) {
+    currentPage = page;
+    var allRows = document.querySelectorAll('#payTable tbody tr');
+    var filtered = getFilteredRows();
+    var total = filtered.length;
+    var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (currentPage &gt; totalPages) currentPage = totalPages;
+    var start = (currentPage - 1) * PAGE_SIZE;
+    var end = start + PAGE_SIZE;
+
+    allRows.forEach(function(r){ r.style.display = 'none'; });
+    filtered.forEach(function(r, i){
+      r.style.display = (i &gt;= start &amp;&amp; i &lt; end) ? '' : 'none';
+    });
+
+    var infoEl = document.getElementById('pageInfo');
+    if (infoEl) {
+      var from = total === 0 ? 0 : start + 1;
+      var to = Math.min(end, total);
+      infoEl.textContent = 'Mostrando ' + from + ' - ' + to + ' de ' + total + ' pagos';
+    }
+
+    var btnsEl = document.getElementById('pageBtns');
+    if (!btnsEl) return;
+    var html = [];
+
+    if (currentPage &gt; 1) {
+      html.push(_S+'button class="page-btn" onclick="renderPage('+(currentPage-1)+')"'+_E+'←'+_S+'/button'+_E);
+    }
+    var winStart = Math.max(1, currentPage - 2);
+    var winEnd = Math.min(totalPages, currentPage + 2);
+    if (winStart &gt; 1) {
+      html.push(_S+'button class="page-btn" onclick="renderPage(1)"'+_E+'1'+_S+'/button'+_E);
+      if (winStart &gt; 2) html.push(_S+'span style="color:#475569;padding:0 4px;"'+_E+'...'+_S+'/span'+_E);
+    }
+    for (var pg = winStart; pg &lt;= winEnd; pg++) {
+      var active = pg === currentPage ? ' active' : '';
+      html.push(_S+'button class="page-btn'+active+'" onclick="renderPage('+pg+')"'+_E+pg+_S+'/button'+_E);
+    }
+    if (winEnd &lt; totalPages) {
+      if (winEnd &lt; totalPages - 1) html.push(_S+'span style="color:#475569;padding:0 4px;"'+_E+'...'+_S+'/span'+_E);
+      html.push(_S+'button class="page-btn" onclick="renderPage('+totalPages+')"'+_E+totalPages+_S+'/button'+_E);
+    }
+    if (currentPage &lt; totalPages) {
+      html.push(_S+'button class="page-btn" onclick="renderPage('+(currentPage+1)+')"'+_E+'→'+_S+'/button'+_E);
+    }
+    btnsEl.innerHTML = html.join('');
+  }
+  window.renderPage = renderPage;
+  window.filterTable = function(){ renderPage(1); };
+
+  /* ── INIT ─────────────────────────────────────────────────── */
+  function buildAllCharts() {
+    buildBarSeries('dailyChartSvg', dailyData, '#38bdf8', { scroll: true, height: 240 });
+    buildBarSeries('weekdayChartSvg', weekdayData, '#f59e0b', { scroll: false, height: 220, dayLabels: true });
+    buildDonutMulti(
+      'formaPagoSvg',
+      formaPagoData.map(function(d){ return { label: d.forma, value: d.monto, color: d.color, pagos: d.pagos }; }),
+      {}
+    );
+    var totalPunt = pagosPuntuales + pagosMora;
+    var pctPunt = totalPunt ? Math.round((pagosPuntuales / totalPunt) * 100) : 0;
+    buildDonutMulti(
+      'puntualidadSvg',
+      [
+        { label: 'A tiempo', value: pagosPuntuales, color: colorPuntual, pagos: pagosPuntuales },
+        { label: 'Con mora', value: pagosMora, color: colorMora, pagos: pagosMora }
+      ],
+      { centerValue: pctPunt + '%', centerLabel: 'a tiempo', centerColor: colorPuntual }
+    );
+  }
+
+  function init() {
+    markActiveTab();
+    buildAllCharts();
+    renderPage(1);
+    initRangePicker();
+    initCobradorPicker();
+  }
+
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
+  else { init(); }
+  window.addEventListener('resize', buildAllCharts);
+
+})();
+</script>
+</body>
+</html>
+</template>
+</odoo>

@@ -36,6 +36,7 @@
         'views/view_cuotas_masivas.xml',
         'views/view_egresos_caja.xml',
         'views/dashboard_caja.xml',
+        'views/dashboard_cobranzas.xml',
         'views/report.xml',
         'views/view_mobile_models.xml',
         'views/view_mobile_product_catalog.xml',

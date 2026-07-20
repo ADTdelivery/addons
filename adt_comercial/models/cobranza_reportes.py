@@ -20,6 +20,7 @@ class ADTCobranzaPagosRealizados(models.Model):
     # partner_id = fields.Many2one('res.partner', string='Socio', related="cuota_id.cuenta_id.partner_id")
     partner_id = fields.Many2one('res.partner', string='Socio')
     user_id = fields.Many2one("res.users", string="Asesor")
+    cobrador_id = fields.Many2one("res.users", string="Cobrador")
     phone = fields.Char(string="Teléfono")
     mobile = fields.Char(string="Celular")
 
@@ -31,8 +32,13 @@ class ADTCobranzaPagosRealizados(models.Model):
     fecha_cronograma = fields.Date(string="Fecha cronograma")
 
     monto = fields.Float(string='Monto')
+    mora = fields.Float(string='Mora')
+    mora_state = fields.Selection(
+        [('paid', 'Mora pagada'), ('pending', 'Mora pendiente')], string="Estado de mora")
+    numero_operacion = fields.Char(string="# Operación")
 
     fecha = fields.Date(string='Fecha')
+    fecha_registro = fields.Datetime(string='Fecha de registro')
     journal_id = fields.Many2one('account.journal', string='Forma de pago')
 
     state = fields.Selection([("pendiente", "Pendiente"), ("a_cuenta", "A cuenta"), (
@@ -52,13 +58,18 @@ class ADTCobranzaPagosRealizados(models.Model):
                     acc2.id as cuenta_id,
                     acc2.partner_id as partner_id,
                     acc2.user_id as user_id,
+                    ap.create_uid as cobrador_id,
                     rp.mobile as mobile,
                     rp.phone as phone,
                     fv.id as vehicle_id,
                     acc2.fecha_desembolso as fecha_desembolso,
                     acc.fecha_cronograma as fecha_cronograma,
                     ap.amount as monto,
+                    coalesce(ap.mora, 0) as mora,
+                    ap.mora_state as mora_state,
+                    am.ref as numero_operacion,
                     am.date as fecha,
+                    ap.create_date as fecha_registro,
                     am.journal_id as journal_id,
                     acc.state as state,
                     am.state as move_state

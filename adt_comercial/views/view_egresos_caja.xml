@@ -105,4 +105,20 @@
               sequence="12"
               groups="adt_comercial.group_access_adt_comercial"/>
 
+    <!-- ══════════════════════════════════════════════════
+         DASHBOARD COBRANZAS — action URL + menu item
+    ══════════════════════════════════════════════════ -->
+    <record id="action_dashboard_cobranzas" model="ir.actions.act_url">
+        <field name="name">Dashboard de Cobranzas</field>
+        <field name="url">/web/dashboard/cobranzas?periodo=mes</field>
+        <field name="target">self</field>
+    </record>
+
+    <menuitem id="adt_comercial_menu_dashboard_cobranzas"
+              name="Dashboard Cobranzas"
+              action="action_dashboard_cobranzas"
+              parent="menu_adt_comercial"
+              sequence="13"
+              groups="adt_comercial.group_access_adt_comercial"/>
+
 </odoo>
