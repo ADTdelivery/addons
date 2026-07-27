@@ -4,14 +4,13 @@
     <!-- ─────────────────────────────────────────────────────────────────
          Traccar settings block inside General Settings
     ───────────────────────────────────────────────────────────────────── -->
-    <!--
     <record id="res_config_settings_view_traccar" model="ir.ui.view">
-        <field name="name">res.config.settings.view.traccar</field>
+        <field name="name">res.config.settings.view.form.inherit.traccar</field>
         <field name="model">res.config.settings</field>
         <field name="priority">100</field>
-        <field name="inherit_id" ref="base_setup.action_general_configuration"/>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('o_settings_container')]" position="inside">
+            <xpath expr="//div[hasclass('settings')]" position="inside">
                 <div class="app_settings_block" data-string="Traccar GPS"
                      string="Traccar GPS" data-key="adt_traccar">
                     <h2>Traccar GPS</h2>
@@ -23,7 +22,7 @@
                                 <div class="text-muted">
                                     Ingresa la URL y las credenciales del administrador de Traccar.
                                 </div>
-                                <div class="content-group mt8">
+                                <div class="content-group mt16">
                                     <div class="row">
                                         <label for="traccar_url" class="col-lg-4 o_light_label"/>
                                         <field name="traccar_url" class="col-lg-8"/>
@@ -34,9 +33,28 @@
                                     </div>
                                     <div class="row">
                                         <label for="traccar_password" class="col-lg-4 o_light_label"/>
+                                        <!-- El atributo password no acepta attrs dinámicos,
+                                             así que se muestra el mismo campo en dos widgets
+                                             y se alterna con traccar_show_password. -->
                                         <field name="traccar_password"
                                                password="True"
-                                               class="col-lg-8"/>
+                                               class="col-lg-8"
+                                               nolabel="1"
+                                               attrs="{'invisible': [('traccar_show_password', '=', True)]}"/>
+                                        <field name="traccar_password"
+                                               class="col-lg-8"
+                                               nolabel="1"
+                                               attrs="{'invisible': [('traccar_show_password', '=', False)]}"/>
+                                    </div>
+                                    <div class="row mt8">
+                                        <div class="col-lg-4"/>
+                                        <div class="col-lg-8 o_light_label">
+                                            <field name="traccar_show_password"
+                                                   nolabel="1"
+                                                   class="oe_inline"/>
+                                            <label for="traccar_show_password"
+                                                   class="o_light_label ml4"/>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -46,6 +64,14 @@
             </xpath>
         </field>
     </record>
-    -->
+
+    <!-- Acción directa a los ajustes de Traccar (además del bloque en Ajustes) -->
+    <record id="action_traccar_config_settings" model="ir.actions.act_window">
+        <field name="name">Configuración Traccar</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'adt_traccar'}</field>
+    </record>
 
 </odoo>

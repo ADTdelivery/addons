@@ -18,6 +18,7 @@
     'depends': ['base', 'fleet', 'base_setup'],
     'data': [
         'security/ir.model.access.csv',
+        'data/traccar_params.xml',
         'views/adt_traccar_views.xml',
         'views/adt_traccar_menu.xml',
     ],

@@ -684,7 +684,7 @@
     if (!container || !data.length) return;
     opts = opts || {};
     var H = opts.height || 240;
-    var padL = 58, padR = 18, padT = 20, padB = 40;
+    var padL = 72, padR = 18, padT = 20, padB = 40;
     var n = data.length;
     var scrollMode = !!opts.scroll;
     var wrapWidth = container.parentElement.clientWidth || 600;
@@ -705,7 +705,7 @@
     for (var s = 0; s &lt;= 4; s++) {
       var yg = padT + chartH - (s / 4) * chartH;
       var val = (s / 4) * maxVal;
-      var vlbl = val &gt;= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toFixed(0);
+      var vlbl = 'S/ ' + (val &gt;= 1000 ? (val / 1000).toFixed(1) + 'k' : val.toFixed(0));
       p.push('&lt;line x1="'+padL+'" y1="'+yg+'" x2="'+(W-padR)+'" y2="'+yg+'" stroke="rgba(51,65,85,.55)" stroke-width="1"/&gt;');
       p.push('&lt;text x="'+(padL-8)+'" y="'+(yg+4)+'" text-anchor="end" font-size="9" fill="#64748b"&gt;'+vlbl+'&lt;/text&gt;');
     }

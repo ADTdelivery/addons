@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_adt_mantenimiento_regla_tree" model="ir.ui.view">
+        <field name="name">adt.mantenimiento.regla.tree</field>
+        <field name="model">adt.mantenimiento.regla</field>
+        <field name="arch" type="xml">
+            <tree string="Reglas de Mantenimiento">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="dias_notificacion" string="Días de campaña"/>
+                <field name="notificaciones_por_dia" string="Notif./día"/>
+                <field name="horario_ids" widget="many2many_tags" optional="show"/>
+                <field name="umbral_count"/>
+                <field name="active" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_mantenimiento_regla_form" model="ir.ui.view">
+        <field name="name">adt.mantenimiento.regla.form</field>
+        <field name="model">adt.mantenimiento.regla</field>
+        <field name="arch" type="xml">
+            <form string="Regla de Mantenimiento">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivada" bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ej: Cambio de aceite"/></h1>
+                    </div>
+                    <group>
+                        <group string="Configuración de campaña">
+                            <field name="dias_notificacion"/>
+                            <field name="notificaciones_por_dia"/>
+                            <field name="horario_ids" widget="many2many_tags"
+                                   options="{'no_create': True, 'no_create_edit': True}"
+                                   placeholder="Ej: 09:00, 14:00, 19:00 (vacío = reparto uniforme)"/>
+                        </group>
+                        <group string="Identificación">
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Mensaje">
+                        <field name="mensaje_template" nolabel="1"
+                               placeholder="Variables disponibles: {placa}, {km_actual}, {regla}"/>
+                    </group>
+                    <notebook>
+                        <page string="Umbrales de kilometraje" name="umbrales">
+                            <field name="umbral_ids">
+                                <tree editable="bottom">
+                                    <field name="orden"/>
+                                    <field name="km_umbral"/>
+                                    <field name="activo"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Oferta / Promoción" name="oferta">
+                            <group>
+                                <field name="es_oferta"/>
+                            </group>
+                            <group attrs="{'invisible': [('es_oferta', '=', False)]}">
+                                <group string="Datos de la oferta">
+                                    <field name="oferta_titulo"/>
+                                    <field name="oferta_descripcion"/>
+                                    <field name="oferta_precio"/>
+                                    <field name="oferta_moneda_id" invisible="1"/>
+                                    <field name="company_id" invisible="1"/>
+                                    <field name="oferta_dias_duracion"/>
+                                </group>
+                                <group string="Contacto WhatsApp">
+                                    <field name="oferta_wsp_numero" placeholder="Ej: 51999111222"/>
+                                    <field name="oferta_wsp_mensaje" placeholder="Vacío = mensaje automático con el título"/>
+                                    <field name="oferta_wsp_link" widget="url" readonly="1"/>
+                                </group>
+                            </group>
+                            <separator string="Imágenes de la oferta"
+                                       attrs="{'invisible': [('es_oferta', '=', False)]}"/>
+                            <field name="imagen_ids" attrs="{'invisible': [('es_oferta', '=', False)]}">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="image" widget="image" class="oe_avatar"/>
+                                    <field name="image_filename"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_mantenimiento_regla" model="ir.actions.act_window">
+        <field name="name">Reglas de Mantenimiento</field>
+        <field name="res_model">adt.mantenimiento.regla</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea una regla de mantenimiento (ej. Cambio de aceite) y define
+                cuántos días durará su campaña de notificaciones y cuántas
+                notificaciones se enviarán por día.
+            </p>
+        </field>
+    </record>
+
+</odoo>

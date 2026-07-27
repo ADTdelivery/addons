@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            Job A — Lector de kilometraje Traccar + motor de reglas.
+            Horario: 23:00 Lima (America/Lima, UTC-5) = 04:00 UTC del día siguiente.
+            Solo evalúa/crea campañas, no envía notificaciones (ver sección 3 y 10).
+        -->
+        <record id="ir_cron_mantenimiento_leer_kilometraje" model="ir.cron">
+            <field name="name">ADT Mantenimiento Preventivo: Lectura Traccar + Motor de Reglas</field>
+            <field name="model_id" ref="model_adt_mantenimiento_motor_reglas"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_leer_kilometraje_y_evaluar_reglas()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="nextcall">2026-07-26 04:00:00</field>
+            <field name="user_id" ref="base.user_root"/>
+        </record>
+
+        <!--
+            Job B — Emisor de notificaciones de campañas activas.
+            Corre cada 30 minutos: cada corrida solo envía las notificaciones
+            cuyo horario (horario_ids elegidos en la regla, u hora Lima
+            uniforme por defecto) ya se cumplió y que todavía no se enviaron
+            hoy. Recorre TODAS las campañas ACTIVA, no solo las recién
+            creadas por el Job A (ver sección 5 y 10).
+        -->
+        <record id="ir_cron_mantenimiento_enviar_notificaciones" model="ir.cron">
+            <field name="name">ADT Mantenimiento Preventivo: Envío de Notificaciones</field>
+            <field name="model_id" ref="model_adt_mantenimiento_campana"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_enviar_notificaciones_campanas()</field>
+            <field name="interval_number">30</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="nextcall">2026-07-26 00:00:00</field>
+            <field name="user_id" ref="base.user_root"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_adt_mantenimiento_vehicle_rule_state_tree" model="ir.ui.view">
+        <field name="name">adt.mantenimiento.vehicle.rule.state.tree</field>
+        <field name="model">adt.mantenimiento.vehicle.rule.state</field>
+        <field name="arch" type="xml">
+            <tree string="Estados de Reglas por Vehículo" create="false">
+                <field name="vehicle_id"/>
+                <field name="regla_id"/>
+                <field name="ultimo_umbral_orden"/>
+                <field name="estado" widget="badge"
+                       decoration-success="estado == 'campana_activa'"
+                       decoration-info="estado == 'campana_finalizada'"
+                       decoration-muted="estado == 'pendiente'"/>
+                <field name="fecha_disparo"/>
+                <field name="atendida_en" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_mantenimiento_vehicle_rule_state_search" model="ir.ui.view">
+        <field name="name">adt.mantenimiento.vehicle.rule.state.search</field>
+        <field name="model">adt.mantenimiento.vehicle.rule.state</field>
+        <field name="arch" type="xml">
+            <search string="Estados de Reglas por Vehículo">
+                <field name="vehicle_id"/>
+                <field name="regla_id"/>
+                <filter string="Campaña activa" name="filter_activa" domain="[('estado','=','campana_activa')]"/>
+                <filter string="Pendiente de evaluar" name="filter_pendiente" domain="[('estado','=','pendiente')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Regla" name="groupby_regla" context="{'group_by': 'regla_id'}"/>
+                    <filter string="Estado" name="groupby_estado" context="{'group_by': 'estado'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_mantenimiento_vehicle_rule_state" model="ir.actions.act_window">
+        <field name="name">Estados por Vehículo</field>
+        <field name="res_model">adt.mantenimiento.vehicle.rule.state</field>
+        <field name="view_mode">tree</field>
+        <field name="context">{'search_default_filter_activa': 1}</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_fleet_vehicle_form_mantenimiento_preventivo" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.mantenimiento.preventivo</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_ver_campanas_mantenimiento" type="object" class="oe_stat_button" icon="fa-bell-o">
+                    <field name="mantenimiento_campana_count" widget="statinfo" string="Campañas Mant."/>
+                </button>
+            </div>
+            <xpath expr="//notebook" position="inside">
+                <page string="Mantenimiento Preventivo" name="mantenimiento_preventivo">
+                    <group>
+                        <group string="Sincronización Traccar">
+                            <field name="traccar_device_id" readonly="1"/>
+                            <field name="traccar_km_actual" readonly="1"/>
+                            <field name="traccar_ultima_sincronizacion" readonly="1"/>
+                        </group>
+                    </group>
+                    <separator string="Estados de reglas por vehículo"/>
+                    <field name="mantenimiento_rule_state_ids" readonly="1">
+                        <tree create="false" delete="false">
+                            <field name="regla_id"/>
+                            <field name="ultimo_umbral_orden"/>
+                            <field name="estado" widget="badge"
+                                   decoration-success="estado == 'campana_activa'"
+                                   decoration-info="estado == 'campana_finalizada'"
+                                   decoration-muted="estado == 'completada_por_usuario'"/>
+                            <field name="fecha_disparo"/>
+                            <field name="atendida_en"/>
+                        </tree>
+                    </field>
+                    <separator string="Campañas de mantenimiento"/>
+                    <field name="mantenimiento_campana_ids" readonly="1">
+                        <tree create="false" delete="false">
+                            <field name="regla_id"/>
+                            <field name="fecha_inicio"/>
+                            <field name="dia_actual"/>
+                            <field name="dias_totales"/>
+                            <field name="estado" widget="badge"
+                                   decoration-success="estado == 'activa'"
+                                   decoration-info="estado == 'finalizada'"
+                                   decoration-muted="estado == 'cancelada'"/>
+                        </tree>
+                    </field>
+                    <separator string="Órdenes de atención (mantenimientos confirmados)"/>
+                    <field name="mantenimiento_orden_atencion_ids">
+                        <tree editable="bottom">
+                            <field name="regla_id"/>
+                            <field name="origen_id"/>
+                            <field name="fecha_atencion"/>
+                            <field name="km_atencion"/>
+                            <field name="observaciones"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

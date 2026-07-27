@@ -1,4 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Menu items will be added here -->
+
+    <menuitem id="menu_traccar_root"
+              name="Traccar GPS"
+              groups="base.group_system"
+              sequence="95"/>
+
+    <menuitem id="menu_traccar_configuration"
+              name="Configuración"
+              parent="menu_traccar_root"
+              groups="base.group_system"
+              sequence="10"/>
+
+    <menuitem id="menu_traccar_config_settings"
+              name="Ajustes Traccar"
+              parent="menu_traccar_configuration"
+              action="action_traccar_config_settings"
+              groups="base.group_system"
+              sequence="10"/>
+
 </odoo>

@@ -21,3 +21,8 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='adt_traccar.password',
         help='Contraseña del usuario administrador de Traccar',
     )
+    traccar_show_password = fields.Boolean(
+        string='Mostrar contraseña',
+        help='Alterna entre mostrar y ocultar la contraseña de Traccar. '
+             'Solo afecta la visualización, no se guarda.',
+    )

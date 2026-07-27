@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Ejemplo de configuración inicial, tomado de la sección 7 de la propuesta. -->
+
+        <record id="regla_cambio_aceite" model="adt.mantenimiento.regla">
+            <field name="name">Cambio de aceite</field>
+            <field name="code">cambio_aceite</field>
+            <field name="sequence">10</field>
+            <field name="dias_notificacion">3</field>
+            <field name="notificaciones_por_dia">3</field>
+            <field name="horario_ids" eval="[(6, 0, [ref('horario_slot_09_00'), ref('horario_slot_14_00'), ref('horario_slot_19_00')])]"/>
+            <field name="mensaje_template">Tu vehículo {placa} alcanzó {km_actual} km. Toca cambiar el aceite.</field>
+            <field name="active">True</field>
+        </record>
+        <record id="umbral_cambio_aceite_1" model="adt.mantenimiento.umbral">
+            <field name="regla_id" ref="regla_cambio_aceite"/>
+            <field name="orden">1</field>
+            <field name="km_umbral">600</field>
+        </record>
+        <record id="umbral_cambio_aceite_2" model="adt.mantenimiento.umbral">
+            <field name="regla_id" ref="regla_cambio_aceite"/>
+            <field name="orden">2</field>
+            <field name="km_umbral">1000</field>
+        </record>
+        <record id="umbral_cambio_aceite_3" model="adt.mantenimiento.umbral">
+            <field name="regla_id" ref="regla_cambio_aceite"/>
+            <field name="orden">3</field>
+            <field name="km_umbral">2000</field>
+        </record>
+
+        <record id="regla_cambio_frenos" model="adt.mantenimiento.regla">
+            <field name="name">Cambio de frenos</field>
+            <field name="code">cambio_frenos</field>
+            <field name="sequence">20</field>
+            <field name="dias_notificacion">3</field>
+            <field name="notificaciones_por_dia">3</field>
+            <field name="mensaje_template">Tu vehículo {placa} alcanzó {km_actual} km. Revisa los frenos.</field>
+            <field name="active">True</field>
+        </record>
+        <record id="umbral_cambio_frenos_1" model="adt.mantenimiento.umbral">
+            <field name="regla_id" ref="regla_cambio_frenos"/>
+            <field name="orden">1</field>
+            <field name="km_umbral">1000</field>
+        </record>
+        <record id="umbral_cambio_frenos_2" model="adt.mantenimiento.umbral">
+            <field name="regla_id" ref="regla_cambio_frenos"/>
+            <field name="orden">2</field>
+            <field name="km_umbral">2500</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,22 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_adt_mantenimiento_regla_admin,adt.mantenimiento.regla admin,model_adt_mantenimiento_regla,base.group_system,1,1,1,1
+access_adt_mantenimiento_regla_user,adt.mantenimiento.regla user,model_adt_mantenimiento_regla,base.group_user,1,1,0,0
+access_adt_mantenimiento_umbral_admin,adt.mantenimiento.umbral admin,model_adt_mantenimiento_umbral,base.group_system,1,1,1,1
+access_adt_mantenimiento_umbral_user,adt.mantenimiento.umbral user,model_adt_mantenimiento_umbral,base.group_user,1,1,0,0
+access_adt_mantenimiento_vehicle_rule_state_admin,adt.mantenimiento.vehicle.rule.state admin,model_adt_mantenimiento_vehicle_rule_state,base.group_system,1,1,1,1
+access_adt_mantenimiento_vehicle_rule_state_user,adt.mantenimiento.vehicle.rule.state user,model_adt_mantenimiento_vehicle_rule_state,base.group_user,1,1,0,0
+access_adt_mantenimiento_vehicle_report_status_admin,adt.mantenimiento.vehicle.report.status admin,model_adt_mantenimiento_vehicle_report_status,base.group_system,1,1,1,1
+access_adt_mantenimiento_vehicle_report_status_user,adt.mantenimiento.vehicle.report.status user,model_adt_mantenimiento_vehicle_report_status,base.group_user,1,1,0,0
+access_adt_mantenimiento_campana_admin,adt.mantenimiento.campana admin,model_adt_mantenimiento_campana,base.group_system,1,1,1,1
+access_adt_mantenimiento_campana_user,adt.mantenimiento.campana user,model_adt_mantenimiento_campana,base.group_user,1,1,1,0
+access_adt_mantenimiento_notificacion_log_admin,adt.mantenimiento.notificacion.log admin,model_adt_mantenimiento_notificacion_log,base.group_system,1,1,1,1
+access_adt_mantenimiento_notificacion_log_user,adt.mantenimiento.notificacion.log user,model_adt_mantenimiento_notificacion_log,base.group_user,1,0,0,0
+access_adt_mantenimiento_horario_slot_admin,adt.mantenimiento.horario.slot admin,model_adt_mantenimiento_horario_slot,base.group_system,1,1,1,1
+access_adt_mantenimiento_horario_slot_user,adt.mantenimiento.horario.slot user,model_adt_mantenimiento_horario_slot,base.group_user,1,0,0,0
+access_adt_mantenimiento_test_wizard_admin,adt.mantenimiento.test.wizard admin,model_adt_mantenimiento_test_wizard,base.group_system,1,1,1,1
+access_adt_mantenimiento_oferta_imagen_admin,adt.mantenimiento.oferta.imagen admin,model_adt_mantenimiento_oferta_imagen,base.group_system,1,1,1,1
+access_adt_mantenimiento_oferta_imagen_user,adt.mantenimiento.oferta.imagen user,model_adt_mantenimiento_oferta_imagen,base.group_user,1,1,1,0
+access_adt_mantenimiento_origen_atencion_admin,adt.mantenimiento.origen.atencion admin,model_adt_mantenimiento_origen_atencion,base.group_system,1,1,1,1
+access_adt_mantenimiento_origen_atencion_user,adt.mantenimiento.origen.atencion user,model_adt_mantenimiento_origen_atencion,base.group_user,1,0,0,0
+access_adt_mantenimiento_orden_atencion_admin,adt.mantenimiento.orden.atencion admin,model_adt_mantenimiento_orden_atencion,base.group_system,1,1,1,1
+access_adt_mantenimiento_orden_atencion_user,adt.mantenimiento.orden.atencion user,model_adt_mantenimiento_orden_atencion,base.group_user,1,1,1,0

@@ -10,6 +10,7 @@ Models for Mobile App API
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 from markupsafe import Markup, escape
+from urllib.parse import quote_plus
 import uuid
 import logging
 import re
@@ -58,7 +59,12 @@ class MobilePromotion(models.Model):
     name = fields.Char(string='Identificador interno', required=True)
     title = fields.Char(string='Título', required=True)
     body = fields.Text(string='Descripción', required=True)
-    image_url = fields.Char(string='URL Imagen')
+    image = fields.Image(
+        string='Imagen',
+        max_width=1920,
+        max_height=1920,
+        help='Al guardar, se genera automáticamente la URL pública que consume la app móvil.')
+    image_url = fields.Char(string='URL Imagen', readonly=True, copy=False)
     deep_link = fields.Char(string='Deep Link (interno)')
     external_url = fields.Char(string='URL Externa')
     link_type = fields.Selection([
@@ -78,6 +84,62 @@ class MobilePromotion(models.Model):
         for rec in self:
             if rec.active_from and rec.active_to and rec.active_from >= rec.active_to:
                 raise ValidationError('La fecha de inicio debe ser anterior a la fecha de fin.')
+
+    # ── Imagen → URL pública ────────────────────────────────────────────────
+    def _build_image_public_url(self):
+        """URL /web/content con access_token del adjunto del campo `image`.
+
+        Se usa access_token porque la app móvil consume la imagen sin sesión
+        de Odoo. Devuelve False si el registro no tiene imagen.
+        """
+        self.ensure_one()
+        if not self.image:
+            return False
+
+        attach = self.env['ir.attachment'].sudo().search([
+            ('res_model', '=', self._name),
+            ('res_id', '=', self.id),
+            ('res_field', '=', 'image'),
+        ], limit=1)
+        base_url = self.env['ir.config_parameter'].sudo().get_param(
+            'web.base.url', default='').rstrip('/')
+
+        if not attach:
+            # Fallback: URL directa al campo binario (requiere registro accesible).
+            return '%s/web/image/%s/%s/image' % (base_url, self._name, self.id)
+
+        token = attach.access_token
+        if not token:
+            token = str(uuid.uuid4())
+            attach.write({'access_token': token})
+
+        filename = attach.name or 'promocion'
+        if '.' not in filename:
+            filename = '%s.jpg' % filename
+
+        return '%s/web/content/%d/%s?access_token=%s' % (
+            base_url, attach.id, quote_plus(filename), token)
+
+    def _sync_image_url(self):
+        for rec in self:
+            if rec.image:
+                url = rec._build_image_public_url()
+                if url and url != rec.image_url:
+                    rec.image_url = url
+            elif rec.image_url:
+                rec.image_url = False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._sync_image_url()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'image' in vals:
+            self._sync_image_url()
+        return res
 
     def get_button_color(self):
         if self.link_type == 'WHATSAPP':

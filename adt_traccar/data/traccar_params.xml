@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Valores iniciales de conexión a Traccar.
+         noupdate="1": lo que se edite en Ajustes → Traccar no se sobrescribe
+         al actualizar el módulo. -->
+    <data noupdate="1">
+
+        <record id="param_traccar_url" model="ir.config_parameter">
+            <field name="key">adt_traccar.url</field>
+            <field name="value">http://52.15.86.160:8082</field>
+        </record>
+
+        <record id="param_traccar_email" model="ir.config_parameter">
+            <field name="key">adt_traccar.email</field>
+            <field name="value">admin@gmail.com</field>
+        </record>
+
+        <record id="param_traccar_password" model="ir.config_parameter">
+            <field name="key">adt_traccar.password</field>
+            <field name="value">123456</field>
+        </record>
+
+    </data>
+</odoo>

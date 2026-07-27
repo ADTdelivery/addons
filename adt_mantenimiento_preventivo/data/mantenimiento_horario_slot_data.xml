@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="horario_slot_00_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">00:00</field>
+            <field name="hora">0.0</field>
+        </record>
+        <record id="horario_slot_00_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">00:30</field>
+            <field name="hora">0.5</field>
+        </record>
+        <record id="horario_slot_01_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">01:00</field>
+            <field name="hora">1.0</field>
+        </record>
+        <record id="horario_slot_01_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">01:30</field>
+            <field name="hora">1.5</field>
+        </record>
+        <record id="horario_slot_02_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">02:00</field>
+            <field name="hora">2.0</field>
+        </record>
+        <record id="horario_slot_02_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">02:30</field>
+            <field name="hora">2.5</field>
+        </record>
+        <record id="horario_slot_03_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">03:00</field>
+            <field name="hora">3.0</field>
+        </record>
+        <record id="horario_slot_03_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">03:30</field>
+            <field name="hora">3.5</field>
+        </record>
+        <record id="horario_slot_04_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">04:00</field>
+            <field name="hora">4.0</field>
+        </record>
+        <record id="horario_slot_04_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">04:30</field>
+            <field name="hora">4.5</field>
+        </record>
+        <record id="horario_slot_05_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">05:00</field>
+            <field name="hora">5.0</field>
+        </record>
+        <record id="horario_slot_05_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">05:30</field>
+            <field name="hora">5.5</field>
+        </record>
+        <record id="horario_slot_06_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">06:00</field>
+            <field name="hora">6.0</field>
+        </record>
+        <record id="horario_slot_06_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">06:30</field>
+            <field name="hora">6.5</field>
+        </record>
+        <record id="horario_slot_07_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">07:00</field>
+            <field name="hora">7.0</field>
+        </record>
+        <record id="horario_slot_07_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">07:30</field>
+            <field name="hora">7.5</field>
+        </record>
+        <record id="horario_slot_08_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">08:00</field>
+            <field name="hora">8.0</field>
+        </record>
+        <record id="horario_slot_08_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">08:30</field>
+            <field name="hora">8.5</field>
+        </record>
+        <record id="horario_slot_09_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">09:00</field>
+            <field name="hora">9.0</field>
+        </record>
+        <record id="horario_slot_09_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">09:30</field>
+            <field name="hora">9.5</field>
+        </record>
+        <record id="horario_slot_10_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">10:00</field>
+            <field name="hora">10.0</field>
+        </record>
+        <record id="horario_slot_10_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">10:30</field>
+            <field name="hora">10.5</field>
+        </record>
+        <record id="horario_slot_11_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">11:00</field>
+            <field name="hora">11.0</field>
+        </record>
+        <record id="horario_slot_11_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">11:30</field>
+            <field name="hora">11.5</field>
+        </record>
+        <record id="horario_slot_12_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">12:00</field>
+            <field name="hora">12.0</field>
+        </record>
+        <record id="horario_slot_12_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">12:30</field>
+            <field name="hora">12.5</field>
+        </record>
+        <record id="horario_slot_13_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">13:00</field>
+            <field name="hora">13.0</field>
+        </record>
+        <record id="horario_slot_13_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">13:30</field>
+            <field name="hora">13.5</field>
+        </record>
+        <record id="horario_slot_14_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">14:00</field>
+            <field name="hora">14.0</field>
+        </record>
+        <record id="horario_slot_14_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">14:30</field>
+            <field name="hora">14.5</field>
+        </record>
+        <record id="horario_slot_15_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">15:00</field>
+            <field name="hora">15.0</field>
+        </record>
+        <record id="horario_slot_15_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">15:30</field>
+            <field name="hora">15.5</field>
+        </record>
+        <record id="horario_slot_16_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">16:00</field>
+            <field name="hora">16.0</field>
+        </record>
+        <record id="horario_slot_16_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">16:30</field>
+            <field name="hora">16.5</field>
+        </record>
+        <record id="horario_slot_17_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">17:00</field>
+            <field name="hora">17.0</field>
+        </record>
+        <record id="horario_slot_17_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">17:30</field>
+            <field name="hora">17.5</field>
+        </record>
+        <record id="horario_slot_18_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">18:00</field>
+            <field name="hora">18.0</field>
+        </record>
+        <record id="horario_slot_18_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">18:30</field>
+            <field name="hora">18.5</field>
+        </record>
+        <record id="horario_slot_19_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">19:00</field>
+            <field name="hora">19.0</field>
+        </record>
+        <record id="horario_slot_19_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">19:30</field>
+            <field name="hora">19.5</field>
+        </record>
+        <record id="horario_slot_20_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">20:00</field>
+            <field name="hora">20.0</field>
+        </record>
+        <record id="horario_slot_20_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">20:30</field>
+            <field name="hora">20.5</field>
+        </record>
+        <record id="horario_slot_21_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">21:00</field>
+            <field name="hora">21.0</field>
+        </record>
+        <record id="horario_slot_21_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">21:30</field>
+            <field name="hora">21.5</field>
+        </record>
+        <record id="horario_slot_22_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">22:00</field>
+            <field name="hora">22.0</field>
+        </record>
+        <record id="horario_slot_22_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">22:30</field>
+            <field name="hora">22.5</field>
+        </record>
+        <record id="horario_slot_23_00" model="adt.mantenimiento.horario.slot">
+            <field name="name">23:00</field>
+            <field name="hora">23.0</field>
+        </record>
+        <record id="horario_slot_23_30" model="adt.mantenimiento.horario.slot">
+            <field name="name">23:30</field>
+            <field name="hora">23.5</field>
+        </record>
+    </data>
+</odoo>

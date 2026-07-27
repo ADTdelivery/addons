@@ -87,6 +87,7 @@
         <field name="arch" type="xml">
             <form string="Promoción Móvil">
                 <sheet>
+                    <field name="image_url" invisible="1"/>
                     <group string="Información General">
                         <group>
                             <field name="name"/>
@@ -97,8 +98,11 @@
                         <group>
                             <field name="active_from"/>
                             <field name="active_to"/>
-                            <field name="image_url"/>
                         </group>
+                    </group>
+                    <group string="Imagen">
+                        <field name="image" widget="image" nolabel="1"
+                               options="{'size': [560, 315]}"/>
                     </group>
                     <group string="Enlace">
                         <field name="link_type"/>

@@ -1366,11 +1366,20 @@ class MobileAPIController(http.Controller):
 
             promotions_data = []
             for promo in promos:
+                # Si la promoción tiene imagen cargada, se arma la URL con el host
+                # real de la petición (ver _get_base_url); si no, se usa el valor
+                # guardado en image_url.
+                promo_image_url = None
+                if promo.image:
+                    promo_image_url = _build_attachment_url('mobile.promotion', promo.id, 'image')
+                if not promo_image_url:
+                    promo_image_url = promo.image_url or None
+
                 promotions_data.append({
                     'id': promo.name,
                     'title': promo.title,
                     'body': promo.body,
-                    'imageUrl': promo.image_url or None,
+                    'imageUrl': promo_image_url,
                     'deepLink': promo.deep_link or None,
                     'externalUrl': promo.external_url or None,
                     'linkType': promo.link_type,

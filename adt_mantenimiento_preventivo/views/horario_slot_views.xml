@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_adt_mantenimiento_horario_slot_tree" model="ir.ui.view">
+        <field name="name">adt.mantenimiento.horario.slot.tree</field>
+        <field name="model">adt.mantenimiento.horario.slot</field>
+        <field name="arch" type="xml">
+            <tree string="Horarios Disponibles" editable="bottom">
+                <field name="name"/>
+                <field name="hora"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_adt_mantenimiento_horario_slot" model="ir.actions.act_window">
+        <field name="name">Horarios Disponibles</field>
+        <field name="res_model">adt.mantenimiento.horario.slot</field>
+        <field name="view_mode">tree</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Se precargan cada 30 minutos. Agrega uno nuevo aquí solo si
+                necesitas mayor granularidad (ej. 09:15) para elegir en los
+                "Horarios sugeridos" de una regla.
+            </p>
+        </field>
+    </record>
+
+</odoo>

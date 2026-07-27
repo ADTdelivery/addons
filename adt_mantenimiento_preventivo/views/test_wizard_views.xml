@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_adt_mantenimiento_test_wizard_form" model="ir.ui.view">
+        <field name="name">adt.mantenimiento.test.wizard.form</field>
+        <field name="model">adt.mantenimiento.test.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Simular Escenario de Prueba">
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Crea (o reutiliza) un vehículo, un cliente y un dispositivo FCM
+                        de prueba, y dispara el motor de reglas con un kilometraje —
+                        simulado a mano, o leído en vivo desde Traccar. El resultado
+                        queda en el chatter del vehículo.
+                    </div>
+                    <group>
+                        <group string="Vehículo / Cliente de prueba">
+                            <field name="vehicle_id"/>
+                            <field name="placa_prueba"
+                                   attrs="{'invisible': ['|', ('vehicle_id', '!=', False), ('usar_traccar_real', '=', True)]}"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group string="Escenario a simular">
+                            <field name="regla_id"/>
+                            <field name="usar_traccar_real"/>
+                            <field name="km_simulado" attrs="{'invisible': [('usar_traccar_real', '=', True)]}"/>
+                            <div class="text-muted" attrs="{'invisible': [('usar_traccar_real', '=', False)]}" colspan="2">
+                                Se usará el kilometraje real que devuelva Traccar para
+                                la placa del vehículo elegido arriba.
+                            </div>
+                        </group>
+                    </group>
+                    <group string="Envío de prueba">
+                        <field name="fcm_token"
+                               placeholder="Vacío = token ficticio (no llega push real al celular)"/>
+                        <field name="log_only"/>
+                        <field name="forzar_envio_inmediato"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_simular" type="object" string="Simular" class="oe_highlight"/>
+                    <button name="action_limpiar_datos_prueba" type="object" string="Eliminar datos de prueba"
+                            confirm="¿Eliminar todos los vehículos 'PRUEBA-*' y clientes de prueba, junto con sus campañas y estados? Esta acción no se puede deshacer."/>
+                    <button string="Cerrar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_mantenimiento_test_wizard" model="ir.actions.act_window">
+        <field name="name">Simular Escenario de Prueba</field>
+        <field name="res_model">adt.mantenimiento.test.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

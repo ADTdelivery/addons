@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_adt_mantenimiento_root"
+              name="Mantenimiento Preventivo"
+              sequence="60"
+              web_icon="adt_mantenimiento_preventivo,static/description/icon.png"/>
+
+    <menuitem id="menu_adt_mantenimiento_campanas"
+              name="Campañas"
+              parent="menu_adt_mantenimiento_root"
+              action="action_adt_mantenimiento_campana"
+              sequence="10"/>
+
+    <menuitem id="menu_adt_mantenimiento_notificacion_log"
+              name="Bitácora de Notificaciones"
+              parent="menu_adt_mantenimiento_root"
+              action="action_adt_mantenimiento_notificacion_log"
+              sequence="20"/>
+
+    <menuitem id="menu_adt_mantenimiento_vehicle_rule_state"
+              name="Estados por Vehículo"
+              parent="menu_adt_mantenimiento_root"
+              action="action_adt_mantenimiento_vehicle_rule_state"
+              sequence="30"/>
+
+    <menuitem id="menu_adt_mantenimiento_report_status"
+              name="Estado de Reporte GPS"
+              parent="menu_adt_mantenimiento_root"
+              action="action_adt_mantenimiento_vehicle_report_status"
+              sequence="40"/>
+
+    <menuitem id="menu_adt_mantenimiento_orden_atencion"
+              name="Órdenes de Atención"
+              parent="menu_adt_mantenimiento_root"
+              action="action_adt_mantenimiento_orden_atencion"
+              sequence="50"/>
+
+    <menuitem id="menu_adt_mantenimiento_config"
+              name="Configuración"
+              parent="menu_adt_mantenimiento_root"
+              sequence="90"/>
+
+    <menuitem id="menu_adt_mantenimiento_reglas"
+              name="Reglas de Mantenimiento"
+              parent="menu_adt_mantenimiento_config"
+              action="action_adt_mantenimiento_regla"
+              sequence="10"/>
+
+    <menuitem id="menu_adt_mantenimiento_horario_slot"
+              name="Horarios Disponibles"
+              parent="menu_adt_mantenimiento_config"
+              action="action_adt_mantenimiento_horario_slot"
+              sequence="20"/>
+
+    <menuitem id="menu_adt_mantenimiento_origen_atencion"
+              name="Orígenes de Atención"
+              parent="menu_adt_mantenimiento_config"
+              action="action_adt_mantenimiento_origen_atencion"
+              sequence="30"/>
+
+    <menuitem id="menu_adt_mantenimiento_test_wizard"
+              name="Simular Escenario de Prueba"
+              parent="menu_adt_mantenimiento_root"
+              action="action_adt_mantenimiento_test_wizard"
+              groups="base.group_system"
+              sequence="80"/>
+
+</odoo>
