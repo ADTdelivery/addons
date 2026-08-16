@@ -11,6 +11,7 @@ from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 from markupsafe import Markup, escape
 from urllib.parse import quote_plus
+import json
 import uuid
 import logging
 import re
@@ -450,4 +451,157 @@ class MobileCatalogCTAConfig(models.Model):
                 escape(url_label),
             )
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HU-014  Configurable Content Items (imagen / teléfono / link / botón / etc.)
+# ─────────────────────────────────────────────────────────────────────────────
+class MobileContentItem(models.Model):
+    _name = 'mobile.content.item'
+    _description = 'Item de Contenido Configurable Móvil'
+    _order = 'sequence asc, id asc'
+
+    name = fields.Char(string='Nombre interno', required=True,
+                       help='Solo para identificarlo acá en Odoo, no lo ve la app.')
+    section = fields.Char(
+        string='Sección', required=True, index=True,
+        help='Código que usa la app para pedir este grupo de items, ej: '
+             'ayuda, accesos_rapidos, contactos. Se puede repetir: varios items '
+             'con la misma sección forman una lista.')
+    sequence = fields.Integer(string='Orden', default=10)
+    active = fields.Boolean(default=True)
+
+    # ── Contenido visible ────────────────────────────────────────────────
+    title = fields.Char(string='Título', required=True)
+    subtitle = fields.Char(string='Subtítulo')
+    description = fields.Text(string='Descripción')
+    icon = fields.Char(
+        string='Ícono', help='Nombre/código de ícono que interpreta la app '
+                              '(ej. "phone", "whatsapp", "web"), o un emoji. Opcional.')
+    image = fields.Image(
+        string='Imagen', max_width=1920, max_height=1920,
+        help='Opcional. Al guardar se genera la URL pública que consume la app.')
+    image_url = fields.Char(string='URL Imagen', readonly=True, copy=False)
+
+    # ── Acción (qué pasa al tocar el item) ──────────────────────────────
+    item_type = fields.Selection([
+        ('IMAGE', 'Solo imagen'),
+        ('TEXT', 'Solo texto / informativo'),
+        ('PHONE', 'Llamar por teléfono'),
+        ('WHATSAPP', 'WhatsApp'),
+        ('LINK', 'Enlace externo'),
+        ('DEEP_LINK', 'Deep Link (interno de la app)'),
+        ('BUTTON', 'Botón de acción'),
+    ], string='Tipo de item', default='LINK', required=True,
+        help='Determina qué campo de acción usa la app al tocar el item.')
+    phone = fields.Char(string='Teléfono / WhatsApp',
+                        help='Usado cuando el tipo es Teléfono o WhatsApp. Formato internacional sin +, ej: 51999888777.')
+    link_url = fields.Char(string='URL externa', help='Usado cuando el tipo es Enlace externo.')
+    deep_link = fields.Char(string='Deep Link', help='Usado cuando el tipo es Deep Link.')
+    button_label = fields.Char(string='Texto del botón',
+                               help='Usado cuando el tipo es Botón de acción; también se puede '
+                                    'usar como texto de CTA secundario en otros tipos.')
+    button_color = fields.Char(string='Color del botón', help='Formato HEX, ej: #25D366')
+
+    # ── Vigencia (opcional) ──────────────────────────────────────────────
+    active_from = fields.Datetime(string='Activo desde')
+    active_to = fields.Datetime(string='Activo hasta')
+
+    # ── Extensión libre, sin agregar columnas nuevas ────────────────────
+    extra_data = fields.Text(
+        string='Datos adicionales (JSON)',
+        help='Opcional. Formato JSON libre, por si la app necesita algo puntual '
+             'que este modelo no contempla (ej. {"badge": "Nuevo", "color_fondo": "#FFAA00"}). '
+             'Se devuelve tal cual, ya parseado, en el campo "extra" de la API.')
+
+    @api.constrains('section')
+    def _check_section(self):
+        for rec in self:
+            if rec.section and not re.match(r'^[A-Za-z0-9_]+$', rec.section):
+                raise ValidationError(
+                    'La sección solo puede contener letras, números y guión bajo (_).'
+                )
+
+    @api.constrains('button_color')
+    def _check_button_color(self):
+        hex_pattern = re.compile(r'^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$')
+        for rec in self:
+            if rec.button_color and not hex_pattern.match(rec.button_color.strip()):
+                raise ValidationError('El color del botón debe estar en formato HEX, ej: #25D366')
+
+    @api.constrains('phone')
+    def _check_phone(self):
+        for rec in self:
+            if not rec.phone:
+                continue
+            digits = ''.join(ch for ch in rec.phone if ch.isdigit())
+            if len(digits) < 8 or len(digits) > 15:
+                raise ValidationError(
+                    'El teléfono debe tener entre 8 y 15 dígitos (sin espacios ni símbolos).'
+                )
+
+    @api.constrains('active_from', 'active_to')
+    def _check_dates(self):
+        for rec in self:
+            if rec.active_from and rec.active_to and rec.active_from >= rec.active_to:
+                raise ValidationError('La fecha "Activo desde" debe ser anterior a "Activo hasta".')
+
+    @api.constrains('extra_data')
+    def _check_extra_data(self):
+        for rec in self:
+            if not rec.extra_data:
+                continue
+            try:
+                json.loads(rec.extra_data)
+            except ValueError:
+                raise ValidationError('"Datos adicionales" debe ser un JSON válido, ej: {"clave": "valor"}')
+
+    # ── Imagen → URL pública (mismo patrón que MobilePromotion) ─────────
+    def _build_image_public_url(self):
+        self.ensure_one()
+        if not self.image:
+            return False
+
+        attach = self.env['ir.attachment'].sudo().search([
+            ('res_model', '=', self._name),
+            ('res_id', '=', self.id),
+            ('res_field', '=', 'image'),
+        ], limit=1)
+        base_url = self.env['ir.config_parameter'].sudo().get_param(
+            'web.base.url', default='').rstrip('/')
+
+        if not attach:
+            return '%s/web/image/%s/%s/image' % (base_url, self._name, self.id)
+
+        token = attach.access_token
+        if not token:
+            token = str(uuid.uuid4())
+            attach.write({'access_token': token})
+
+        filename = attach.name or 'item'
+        if '.' not in filename:
+            filename = '%s.jpg' % filename
+
+        return '%s/web/content/%d/%s?access_token=%s' % (
+            base_url, attach.id, quote_plus(filename), token)
+
+    def _sync_image_url(self):
+        for rec in self:
+            if rec.image:
+                url = rec._build_image_public_url()
+                if url and url != rec.image_url:
+                    rec.image_url = url
+            elif rec.image_url:
+                rec.image_url = False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._sync_image_url()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'image' in vals:
+            self._sync_image_url()
+        return res
 

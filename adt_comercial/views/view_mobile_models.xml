@@ -584,4 +584,86 @@
               action="action_mobile_fcm_device"
               sequence="45"/>
 
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HU-014  Configurable Content Items
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_content_item_tree" model="ir.ui.view">
+        <field name="name">mobile.content.item.tree</field>
+        <field name="model">mobile.content.item</field>
+        <field name="arch" type="xml">
+            <tree string="Items de Contenido">
+                <field name="sequence" widget="handle"/>
+                <field name="image" widget="image" options="{'size': [40, 40]}"/>
+                <field name="section"/>
+                <field name="title"/>
+                <field name="item_type"/>
+                <field name="active_from"/>
+                <field name="active_to"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_content_item_form" model="ir.ui.view">
+        <field name="name">mobile.content.item.form</field>
+        <field name="model">mobile.content.item</field>
+        <field name="arch" type="xml">
+            <form string="Item de Contenido Móvil">
+                <sheet>
+                    <field name="image_url" invisible="1"/>
+                    <group string="Información General">
+                        <group>
+                            <field name="name"/>
+                            <field name="section" placeholder="ayuda"/>
+                            <field name="title"/>
+                            <field name="subtitle"/>
+                        </group>
+                        <group>
+                            <field name="icon" placeholder="whatsapp"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Vigencia (opcional)">
+                        <field name="active_from"/>
+                        <field name="active_to"/>
+                    </group>
+                    <group string="Imagen (opcional)">
+                        <field name="image" widget="image" nolabel="1" options="{'size': [280, 280]}"/>
+                    </group>
+                    <group string="Acción">
+                        <field name="item_type"/>
+                        <field name="phone" placeholder="51999888777"
+                               attrs="{'invisible': [('item_type', 'not in', ('PHONE', 'WHATSAPP'))]}"/>
+                        <field name="link_url" placeholder="https://..."
+                               attrs="{'invisible': [('item_type', '!=', 'LINK')]}"/>
+                        <field name="deep_link" placeholder="app://seccion/detalle"
+                               attrs="{'invisible': [('item_type', '!=', 'DEEP_LINK')]}"/>
+                        <field name="button_label" placeholder="Ver más"/>
+                        <field name="button_color" placeholder="#25D366"/>
+                    </group>
+                    <group string="Contenido">
+                        <field name="description" nolabel="1"/>
+                    </group>
+                    <group string="Datos adicionales (JSON, opcional)">
+                        <field name="extra_data" nolabel="1" placeholder='{"badge": "Nuevo"}'/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_content_item" model="ir.actions.act_window">
+        <field name="name">Items de Contenido</field>
+        <field name="res_model">mobile.content.item</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_mobile_content_items"
+              name="Items de Contenido"
+              parent="menu_mobile_config"
+              action="action_mobile_content_item"
+              sequence="60"/>
+
 </odoo>

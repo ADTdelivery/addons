@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_adt_traccar_device_credential_admin,adt.traccar.device.credential admin,model_adt_traccar_device_credential,base.group_system,1,1,1,1
+access_adt_traccar_device_credential_user,adt.traccar.device.credential user,model_adt_traccar_device_credential,base.group_user,1,1,1,0
+access_adt_traccar_register_device_wizard_user,adt.traccar.register.device.wizard user,model_adt_traccar_register_device_wizard,base.group_user,1,1,1,1

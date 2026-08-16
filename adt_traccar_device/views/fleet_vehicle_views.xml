@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- (a) Botón individual en el formulario del vehículo -->
+    <record id="view_fleet_vehicle_form_traccar_device" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.traccar.device</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_open_traccar_register_wizard" type="object"
+                        class="oe_stat_button" icon="fa-map-marker"
+                        string="Traccar">
+                    <field name="traccar_credential_state" widget="badge"
+                           decoration-success="traccar_credential_state == 'activo'"
+                           decoration-danger="traccar_credential_state == 'error'"
+                           decoration-muted="not traccar_credential_state"/>
+                </button>
+            </div>
+            <xpath expr="//notebook" position="inside">
+                <page string="Traccar / GPS" name="adt_traccar_device">
+                    <!-- Franja superior: IMEI + botón "Actualizar" -->
+                    <group col="4">
+                        <field name="x_imei" placeholder="IMEI del dispositivo GPS"/>
+                        <button name="action_refresh_traccar_status" type="object"
+                                string="Actualizar" icon="fa-refresh" class="btn-secondary"
+                                attrs="{'invisible': [('traccar_credential_active_id', '=', False)]}"/>
+                    </group>
+
+                    <div class="alert alert-info" role="alert"
+                         attrs="{'invisible': [('traccar_credential_active_id', '!=', False)]}">
+                        Este vehículo todavía no está registrado en Traccar — registralo primero
+                        con el botón "Traccar" (arriba) para poder ver su ubicación.
+                    </div>
+
+                    <!-- Mapa ancho completo, con su propio panel de estado/velocidad/
+                         batería/último reporte integrado (ver live_map_field.js) -->
+                    <field name="traccar_credential_active_id" widget="adt_live_map" nolabel="1"/>
+
+                    <!-- Franja angosta de detalle: solo lo que el mapa NO muestra ya
+                         (evita duplicar estado/velocidad/batería, que van en el panel
+                         del mapa) -->
+                    <group attrs="{'invisible': [('traccar_credential_active_id', '=', False)]}">
+                        <group>
+                            <field name="gps_latitude" readonly="1"/>
+                            <field name="gps_longitude" readonly="1"/>
+                            <field name="gps_maps_url" widget="url" string="Ver en Google Maps"
+                                   attrs="{'invisible': [('gps_maps_url', '=', False)]}"/>
+                        </group>
+                        <group>
+                            <field name="gps_address" readonly="1"
+                                   attrs="{'invisible': [('gps_address', '=', False)]}"/>
+                            <field name="gps_status_refreshed_at" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <separator string="Historial de credenciales Traccar"/>
+                    <field name="traccar_credential_ids" readonly="1" nolabel="1">
+                        <tree create="false" delete="false">
+                            <field name="plate"/>
+                            <field name="imei"/>
+                            <field name="email_sequence"/>
+                            <field name="state" widget="badge"/>
+                            <field name="create_date"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- (b) Acción masiva desde la lista de vehículos (Acción > Sincronizar con Traccar) -->
+    <record id="action_fleet_vehicle_sync_traccar_bulk" model="ir.actions.server">
+        <field name="name">Sincronizar con Traccar</field>
+        <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_sync_traccar_bulk()</field>
+    </record>
+
+    <!-- (c) Acción masiva desde la lista de vehículos (Acción > Actualizar estado GPS) -->
+    <record id="action_fleet_vehicle_refresh_gps_bulk" model="ir.actions.server">
+        <field name="name">Actualizar estado GPS</field>
+        <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_refresh_traccar_status_bulk()</field>
+    </record>
+
+    <!-- (d) Acceso directo por menú: sincroniza TODA la flota, sin seleccionar
+         filas a mano (ver menu.xml). No lleva binding_model_id/binding_view_types
+         a propósito, para que NO aparezca en el menú "Acción" de la lista
+         (ese ya tiene la opción (b), pensada para seleccionar un subconjunto) -->
+    <record id="action_fleet_vehicle_sync_traccar_all_fleet" model="ir.actions.server">
+        <field name="name">Sincronizar toda la flota con Traccar</field>
+        <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_sync_traccar_all_fleet()</field>
+    </record>
+</odoo>

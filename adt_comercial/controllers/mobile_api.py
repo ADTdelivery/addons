@@ -2966,6 +2966,115 @@ class MobileAPIController(http.Controller):
             _logger.exception('Error in GET /v1/catalog/products/%s', product_id)
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # HU-014 — GET /v1/content-items
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/content-items',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_content_items(self, section=None, page=1, pageSize=50, **kwargs):
+        """
+        GET /v1/content-items                  -> todos los items activos y vigentes
+        GET /v1/content-items?section=ayuda     -> solo los de esa sección
+
+        Items de contenido configurables desde Odoo (mobile.content.item):
+        cada uno puede traer imagen, teléfono, link, deep link y/o botón,
+        según lo que se haya cargado. `itemType` le dice a la app cuál es
+        la acción principal al tocar el item.
+
+        Endpoint público: no requiere Authorization (igual que /v1/app-images),
+        porque es contenido de configuración de la app, no datos del cliente.
+        """
+        try:
+            try:
+                page = max(1, int(page))
+                page_size = max(1, min(100, int(pageSize)))
+            except (ValueError, TypeError):
+                return _json_response(
+                    _error(400, 'BAD_REQUEST', 'Parámetros de paginación inválidos.'), status=400)
+
+            now = odoo_fields.Datetime.now()
+            ItemModel = request.env['mobile.content.item'].sudo()
+            domain = [
+                ('active', '=', True),
+                '|', ('active_from', '=', False), ('active_from', '<=', now),
+                '|', ('active_to', '=', False), ('active_to', '>=', now),
+            ]
+            if section:
+                domain.append(('section', '=ilike', section))
+
+            total_items = ItemModel.search_count(domain)
+            total_pages = max(1, -(-total_items // page_size))  # ceiling division
+            offset = (page - 1) * page_size
+
+            items = ItemModel.search(domain, limit=page_size, offset=offset, order='sequence asc, id asc')
+
+            base_url = _get_base_url()
+            items_data = [_serialize_content_item(item, base_url) for item in items]
+
+            pagination = {
+                'page': page,
+                'pageSize': page_size,
+                'totalItems': total_items,
+                'totalPages': total_pages,
+                'hasNext': page < total_pages,
+                'hasPrev': page > 1,
+            }
+
+            return _json_response(_success({'items': items_data}, pagination=pagination))
+
+        except Exception:
+            _logger.exception('Error in GET /v1/content-items')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/content-items/<int:item_id>/image',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_content_item_image(self, item_id, **kwargs):
+        """
+        Sirve el binario de la imagen del item directamente (mismo patrón que
+        GET /v1/app-images/<code>/file), controlando Content-Type y
+        Content-Disposition en vez de depender del controlador binario nativo.
+        """
+        try:
+            item = request.env['mobile.content.item'].sudo().search([
+                ('id', '=', item_id),
+                ('active', '=', True),
+            ], limit=1)
+            if not item or not item.image:
+                return request.not_found()
+
+            attach = request.env['ir.attachment'].sudo().search([
+                ('res_model', '=', 'mobile.content.item'),
+                ('res_id', '=', item.id),
+                ('res_field', '=', 'image'),
+            ], limit=1)
+            mimetype = (attach.mimetype if attach else None) or 'image/jpeg'
+            filename = (attach.name if attach else None) or ('content-item-%s.jpg' % item.id)
+
+            data = base64.b64decode(item.image)
+            return request.make_response(
+                data,
+                headers=[
+                    ('Content-Type', mimetype),
+                    ('Content-Disposition', 'inline; filename="%s"' % filename),
+                    ('Cache-Control', 'public, max-age=3600'),
+                ],
+            )
+        except Exception:
+            _logger.exception('Error in GET /v1/content-items/%s/image', item_id)
+            return request.not_found()
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Private helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -3452,3 +3561,74 @@ def _build_expediente_documents(expediente):
         })
 
     return docs
+
+
+def _content_item_action_url(item, phone_normalized):
+    """
+    Arma una URL lista para abrir según item_type, para que la app no tenga
+    que construir nada (wa.me, tel:, etc.) — mismo patrón de wa.me que ya
+    usa _catalog_buy_cta() para el botón de WhatsApp del catálogo.
+
+    - WHATSAPP -> https://wa.me/<telefono>?text=<mensaje precargado>
+    - PHONE    -> tel:<telefono>
+    - LINK     -> el link_url tal cual
+    - DEEP_LINK-> el deep_link tal cual
+    - resto (IMAGE/TEXT/BUTTON) -> None, no hay una única acción para abrir
+      (BUTTON puede combinarse con cualquiera de los anteriores; en ese caso
+      el botón dispara la misma actionUrl del tipo que corresponda).
+    """
+    if item.item_type == 'WHATSAPP':
+        if not phone_normalized:
+            return None
+        greeting = item.button_label or item.title or ''
+        text = ('Hola, %s' % greeting) if greeting else 'Hola'
+        return 'https://wa.me/%s?text=%s' % (phone_normalized, quote_plus(text))
+    if item.item_type == 'PHONE':
+        return ('tel:%s' % phone_normalized) if phone_normalized else None
+    if item.item_type == 'LINK':
+        return item.link_url or None
+    if item.item_type == 'DEEP_LINK':
+        return item.deep_link or None
+    return None
+
+
+def _serialize_content_item(item, base_url):
+    """Serializa un mobile.content.item (HU-014) para GET /v1/content-items."""
+    extra = None
+    if item.extra_data:
+        try:
+            extra = json.loads(item.extra_data)
+        except ValueError:
+            extra = None
+
+    image_url = None
+    if item.image:
+        image_url = '%s/v1/content-items/%s/image' % (base_url, item.id)
+
+    # Se normaliza el teléfono (solo dígitos) para que 'phone' y 'actionUrl'
+    # sean siempre consistentes, sin importar cómo se haya tipeado en Odoo
+    # (con espacios, guiones, +, etc.). OJO: esto NO agrega el código de país
+    # si falta — un teléfono cargado sin "51" adelante seguirá sin él acá.
+    # Revisar en Odoo que 'phone' siempre incluya el código de país completo.
+    phone_normalized = _normalize_whatsapp_phone(item.phone)
+
+    return {
+        'id': str(item.id),
+        'section': item.section,
+        'title': item.title,
+        'subtitle': item.subtitle or None,
+        'description': item.description or None,
+        'icon': item.icon or None,
+        'imageUrl': image_url,
+        'itemType': item.item_type,
+        'phone': phone_normalized,
+        'linkUrl': item.link_url or None,
+        'deepLink': item.deep_link or None,
+        'buttonLabel': item.button_label or None,
+        'buttonColor': item.button_color or None,
+        'actionUrl': _content_item_action_url(item, phone_normalized),
+        'extra': extra,
+        'sequence': item.sequence,
+        'activeFrom': _format_datetime(item.active_from) if item.active_from else None,
+        'activeTo': _format_datetime(item.active_to) if item.active_to else None,
+    }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_traccar_device_credentials"
+              name="Credenciales por vehículo"
+              parent="adt_traccar.menu_traccar_root"
+              action="action_traccar_device_credential"
+              groups="base.group_system"
+              sequence="20"/>
+
+    <menuitem id="menu_traccar_device_sync_all_fleet"
+              name="Sincronizar toda la flota con Traccar"
+              parent="adt_traccar.menu_traccar_root"
+              action="action_fleet_vehicle_sync_traccar_all_fleet"
+              groups="base.group_system"
+              sequence="30"/>
+</odoo>

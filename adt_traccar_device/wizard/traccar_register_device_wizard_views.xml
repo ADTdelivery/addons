@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_traccar_register_device_wizard_form" model="ir.ui.view">
+        <field name="name">adt.traccar.register.device.wizard.form</field>
+        <field name="model">adt.traccar.register.device.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Registrar / Sincronizar con Traccar">
+                <group>
+                    <field name="vehicle_id" invisible="1"/>
+                    <field name="existing_credential_id" invisible="1"/>
+                    <field name="plate"/>
+                    <field name="imei" placeholder="IMEI del dispositivo GPS"/>
+                    <field name="partner_id"/>
+                    <field name="partner_email"/>
+                    <field name="traccar_email_preview"/>
+                </group>
+                <div class="alert alert-info" role="alert"
+                     attrs="{'invisible': [('existing_credential_id', '=', False)]}">
+                    Este vehículo ya tiene una credencial Traccar activa. Si el IMEI no
+                    cambió, al confirmar se reutiliza la misma credencial (no se genera
+                    password nuevo). Si el IMEI sí cambió, se revocará la actual y se
+                    creará una nueva.
+                </div>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirmar" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

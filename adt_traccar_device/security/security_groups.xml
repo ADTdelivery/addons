@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_traccar_credentials_admin" model="res.groups">
+        <field name="name">Traccar: Ver credenciales (email/password)</field>
+        <field name="comment">
+            Únicamente los usuarios de este grupo pueden ver el email técnico y el
+            password cifrado de las credenciales Traccar en la ficha de Odoo. El
+            resto de usuarios internos puede ver que existe una credencial activa
+            (estado) pero no sus datos sensibles. El endpoint REST de la app no
+            depende de este grupo: usa su propio Bearer token.
+        </field>
+        <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+    </record>
+</odoo>

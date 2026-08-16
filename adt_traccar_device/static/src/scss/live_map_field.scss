@@ -1,0 +1,33 @@
+.o_adt_live_map_field {
+    display: block;
+    width: 100%;
+}
+
+.o_adt_live_map_panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.o_adt_live_map_canvas {
+    // Alto fijo explícito: Leaflet necesita que el contenedor tenga
+    // dimensiones reales al momento de inicializarse (ver comentario en
+    // live_map_field.js sobre invalidateSize()).
+    width: 100%;
+    height: 350px;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 4px;
+}
+
+.o_adt_live_map_marker_wrapper {
+    background: transparent;
+    border: none;
+}
+
+.o_adt_live_map_marker {
+    font-size: 22px;
+    line-height: 30px;
+    text-align: center;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
