@@ -17,6 +17,7 @@ reutiliza directamente para no acoplar dos módulos con responsabilidades
 distintas; ver plan-adt-traccar-device.md sección 2.
 """
 import logging
+import re
 from datetime import datetime, timezone
 
 import requests
@@ -25,6 +26,19 @@ _logger = logging.getLogger(__name__)
 
 TRACCAR_TIMEOUT = 15  # segundos
 LOG_PREFIX = '[adt_traccar_device][Traccar]'
+
+_PLATE_NORMALIZE_RE = re.compile(r'[^A-Z0-9]+')
+
+
+def normalize_plate(value):
+    """Normaliza una placa (o cualquier texto que pueda contenerla) para
+    poder compararlas sin que importen mayúsculas/minúsculas, guiones,
+    espacios u otra puntuación. Tanto Odoo como Traccar suelen tener la
+    misma placa escrita de formas distintas (ej. "ABC-123" vs "ABC123") o
+    con texto extra pegado en el nombre del dispositivo (ej.
+    "ABC123 Prueba", "ABC-123 (repuesto)") — normalizando ambos lados a
+    solo letras/números en mayúscula, esas variantes dejan de importar."""
+    return _PLATE_NORMALIZE_RE.sub('', (value or '').upper())
 
 
 def parse_traccar_datetime(value):
@@ -136,6 +150,34 @@ class TraccarClient(object):
             if (device.get('uniqueId') or '').strip() == unique_id_normalized:
                 return device
         return None
+
+    def find_device_by_plate(self, plate):
+        """Busca en Traccar un dispositivo cuyo `name` corresponda a la
+        placa dada — a diferencia de find_device_by_unique_id, acá el
+        punto de partida es la PLACA, no el IMEI (el IMEI se desconoce
+        hasta encontrar el dispositivo, ver
+        adt.traccar.device.credential.register_vehicle).
+
+        Tolera que el nombre en Traccar tenga guiones/espacios distintos a
+        los de Odoo, o texto adicional pegado (ej. "ABC-123",
+        "ABC123 Prueba") — ver normalize_plate(). Prioriza una coincidencia
+        EXACTA (placa normalizada == nombre normalizado); si no hay
+        ninguna, devuelve la primera cuyo nombre normalizado CONTENGA la
+        placa normalizada como substring. None si ninguna coincide."""
+        plate_normalized = normalize_plate(plate)
+        if not plate_normalized:
+            return None
+
+        partial_match = None
+        for device in self.get_devices():
+            name_normalized = normalize_plate(device.get('name'))
+            if not name_normalized:
+                continue
+            if name_normalized == plate_normalized:
+                return device
+            if partial_match is None and plate_normalized in name_normalized:
+                partial_match = device
+        return partial_match
 
     def create_device(self, name, unique_id):
         _logger.info('%s Creando dispositivo name=%s uniqueId=%s', LOG_PREFIX, name, unique_id)

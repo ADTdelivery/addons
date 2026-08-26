@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Solicitudes de registro de cliente invitado
+         (POST /v1/customers/register — ver registrar-cliente-servicio-propuesto.md)
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_adt_solicitud_cliente_tree" model="ir.ui.view">
+        <field name="name">adt.solicitud.cliente.tree</field>
+        <field name="model">adt.solicitud.cliente</field>
+        <field name="arch" type="xml">
+            <tree string="Solicitudes de Registro" decoration-muted="estado == 'rechazado'"
+                  decoration-success="estado == 'aprobado'" decoration-info="estado == 'en_revision'">
+                <field name="create_date" string="Recibida"/>
+                <field name="nombres"/>
+                <field name="apellido_paterno"/>
+                <field name="apellido_materno"/>
+                <field name="email"/>
+                <field name="provincia"/>
+                <field name="distrito"/>
+                <field name="estado"/>
+                <field name="partner_id"/>
+                <field name="placa_asignada"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_solicitud_cliente_form" model="ir.ui.view">
+        <field name="name">adt.solicitud.cliente.form</field>
+        <field name="model">adt.solicitud.cliente</field>
+        <field name="arch" type="xml">
+            <form string="Solicitud de Registro">
+                <field name="credential_active" invisible="1"/>
+                <header>
+                    <button name="action_marcar_en_revision" string="Marcar en revisión" type="object"
+                            class="btn-secondary" attrs="{'invisible': [('estado', '!=', 'pendiente')]}"/>
+                    <button name="action_rechazar" string="Rechazar" type="object"
+                            attrs="{'invisible': [('estado', '=', 'rechazado')]}"/>
+                    <button name="action_revocar_acceso" string="Revocar acceso" type="object"
+                            confirm="Esto desactiva la credencial de login: el invitado ya no podrá entrar a la app con su correo/contraseña. ¿Continuar?"
+                            attrs="{'invisible': [('credential_active', '=', False)]}"/>
+                    <field name="estado" widget="statusbar" statusbar_visible="pendiente,en_revision,rechazado"/>
+                </header>
+                <div class="alert alert-info" role="alert">
+                    El cliente (res.partner) y el acceso a la app se crean solos apenas se registra — no
+                    hace falta aprobar nada acá. Este formulario es solo para seguimiento interno y, si hace
+                    falta, para cortar el acceso ("Revocar acceso" o eliminar la solicitud).
+                </div>
+                <sheet>
+                    <field name="selfie" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="nombres" placeholder="Nombres"/>
+                            <field name="apellido_paterno" placeholder="Apellido paterno"/>
+                            <field name="apellido_materno" placeholder="Apellido materno"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Datos de contacto">
+                            <field name="email"/>
+                            <field name="fecha_nacimiento"/>
+                            <field name="provincia"/>
+                            <field name="distrito"/>
+                        </group>
+                        <group string="Cliente vinculado">
+                            <field name="partner_id"/>
+                            <field name="placa_asignada"/>
+                            <field name="credential_id"/>
+                            <field name="motivo_rechazo"
+                                   attrs="{'invisible': [('estado', '!=', 'rechazado')]}"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_solicitud_cliente" model="ir.actions.act_window">
+        <field name="name">Solicitudes de Registro</field>
+        <field name="res_model">adt.solicitud.cliente</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_pendientes': 1}</field>
+    </record>
+
+    <record id="view_adt_solicitud_cliente_search" model="ir.ui.view">
+        <field name="name">adt.solicitud.cliente.search</field>
+        <field name="model">adt.solicitud.cliente</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Solicitudes">
+                <field name="nombres"/>
+                <field name="email"/>
+                <filter string="Pendientes" name="search_default_pendientes"
+                        domain="[('estado', 'in', ('pendiente', 'en_revision'))]"/>
+                <filter string="Aprobadas" name="aprobadas" domain="[('estado', '=', 'aprobado')]"/>
+                <filter string="Rechazadas" name="rechazadas" domain="[('estado', '=', 'rechazado')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estado" name="group_estado" context="{'group_by': 'estado'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Credenciales de login de la app (mobile.customer.credential)
+         Solo lectura/auditoría — la password nunca se ve, se guarda hasheada.
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_mobile_customer_credential_tree" model="ir.ui.view">
+        <field name="name">mobile.customer.credential.tree</field>
+        <field name="model">mobile.customer.credential</field>
+        <field name="arch" type="xml">
+            <tree string="Credenciales de Login" create="false">
+                <field name="create_date" string="Creada"/>
+                <field name="login"/>
+                <field name="user_type"/>
+                <field name="partner_id"/>
+                <field name="solicitud_id"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_mobile_customer_credential_form" model="ir.ui.view">
+        <field name="name">mobile.customer.credential.form</field>
+        <field name="model">mobile.customer.credential</field>
+        <field name="arch" type="xml">
+            <form string="Credencial de Login" create="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="login"/>
+                            <field name="user_type"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="partner_id" attrs="{'invisible': [('user_type', '!=', 'PLACA')]}"/>
+                            <field name="solicitud_id" attrs="{'invisible': [('user_type', '!=', 'INVITADO')]}"/>
+                        </group>
+                    </group>
+                    <p class="text-muted">
+                        La contraseña se guarda hasheada (no reversible) y nunca se muestra acá. Para un
+                        usuario PLACA es siempre su número de documento de identidad vigente en Odoo; para un
+                        INVITADO es la que eligió al registrarse en la app.
+                    </p>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_customer_credential" model="ir.actions.act_window">
+        <field name="name">Credenciales de Login</field>
+        <field name="res_model">mobile.customer.credential</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Menú (cuelga de "Móvil" definido en view_mobile_models.xml)
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <menuitem id="menu_adt_solicitud_cliente"
+              name="Solicitudes de Registro"
+              parent="menu_mobile_config"
+              action="action_adt_solicitud_cliente"
+              sequence="40"/>
+
+    <menuitem id="menu_mobile_customer_credential"
+              name="Credenciales de Login"
+              parent="menu_mobile_config"
+              action="action_mobile_customer_credential"
+              sequence="50"/>
+
+</odoo>

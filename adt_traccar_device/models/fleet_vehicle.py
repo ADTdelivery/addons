@@ -14,7 +14,27 @@ class FleetVehicleTraccarDevice(models.Model):
     # históricamente se usó en el resto del código (fleet_addons,
     # referencias comentadas en adt_comercial) por continuidad, pero
     # definido y mantenido acá.
-    x_imei = fields.Char(string='IMEI', help='IMEI del dispositivo GPS instalado en el vehículo.')
+    x_imei = fields.Char(
+        string='IMEI', help='IMEI del dispositivo GPS instalado en el vehículo. Se completa '
+        'automáticamente al sincronizar con Traccar (se busca el dispositivo por placa y se '
+        'toma el IMEI de ahí) — no hace falta cargarlo a mano.')
+
+    # Caso de negocio: hay vehículos que nunca van a tener una
+    # adt.comercial.cuentas (el cliente solo contrató el servicio de GPS,
+    # sin financiamiento del vehículo). register_vehicle() normalmente
+    # exige una cuenta activa (en_curso/aprobado) para sincronizar — con
+    # esta casilla marcada, esa exigencia se salta (ver
+    # AdtTraccarDeviceCredential.register_vehicle) y solo se necesita
+    # placa + conductor con email. Es una decisión explícita y auditable
+    # (a diferencia de sacar el requisito de cuenta para todos), pensada
+    # para no confundir "vehículo sin cuenta a propósito" con "vehículo
+    # sin cuenta por error/olvido".
+    traccar_solo_gps = fields.Boolean(
+        string='Solo servicio GPS (sin cuenta comercial)',
+        help='Marcar cuando el cliente solo contrató el servicio de GPS, sin una cuenta '
+             'comercial asociada a este vehículo. Mientras esté marcada, la sincronización '
+             'con Traccar no exige una cuenta comercial activa — alcanza con la placa y un '
+             'conductor con email asignado.')
 
     traccar_credential_ids = fields.One2many(
         'adt.traccar.device.credential', 'vehicle_id', string='Credenciales Traccar')
@@ -60,7 +80,7 @@ class FleetVehicleTraccarDevice(models.Model):
             'target': 'new',
             'context': {
                 'default_vehicle_id': self.id,
-                'default_imei': self.x_imei,
+                'default_traccar_solo_gps': self.traccar_solo_gps,
             },
         }
 

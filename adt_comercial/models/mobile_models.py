@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 """
 Models for Mobile App API
-- AppVersion         : HU-001  – versión de la aplicación
-- MobilePromotion    : HU-004  – promociones
-- MobileNotification : HU-005  – notificaciones
-- MobileToken        : JWT-like token storage for mobile sessions
+- AppVersion              : HU-001  – versión de la aplicación
+- MobilePromotion         : HU-004  – promociones
+- MobileNotification      : HU-005  – notificaciones
+- MobileToken             : JWT-like token storage for mobile sessions
+- MobileCustomerCredential: login/password de la app (NO res.users) — ver
+  registrar-cliente-servicio-propuesto.md, "Modelo de autenticación"
+- AdtSolicitudCliente     : registro de cliente invitado (opción A del .md)
+- MobileBenefit (+líneas) : módulo "Beneficios" de la app
 """
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from markupsafe import Markup, escape
 from urllib.parse import quote_plus
+from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import uuid
 import logging
@@ -604,4 +609,456 @@ class MobileContentItem(models.Model):
         if 'image' in vals:
             self._sync_image_url()
         return res
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Registro de clientes / login por correo — ver registrar-cliente-servicio-
+# propuesto.md ("Modelo de autenticación").
+#
+# MobileCustomerCredential guarda login+password para la app móvil, pero
+# DELIBERADAMENTE no es un res.users: no da acceso al backoffice de Odoo, solo
+# sirve para validar POST /v1/auth/login y POST /v1/auth/login-email.
+#   - user_type = PLACA    → cliente real de Odoo (partner con vehículo
+#     asignado). Su password SIEMPRE es su número de documento de identidad
+#     vigente (partner.vat) — nunca se elige a mano, se resincroniza sola en
+#     cada login (sync_placa_credential) para que un cambio de documento en
+#     Odoo se refleje sin ninguna migración de "passwords de portal".
+#   - user_type = INVITADO → registrado desde POST /v1/customers/register,
+#     con la password que la persona eligió ahí mismo.
+# ─────────────────────────────────────────────────────────────────────────────
+class MobileCustomerCredential(models.Model):
+    _name = 'mobile.customer.credential'
+    _description = 'Credencial de login de la app móvil (no es un usuario de Odoo)'
+    _order = 'create_date desc'
+    _rec_name = 'login'
+
+    login = fields.Char(
+        string='Login (correo)', index=True,
+        help='Correo usado en POST /v1/auth/login-email. Puede quedar vacío para un '
+             'usuario PLACA que solo entra por placa (POST /v1/auth/login) y todavía no '
+             'tiene correo cargado en Odoo.')
+    password_hash = fields.Char(string='Password (hash)', required=True)
+
+    user_type = fields.Selection([
+        ('PLACA', 'Cliente ADT (con vehículo/placa en Odoo)'),
+        ('INVITADO', 'Invitado (registrado desde la app, sin placa todavía)'),
+    ], string='Tipo de usuario', required=True, index=True,
+        help='Flag que distingue, en POST /v1/auth/login-email, entre un usuario real de '
+             'Odoo (PLACA) y un invitado registrado por POST /v1/customers/register '
+             '(INVITADO).')
+
+    partner_id = fields.Many2one('res.partner', string='Cliente (res.partner)', index=True,
+                                  help='Solo aplica a user_type = PLACA.')
+    solicitud_id = fields.Many2one('adt.solicitud.cliente', string='Solicitud de registro',
+                                    index=True, ondelete='cascade',
+                                    help='Solo aplica a user_type = INVITADO. Si se elimina la solicitud desde '
+                                         'Odoo, esta credencial se elimina con ella (así se "da de baja" la '
+                                         'cuenta de un invitado: borrando su solicitud ya no puede loguearse).')
+
+    active = fields.Boolean(default=True)
+
+    _sql_constraints = [
+        ('mobile_customer_credential_login_uniq', 'unique(login)',
+         'Ya existe una credencial registrada con ese correo.'),
+    ]
+
+    @api.constrains('user_type', 'partner_id', 'solicitud_id')
+    def _check_user_type_link(self):
+        for rec in self:
+            if rec.user_type == 'PLACA' and not rec.partner_id:
+                raise ValidationError('Una credencial PLACA debe estar vinculada a un cliente (res.partner).')
+            if rec.user_type == 'INVITADO' and not rec.solicitud_id:
+                raise ValidationError('Una credencial INVITADO debe estar vinculada a una solicitud de registro.')
+
+    # ── Hashing (nunca se persiste ni se devuelve la password en texto plano) ──
+    @staticmethod
+    def _hash_password(raw_password):
+        return generate_password_hash(raw_password or '')
+
+    def set_password(self, raw_password):
+        self.ensure_one()
+        self.password_hash = self._hash_password(raw_password)
+
+    def check_password(self, raw_password):
+        self.ensure_one()
+        if not raw_password or not self.password_hash:
+            return False
+        try:
+            return check_password_hash(self.password_hash, raw_password)
+        except Exception:
+            _logger.exception('mobile.customer.credential: error verificando password (id=%s)', self.id)
+            return False
+
+    # ── PLACA: la password siempre es el documento de identidad vigente ────
+    @api.model
+    def sync_placa_credential(self, partner):
+        """Devuelve la credencial PLACA de `partner`, creándola o
+        resincronizándola si su número de documento (partner.vat) cambió.
+        Devuelve un recordset vacío si el partner no tiene documento cargado
+        (no se puede loguear como PLACA sin uno).
+        """
+        partner.ensure_one()
+        documento = (partner.vat or '').strip()
+        if not documento:
+            return self.browse()
+
+        credential = self.search([('user_type', '=', 'PLACA'), ('partner_id', '=', partner.id)], limit=1)
+        login = (partner.email or '').strip().lower() or False
+
+        if credential:
+            vals = {}
+            if not credential.check_password(documento):
+                vals['password_hash'] = self._hash_password(documento)
+            if login and credential.login != login and not self.search_count(
+                    [('login', '=', login), ('id', '!=', credential.id)]):
+                vals['login'] = login
+            if vals:
+                credential.write(vals)
+            return credential
+
+        if login and self.search_count([('login', '=', login)]):
+            # el correo ya lo usa otra credencial (ej. un invitado) — no forzar el choque,
+            # esta credencial PLACA queda sin login y solo sirve para POST /v1/auth/login.
+            login = False
+
+        return self.create({
+            'login': login,
+            'password_hash': self._hash_password(documento),
+            'user_type': 'PLACA',
+            'partner_id': partner.id,
+        })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Solicitud de registro de cliente invitado — POST /v1/customers/register
+# (opción A recomendada en el .md: modelo separado, no toca res.partner hasta
+# que el equipo aprueba la solicitud).
+# ─────────────────────────────────────────────────────────────────────────────
+class AdtSolicitudCliente(models.Model):
+    _name = 'adt.solicitud.cliente'
+    _description = 'Solicitud de registro de cliente invitado (app móvil)'
+    _order = 'create_date desc'
+    _rec_name = 'email'
+
+    nombres = fields.Char(required=True)
+    apellido_paterno = fields.Char(string='Apellido paterno', required=True)
+    apellido_materno = fields.Char(string='Apellido materno', required=True)
+    fecha_nacimiento = fields.Date(string='Fecha de nacimiento', required=True)
+    email = fields.Char(required=True, index=True)
+    provincia = fields.Char()
+    distrito = fields.Char()
+    selfie = fields.Image(string='Selfie', max_width=1920, max_height=1920, attachment=True)
+
+    estado = fields.Selection([
+        ('pendiente', 'Pendiente'),
+        ('en_revision', 'En revisión'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+    ], string='Estado', default='pendiente', required=True, index=True,
+        help='Seguimiento interno, no gatilla nada: el res.partner ya se crea automáticamente '
+             'al registrarse (ver partner_id), no hace falta "aprobar" para que exista. '
+             '"Aprobado" queda como marca manual opcional si el equipo quiere señalar que ya '
+             'revisó todo; lo único con efecto real acá es "Rechazado" + revocar acceso.')
+    motivo_rechazo = fields.Text(string='Motivo de rechazo')
+
+    partner_id = fields.Many2one(
+        'res.partner', string='Cliente vinculado', readonly=True,
+        help='Se crea (o se vincula, si ya existía un res.partner con ese correo) '
+             'automáticamente apenas se registra la solicitud — no hace falta ninguna '
+             'aprobación previa. Todavía no tiene vehículo/placa asignado: eso sigue siendo '
+             'un paso manual aparte (Flota → asignar conductor).')
+    credential_id = fields.Many2one(
+        'mobile.customer.credential', string='Credencial de login', readonly=True, copy=False)
+    credential_active = fields.Boolean(
+        string='Acceso activo', related='credential_id.active', readonly=True)
+
+    placa_asignada = fields.Char(string='Placa asignada', compute='_compute_placa_asignada')
+
+    active = fields.Boolean(default=True)
+
+    _sql_constraints = [
+        ('adt_solicitud_cliente_email_uniq', 'unique(email)',
+         'Ya existe una solicitud de registro con ese correo.'),
+    ]
+
+    @api.depends('partner_id')
+    def _compute_placa_asignada(self):
+        Vehicle = self.env['fleet.vehicle'].sudo()
+        for rec in self:
+            vehicle = Vehicle.search([('driver_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else None
+            rec.placa_asignada = vehicle.license_plate if vehicle else False
+
+    @api.constrains('fecha_nacimiento')
+    def _check_edad(self):
+        today = fields.Date.context_today(self)
+        for rec in self:
+            if not rec.fecha_nacimiento:
+                continue
+            edad = today.year - rec.fecha_nacimiento.year - (
+                (today.month, today.day) < (rec.fecha_nacimiento.month, rec.fecha_nacimiento.day))
+            if edad < 18 or edad > 100:
+                raise ValidationError('El cliente debe tener entre 18 y 100 años.')
+
+    @api.constrains('email')
+    def _check_email(self):
+        email_re = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+        for rec in self:
+            if rec.email and not email_re.match(rec.email):
+                raise ValidationError('El correo ingresado no tiene un formato válido.')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._ensure_partner()
+        return records
+
+    def _ensure_partner(self):
+        """Crea (o vincula, si ya existía uno con ese correo) el res.partner del invitado
+        apenas se registra — ya no hace falta ningún paso de "aprobar" para que exista.
+        Sin `vat` (documento) ni vehículo asignado todavía: eso sigue siendo manual, y es
+        justo lo que evita que cualquiera pueda loguearse como PLACA sin más (ver
+        mobile.customer.credential.sync_placa_credential)."""
+        Partner = self.env['res.partner'].sudo()
+        for rec in self:
+            if rec.partner_id:
+                continue
+            partner = Partner.search([('email', '=ilike', rec.email)], limit=1) if rec.email else Partner.browse()
+            if not partner:
+                partner = Partner.create({
+                    'name': ' '.join(filter(None, [rec.nombres, rec.apellido_paterno, rec.apellido_materno])),
+                    'email': rec.email,
+                    'image_1920': rec.selfie or False,
+                    'comment': 'Registrado desde la app (invitado). Provincia: %s. Distrito: %s.' % (
+                        rec.provincia or '-', rec.distrito or '-'),
+                })
+            rec.partner_id = partner.id
+
+    def action_marcar_en_revision(self):
+        self.filtered(lambda r: r.estado == 'pendiente').write({'estado': 'en_revision'})
+
+    def action_rechazar(self):
+        """Rechazar es solo una marca de estado para seguimiento interno — el invitado ya
+        pudo entrar a la app desde que se registró (POST /v1/customers/register genera su
+        token de una vez, sin esperar revisión) y sigue pudiendo hacerlo aunque se rechace.
+        Si además se quiere cortarle el acceso, hay que desactivar o eliminar la solicitud
+        (ver `active` y el ondelete='cascade' de mobile.customer.credential.solicitud_id)."""
+        for rec in self:
+            if not rec.motivo_rechazo:
+                raise UserError('Indique el motivo de rechazo antes de rechazar la solicitud.')
+            rec.write({'estado': 'rechazado'})
+
+    def action_revocar_acceso(self):
+        """Corta el acceso del invitado a la app (desactiva su credencial de login) sin
+        borrar la solicitud — para eliminarla del todo, use la papelera de Odoo (unlink),
+        que se lleva la credencial con ella por el ondelete='cascade' (ver
+        mobile.customer.credential.solicitud_id)."""
+        for rec in self:
+            if rec.credential_id:
+                rec.credential_id.write({'active': False})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Beneficios — GET /v1/beneficios (módulo "Beneficios" de la app,
+# BenefitsHubScreen / BenefitDetailScreen).
+# ─────────────────────────────────────────────────────────────────────────────
+class MobileBenefit(models.Model):
+    _name = 'mobile.benefit'
+    _description = 'Beneficio (módulo "Beneficios" de la app móvil)'
+    _order = 'sequence asc, id asc'
+
+    code = fields.Char(
+        string='Código', required=True, index=True,
+        help='Identificador estable que consume la app (campo "id" en la respuesta de '
+             'GET /v1/beneficios). Ej: auxilio-grua.')
+    categoria = fields.Char(
+        string='Categoría', required=True, index=True,
+        help='Texto libre, ej: vial, legal, salud. Filtrable vía ?categoria=.')
+    titulo = fields.Char(string='Título', required=True)
+    descripcion_corta = fields.Text(string='Descripción corta', required=True)
+
+    imagen_card = fields.Image(string='Imagen de tarjeta', max_width=1920, max_height=1920)
+    imagen_card_url = fields.Char(string='URL imagen de tarjeta', readonly=True, copy=False)
+
+    proveedor_nombre = fields.Char(string='Proveedor')
+    proveedor_logo = fields.Image(string='Logo del proveedor', max_width=512, max_height=512)
+    proveedor_logo_url = fields.Char(string='URL logo del proveedor', readonly=True, copy=False)
+
+    media_ids = fields.One2many('mobile.benefit.media', 'benefit_id', string='Multimedia')
+    staff_ids = fields.One2many('mobile.benefit.staff', 'benefit_id', string='Staff')
+    cobertura_ids = fields.One2many('mobile.benefit.cobertura', 'benefit_id', string='Cobertura')
+    recomendacion_ids = fields.One2many('mobile.benefit.recomendacion', 'benefit_id', string='Recomendaciones')
+
+    sequence = fields.Integer(default=10)
+    active = fields.Boolean(default=True)
+
+    _sql_constraints = [
+        ('mobile_benefit_code_uniq', 'unique(code)', 'Ya existe un beneficio con ese código.'),
+    ]
+
+    def _build_image_public_url(self, field_name):
+        self.ensure_one()
+        if not self[field_name]:
+            return False
+        attach = self.env['ir.attachment'].sudo().search([
+            ('res_model', '=', self._name),
+            ('res_id', '=', self.id),
+            ('res_field', '=', field_name),
+        ], limit=1)
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url', default='').rstrip('/')
+        if not attach:
+            return '%s/web/image/%s/%s/%s' % (base_url, self._name, self.id, field_name)
+        token = attach.access_token
+        if not token:
+            token = str(uuid.uuid4())
+            attach.write({'access_token': token})
+        filename = attach.name or field_name
+        if '.' not in filename:
+            filename = '%s.jpg' % filename
+        return '%s/web/content/%d/%s?access_token=%s' % (base_url, attach.id, quote_plus(filename), token)
+
+    def _sync_image_urls(self):
+        for rec in self:
+            for field_name, url_field in (
+                    ('imagen_card', 'imagen_card_url'), ('proveedor_logo', 'proveedor_logo_url')):
+                if rec[field_name]:
+                    url = rec._build_image_public_url(field_name)
+                    if url and url != rec[url_field]:
+                        rec[url_field] = url
+                elif rec[url_field]:
+                    rec[url_field] = False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._sync_image_urls()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'imagen_card' in vals or 'proveedor_logo' in vals:
+            self._sync_image_urls()
+        return res
+
+
+class MobileBenefitMedia(models.Model):
+    _name = 'mobile.benefit.media'
+    _description = 'Multimedia de un beneficio'
+    _order = 'sequence asc, id asc'
+
+    benefit_id = fields.Many2one('mobile.benefit', required=True, ondelete='cascade', index=True)
+    tipo = fields.Selection([('IMAGEN', 'Imagen'), ('VIDEO', 'Video')], required=True, default='IMAGEN')
+    archivo = fields.Binary(
+        string='Subir archivo', attachment=True,
+        help='Subí acá la imagen o el video — la URL pública de abajo se completa sola. Si '
+             'preferís, dejá esto vacío y pegá una URL externa directamente (ej. YouTube).')
+    archivo_filename = fields.Char(string='Nombre de archivo')
+    url = fields.Char(
+        string='URL pública',
+        help='Se completa sola al subir un archivo arriba. También se puede pegar acá una '
+             'URL externa directamente, sin subir nada (ej. un video ya alojado en YouTube).')
+    sequence = fields.Integer(default=10)
+
+    @api.constrains('archivo', 'url')
+    def _check_has_source(self):
+        for rec in self:
+            if not rec.archivo and not rec.url:
+                raise ValidationError('Cada ítem de multimedia necesita un archivo subido o una URL.')
+
+    def _sync_url_from_archivo(self):
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url', default='').rstrip('/')
+        for rec in self:
+            if not rec.archivo:
+                continue
+            attach = self.env['ir.attachment'].sudo().search([
+                ('res_model', '=', rec._name), ('res_id', '=', rec.id), ('res_field', '=', 'archivo'),
+            ], limit=1)
+            if not attach:
+                continue
+            token = attach.access_token
+            if not token:
+                token = str(uuid.uuid4())
+                attach.write({'access_token': token})
+            filename = attach.name or rec.archivo_filename or 'media'
+            rec.url = '%s/web/content/%d/%s?access_token=%s' % (base_url, attach.id, quote_plus(filename), token)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records.filtered(lambda r: r.archivo)._sync_url_from_archivo()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'archivo' in vals:
+            self._sync_url_from_archivo()
+        return res
+
+
+class MobileBenefitStaff(models.Model):
+    _name = 'mobile.benefit.staff'
+    _description = 'Contacto de staff de un beneficio'
+    _order = 'sequence asc, id asc'
+
+    benefit_id = fields.Many2one('mobile.benefit', required=True, ondelete='cascade', index=True)
+    nombre = fields.Char(required=True)
+    especialidad = fields.Char()
+    whatsapp = fields.Char(help='Formato internacional sin +, ej: 51999333444.')
+    avatar = fields.Image(max_width=512, max_height=512)
+    avatar_url = fields.Char(readonly=True, copy=False)
+    sequence = fields.Integer(default=10)
+
+    def _sync_avatar_url(self):
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url', default='').rstrip('/')
+        for rec in self:
+            if not rec.avatar:
+                if rec.avatar_url:
+                    rec.avatar_url = False
+                continue
+            attach = self.env['ir.attachment'].sudo().search([
+                ('res_model', '=', rec._name), ('res_id', '=', rec.id), ('res_field', '=', 'avatar'),
+            ], limit=1)
+            if not attach:
+                rec.avatar_url = '%s/web/image/%s/%s/avatar' % (base_url, rec._name, rec.id)
+                continue
+            token = attach.access_token
+            if not token:
+                token = str(uuid.uuid4())
+                attach.write({'access_token': token})
+            filename = attach.name or 'avatar.jpg'
+            rec.avatar_url = '%s/web/content/%d/%s?access_token=%s' % (base_url, attach.id, quote_plus(filename), token)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._sync_avatar_url()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'avatar' in vals:
+            self._sync_avatar_url()
+        return res
+
+
+class MobileBenefitCobertura(models.Model):
+    _name = 'mobile.benefit.cobertura'
+    _description = 'Ítem de cobertura ("qué cubre") de un beneficio'
+    _order = 'sequence asc, id asc'
+
+    benefit_id = fields.Many2one('mobile.benefit', required=True, ondelete='cascade', index=True)
+    icono = fields.Char(help='Emoji o código de ícono, ej: 🚗')
+    texto = fields.Char(required=True)
+    sequence = fields.Integer(default=10)
+
+
+class MobileBenefitRecomendacion(models.Model):
+    _name = 'mobile.benefit.recomendacion'
+    _description = 'Recomendación de un beneficio'
+    _order = 'sequence asc, id asc'
+
+    benefit_id = fields.Many2one('mobile.benefit', required=True, ondelete='cascade', index=True)
+    icono = fields.Char(help='Emoji o código de ícono, ej: 📞')
+    titulo = fields.Char(required=True)
+    texto = fields.Char(required=True)
+    sequence = fields.Integer(default=10)
 

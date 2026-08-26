@@ -195,14 +195,33 @@ class AdtTraccarDeviceCredential(models.Model):
 
     # ── Orquestador principal ────────────────────────────────────────────
     @api.model
-    def register_vehicle(self, vehicle, imei=None, client=None):
-        """Registra/sincroniza `vehicle` en Traccar. Idempotente por IMEI:
+    def register_vehicle(self, vehicle, client=None):
+        """Registra/sincroniza `vehicle` en Traccar. Ya NO requiere que el
+        vehículo tenga IMEI cargado a mano en Odoo: basta con la placa.
 
+        El dispositivo se localiza en Traccar buscando por PLACA (no por
+        IMEI/uniqueId): se compara la placa del vehículo contra el `name`
+        de cada device en Traccar, normalizando ambos lados (sin
+        mayúsculas/minúsculas, guiones ni espacios) y aceptando que el
+        nombre en Traccar tenga texto adicional (ej. "ABC-123",
+        "ABC123 Prueba") — ver TraccarClient.find_device_by_plate(). El
+        IMEI (uniqueId) se toma directo de ese device y se guarda como
+        fuente de verdad en vehicle.x_imei. Nunca se crea un device nuevo
+        acá: si la placa no aparece en ningún dispositivo de Traccar, el
+        vehículo simplemente no califica todavía (hay que darlo de alta en
+        Traccar primero, con su IMEI real).
+
+        Cuenta comercial: normalmente exige una adt.comercial.cuentas
+        activa (en_curso/aprobado), salvo que el vehículo tenga marcada
+        `traccar_solo_gps` (vehículos que solo contrataron el servicio de
+        GPS, sin financiamiento) — ver el bloque de "Cuenta comercial" más
+        abajo y fleet_vehicle.py.
+
+        Idempotente por IMEI:
           - Si el vehículo NO tiene credencial activa todavía, o la tiene
-            pero para OTRO IMEI (cambió el dispositivo físico): crea (o
-            reutiliza) el device en Traccar por IMEI, crea un usuario
-            Traccar NUEVO y exclusivo de este vehículo, le asigna permiso
-            solo sobre su device, y persiste las credenciales.
+            pero para OTRO IMEI (cambió el dispositivo físico): crea un
+            usuario Traccar NUEVO y exclusivo de este vehículo, le asigna
+            permiso solo sobre su device, y persiste las credenciales.
             Si había una credencial activa previa, se revoca.
           - Si el vehículo YA tiene una credencial activa para el MISMO
             IMEI: no se crea ningún usuario/password nuevo — se devuelve
@@ -234,29 +253,69 @@ class AdtTraccarDeviceCredential(models.Model):
         if not plate:
             raise AdtTraccarNotEligible(_('El vehículo no tiene placa.'))
 
-        imei = (imei or vehicle.x_imei or '').strip()
-        if not imei:
-            raise AdtTraccarNotEligible(_(
-                'El vehículo "%s" no tiene IMEI. Complételo antes de registrar en Traccar.'
-            ) % plate)
-
+        # ── Cuenta comercial: normalmente obligatoria, salvo vehículos
+        # marcados explícitamente como "solo GPS" (traccar_solo_gps, ver
+        # fleet_vehicle.py) — clientes que solo contrataron el servicio de
+        # GPS, sin financiamiento del vehículo, y por lo tanto nunca van a
+        # tener una adt.comercial.cuentas. Si el vehículo SÍ tiene una
+        # cuenta activa (tenga o no marcada la casilla), se usa igual —
+        # la casilla solo relaja el requisito, nunca ignora una cuenta que
+        # exista de verdad.
         cuenta = self._get_active_cuenta(vehicle)
-        if not cuenta:
+        if not cuenta and not vehicle.traccar_solo_gps:
             raise AdtTraccarNotEligible(_(
                 'El vehículo "%s" no tiene una cuenta comercial activa (en curso o aprobada). '
-                'No se puede registrar en Traccar.'
+                'No se puede registrar en Traccar. Si es un vehículo que solo contrató el '
+                'servicio de GPS (sin cuenta comercial), marque la casilla "Solo servicio GPS" '
+                'en la pestaña Traccar / GPS del vehículo.'
             ) % plate)
 
         partner = vehicle.driver_id or cuenta.partner_id
         if not partner:
             raise AdtTraccarNotEligible(_(
-                'El vehículo "%s" no tiene cliente/conductor asignado.'
+                'El vehículo "%s" no tiene cliente/conductor asignado. Asigne un conductor '
+                '(con email) en la ficha del vehículo antes de sincronizar.'
             ) % plate)
         if not partner.email:
             raise AdtTraccarNotEligible(_(
                 'El cliente "%s" no tiene email registrado en Contactos. '
                 'Complételo antes de continuar.'
             ) % partner.name)
+
+        # ── Localizar el device en Traccar por PLACA y sacar el IMEI de ahí
+        # (ver docstring). Se necesita esto ANTES de poder decidir si es
+        # una sincronización idempotente (compara por IMEI), así que la
+        # conexión a Traccar ya no se puede diferir hasta después de esa
+        # comparación como antes.
+        try:
+            if client is None:
+                client = TraccarClient.from_env(self.env)
+                client.authenticate()
+            device = client.find_device_by_plate(plate)
+        except TraccarAPIError as exc:
+            _logger.error(
+                '[adt_traccar_device] Error buscando dispositivo por placa "%s" en Traccar: %s',
+                plate, exc,
+            )
+            raise UserError(str(exc))
+        if not device:
+            raise AdtTraccarNotEligible(_(
+                'No se encontró en Traccar ningún dispositivo cuyo nombre corresponda a la '
+                'placa "%s". Verifique que el dispositivo ya esté dado de alta en Traccar.'
+            ) % plate)
+
+        traccar_device_id = device['id']
+        imei = (device.get('uniqueId') or '').strip()
+        if not imei:
+            raise AdtTraccarNotEligible(_(
+                'El dispositivo "%s" encontrado en Traccar para la placa "%s" no tiene IMEI '
+                '(uniqueId) configurado.'
+            ) % (device.get('name') or '', plate))
+
+        # El IMEI se "jala" de Traccar y queda registrado en Odoo como
+        # fuente de verdad (vehicle.x_imei ya no se carga a mano).
+        if imei != vehicle.x_imei:
+            vehicle.x_imei = imei
 
         # ── Idempotencia: si el vehículo ya tiene una credencial activa
         # para ESTE MISMO IMEI (mismo dispositivo físico), no se crea un
@@ -274,9 +333,6 @@ class AdtTraccarDeviceCredential(models.Model):
             update_vals = {}
             if existing.plate != plate:
                 try:
-                    if client is None:
-                        client = TraccarClient.from_env(self.env)
-                        client.authenticate()
                     client.update_device_name(existing.traccar_device_id, plate, imei)
                 except TraccarAPIError as exc:
                     _logger.error(
@@ -295,12 +351,6 @@ class AdtTraccarDeviceCredential(models.Model):
         traccar_email = self._compute_traccar_email(partner, sequence)
 
         try:
-            if client is None:
-                client = TraccarClient.from_env(self.env)
-                client.authenticate()
-            device, _created = client.get_or_create_device(plate, imei)
-            traccar_device_id = device['id']
-
             # Anti-colisión: si por algún motivo ese email técnico ya existe
             # en Traccar (ej. credencial borrada manualmente sin borrar el
             # usuario en Traccar), se incrementa la secuencia hasta hallar

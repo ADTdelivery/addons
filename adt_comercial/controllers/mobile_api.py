@@ -42,6 +42,13 @@ _logger = logging.getLogger(__name__)
 # Some plates in Peru use 4+2 variants; we accept both permissively.
 PLATE_RE = re.compile(r'^[A-Z0-9]{2,4}-?[A-Z0-9]{2,4}$', re.IGNORECASE)
 
+# ── Email regex (validación simple, suficiente para registro/login) ────────
+EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+# ── Límite de tamaño de la selfie decodificada (registrar-cliente-servicio-
+# propuesto.md, sección 1, error 413 SELFIE_MUY_GRANDE) ─────────────────────
+SELFIE_MAX_BYTES = 5 * 1024 * 1024
+
 WORKSHOP_STATE_LABELS = {
     'pending': 'Pendiente',
     'in_progress': 'En progreso',
@@ -89,13 +96,13 @@ def _json_response(data, status=200):
     )
 
 
-def _success(data, message='OK', pagination=None):
+def _success(data, message='OK', pagination=None, status_code=200):
     meta = {'timestamp': _now_iso(), 'requestId': _request_id()}
     if pagination:
         meta['pagination'] = pagination
     return {
         'success': True,
-        'statusCode': 200,
+        'statusCode': status_code,
         'message': message,
         'data': data,
         'meta': meta,
@@ -132,6 +139,41 @@ def _validate_plate(plate):
                               'issue': 'Formato inválido. Ejemplo esperado: ABC-123',
                               'rejectedValue': plate}])
     return plate_upper, None
+
+
+def _validate_email(email):
+    """
+    Returns (normalized_email_lowercase, error_response | None)
+    """
+    if not email:
+        return None, _error(422, 'VALIDATION_ERROR', 'El correo es requerido.',
+                            [{'field': 'email', 'issue': 'Parámetro requerido', 'rejectedValue': email}])
+    normalized = str(email).strip().lower()
+    if not EMAIL_RE.match(normalized):
+        return None, _error(400, 'VALIDATION_ERROR', 'Hay errores de validación.',
+                            [{'field': 'email', 'issue': 'formato inválido', 'rejectedValue': email}])
+    return normalized, None
+
+
+def _parse_fecha_nacimiento(value):
+    """
+    Valida `fechaNacimiento` (YYYY-MM-DD) y la edad (18-100 años) del lado del backend —
+    nunca confiar solo en la validación del cliente (registrar-cliente-servicio-propuesto.md,
+    sección 1). Devuelve (date | None, error_detail_dict | None); el caller arma el
+    VALIDATION_ERROR completo para poder juntar varios campos en un solo `details`.
+    """
+    if not value:
+        return None, {'field': 'fechaNacimiento', 'issue': 'Campo requerido', 'rejectedValue': value}
+    try:
+        fecha = datetime.strptime(str(value), '%Y-%m-%d').date()
+    except Exception:
+        return None, {'field': 'fechaNacimiento', 'issue': 'formato inválido, use YYYY-MM-DD', 'rejectedValue': value}
+    today = datetime.now(timezone.utc).date()
+    edad = today.year - fecha.year - ((today.month, today.day) < (fecha.month, fecha.day))
+    if edad < 18 or edad > 100:
+        return None, {'field': 'fechaNacimiento', 'issue': 'el cliente debe ser mayor de 18 años',
+                       'rejectedValue': value}
+    return fecha, None
 
 
 def _get_token_record(auth_header):
@@ -1670,10 +1712,18 @@ class MobileAPIController(http.Controller):
     )
     def login(self, **kwargs):
         """
-        Utility endpoint to generate a mobile token by plate.
-        Body JSON (flat, no jsonrpc wrapper needed): { "plate": "ABC-123" }
-        No real authentication – designed for internal/partner use.
-        Returns: { "token": "<token>", "vehicle_id": <int>, "partner_id": <int> }
+        Login por placa. Body JSON (flat, no jsonrpc wrapper needed):
+          { "plate": "ABC-123", "password": "..." }
+
+        Cambio de contrato (ver registrar-cliente-servicio-propuesto.md, "Modelo de
+        autenticación"): ahora requiere `password`. La contraseña de un usuario PLACA es
+        siempre su número de documento de identidad vigente en Odoo (partner.vat) — se
+        resincroniza sola en cada login (mobile.customer.credential.sync_placa_credential),
+        no hace falta ninguna migración de "passwords de portal" para los partners que ya
+        existen.
+
+        Por seguridad, NO se distingue "placa no encontrada" de "password incorrecta": ambos
+        casos devuelven 401 INVALID_CREDENTIALS (mismo código que usa login-email).
         """
         try:
             # request.jsonrequest holds the full parsed JSON body dict
@@ -1684,9 +1734,21 @@ class MobileAPIController(http.Controller):
             if plate_err:
                 return plate_err
 
-            vehicle, vehicle_err = _vehicle_by_plate(plate_upper)
-            if vehicle_err:
-                return vehicle_err
+            password = body.get('password')
+            if not password:
+                return _error(422, 'VALIDATION_ERROR', 'El campo password es requerido.',
+                              [{'field': 'password', 'issue': 'Campo requerido', 'rejectedValue': None}])
+
+            VehicleModel = request.env['fleet.vehicle'].sudo()
+            vehicle = VehicleModel.search([('license_plate', '=ilike', plate_upper)], limit=1)
+            partner = vehicle.driver_id if vehicle else None
+
+            credential = None
+            if vehicle and partner:
+                credential = request.env['mobile.customer.credential'].sudo().sync_placa_credential(partner)
+
+            if not vehicle or not partner or not credential or not credential.check_password(password):
+                return _error(401, 'INVALID_CREDENTIALS', 'Placa o contraseña incorrecta.')
 
             # Device info from headers
             device_model = request.httprequest.headers.get('X-Device-Model', '')
@@ -1700,10 +1762,10 @@ class MobileAPIController(http.Controller):
             new_token = TokenModel.generate_token()
             expires = odoo_fields.Datetime.now() + timedelta(days=90)
 
-            token_rec = TokenModel.create({
+            TokenModel.create({
                 'token': new_token,
                 'vehicle_id': vehicle.id,
-                'partner_id': vehicle.driver_id.id if vehicle.driver_id else False,
+                'partner_id': partner.id,
                 'device_id': device_id_header or False,
                 'device_model': device_model or False,
                 'platform': platform or False,
@@ -1715,8 +1777,8 @@ class MobileAPIController(http.Controller):
                 'token': new_token,
                 'vehicleId': vehicle.id,
                 'licensePlate': vehicle.license_plate,
-                'partnerId': vehicle.driver_id.id if vehicle.driver_id else None,
-                'partnerName': vehicle.driver_id.name if vehicle.driver_id else None,
+                'partnerId': partner.id,
+                'partnerName': partner.name,
                 'expiresAt': _format_datetime(expires),
             }
             return _success(data, message='Token generado correctamente.')
@@ -1724,6 +1786,355 @@ class MobileAPIController(http.Controller):
         except Exception:
             _logger.exception('Error in POST /v1/auth/login')
             return _error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.')
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # POST /v1/auth/login-email — login por correo/contraseña (PLACA o INVITADO)
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/auth/login-email',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def login_email(self, **kwargs):
+        """
+        Ver registrar-cliente-servicio-propuesto.md, sección 3. Valida contra dos fuentes
+        posibles, en este orden:
+          1. Usuario real de Odoo (partner con vehículo asignado) — password = su documento
+             de identidad (partner.vat). Si matchea, responde tipoUsuario=PLACA (mismo shape
+             que POST /v1/auth/login).
+          2. Solicitud de registro / invitado — password = la que eligió al registrarse
+             (POST /v1/customers/register). Si matchea, responde tipoUsuario=INVITADO.
+
+        Mismo código 401 INVALID_CREDENTIALS para "correo no existe" y "password incorrecta"
+        en cualquiera de las dos fuentes (no revelar si un correo está registrado).
+        """
+        try:
+            raw_body = request.httprequest.data
+            body = json.loads(raw_body) if raw_body else {}
+            if not isinstance(body, dict):
+                return _json_response(
+                    _error(400, 'BAD_REQUEST', 'El cuerpo del request debe ser un objeto JSON.'), status=400)
+
+            email_norm, email_err = _validate_email(body.get('email'))
+            password = body.get('password')
+            if email_err or not password:
+                return _json_response(
+                    _error(401, 'INVALID_CREDENTIALS', 'Correo o contraseña incorrectos.'), status=401)
+
+            from datetime import timedelta
+            device_model = request.httprequest.headers.get('X-Device-Model', '')
+            device_id_header = request.httprequest.headers.get('X-Device-ID', '')
+            platform = request.httprequest.headers.get('X-Platform', '')
+            app_version = request.httprequest.headers.get('X-App-Version', '')
+            TokenModel = request.env['mobile.token'].sudo()
+
+            # ── 1. ¿Es un usuario real de Odoo (partner con vehículo)? ──────────
+            vehicle = request.env['fleet.vehicle'].sudo().search(
+                [('driver_id.email', '=ilike', email_norm)], limit=1)
+            if vehicle and vehicle.driver_id:
+                partner = vehicle.driver_id
+                credential = request.env['mobile.customer.credential'].sudo().sync_placa_credential(partner)
+                if credential and credential.check_password(password):
+                    new_token = TokenModel.generate_token()
+                    expires = odoo_fields.Datetime.now() + timedelta(days=90)
+                    TokenModel.create({
+                        'token': new_token,
+                        'vehicle_id': vehicle.id,
+                        'partner_id': partner.id,
+                        'device_id': device_id_header or False,
+                        'device_model': device_model or False,
+                        'platform': platform or False,
+                        'app_version': app_version or False,
+                        'expires_at': expires,
+                    })
+                    return _json_response(_success({
+                        'tipoUsuario': 'PLACA',
+                        'token': new_token,
+                        'expiresAt': _format_datetime(expires),
+                        'vehicleId': vehicle.id,
+                        'licensePlate': vehicle.license_plate,
+                        'partnerId': partner.id,
+                        'partnerName': partner.name,
+                    }))
+
+            # ── 2. ¿Es un invitado (solicitud de registro)? ──────────────────────
+            # Nota: el estado de la solicitud (pendiente/en_revision/aprobado/rechazado) NO
+            # bloquea el login — el invitado entra desde que se registra, sin esperar
+            # revisión. Lo único que corta el acceso es credential_id.active=False (ver
+            # adt.solicitud.cliente.action_revocar_acceso / eliminar la solicitud).
+            solicitud = request.env['adt.solicitud.cliente'].sudo().with_context(active_test=False).search(
+                [('email', '=', email_norm)], limit=1)
+            if (solicitud and solicitud.credential_id and solicitud.credential_id.active
+                    and solicitud.credential_id.check_password(password)):
+                new_token = TokenModel.generate_token()
+                expires = odoo_fields.Datetime.now() + timedelta(days=90)
+                TokenModel.create({
+                    'token': new_token,
+                    'partner_id': solicitud.partner_id.id if solicitud.partner_id else False,
+                    'device_id': device_id_header or False,
+                    'device_model': device_model or False,
+                    'platform': platform or False,
+                    'app_version': app_version or False,
+                    'expires_at': expires,
+                })
+                return _json_response(_success({
+                    'tipoUsuario': 'INVITADO',
+                    'token': new_token,
+                    'expiresAt': _format_datetime(expires),
+                    'solicitudId': solicitud.id,
+                    'estadoSolicitud': (solicitud.estado or 'pendiente').upper(),
+                    'partnerName': ' '.join(filter(None, [
+                        solicitud.nombres, solicitud.apellido_paterno, solicitud.apellido_materno])),
+                }))
+
+            return _json_response(_error(401, 'INVALID_CREDENTIALS', 'Correo o contraseña incorrectos.'), status=401)
+
+        except Exception:
+            _logger.exception('Error in POST /v1/auth/login-email')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # POST /v1/customers/register — registrar cliente invitado
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/customers/register',
+        type='http',
+        auth='none',
+        methods=['POST'],
+        csrf=False,
+        cors='*',
+    )
+    def register_customer(self, **kwargs):
+        """
+        Ver registrar-cliente-servicio-propuesto.md, sección 1.
+
+        Crea SIEMPRE una solicitud pendiente de revisión (adt.solicitud.cliente) Y, en el
+        mismo paso, una credencial de login (mobile.customer.credential, user_type=INVITADO)
+        — "tener cuenta" y "estar aprobado en la flota" son cosas distintas (ver "Modelo de
+        autenticación" en el .md). No hace falta ningún login aparte ni que el equipo
+        apruebe/rechace nada: la respuesta ya incluye el token de sesión, igual que
+        POST /v1/auth/login-email, así el cliente entra directo apenas termina de
+        registrarse. El único freno posible del lado de Odoo es revocar/eliminar la
+        solicitud (ver adt.solicitud.cliente.action_revocar_acceso), nunca la aprobación.
+        """
+        try:
+            raw_body = request.httprequest.data
+            body = json.loads(raw_body) if raw_body else {}
+            if not isinstance(body, dict):
+                return _json_response(
+                    _error(400, 'BAD_REQUEST', 'El cuerpo del request debe ser un objeto JSON.'), status=400)
+
+            details = []
+
+            nombres = str(body.get('nombres') or '').strip()
+            if not nombres:
+                details.append({'field': 'nombres', 'issue': 'Campo requerido', 'rejectedValue': body.get('nombres')})
+
+            apellido_paterno = str(body.get('apellidoPaterno') or '').strip()
+            if not apellido_paterno:
+                details.append({'field': 'apellidoPaterno', 'issue': 'Campo requerido',
+                                 'rejectedValue': body.get('apellidoPaterno')})
+
+            apellido_materno = str(body.get('apellidoMaterno') or '').strip()
+            if not apellido_materno:
+                details.append({'field': 'apellidoMaterno', 'issue': 'Campo requerido',
+                                 'rejectedValue': body.get('apellidoMaterno')})
+
+            fecha_val, fecha_err = _parse_fecha_nacimiento(body.get('fechaNacimiento'))
+            if fecha_err:
+                details.append(fecha_err)
+
+            email_norm, email_err = _validate_email(body.get('email'))
+            if email_err:
+                details.append({'field': 'email', 'issue': 'formato inválido', 'rejectedValue': body.get('email')})
+
+            password = body.get('password') or ''
+            if len(password) < 8:
+                details.append({'field': 'password', 'issue': 'mínimo 8 caracteres', 'rejectedValue': None})
+
+            provincia = str(body.get('provincia') or '').strip()
+            if not provincia:
+                details.append({'field': 'provincia', 'issue': 'Campo requerido', 'rejectedValue': body.get('provincia')})
+
+            distrito = str(body.get('distrito') or '').strip()
+            if not distrito:
+                details.append({'field': 'distrito', 'issue': 'Campo requerido', 'rejectedValue': body.get('distrito')})
+
+            selfie_raw = body.get('selfie')
+            selfie_normalized = None
+            if not selfie_raw:
+                details.append({'field': 'selfie', 'issue': 'Campo requerido', 'rejectedValue': None})
+            else:
+                selfie_normalized = _normalize_base64_image(selfie_raw)
+                if not selfie_normalized:
+                    return _json_response(
+                        _error(422, 'SELFIE_INVALIDA', 'El base64 de la selfie no decodifica a una imagen válida.'),
+                        status=422)
+                if (len(selfie_normalized) * 3 / 4) > SELFIE_MAX_BYTES:
+                    return _json_response(
+                        _error(413, 'SELFIE_MUY_GRANDE', 'La imagen supera el límite de 5 MB.'), status=413)
+
+            if details:
+                return _json_response(
+                    _error(400, 'VALIDATION_ERROR', 'Hay errores de validación.', details), status=400)
+
+            CredentialModel = request.env['mobile.customer.credential'].sudo()
+            SolicitudModel = request.env['adt.solicitud.cliente'].sudo()
+            if (CredentialModel.search_count([('login', '=', email_norm)])
+                    or SolicitudModel.with_context(active_test=False).search_count([('email', '=', email_norm)])):
+                return _json_response(
+                    _error(409, 'EMAIL_DUPLICADO', 'Ya existe una solicitud/cuenta registrada con ese correo.'),
+                    status=409)
+
+            solicitud = SolicitudModel.create({
+                'nombres': nombres,
+                'apellido_paterno': apellido_paterno,
+                'apellido_materno': apellido_materno,
+                'fecha_nacimiento': fecha_val,
+                'email': email_norm,
+                'provincia': provincia,
+                'distrito': distrito,
+                'selfie': selfie_normalized,
+                'estado': 'pendiente',
+            })
+
+            credential = CredentialModel.create({
+                'login': email_norm,
+                'password_hash': CredentialModel._hash_password(password),
+                'user_type': 'INVITADO',
+                'solicitud_id': solicitud.id,
+            })
+            solicitud.write({'credential_id': credential.id})
+
+            # ── Auto-login: el registro deja al invitado logueado de una vez, con el mismo
+            # token/expiresAt que devolvería POST /v1/auth/login-email — no espera ninguna
+            # aprobación (ver docstring del método).
+            from datetime import timedelta
+            device_model = request.httprequest.headers.get('X-Device-Model', '')
+            device_id_header = request.httprequest.headers.get('X-Device-ID', '')
+            platform = request.httprequest.headers.get('X-Platform', '')
+            app_version = request.httprequest.headers.get('X-App-Version', '')
+            TokenModel = request.env['mobile.token'].sudo()
+            new_token = TokenModel.generate_token()
+            expires = odoo_fields.Datetime.now() + timedelta(days=90)
+            TokenModel.create({
+                'token': new_token,
+                'device_id': device_id_header or False,
+                'device_model': device_model or False,
+                'platform': platform or False,
+                'app_version': app_version or False,
+                'expires_at': expires,
+            })
+
+            return _json_response(_success({
+                'solicitudId': solicitud.id,
+                'partnerId': solicitud.partner_id.id or None,
+                'estado': (solicitud.estado or 'pendiente').upper(),
+                'email': solicitud.email,
+                'nombres': solicitud.nombres,
+                'apellidoPaterno': solicitud.apellido_paterno,
+                'apellidoMaterno': solicitud.apellido_materno,
+                'creadoEn': _format_datetime(solicitud.create_date),
+                'tipoUsuario': 'INVITADO',
+                'token': new_token,
+                'expiresAt': _format_datetime(expires),
+            }, message='Solicitud de registro recibida correctamente.', status_code=201), status=201)
+
+        except Exception:
+            _logger.exception('Error in POST /v1/customers/register')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # GET /v1/customers/register/{solicitudId} — estado de una solicitud
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/customers/register/<int:solicitud_id>',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_customer_registration_status(self, solicitud_id, **kwargs):
+        try:
+            solicitud = request.env['adt.solicitud.cliente'].sudo().with_context(
+                active_test=False).browse(solicitud_id)
+            if not solicitud.exists():
+                return _json_response(
+                    _error(404, 'SOLICITUD_NOT_FOUND', 'La solicitud indicada no existe.'), status=404)
+
+            return _json_response(_success({
+                'solicitudId': solicitud.id,
+                'partnerId': solicitud.partner_id.id or None,
+                'estado': (solicitud.estado or 'pendiente').upper(),
+                'email': solicitud.email,
+                'creadoEn': _format_datetime(solicitud.create_date),
+                'actualizadoEn': _format_datetime(solicitud.write_date),
+                'placaAsignada': solicitud.placa_asignada or None,
+                'motivoRechazo': solicitud.motivo_rechazo or None,
+            }))
+        except Exception:
+            _logger.exception('Error in GET /v1/customers/register/%s', solicitud_id)
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # GET /v1/beneficios — módulo "Beneficios" de la app
+    # ══════════════════════════════════════════════════════════════════════════
+    @http.route(
+        '/v1/beneficios',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_beneficios(self, categoria=None, **kwargs):
+        """
+        Ver registrar-cliente-servicio-propuesto.md, sección 4. Puede llamarse con o sin
+        `Authorization: Bearer <token>` — el modelo mobile.benefit no tiene hoy nada
+        específico de un usuario (ver nota en el .md sobre personalizar por tipoUsuario a
+        futuro).
+        """
+        try:
+            domain = []
+            if categoria:
+                domain.append(('categoria', '=', categoria))
+
+            beneficios = request.env['mobile.benefit'].sudo().search(domain)
+
+            data = []
+            for b in beneficios:
+                data.append({
+                    'id': b.code,
+                    'categoria': b.categoria,
+                    'proveedor': {
+                        'nombre': b.proveedor_nombre or None,
+                        'logoUrl': b.proveedor_logo_url or None,
+                    },
+                    'titulo': b.titulo,
+                    'imagenCard': b.imagen_card_url or None,
+                    'descripcionCorta': b.descripcion_corta,
+                    'multimedia': [{'tipo': m.tipo, 'url': m.url} for m in b.media_ids],
+                    'staff': [{
+                        'nombre': s.nombre,
+                        'especialidad': s.especialidad or None,
+                        'whatsapp': s.whatsapp or None,
+                        'avatarUrl': s.avatar_url or None,
+                    } for s in b.staff_ids],
+                    'cubre': [{'icono': c.icono or None, 'texto': c.texto} for c in b.cobertura_ids],
+                    'recomendaciones': [
+                        {'icono': r.icono or None, 'titulo': r.titulo, 'texto': r.texto}
+                        for r in b.recomendacion_ids
+                    ],
+                })
+
+            return _json_response(_success(data))
+        except Exception:
+            _logger.exception('Error in GET /v1/beneficios')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     # ══════════════════════════════════════════════════════════════════════════
     # HELPER: POST /v1/notifications/{id}/read

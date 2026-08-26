@@ -24,6 +24,7 @@
                         <button name="action_refresh_traccar_status" type="object"
                                 string="Actualizar" icon="fa-refresh" class="btn-secondary"
                                 attrs="{'invisible': [('traccar_credential_active_id', '=', False)]}"/>
+                        <field name="traccar_solo_gps"/>
                     </group>
 
                     <div class="alert alert-info" role="alert"

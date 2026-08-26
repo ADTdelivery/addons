@@ -40,6 +40,9 @@
         'views/report.xml',
         'views/view_mobile_models.xml',
         'views/view_mobile_product_catalog.xml',
+        'views/view_mobile_customers.xml',
+        'views/view_mobile_benefits.xml',
+        'data/mobile_benefit_data.xml',
     ],
     'assets': {
         'web.assets_backend': [

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Beneficios iniciales — extraídos de los flyers en addons/context/
+        (beneficio_taller.jpeg, beneficio_salud.jpeg, beneficio_legal.jpeg).
+
+        noupdate="1": esto es contenido editorial, no configuración técnica. Se crea una sola
+        vez al instalar/actualizar el módulo; si alguien edita estos registros desde Odoo
+        después, una actualización posterior del módulo NO los pisa.
+    -->
+    <data noupdate="1">
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             Auxilio Mecánico y/o Traslado en Grúa (Los Andes Cooperativa)
+        ═══════════════════════════════════════════════════════════════ -->
+        <record id="mobile_benefit_auxilio_grua" model="mobile.benefit">
+            <field name="code">auxilio-grua</field>
+            <field name="categoria">vial</field>
+            <field name="titulo">Auxilio Mecánico y/o Traslado en Grúa</field>
+            <field name="descripcion_corta">Auxilio mecánico y/o traslado en grúa una vez por mes, dentro de la ciudad y carretera, con personal capacitado y atención las 24 horas.</field>
+            <field name="proveedor_nombre">Los Andes Cooperativa de Ahorro y Crédito</field>
+            <field name="imagen_card" type="base64" file="adt_comercial/static/img/beneficios/auxilio_grua.jpg"/>
+            <field name="sequence">10</field>
+            <field name="cobertura_ids" eval="[
+                (0, 0, {'icono': '🔧', 'texto': 'Auxilio por falla mecánica', 'sequence': 10}),
+                (0, 0, {'icono': '🚛', 'texto': 'Remolque en grúa', 'sequence': 20}),
+                (0, 0, {'icono': '📍', 'texto': 'Servicio dentro de la ciudad y carretera', 'sequence': 30}),
+                (0, 0, {'icono': '👷', 'texto': 'Personal capacitado, atención 24/7', 'sequence': 40}),
+            ]"/>
+            <field name="recomendacion_ids" eval="[
+                (0, 0, {'icono': '🛡️', 'titulo': 'Asistencia confiable', 'texto': 'Estamos contigo cuando más lo necesitas.', 'sequence': 10}),
+                (0, 0, {'icono': '🚗', 'titulo': 'Traslado seguro', 'texto': 'Llevamos tu vehículo al taller o destino que indiques.', 'sequence': 20}),
+                (0, 0, {'icono': '📅', 'titulo': 'Cobertura mensual', 'texto': 'Disfruta de 1 servicio de auxilio mecánico y/o traslado en grúa cada mes.', 'sequence': 30}),
+            ]"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             Plan Individual MotoSalud
+        ═══════════════════════════════════════════════════════════════ -->
+        <record id="mobile_benefit_plan_salud_motosalud" model="mobile.benefit">
+            <field name="code">plan-salud-motosalud</field>
+            <field name="categoria">salud</field>
+            <field name="titulo">Plan Individual MotoSalud</field>
+            <field name="descripcion_corta">Plan de salud individual con cobertura en cirugías, convenios con clínicas y hospitales, maternidad, sepelio y consultas ambulatorias.</field>
+            <field name="proveedor_nombre">MotoSalud</field>
+            <field name="imagen_card" type="base64" file="adt_comercial/static/img/beneficios/plan_salud_motosalud.jpg"/>
+            <field name="sequence">20</field>
+            <field name="cobertura_ids" eval="[
+                (0, 0, {'icono': '🏥', 'texto': 'Cirugía por enfermedad o accidente — beneficio anual hasta S/ 4,300', 'sequence': 10}),
+                (0, 0, {'icono': '📋', 'texto': 'Convenio clínica — cobertura S/ 2,150.00', 'sequence': 20}),
+                (0, 0, {'icono': '🏨', 'texto': 'Convenio hospitales MINSA y Solidaridad — S/ 3,870', 'sequence': 30}),
+                (0, 0, {'icono': '🤰', 'texto': 'Maternidad — S/ 1,000', 'sequence': 40}),
+                (0, 0, {'icono': '🌿', 'texto': 'Servicio de sepelio y cremación — S/ 2,000', 'sequence': 50}),
+                (0, 0, {'icono': '🩺', 'texto': 'Consultas ambulatorias (medicina general, especializada, odontología, oftalmología, psicología) — copago desde S/ 25.00', 'sequence': 60}),
+            ]"/>
+            <field name="recomendacion_ids" eval="[
+                (0, 0, {'icono': '🔬', 'titulo': 'Exámenes de ayuda diagnóstica', 'texto': 'Incluidos dentro del plan.', 'sequence': 10}),
+                (0, 0, {'icono': '🚑', 'titulo': 'Urgencia médica por enfermedad', 'texto': 'Cobertura 100% en Clínica ServiSalud; reembolso en otras clínicas hasta S/ 200.00.', 'sequence': 20}),
+                (0, 0, {'icono': '🩹', 'titulo': 'Atención médica ambulatoria por accidente', 'texto': 'Cobertura 100% en Clínica ServiSalud; vía reembolso en otras clínicas hasta S/ 1,500.', 'sequence': 30}),
+            ]"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             Apoyo Legal y Asesoría Gratuita en Transporte
+        ═══════════════════════════════════════════════════════════════ -->
+        <record id="mobile_benefit_apoyo_legal_transporte" model="mobile.benefit">
+            <field name="code">apoyo-legal-transporte</field>
+            <field name="categoria">legal</field>
+            <field name="titulo">Apoyo Legal y Asesoría Gratuita en Transporte</field>
+            <field name="descripcion_corta">Asesoría legal gratuita para conductores: tu abogado en acción ante impugnación de papeletas, denuncias por abuso de autoridad y procesos administrativos, civiles o penales.</field>
+            <field name="proveedor_nombre">Los Andes Cooperativa de Ahorro y Crédito</field>
+            <field name="imagen_card" type="base64" file="adt_comercial/static/img/beneficios/apoyo_legal_transporte.jpg"/>
+            <field name="sequence">30</field>
+            <field name="cobertura_ids" eval="[
+                (0, 0, {'icono': '📄', 'texto': 'Impugnación de papeletas', 'sequence': 10}),
+                (0, 0, {'icono': '👮', 'texto': 'Denuncias por abuso de autoridad', 'sequence': 20}),
+                (0, 0, {'icono': '⚖️', 'texto': 'Denuncias administrativas, civiles y penales', 'sequence': 30}),
+            ]"/>
+            <field name="recomendacion_ids" eval="[
+                (0, 0, {'icono': '🤝', 'titulo': 'Tu trabajo, nuestro compromiso', 'texto': 'Asesoría legal gratuita para acompañarte en cada gestión.', 'sequence': 10}),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>

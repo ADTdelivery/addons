@@ -9,17 +9,22 @@
                     <field name="vehicle_id" invisible="1"/>
                     <field name="existing_credential_id" invisible="1"/>
                     <field name="plate"/>
-                    <field name="imei" placeholder="IMEI del dispositivo GPS"/>
+                    <field name="traccar_solo_gps"/>
+                    <field name="imei_preview"/>
                     <field name="partner_id"/>
                     <field name="partner_email"/>
                     <field name="traccar_email_preview"/>
                 </group>
+                <div class="alert alert-warning" role="alert"
+                     attrs="{'invisible': [('imei_warning', '=', False)]}">
+                    <field name="imei_warning" nolabel="1" readonly="1"/>
+                </div>
                 <div class="alert alert-info" role="alert"
                      attrs="{'invisible': [('existing_credential_id', '=', False)]}">
-                    Este vehículo ya tiene una credencial Traccar activa. Si el IMEI no
-                    cambió, al confirmar se reutiliza la misma credencial (no se genera
-                    password nuevo). Si el IMEI sí cambió, se revocará la actual y se
-                    creará una nueva.
+                    Este vehículo ya tiene una credencial Traccar activa. Si el IMEI que
+                    Traccar reporta no cambió, al confirmar se reutiliza la misma
+                    credencial (no se genera password nuevo). Si sí cambió (dispositivo
+                    físico distinto), se revocará la actual y se creará una nueva.
                 </div>
                 <footer>
                     <button name="action_confirm" type="object" string="Confirmar" class="btn-primary"/>
