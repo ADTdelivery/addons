@@ -2029,6 +2029,14 @@ class MobileAPIController(http.Controller):
                 'expires_at': expires,
             })
 
+            # Fuerza el flush (recompute de campos company-dependent / imagen del
+            # partner incluido) DENTRO de este try/except. Si no, Odoo lo hace solo
+            # al final del dispatch (self._cr.flush() en checked_call), fuera de
+            # nuestro control, y un error ahí se le escapa a nuestro _error(500, ...)
+            # y el cliente recibe la página HTML genérica de Odoo en vez de un JSON.
+            # Odoo 15 no tiene env.flush_all() (eso es de v16+): se flushea vía cursor.
+            request.env.cr.flush()
+
             return _json_response(_success({
                 'solicitudId': solicitud.id,
                 'partnerId': solicitud.partner_id.id or None,

@@ -817,16 +817,24 @@ class AdtSolicitudCliente(models.Model):
         apenas se registra — ya no hace falta ningún paso de "aprobar" para que exista.
         Sin `vat` (documento) ni vehículo asignado todavía: eso sigue siendo manual, y es
         justo lo que evita que cualquiera pueda loguearse como PLACA sin más (ver
-        mobile.customer.credential.sync_placa_credential)."""
+        mobile.customer.credential.sync_placa_credential).
+
+        `with_company()` fuerza una compañía concreta en la creación: en producción, el
+        usuario anónimo (auth='none') con el que corre este flujo puede no traer una
+        compañía válida en su contexto, y sin esto Odoo resuelve `self.env.company` a
+        False al calcular campos company-dependent de res.partner (ej. property_stock_*),
+        lo que genera SQL inválido (`company_id = false`) y aborta la transacción."""
         Partner = self.env['res.partner'].sudo()
+        company = self.env.company or self.env['res.company'].sudo().search([], limit=1, order='id')
         for rec in self:
             if rec.partner_id:
                 continue
             partner = Partner.search([('email', '=ilike', rec.email)], limit=1) if rec.email else Partner.browse()
             if not partner:
-                partner = Partner.create({
+                partner = Partner.with_company(company).create({
                     'name': ' '.join(filter(None, [rec.nombres, rec.apellido_paterno, rec.apellido_materno])),
                     'email': rec.email,
+                    'company_id': company.id,
                     'image_1920': rec.selfie or False,
                     'comment': 'Registrado desde la app (invitado). Provincia: %s. Distrito: %s.' % (
                         rec.provincia or '-', rec.distrito or '-'),
