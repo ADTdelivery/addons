@@ -717,110 +717,107 @@ class MobileAPIController(http.Controller):
                     limit=1,
                 )
 
-            if not cuenta:
-                return _json_response(
-                    _error(404, 'PLATE_NOT_FOUND', 'No existe préstamo activo para la placa indicada.'),
-                    status=404,
+            loan_data = None
+
+            if cuenta:
+                # Cuotas
+                cuotas = cuenta.cuota_ids.filtered(lambda c: c.type == 'cuota').sorted('fecha_cronograma')
+
+                # Sort cuotas by name (e.g., "Cuota 1", "Cuota 2", ...) in ascending order
+                cuotas = sorted(cuotas, key=lambda c: c.fecha_cronograma)
+
+                total_debt = cuenta.monto_total or 0.0
+                paid_amount = 0.0
+                installments_data = []
+
+                # ── New aggregate counters ─────────────────────────────────
+                cuota_total = len(cuotas)
+                cuotas_pagadas_count = 0
+                cuotas_retrasadas_list = []
+
+                for cuota in cuotas:
+                    # Compute paid amount
+                    saldo = getattr(cuota, 'saldo', None) or 0.0
+                    status = _installment_status(cuota)
+
+                    if status == 'PAID':
+                        paid_amount += (cuota.monto or 0.0)
+                        cuotas_pagadas_count += 1
+
+                    if cuota.state == 'retrasado':
+                        cuotas_retrasadas_list.append(cuota)
+
+                    late_fee = cuota.mora_total if hasattr(cuota, 'mora_total') else 0.0
+                    paid_at_raw = getattr(cuota, 'real_date', None)
+                    paid_at = _format_date(paid_at_raw) if paid_at_raw else None
+
+                    # Voucher URL
+                    voucher_url = None
+                    if cuota.voucher_image:
+                        AttachModel = request.env['ir.attachment'].sudo()
+                        attach = AttachModel.search([
+                            ('res_model', '=', 'adt.comercial.cuotas'),
+                            ('res_id', '=', cuota.id),
+                            ('res_field', '=', 'voucher_image'),
+                        ], limit=1)
+                        if attach:
+                            base_url = _get_base_url()
+                            voucher_url = _public_attachment_url(attach, base_url)
+
+                    installments_data.append({
+                        'number': cuota.id,
+                        'name': cuota.name or '',
+                        'dueDate': _format_date(cuota.fecha_cronograma),
+                        'amount': cuota.monto or 0.0,
+                        'status': status,
+                        'paidAt': paid_at,
+                        'lateFee': late_fee or 0.0,
+                        'lateFeeStatus': _late_fee_status(cuota),
+                        'voucherUrl': voucher_url,
+                        # Campo 9: suma cuota + mora
+                        'totalConMora': round((cuota.monto or 0.0) + (late_fee or 0.0), 2),
+                    })
+
+                pending_amount = max(0.0, total_debt - paid_amount)
+                paid_pct = round((paid_amount / total_debt * 100), 2) if total_debt > 0 else 0.0
+
+                # ── Aggregate values for new fields ───────────────────────
+                qty_cuotas_retrasadas = len(cuotas_retrasadas_list)
+                monto_cuotas_retrasadas = round(
+                    sum((c.saldo or 0.0) for c in cuotas_retrasadas_list), 2
                 )
 
-            # Cuotas
-            cuotas = cuenta.cuota_ids.filtered(lambda c: c.type == 'cuota').sorted('fecha_cronograma')
+                # Cuota pendiente del período actual: primera que no está retrasada ni pagada
+                cuota_pendiente_actual = next(
+                    (c for c in cuotas if c.state in ('pendiente', 'a_cuenta')), None
+                )
+                monto_cuota_pendiente = round(
+                    (cuota_pendiente_actual.saldo or 0.0) if cuota_pendiente_actual else 0.0, 2
+                )
 
-            # Sort cuotas by name (e.g., "Cuota 1", "Cuota 2", ...) in ascending order
-            cuotas = sorted(cuotas, key=lambda c: c.fecha_cronograma)
+                total_pendiente_cobrar = round(monto_cuotas_retrasadas + monto_cuota_pendiente, 2)
 
-            total_debt = cuenta.monto_total or 0.0
-            paid_amount = 0.0
-            installments_data = []
-
-            # ── New aggregate counters ─────────────────────────────────────
-            cuota_total = len(cuotas)
-            cuotas_pagadas_count = 0
-            cuotas_retrasadas_list = []
-
-            for cuota in cuotas:
-                # Compute paid amount
-                saldo = getattr(cuota, 'saldo', None) or 0.0
-                status = _installment_status(cuota)
-
-                if status == 'PAID':
-                    paid_amount += (cuota.monto or 0.0)
-                    cuotas_pagadas_count += 1
-
-                if cuota.state == 'retrasado':
-                    cuotas_retrasadas_list.append(cuota)
-
-                late_fee = cuota.mora_total if hasattr(cuota, 'mora_total') else 0.0
-                paid_at_raw = getattr(cuota, 'real_date', None)
-                paid_at = _format_date(paid_at_raw) if paid_at_raw else None
-
-                # Voucher URL
-                voucher_url = None
-                if cuota.voucher_image:
-                    AttachModel = request.env['ir.attachment'].sudo()
-                    attach = AttachModel.search([
-                        ('res_model', '=', 'adt.comercial.cuotas'),
-                        ('res_id', '=', cuota.id),
-                        ('res_field', '=', 'voucher_image'),
-                    ], limit=1)
-                    if attach:
-                        base_url = _get_base_url()
-                        voucher_url = _public_attachment_url(attach, base_url)
-
-                installments_data.append({
-                    'number': cuota.id,
-                    'name': cuota.name or '',
-                    'dueDate': _format_date(cuota.fecha_cronograma),
-                    'amount': cuota.monto or 0.0,
-                    'status': status,
-                    'paidAt': paid_at,
-                    'lateFee': late_fee or 0.0,
-                    'lateFeeStatus': _late_fee_status(cuota),
-                    'voucherUrl': voucher_url,
-                    # Campo 9: suma cuota + mora
-                    'totalConMora': round((cuota.monto or 0.0) + (late_fee or 0.0), 2),
-                })
-
-            pending_amount = max(0.0, total_debt - paid_amount)
-            paid_pct = round((paid_amount / total_debt * 100), 2) if total_debt > 0 else 0.0
-
-            # ── Aggregate values for new fields ───────────────────────────
-            qty_cuotas_retrasadas = len(cuotas_retrasadas_list)
-            monto_cuotas_retrasadas = round(
-                sum((c.saldo or 0.0) for c in cuotas_retrasadas_list), 2
-            )
-
-            # Cuota pendiente del período actual: primera que no está retrasada ni pagada
-            cuota_pendiente_actual = next(
-                (c for c in cuotas if c.state in ('pendiente', 'a_cuenta')), None
-            )
-            monto_cuota_pendiente = round(
-                (cuota_pendiente_actual.saldo or 0.0) if cuota_pendiente_actual else 0.0, 2
-            )
-
-            total_pendiente_cobrar = round(monto_cuotas_retrasadas + monto_cuota_pendiente, 2)
-
-            loan_data = {
-                'id': str(cuenta.id),
-                'referenceNo': cuenta.reference_no or '',
-                'state': cuenta.state or '',
-                'totalDebt': total_debt,
-                'paidAmount': paid_amount,
-                'pendingAmount': pending_amount,
-                'paidPercentage': paid_pct,
-                'currency': 'S/',
-                # ── Nuevos campos ──────────────────────────────────────────
-                'plate': plate_upper,                               # Campo 3
-                'paymentType': cuenta.periodicidad or '',           # Campo 4
-                'cuotaTotal': cuota_total,                          # Campo 1
-                'cuotasPagadas': cuotas_pagadas_count,              # Campo 2
-                'cuotasRetrasadas': qty_cuotas_retrasadas,          # Campo 5
-                'montoCuotasRetrasadas': monto_cuotas_retrasadas,   # Campo 6
-                'montoCuotaPendiente': monto_cuota_pendiente,       # Campo 7
-                'totalPendienteCobrar': total_pendiente_cobrar,     # Campo 8
-                # ───────────────────────────────────────────────────────────
-                'installments': installments_data,
-            }
+                loan_data = {
+                    'id': str(cuenta.id),
+                    'referenceNo': cuenta.reference_no or '',
+                    'state': cuenta.state or '',
+                    'totalDebt': total_debt,
+                    'paidAmount': paid_amount,
+                    'pendingAmount': pending_amount,
+                    'paidPercentage': paid_pct,
+                    'currency': 'S/',
+                    # ── Nuevos campos ──────────────────────────────────────
+                    'plate': plate_upper,                               # Campo 3
+                    'paymentType': cuenta.periodicidad or '',           # Campo 4
+                    'cuotaTotal': cuota_total,                          # Campo 1
+                    'cuotasPagadas': cuotas_pagadas_count,              # Campo 2
+                    'cuotasRetrasadas': qty_cuotas_retrasadas,          # Campo 5
+                    'montoCuotasRetrasadas': monto_cuotas_retrasadas,   # Campo 6
+                    'montoCuotaPendiente': monto_cuota_pendiente,       # Campo 7
+                    'totalPendienteCobrar': total_pendiente_cobrar,     # Campo 8
+                    # ───────────────────────────────────────────────────────
+                    'installments': installments_data,
+                }
 
             # ── Payment accounts (static / config) ───────────────────────
             payment_accounts = _get_payment_accounts()

@@ -196,6 +196,31 @@ Solo para `POST /api/v1/pagos/registrar`:
 }
 ```
 
+### Response (200, sin cuenta/préstamo)
+
+Si la placa tiene un cliente asociado pero no tiene ninguna cuenta (préstamo) vigente,
+`loan` se retorna como `null` en lugar de responder con un error 404:
+
+```json
+{
+  "success": true,
+  "data": {
+    "customer": {
+      "id": "55",
+      "fullName": "Juan Perez",
+      "phone": "999999999",
+      "address": "...",
+      "nationality": null,
+      "maritalStatus": "SINGLE"
+    },
+    "loan": null,
+    "paymentAccounts": [],
+    "contacts": [],
+    "unreadCount": 0
+  }
+}
+```
+
 ## 4.3 Documentos por placa
 
 - **Servicio**: `Documents`
