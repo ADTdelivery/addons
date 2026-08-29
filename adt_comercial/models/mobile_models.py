@@ -833,6 +833,14 @@ class AdtSolicitudCliente(models.Model):
             if not partner:
                 partner = Partner.with_company(company).create({
                     'name': ' '.join(filter(None, [rec.nombres, rec.apellido_paterno, rec.apellido_materno])),
+                    # nombre_completo / apellido_paterno / apellido_materno son campos
+                    # agregados a res.partner por contacto_addons (ver
+                    # contacto_addons/models/models.py) — su onchange solo arma `name`
+                    # en la UI, no aplica al crear por ORM, así que hay que setearlos acá
+                    # explícitamente para que no queden vacíos.
+                    'nombre_completo': rec.nombres,
+                    'apellido_paterno': rec.apellido_paterno,
+                    'apellido_materno': rec.apellido_materno,
                     'email': rec.email,
                     'company_id': company.id,
                     'image_1920': rec.selfie or False,
