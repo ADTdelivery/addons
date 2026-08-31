@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <record id="paperformat_credito_cronograma" model="report.paperformat">
+        <field name="name">Crédito Cronograma A4</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">15</field>
+        <field name="margin_bottom">20</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">35</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <template id="report_cronograma_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2 class="text-center">Cronograma de pagos</h2>
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Contrato:</strong> <span t-esc="doc.name"/><br/>
+                                <strong>Cliente:</strong> <span t-esc="doc.partner_id.name"/><br/>
+                                <strong>Estado:</strong> <span t-esc="dict(doc._fields['estado'].selection).get(doc.estado)"/>
+                            </div>
+                            <div class="col-6 text-right">
+                                <strong>Frecuencia:</strong> <span t-esc="dict(doc._fields['frecuencia'].selection).get(doc.frecuencia)"/><br/>
+                                <strong>N° de cuotas:</strong> <span t-esc="doc.numero_cuotas"/><br/>
+                                <strong>Monto por cuota:</strong> <span t-esc="'%.2f' % doc.monto_cuota"/> <span t-esc="doc.currency_id.symbol"/>
+                            </div>
+                        </div>
+                        <br/>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Monto total</th>
+                                <td class="text-right"><span t-esc="'%.2f' % doc.monto_total"/></td>
+                                <th>Enganche</th>
+                                <td class="text-right"><span t-esc="'%.2f' % doc.enganche"/></td>
+                                <th>Financiado</th>
+                                <td class="text-right"><span t-esc="'%.2f' % doc.monto_financiado"/></td>
+                            </tr>
+                        </table>
+                        <br/>
+                        <table class="table table-sm table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th># Cuota</th>
+                                    <th>Fecha vencimiento</th>
+                                    <th class="text-right">Monto</th>
+                                    <th class="text-right">Pagado</th>
+                                    <th class="text-right">Saldo</th>
+                                    <th class="text-right">Días mora</th>
+                                    <th class="text-right">Mora</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="doc.cuota_ids" t-as="cuota">
+                                    <td><span t-esc="cuota.numero_cuota"/></td>
+                                    <td><span t-esc="cuota.fecha_vencimiento"/></td>
+                                    <td class="text-right"><span t-esc="'%.2f' % cuota.monto"/></td>
+                                    <td class="text-right"><span t-esc="'%.2f' % cuota.monto_pagado"/></td>
+                                    <td class="text-right"><span t-esc="'%.2f' % cuota.saldo"/></td>
+                                    <td class="text-right"><span t-esc="cuota.dias_mora"/></td>
+                                    <td class="text-right"><span t-esc="'%.2f' % cuota.mora_monto"/></td>
+                                    <td><span t-esc="dict(cuota._fields['estado'].selection).get(cuota.estado)"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_cronograma" model="ir.actions.report">
+        <field name="name">Imprimir cronograma</field>
+        <field name="model">credito.contrato</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">adt_credito.report_cronograma_document</field>
+        <field name="report_file">adt_credito.report_cronograma_document</field>
+        <field name="binding_model_id" ref="model_credito_contrato"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_credito_cronograma"/>
+    </record>
+</odoo>

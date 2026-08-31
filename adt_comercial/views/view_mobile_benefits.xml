@@ -99,10 +99,117 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_mobile_benefits"
-              name="Beneficios"
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Bloque "App" — organizado como la navegación real de la app móvil
+         (Inicio de sesión / Mi vehículo / Tienda de repuestos / Novedades y
+         Noticias / Banners Home / Notificaciones), en paralelo a los bloques
+         técnicos (Configuración General, Clientes y Accesos, Contenido y
+         Marketing, Técnico). Cada hoja de abajo reutiliza la MISMA acción ya
+         definida en su bloque original — es solo otra puerta de entrada a lo
+         mismo, no se duplica dato ni lógica, solo el acceso desde el menú.
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <menuitem id="menu_mobile_app"
+              name="App"
               parent="menu_mobile_root"
+              groups="group_access_adt_movil"
+              sequence="10"/>
+
+    <menuitem id="menu_mobile_app_login"
+              name="Inicio de sesión"
+              parent="menu_mobile_app"
+              groups="group_access_adt_movil"
+              sequence="10"/>
+    <menuitem id="menu_mobile_app_login_images"
+              name="Imágenes de la App"
+              parent="menu_mobile_app_login"
+              action="action_mobile_app_image"
+              groups="group_access_adt_movil"
+              sequence="10"/>
+
+    <menuitem id="menu_mobile_app_vehiculo"
+              name="Mi vehículo"
+              parent="menu_mobile_app"
+              groups="group_access_adt_movil"
+              sequence="20"/>
+    <menuitem id="menu_mobile_app_vehiculo_benefits"
+              name="Beneficios"
+              parent="menu_mobile_app_vehiculo"
               action="action_mobile_benefit"
+              groups="group_access_adt_movil"
+              sequence="10"/>
+    <menuitem id="menu_mobile_app_vehiculo_payment"
+              name="Cuenta de Pago"
+              parent="menu_mobile_app_vehiculo"
+              action="action_mobile_payment_account"
+              groups="group_access_adt_movil"
+              sequence="20"/>
+    <menuitem id="menu_mobile_app_vehiculo_support"
+              name="Contacto de Soporte"
+              parent="menu_mobile_app_vehiculo"
+              action="action_mobile_support_contact"
+              groups="group_access_adt_movil"
+              sequence="30"/>
+
+    <menuitem id="menu_mobile_app_tienda"
+              name="Tienda de repuestos"
+              parent="menu_mobile_app"
+              groups="group_access_adt_movil"
+              sequence="30"/>
+    <menuitem id="menu_mobile_app_tienda_productos"
+              name="Productos"
+              parent="menu_mobile_app_tienda"
+              action="action_mobile_catalog_products"
+              groups="group_access_adt_movil"
+              sequence="10"/>
+    <menuitem id="menu_mobile_app_tienda_cta"
+              name="Botón comprar catálogo"
+              parent="menu_mobile_app_tienda"
+              action="action_mobile_catalog_cta_config_open_singleton"
+              groups="group_access_adt_movil"
+              sequence="20"/>
+
+    <menuitem id="menu_mobile_app_noticias"
+              name="Novedades y Noticias"
+              parent="menu_mobile_app"
+              groups="group_access_adt_movil"
+              sequence="40"/>
+    <menuitem id="menu_mobile_app_noticias_promos"
+              name="Promociones"
+              parent="menu_mobile_app_noticias"
+              action="action_mobile_promotion"
+              groups="group_access_adt_movil"
+              sequence="10"/>
+
+    <menuitem id="menu_mobile_app_banners"
+              name="Banners Home"
+              parent="menu_mobile_app"
+              groups="group_access_adt_movil"
+              sequence="50"/>
+    <menuitem id="menu_mobile_app_banners_content"
+              name="Banner Slide"
+              parent="menu_mobile_app_banners"
+              action="action_mobile_content_item"
+              groups="group_access_adt_movil"
+              sequence="10"/>
+    <menuitem id="menu_mobile_app_banners_fullscreen"
+              name="Publicidad Full Screen"
+              parent="menu_mobile_app_banners"
+              action="action_mobile_content_item_fullscreen"
+              groups="group_access_adt_movil"
+              sequence="20"/>
+
+    <menuitem id="menu_mobile_app_notificaciones"
+              name="Notificaciones"
+              parent="menu_mobile_app"
+              groups="group_access_adt_movil"
               sequence="60"/>
+    <menuitem id="menu_mobile_app_notificaciones_masivas"
+              name="Envío de notificaciones masivas"
+              parent="menu_mobile_app_notificaciones"
+              action="action_mobile_notificacion_masiva_wizard"
+              groups="group_access_adt_movil"
+              sequence="10"/>
 
 </odoo>

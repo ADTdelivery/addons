@@ -1,0 +1,28 @@
+<odoo>
+    <data>
+        <record id="view_credito_registrar_mora_form" model="ir.ui.view">
+            <field name="name">credito.registrar.mora.form</field>
+            <field name="model">credito.registrar.mora</field>
+            <field name="arch" type="xml">
+                <form string="Registrar mora manual">
+                    <group>
+                        <field name="cuota_id" readonly="1"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="mora_monto"/>
+                    </group>
+                    <footer>
+                        <button name="action_confirmar" type="object" string="Confirmar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_credito_registrar_mora" model="ir.actions.act_window">
+            <field name="name">Registrar mora manual</field>
+            <field name="res_model">credito.registrar.mora</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

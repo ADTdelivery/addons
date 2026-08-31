@@ -160,14 +160,16 @@
 
     <menuitem id="menu_adt_solicitud_cliente"
               name="Solicitudes de Registro"
-              parent="menu_mobile_config"
+              parent="menu_mobile_customers"
               action="action_adt_solicitud_cliente"
-              sequence="40"/>
+              groups="group_access_adt_movil"
+              sequence="10"/>
 
     <menuitem id="menu_mobile_customer_credential"
               name="Credenciales de Login"
-              parent="menu_mobile_config"
+              parent="menu_mobile_customers"
               action="action_mobile_customer_credential"
-              sequence="50"/>
+              groups="group_access_adt_movil"
+              sequence="20"/>
 
 </odoo>

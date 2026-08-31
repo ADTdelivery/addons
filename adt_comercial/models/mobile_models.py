@@ -13,6 +13,7 @@ Models for Mobile App API
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from psycopg2 import IntegrityError
 from markupsafe import Markup, escape
 from urllib.parse import quote_plus
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -26,32 +27,119 @@ _logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HU-001  App Version
+#
+# Registro ÚNICO (singleton): solo puede existir uno en toda la instancia
+# (create() lo bloquea, unlink() también). Para publicar una nueva versión se
+# EDITA el mismo registro (latest_version); no se crean registros nuevos por
+# cada release. Cada vez que `latest_version` cambia, el valor ANTERIOR queda
+# guardado dentro del propio registro, con fecha, en `history_ids`
+# (mobile.app.version.history) — ese es el historial de versiones. Además,
+# por venir de `mail.thread`, el chatter también registra el cambio (quién y
+# cuándo) como bitácora complementaria de auditoría.
 # ─────────────────────────────────────────────────────────────────────────────
 class MobileAppVersion(models.Model):
     _name = 'mobile.app.version'
+    _inherit = ['mail.thread']
     _description = 'Versión de la Aplicación Móvil'
     _order = 'create_date desc'
 
     name = fields.Char(string='Nombre / Tag', default='v1.0.0')
-    platform = fields.Selection([
-        ('android', 'Android'),
-        ('ios', 'iOS'),
-        ('all', 'Todas'),
-    ], string='Plataforma', default='all', required=True)
-
-    latest_version = fields.Char(string='Última versión disponible', required=True)
-    minimum_version = fields.Char(string='Versión mínima requerida', required=True)
-    update_required = fields.Boolean(string='Actualización obligatoria', default=False)
-    update_available = fields.Boolean(string='Actualización disponible', default=False)
+    latest_version = fields.Char(string='Última versión disponible', required=True, default='1.0.0', tracking=True)
+    # No hay campo "actualización obligatoria" manual: se calcula en el
+    # controller comparando la versión del cliente vs `latest_version`
+    # (ver /v1/app/version en controllers/mobile_api.py).
     update_message = fields.Text(string='Mensaje de actualización')
 
     store_url_android = fields.Char(string='URL Tienda Android (Play Store)')
     store_url_ios = fields.Char(string='URL Tienda iOS (App Store)')
 
-    maintenance_mode = fields.Boolean(string='Modo Mantenimiento', default=False)
-    maintenance_message = fields.Text(string='Mensaje de Mantenimiento')
+    history_ids = fields.One2many(
+        'mobile.app.version.history', 'app_version_id',
+        string='Historial de versiones anteriores',
+    )
 
     active = fields.Boolean(default=True)
+
+    # Campo técnico (no se muestra en ninguna vista): siempre vale 1. El
+    # constraint unique de abajo lo usa para garantizar el singleton también
+    # a nivel de base de datos, de forma atómica — el chequeo en create()
+    # de más abajo es solo para dar un mensaje de error legible; sin este
+    # constraint, dos requests simultáneos podrían colarse y crear 2 filas.
+    singleton_key = fields.Integer(default=1, readonly=True, copy=False)
+
+    _sql_constraints = [
+        ('mobile_app_version_singleton_uniq', 'unique(singleton_key)',
+         'Solo puede existir un registro de "Versión de la App".'),
+    ]
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if len(vals_list) > 1 or self.with_context(active_test=False).search_count([]):
+            raise UserError(
+                'Solo puede existir un registro de "Versión de la App". '
+                'Edita el registro existente en vez de crear uno nuevo.'
+            )
+        return super(MobileAppVersion, self).create(vals_list)
+
+    def write(self, vals):
+        new_version = vals.get('latest_version')
+        if new_version:
+            for rec in self:
+                if rec.latest_version and rec.latest_version != new_version:
+                    self.env['mobile.app.version.history'].sudo().create({
+                        'app_version_id': rec.id,
+                        'version': rec.latest_version,
+                        'changed_date': fields.Datetime.now(),
+                    })
+        return super(MobileAppVersion, self).write(vals)
+
+    def unlink(self):
+        raise UserError('El registro de "Versión de la App" no se puede eliminar.')
+
+    @api.model
+    def _get_or_create_singleton(self):
+        config = self.with_context(active_test=False).search([], order='id asc', limit=1)
+        if config:
+            return config
+        try:
+            with self.env.cr.savepoint():
+                return self.create({})
+        except IntegrityError:
+            # Carrera: otro request creó el singleton al mismo tiempo (lo bloqueó
+            # el unique(singleton_key)). Se recupera el que ganó la carrera.
+            return self.with_context(active_test=False).search([], order='id asc', limit=1)
+
+    @api.model
+    def action_open_singleton(self):
+        """Server action: siempre abre el único registro (creándolo si aún no existe),
+        nunca una lista, para que no se pueda crear un segundo registro desde el menú."""
+        config = self._get_or_create_singleton()
+        form_view = self.env.ref('adt_comercial.view_mobile_app_version_form', raise_if_not_found=False)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Versión de la App',
+            'res_model': 'mobile.app.version',
+            'view_mode': 'form',
+            'views': [(form_view.id, 'form')] if form_view else [(False, 'form')],
+            'res_id': config.id,
+            'target': 'current',
+        }
+
+
+class MobileAppVersionHistory(models.Model):
+    _name = 'mobile.app.version.history'
+    _description = 'Historial de versiones anteriores de la App'
+    _order = 'changed_date desc, id desc'
+
+    app_version_id = fields.Many2one(
+        'mobile.app.version', string='Configuración de versión',
+        required=True, ondelete='cascade',
+    )
+    version = fields.Char(string='Versión', required=True)
+    changed_date = fields.Datetime(
+        string='Reemplazada el', required=True,
+        default=lambda self: fields.Datetime.now(),
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

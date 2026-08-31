@@ -1,0 +1,9 @@
+// Dibuja un borde visible alrededor de las barras de progreso de Crédito (cuotas
+// pagadas / cuotas atrasadas), tanto en la lista como en el formulario del contrato.
+// Se escopea con .o_credito_progressbar (agregado vía class="..." en la vista) para no
+// afectar otras barras de progreso del sistema.
+.o_credito_progressbar .o_progress {
+    border: 1px solid #c4c4c4;
+    border-radius: 4px;
+    overflow: hidden;
+}

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Envío de notificaciones masivas
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Historial: cada envío queda como una fila permanente (modelo
+         persistente, no wizard transitorio) — la pantalla entra por este
+         listado, con botón "Nuevo" para componer otro envío, en vez de
+         saltar directo a un formulario en blanco cada vez. -->
+    <record id="view_mobile_notificacion_masiva_wizard_tree" model="ir.ui.view">
+        <field name="name">mobile.notificacion.masiva.wizard.tree</field>
+        <field name="model">mobile.notificacion.masiva.wizard</field>
+        <field name="arch" type="xml">
+            <tree string="Historial de envíos de notificaciones masivas"
+                  decoration-muted="state == 'draft'">
+                <field name="create_date" string="Fecha"/>
+                <field name="title"/>
+                <field name="notification_type"/>
+                <field name="partner_ids" widget="many2many_tags"/>
+                <field name="link_type"/>
+                <field name="sent_count" string="Enviados"/>
+                <field name="no_device_count" string="Sin dispositivo"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'sent'"
+                       decoration-info="state == 'draft'"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Pantalla propia (no popup): target="current", igual que cualquier
+         otra pantalla del módulo Móvil, para poder ver bien el formulario
+         completo y sus destinatarios antes de enviar. Una vez enviada
+         (state=sent) queda bloqueada como constancia del historial. -->
+    <record id="view_mobile_notificacion_masiva_wizard_form" model="ir.ui.view">
+        <field name="name">mobile.notificacion.masiva.wizard.form</field>
+        <field name="model">mobile.notificacion.masiva.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Envío de notificaciones masivas">
+                <header>
+                    <button name="action_send" type="object" string="Enviar" class="btn-primary"
+                            attrs="{'invisible': [('state', '=', 'sent')]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,sent"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Envío de notificaciones masivas</h1>
+                    </div>
+                    <group attrs="{'readonly': [('state', '=', 'sent')]}">
+                        <group string="Destinatarios">
+                            <field name="partner_ids" widget="many2many_tags"/>
+                            <button name="action_select_all_partners" type="object"
+                                    string="Seleccionar todos los clientes"
+                                    class="btn-link px-0"
+                                    attrs="{'invisible': [('state', '=', 'sent')]}"
+                                    help="Llena la lista con todos los clientes registrados; luego puedes quitar alguno a mano."/>
+                            <field name="notification_type"/>
+                        </group>
+                        <group string="Mensaje">
+                            <field name="title"/>
+                            <field name="body"/>
+                        </group>
+                    </group>
+                    <group string="Redirección al tocar la notificación"
+                           attrs="{'readonly': [('state', '=', 'sent')]}">
+                        <field name="link_type"/>
+                        <field name="deep_link"
+                               attrs="{'invisible': [('link_type', '!=', 'DEEP_LINK')],
+                                       'required': [('link_type', '=', 'DEEP_LINK')]}"/>
+                        <field name="external_url"
+                               attrs="{'invisible': [('link_type', '!=', 'EXTERNAL')],
+                                       'required': [('link_type', '=', 'EXTERNAL')]}"/>
+                    </group>
+                    <group string="Envío" attrs="{'readonly': [('state', '=', 'sent')]}">
+                        <field name="log_only"/>
+                    </group>
+                    <group string="Resultado del envío" attrs="{'invisible': [('state', '!=', 'sent')]}">
+                        <field name="sent_date"/>
+                        <field name="sent_count"/>
+                        <field name="no_device_count"/>
+                        <field name="result_summary" nolabel="1" colspan="2"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mobile_notificacion_masiva_wizard" model="ir.actions.act_window">
+        <field name="name">Envío de notificaciones masivas</field>
+        <field name="res_model">mobile.notificacion.masiva.wizard</field>
+        <field name="view_mode">tree,form</field>
+        <field name="target">current</field>
+    </record>
+
+</odoo>

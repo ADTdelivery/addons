@@ -1,0 +1,37 @@
+<odoo>
+    <data>
+        <record id="view_product_template_form_credito" model="ir.ui.view">
+            <field name="name">product.template.form.credito</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//page[@name='sales']" position="inside">
+                    <group string="Venta a crédito">
+                        <field name="es_financiable"/>
+                        <field name="credito_enganche_minimo_pct"
+                               attrs="{'invisible': [('es_financiable', '=', False)]}"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_product_template_list_credito" model="ir.ui.view">
+            <field name="name">product.template.list.credito</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_tree_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="es_financiable" optional="hide"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="action_product_financiable" model="ir.actions.act_window">
+            <field name="name">Productos financiables</field>
+            <field name="res_model">product.template</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[('es_financiable', '=', True)]</field>
+            <field name="context">{'default_es_financiable': True}</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Mapa Pantallas ↔ Servicios ↔ Odoo
+         Ver context/mapa-pantallas-servicios-odoo.md — cada pantalla de
+         la app se dibuja completa; solo las secciones que en verdad
+         cargan datos desde un servicio Odoo son "tap zones" (con borde
+         y ✏️ Editar); el resto es diseño fijo de la app (gris, sin acción).
+    ═══════════════════════════════════════════════════════════════ -->
+
+    <t t-name="adt_comercial.MobileHomePreview">
+        <div class="o_mobile_home_preview">
+            <p class="text-muted o_mobile_home_preview_intro">
+                Mapa de pantallas de la app móvil ADT Client, a tamaño real de dispositivo.
+                Cada celular tiene su propio scroll — desliza dentro de él para ver toda la
+                pantalla. Las secciones con borde azul y <b>✏️ Editar</b> traen datos reales
+                de Odoo — tócalas para ir directo a agregar/editar/quitar ese contenido. Las
+                secciones grises son diseño fijo de la app: no hay nada que cargar desde Odoo
+                para ellas todavía.
+            </p>
+
+            <div class="o_mobile_screens_grid">
+
+                <!-- ═══ 3.1 Login ═══ -->
+                <div class="o_mobile_screen">
+                    <div class="o_mobile_screen_title">📱 Login</div>
+                    <div class="o_mobile_phone_frame">
+                        <div class="o_mobile_phone_notch"/>
+                        <div class="o_mobile_phone_screen">
+                            <div class="o_mobile_tap_zone o_mobile_login_hero" data-action="action_mobile_app_image">
+                                <t t-if="widget.data.login.has_image">
+                                    <img t-attf-src="/web/image/mobile.app.image/#{widget.data.login.image_id}/image"
+                                         class="o_mobile_login_hero_image"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="o_mobile_placeholder">Sin imagen configurada (código "LOGIN")</div>
+                                </t>
+                                <span class="o_mobile_edit_badge">✏️ Editar</span>
+                            </div>
+                            <div class="o_mobile_static_zone o_mobile_login_form">
+                                <div class="o_mobile_fake_input"/>
+                                <div class="o_mobile_fake_input"/>
+                                <div class="o_mobile_fake_button">Ingresar</div>
+                                <div class="o_mobile_static_caption">Diseño fijo de la app</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ 3.2 Home / Inicio ═══ -->
+                <div class="o_mobile_screen" id="o_mobile_screen_home">
+                    <div class="o_mobile_screen_title">📱 Home / Inicio</div>
+                    <div class="o_mobile_phone_frame">
+                        <div class="o_mobile_phone_notch"/>
+                        <div class="o_mobile_phone_screen">
+
+                            <div class="o_mobile_static_zone o_mobile_home_header">
+                                <span class="o_mobile_avatar">👤</span>
+                                <span class="o_mobile_home_header_name">Cliente</span>
+                                <span class="o_mobile_tap_zone o_mobile_bell"
+                                      data-action="action_mobile_notificaciones_masivas"
+                                      title="Notificaciones — ir a Envío de notificaciones masivas">🔔</span>
+                            </div>
+
+                            <div class="o_mobile_tap_zone o_mobile_home_banner" data-action="action_mobile_content_item">
+                                <div class="o_mobile_home_banner_inner"/>
+                                <span class="o_mobile_edit_badge">✏️ Editar</span>
+                            </div>
+
+                            <div class="o_mobile_home_quick_access">
+                                <div class="o_mobile_static_zone o_mobile_quick_card" data-scroll-to="o_mobile_screen_vehiculo">
+                                    🏍️<br/>Mi Vehículo
+                                </div>
+                                <div class="o_mobile_static_zone o_mobile_quick_card o_mobile_quick_card_disabled">
+                                    🛡️<br/>Seguridad
+                                </div>
+                                <div class="o_mobile_static_zone o_mobile_quick_card" data-scroll-to="o_mobile_screen_tienda">
+                                    🛒<br/>Tienda y Repuesto
+                                </div>
+                            </div>
+
+                            <div class="o_mobile_tap_zone o_mobile_home_banner_novedades" data-action="action_mobile_promotion">
+                                Banner "Novedades" — abre Novedades y Noticias
+                                <span class="o_mobile_edit_badge">✏️ Editar</span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ 3.2bis Publicidad Full Screen (dentro de "Banners Home") ═══
+                     No es una pantalla propia de navegación: es un anuncio interstitial
+                     que se puede mostrar por encima del Home (p.ej. al abrir la app).
+                     Mismo modelo/servicio que el banner de Home, con section="FULL_SCREEN"
+                     en vez de "BANNER_HOME" — por eso se resalta como sección de servicio
+                     completa, no como una pantalla más de la navegación inferior. -->
+                <div class="o_mobile_screen">
+                    <div class="o_mobile_screen_title">📱 Home - Publicidad Full Screen</div>
+                    <div class="o_mobile_phone_frame">
+                        <div class="o_mobile_phone_notch"/>
+                        <div class="o_mobile_phone_screen">
+                            <div class="o_mobile_tap_zone o_mobile_whole_screen o_mobile_fullscreen_ad"
+                                 data-action="action_mobile_content_item_fullscreen">
+                                <div class="o_mobile_fullscreen_ad_label">Publicidad</div>
+                                <div class="o_mobile_screen_intro">
+                                    Anuncio a pantalla completa (interstitial) — se muestra sobre
+                                    el Home, ej. al abrir la app. Mismo servicio que el banner de
+                                    Home, con section="FULL_SCREEN".
+                                </div>
+                                <t t-if="widget.data.fullscreen_ad.configured">
+                                    <div class="o_mobile_fullscreen_ad_close">✕</div>
+                                    <t t-if="widget.data.fullscreen_ad.has_image">
+                                        <img t-attf-src="/web/image/mobile.content.item/#{widget.data.fullscreen_ad.id}/image"
+                                             class="o_mobile_fullscreen_ad_image"/>
+                                    </t>
+                                    <div class="o_mobile_banner_caption">
+                                        <div class="o_mobile_banner_title"><t t-esc="widget.data.fullscreen_ad.title"/></div>
+                                        <div t-if="widget.data.fullscreen_ad.subtitle" class="o_mobile_banner_subtitle">
+                                            <t t-esc="widget.data.fullscreen_ad.subtitle"/>
+                                        </div>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="o_mobile_placeholder">
+                                        Sin publicidad full screen configurada (sección "FULL_SCREEN").
+                                    </div>
+                                </t>
+                                <span class="o_mobile_edit_badge">✏️ Editar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ 3.3 Tienda y Repuesto ═══ -->
+                <div class="o_mobile_screen" id="o_mobile_screen_tienda">
+                    <div class="o_mobile_screen_title">📱 Tienda y Repuesto</div>
+                    <div class="o_mobile_phone_frame">
+                        <div class="o_mobile_phone_notch"/>
+                        <div class="o_mobile_phone_screen">
+                            <div class="o_mobile_tap_zone o_mobile_whole_screen" data-action="action_mobile_catalog_products">
+                                <div class="o_mobile_screen_intro">Toda la pantalla = catálogo (100% servicio)</div>
+                                <t t-if="widget.data.products.length">
+                                    <div class="o_mobile_product_list">
+                                        <t t-foreach="widget.data.products" t-as="p" t-key="p.id">
+                                            <div class="o_mobile_product_card">
+                                                <div class="o_mobile_product_name"><t t-esc="p.name"/></div>
+                                                <div class="o_mobile_product_price">S/ <t t-esc="p.price.toFixed(2)"/></div>
+                                                <div t-if="p.badge" class="o_mobile_product_badge"><t t-esc="p.badge"/></div>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    <div class="text-muted o_mobile_section_footer">
+                                        <t t-esc="widget.data.products_count"/> producto(s) publicados.
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="o_mobile_placeholder">Sin productos publicados.</div>
+                                </t>
+                                <span class="o_mobile_edit_badge">✏️ Editar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ 3.4 Novedades y Noticias ═══ -->
+                <div class="o_mobile_screen">
+                    <div class="o_mobile_screen_title">📱 Novedades y Noticias</div>
+                    <div class="o_mobile_phone_frame">
+                        <div class="o_mobile_phone_notch"/>
+                        <div class="o_mobile_phone_screen">
+                            <div class="o_mobile_tap_zone o_mobile_whole_screen" data-action="action_mobile_promotion">
+                                <div class="o_mobile_screen_intro">Toda la pantalla = feed de promociones (100% servicio)</div>
+                                <t t-if="widget.data.promotions.length">
+                                    <t t-foreach="widget.data.promotions" t-as="promo" t-key="promo.id">
+                                        <div class="o_mobile_promo_card">
+                                            <t t-if="promo.has_image">
+                                                <img t-attf-src="/web/image/mobile.promotion/#{promo.id}/image"
+                                                     class="o_mobile_promo_image"/>
+                                            </t>
+                                            <div class="o_mobile_promo_title"><t t-esc="promo.title"/></div>
+                                            <div class="o_mobile_promo_body"><t t-esc="promo.body"/></div>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <div class="o_mobile_placeholder">Sin promociones activas.</div>
+                                </t>
+                                <span class="o_mobile_edit_badge">✏️ Editar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ 3.5 Vehículo ═══ -->
+                <div class="o_mobile_screen" id="o_mobile_screen_vehiculo">
+                    <div class="o_mobile_screen_title">📱 Vehículo</div>
+                    <div class="o_mobile_phone_frame">
+                        <div class="o_mobile_phone_notch"/>
+                        <div class="o_mobile_phone_screen">
+
+                            <div class="o_mobile_tap_zone o_mobile_vehiculo_benefits" data-action="action_mobile_benefit">
+                                <div class="o_mobile_screen_intro">Banner "Beneficios para tu moto" → Hub de Beneficios</div>
+                                <t t-if="widget.data.benefits.length">
+                                    <t t-foreach="widget.data.benefits" t-as="be" t-key="be.id">
+                                        <div class="o_mobile_benefit_chip">
+                                            <t t-esc="be.titulo"/> <span class="text-muted">(<t t-esc="be.categoria"/>)</span>
+                                        </div>
+                                    </t>
+                                    <div class="text-muted o_mobile_section_footer">
+                                        <t t-esc="widget.data.benefits_count"/> beneficio(s) activo(s).
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="o_mobile_placeholder">Sin beneficios configurados.</div>
+                                </t>
+                                <span class="o_mobile_edit_badge">✏️ Editar</span>
+                            </div>
+
+                            <div class="o_mobile_vehiculo_grid">
+                                <div class="o_mobile_static_zone o_mobile_grid_cell">📄<br/>Documentos</div>
+                                <div class="o_mobile_static_zone o_mobile_grid_cell">🎫<br/>Papeletas</div>
+                                <div class="o_mobile_static_zone o_mobile_grid_cell">🔧<br/>Mantenimiento</div>
+                                <div class="o_mobile_static_zone o_mobile_grid_cell">📍<br/>Ubicación GPS</div>
+                                <div class="o_mobile_tap_zone o_mobile_grid_cell" data-action="action_mobile_payment_account">
+                                    💳<br/>Cuenta autorizada
+                                    <div t-if="widget.data.payment_account_name" class="o_mobile_grid_cell_value">
+                                        <t t-esc="widget.data.payment_account_name"/>
+                                    </div>
+                                    <span class="o_mobile_edit_badge">✏️ Editar</span>
+                                </div>
+                                <div class="o_mobile_tap_zone o_mobile_grid_cell" data-action="action_mobile_support_contact">
+                                    ☎️<br/>Atención al cliente
+                                    <div t-if="widget.data.support_contact_name" class="o_mobile_grid_cell_value">
+                                        <t t-esc="widget.data.support_contact_name"/>
+                                    </div>
+                                    <span class="o_mobile_edit_badge">✏️ Editar</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_mobile_screen o_mobile_out_of_scope">
+                    <div class="o_mobile_screen_title">🚫 Seguridad / Reportar incidente</div>
+                    <div class="text-muted">
+                        Fuera de este mapa: corre contra un backend propio, sin relación con Odoo.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </t>
+
+    <t t-name="adt_comercial.MobileHomeBannerSlide">
+        <t t-if="bannerCount">
+            <t t-if="currentBanner.has_image">
+                <img t-attf-src="/web/image/mobile.content.item/#{currentBanner.id}/image"
+                     class="o_mobile_banner_image"/>
+            </t>
+            <div class="o_mobile_banner_caption">
+                <div class="o_mobile_banner_title"><t t-esc="currentBanner.title"/></div>
+                <div t-if="currentBanner.subtitle" class="o_mobile_banner_subtitle">
+                    <t t-esc="currentBanner.subtitle"/>
+                </div>
+            </div>
+            <t t-if="bannerCount > 1">
+                <button type="button" class="o_mobile_banner_nav o_mobile_preview_banner_prev">‹</button>
+                <button type="button" class="o_mobile_banner_nav o_mobile_preview_banner_next">›</button>
+                <div class="o_mobile_banner_dots">
+                    <t t-foreach="banners" t-as="b" t-key="b.id">
+                        <span t-attf-class="o_mobile_banner_dot #{b_index == bannerIndex ? 'active' : ''}"/>
+                    </t>
+                </div>
+            </t>
+        </t>
+        <t t-else="">
+            <div class="o_mobile_placeholder">Sin banners configurados (Item de contenido)</div>
+        </t>
+    </t>
+
+</templates>

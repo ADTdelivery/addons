@@ -11,12 +11,7 @@
         <field name="arch" type="xml">
             <tree string="Versiones de la App">
                 <field name="name"/>
-                <field name="platform"/>
                 <field name="latest_version"/>
-                <field name="minimum_version"/>
-                <field name="update_required"/>
-                <field name="update_available"/>
-                <field name="maintenance_mode"/>
                 <field name="active"/>
             </tree>
         </field>
@@ -31,26 +26,34 @@
                     <group string="Información General">
                         <group>
                             <field name="name"/>
-                            <field name="platform"/>
                             <field name="latest_version"/>
-                            <field name="minimum_version"/>
                         </group>
                         <group>
-                            <field name="update_required"/>
-                            <field name="update_available"/>
-                            <field name="maintenance_mode"/>
                             <field name="active"/>
                         </group>
                     </group>
                     <group string="Mensajes">
                         <field name="update_message"/>
-                        <field name="maintenance_message"/>
                     </group>
                     <group string="URLs de Tiendas">
                         <field name="store_url_android"/>
                         <field name="store_url_ios"/>
                     </group>
+                    <notebook>
+                        <page string="Historial de versiones anteriores">
+                            <field name="history_ids" readonly="1">
+                                <tree>
+                                    <field name="version"/>
+                                    <field name="changed_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>
@@ -59,6 +62,13 @@
         <field name="name">Versiones de la App</field>
         <field name="res_model">mobile.app.version</field>
         <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_mobile_app_version_open_singleton" model="ir.actions.server">
+        <field name="name">Abrir Versión de la App</field>
+        <field name="model_id" ref="model_mobile_app_version"/>
+        <field name="state">code</field>
+        <field name="code">action = env['mobile.app.version'].action_open_singleton()</field>
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════════
@@ -255,36 +265,48 @@
 
     <menuitem id="menu_mobile_root"
               name="Móvil"
+              groups="group_access_adt_movil"
               sequence="90"/>
 
+    <!-- Bloques (sub-menús) del módulo Móvil, en este orden: App primero
+         (para que al entrar al módulo se vea la vista previa de pantallas),
+         luego Versión de la app, Clientes y Accesos y Técnico. -->
+
+    <!-- Único contenido de este bloque: la versión de la app. Se deja como
+         hoja directa (con acción propia) en vez de un sub-menú intermedio
+         que solo contendría esa misma pantalla. -->
     <menuitem id="menu_mobile_config"
-              name="Configuración"
+              name="Versión de la app"
               parent="menu_mobile_root"
-              sequence="10"/>
-
-    <menuitem id="menu_mobile_app_version"
-              name="Versiones de la App"
-              parent="menu_mobile_config"
-              action="action_mobile_app_version"
-              sequence="10"/>
-
-    <menuitem id="menu_mobile_promotions"
-              name="Promociones"
-              parent="menu_mobile_root"
-              action="action_mobile_promotion"
+              action="action_mobile_app_version_open_singleton"
+              groups="group_access_adt_movil"
               sequence="20"/>
+
+    <menuitem id="menu_mobile_customers"
+              name="Clientes y Accesos"
+              parent="menu_mobile_root"
+              groups="group_access_adt_movil"
+              sequence="30"/>
+
+    <menuitem id="menu_mobile_technical"
+              name="Técnico"
+              parent="menu_mobile_root"
+              groups="group_access_adt_movil"
+              sequence="40"/>
 
     <menuitem id="menu_mobile_notifications"
               name="Notificaciones"
-              parent="menu_mobile_root"
+              parent="menu_mobile_technical"
               action="action_mobile_notification"
-              sequence="30"/>
+              groups="group_access_adt_movil"
+              sequence="10"/>
 
     <menuitem id="menu_mobile_tokens"
               name="Tokens de Sesión"
-              parent="menu_mobile_root"
+              parent="menu_mobile_technical"
               action="action_mobile_token"
-              sequence="40"/>
+              groups="group_access_adt_movil"
+              sequence="20"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════
          HU-007  Payment Accounts (Cuentas de Pago)
@@ -332,12 +354,6 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_mobile_payment_accounts"
-              name="Cuentas de Pago"
-              parent="menu_mobile_config"
-              action="action_mobile_payment_account"
-              sequence="20"/>
-
     <!-- ═══════════════════════════════════════════════════════════════════
          HU-008  Support Contacts (Contactos de Soporte)
     ═══════════════════════════════════════════════════════════════════ -->
@@ -383,12 +399,6 @@
         <field name="res_model">mobile.support.contact</field>
         <field name="view_mode">tree,form</field>
     </record>
-
-    <menuitem id="menu_mobile_support_contacts"
-              name="Contactos de Soporte"
-              parent="menu_mobile_config"
-              action="action_mobile_support_contact"
-              sequence="30"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════
          HU-012  Global Catalog CTA Settings
@@ -456,12 +466,6 @@
         <field name="code">action = env['mobile.catalog.cta.config'].action_open_singleton()</field>
     </record>
 
-    <menuitem id="menu_mobile_catalog_cta_config"
-              name="Botón comprar catálogo"
-              parent="menu_mobile_config"
-              action="action_mobile_catalog_cta_config_open_singleton"
-              sequence="40"/>
-
     <!-- ═══════════════════════════════════════════════════════════════════
          HU-013  Mobile App Image
     ═══════════════════════════════════════════════════════════════════ -->
@@ -510,12 +514,6 @@
         <field name="res_model">mobile.app.image</field>
         <field name="view_mode">tree,form</field>
     </record>
-
-    <menuitem id="menu_mobile_app_images"
-              name="Imágenes de la App"
-              parent="menu_mobile_config"
-              action="action_mobile_app_image"
-              sequence="50"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════
          HU-010  FCM Devices
@@ -580,9 +578,10 @@
 
     <menuitem id="menu_mobile_fcm_devices"
               name="Dispositivos FCM"
-              parent="menu_mobile_root"
+              parent="menu_mobile_technical"
               action="action_mobile_fcm_device"
-              sequence="45"/>
+              groups="group_access_adt_movil"
+              sequence="30"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════
          HU-014  Configurable Content Items
@@ -615,7 +614,13 @@
                     <group string="Información General">
                         <group>
                             <field name="name"/>
-                            <field name="section" placeholder="ayuda"/>
+                            <!-- Fijo según la pantalla desde la que se crea el
+                                 registro (ver default_section en cada acción:
+                                 action_mobile_content_item = BANNER_HOME,
+                                 action_mobile_content_item_fullscreen =
+                                 FULL_SCREEN) — no se deja editar para que no
+                                 se pueda "escapar" de su sección. -->
+                            <field name="section" readonly="1"/>
                             <field name="title"/>
                             <field name="subtitle"/>
                         </group>
@@ -654,16 +659,28 @@
         </field>
     </record>
 
+    <!-- "Banner Slide": reusa mobile.content.item + el mismo servicio genérico
+         GET /v1/content-items?section=<code> (HU-014, controllers/mobile_api.py),
+         fijando la sección en BANNER_HOME. No se crea modelo/endpoint nuevo,
+         solo esta puerta de entrada de Odoo con section fija y bloqueada. -->
     <record id="action_mobile_content_item" model="ir.actions.act_window">
-        <field name="name">Items de Contenido</field>
+        <field name="name">Banner Slide</field>
         <field name="res_model">mobile.content.item</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">[('section', '=', 'BANNER_HOME')]</field>
+        <field name="context">{'default_section': 'BANNER_HOME'}</field>
     </record>
 
-    <menuitem id="menu_mobile_content_items"
-              name="Items de Contenido"
-              parent="menu_mobile_config"
-              action="action_mobile_content_item"
-              sequence="60"/>
+    <!-- "Publicidad Full Screen": mismo modelo y mismo servicio, sección
+         FULL_SCREEN — otra opción dentro de "Banners Home", no una pantalla
+         ni un modelo aparte. -->
+    <record id="action_mobile_content_item_fullscreen" model="ir.actions.act_window">
+        <field name="name">Publicidad Full Screen</field>
+        <field name="res_model">mobile.content.item</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('section', '=', 'FULL_SCREEN')]</field>
+        <field name="context">{'default_section': 'FULL_SCREEN'}</field>
+    </record>
+
 
 </odoo>

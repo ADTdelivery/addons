@@ -105,8 +105,6 @@
 		<field name="act_window_id" ref="action_mobile_catalog_products"/>
 	</record>
 
-	<menuitem id="menu_mobile_catalog_root" name="Catálogo" parent="menu_mobile_root" sequence="50"/>
-	<menuitem id="menu_mobile_catalog_products" name="Productos" parent="menu_mobile_catalog_root" action="action_mobile_catalog_products" sequence="10"/>
 </odoo>
 
 

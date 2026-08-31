@@ -1,0 +1,177 @@
+<odoo>
+    <data>
+        <record id="view_credito_contrato_list" model="ir.ui.view">
+            <field name="name">credito.contrato.list</field>
+            <field name="model">credito.contrato</field>
+            <field name="arch" type="xml">
+                <tree string="Contratos de crédito" decoration-danger="estado == 'en_mora'"
+                      decoration-success="estado == 'pagado'" decoration-muted="estado in ('cancelado', 'refinanciado')">
+                    <field name="semaforo" widget="badge"
+                           decoration-success="semaforo == 'verde'"
+                           decoration-warning="semaforo == 'amarillo'"
+                           decoration-danger="semaforo == 'rojo'"/>
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="product_id"/>
+                    <field name="frecuencia"/>
+                    <field name="numero_cuotas"/>
+                    <field name="monto_financiado"/>
+                    <field name="saldo_pendiente"/>
+                    <field name="mora_total"/>
+                    <field name="cuotas_pagadas" widget="progressbar" string="Cuotas pagadas"
+                           class="o_credito_progressbar"
+                           options="{'current_value': 'cuotas_pagadas', 'max_value': 'numero_cuotas'}"/>
+                    <field name="estado" widget="badge"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_credito_contrato_form" model="ir.ui.view">
+            <field name="name">credito.contrato.form</field>
+            <field name="model">credito.contrato</field>
+            <field name="arch" type="xml">
+                <form string="Contrato de crédito">
+                    <header>
+                        <button name="action_confirmar" type="object" string="Confirmar"
+                                class="oe_highlight"
+                                attrs="{'invisible': [('estado', '!=', 'borrador')]}"/>
+                        <button name="action_registrar_pago" type="object" string="Registrar pago"
+                                class="oe_highlight"
+                                attrs="{'invisible': [('estado', 'not in', ('activo', 'en_mora'))]}"/>
+                        <button name="action_cancelar" type="object" string="Cancelar"
+                                attrs="{'invisible': [('estado', 'not in', ('borrador', 'activo', 'en_mora'))]}"
+                                confirm="¿Cancelar este contrato de crédito?"/>
+                        <button name="%(adt_credito.action_credito_refinanciamiento)d" type="action"
+                                string="Refinanciar" context="{'default_contrato_id': id}"
+                                attrs="{'invisible': [('estado', 'not in', ('activo', 'en_mora'))]}"/>
+                        <field name="estado" widget="statusbar"
+                               statusbar_visible="borrador,activo,pagado"/>
+                    </header>
+                    <sheet>
+                        <field name="semaforo" invisible="1"/>
+                        <widget name="web_ribbon" title="En mora" bg_color="bg-danger"
+                                attrs="{'invisible': [('semaforo', '!=', 'rojo')]}"/>
+                        <widget name="web_ribbon" title="Retrasado" bg_color="bg-warning"
+                                attrs="{'invisible': [('semaforo', '!=', 'amarillo')]}"/>
+                        <widget name="web_ribbon" title="Al día" bg_color="bg-success"
+                                attrs="{'invisible': [('semaforo', '!=', 'verde')]}"/>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="partner_id" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                                <field name="product_id" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                                <field name="cantidad" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                                <field name="precio_unitario" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                            <group>
+                                <field name="frecuencia" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                                <field name="numero_cuotas" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                                <field name="fecha_inicio" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                            </group>
+                        </group>
+
+                        <div attrs="{'invisible': [('partner_id', '=', False)]}" style="margin-bottom:16px;">
+                            <field name="cliente_riesgo_html" nolabel="1"/>
+                        </div>
+
+                        <group>
+                            <group>
+                                <field name="monto_total"/>
+                                <field name="enganche" attrs="{'readonly': [('estado', '!=', 'borrador')]}"/>
+                                <field name="monto_financiado"/>
+                                <field name="monto_cuota"/>
+                            </group>
+                            <group>
+                                <field name="saldo_pendiente"/>
+                                <field name="mora_total"/>
+                                <field name="contrato_origen_id" attrs="{'invisible': [('contrato_origen_id', '=', False)]}"/>
+                                <field name="contrato_refinanciado_id" attrs="{'invisible': [('contrato_refinanciado_id', '=', False)]}"/>
+                            </group>
+                        </group>
+                        <group string="Progreso">
+                            <field name="cuotas_pagadas" widget="progressbar" string="Cuotas pagadas"
+                                   class="o_credito_progressbar"
+                                   options="{'current_value': 'cuotas_pagadas', 'max_value': 'numero_cuotas'}"/>
+                            <field name="cuotas_vencidas" widget="progressbar" string="Cuotas atrasadas"
+                                   class="o_credito_progressbar"
+                                   options="{'current_value': 'cuotas_vencidas', 'max_value': 'numero_cuotas'}"/>
+                        </group>
+                        <notebook>
+                            <page string="Cronograma" name="cronograma">
+                                <field name="cuota_ids" readonly="1">
+                                    <tree decoration-danger="estado == 'vencida'" decoration-success="estado == 'pagada'">
+                                        <field name="numero_cuota"/>
+                                        <field name="fecha_vencimiento"/>
+                                        <field name="monto"/>
+                                        <field name="monto_pagado"/>
+                                        <field name="saldo"/>
+                                        <field name="dias_mora"/>
+                                        <field name="mora_monto"/>
+                                        <field name="mora_pendiente"/>
+                                        <field name="estado" widget="badge"/>
+                                        <button name="action_pagar" type="object" string="Pagar" icon="fa-money"
+                                                attrs="{'invisible': [('estado', 'in', ('pagada', 'condonada'))]}"/>
+                                    </tree>
+                                </field>
+                            </page>
+                            <page string="Pagos" name="pagos">
+                                <field name="pago_ids" readonly="1">
+                                    <tree>
+                                        <field name="fecha_pago"/>
+                                        <field name="cuota_id"/>
+                                        <field name="tipo"/>
+                                        <field name="monto"/>
+                                        <field name="metodo_pago"/>
+                                        <field name="referencia"/>
+                                        <field name="cobrador_id"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids"/>
+                        <field name="activity_ids"/>
+                        <field name="message_ids"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_credito_contrato_search" model="ir.ui.view">
+            <field name="name">credito.contrato.search</field>
+            <field name="model">credito.contrato</field>
+            <field name="arch" type="xml">
+                <search string="Contratos de crédito">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="product_id"/>
+                    <filter string="Al día" name="al_dia" domain="[('semaforo', '=', 'verde')]"/>
+                    <filter string="Retrasados" name="retrasados" domain="[('semaforo', '=', 'amarillo')]"/>
+                    <filter string="En mora" name="en_mora" domain="[('semaforo', '=', 'rojo')]"/>
+                    <separator/>
+                    <filter string="Activos" name="activos" domain="[('estado', '=', 'activo')]"/>
+                    <filter string="Pagados" name="pagados" domain="[('estado', '=', 'pagado')]"/>
+                    <group expand="0" string="Agrupar por">
+                        <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Estado" name="group_estado" context="{'group_by': 'estado'}"/>
+                        <filter string="Semáforo" name="group_semaforo" context="{'group_by': 'semaforo'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_credito_contrato" model="ir.actions.act_window">
+            <field name="name">Contratos de crédito</field>
+            <field name="res_model">credito.contrato</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{'search_default_activos': 1}</field>
+        </record>
+    </data>
+</odoo>

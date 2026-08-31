@@ -41,16 +41,20 @@
         'views/view_mobile_models.xml',
         'views/view_mobile_product_catalog.xml',
         'views/view_mobile_customers.xml',
+        'views/view_notificacion_masiva_wizard.xml',
         'views/view_mobile_benefits.xml',
+        'views/view_mobile_home_preview.xml',
         'data/mobile_benefit_data.xml',
     ],
     'assets': {
         'web.assets_backend': [
             'adt_comercial/static/src/scss/style.scss',
             'adt_comercial/static/src/js/image_carousel_widget.js',
+            'adt_comercial/static/src/js/mobile_home_preview_action.js',
         ],
         'web.assets_qweb': [
             'adt_comercial/static/src/xml/image_carousel.xml',
+            'adt_comercial/static/src/xml/mobile_home_preview.xml',
         ],
     },
 }

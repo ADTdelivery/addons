@@ -1,0 +1,29 @@
+<odoo>
+    <data>
+        <menuitem id="menu_credito_root" name="Crédito" sequence="60"
+                  groups="adt_credito.group_credito"/>
+
+        <!-- Sin action propia en menu_credito_root: al entrar a la app, Odoo navega
+             por defecto al primer hijo por sequence — que sea Contratos (10), no
+             Dashboard, es lo que lo deja como primera vista. -->
+        <menuitem id="menu_credito_contratos" name="Contratos"
+                  parent="menu_credito_root" action="action_credito_contrato" sequence="10"/>
+
+        <menuitem id="menu_credito_cobranza" name="Cobranza"
+                  parent="menu_credito_root" action="action_credito_cuota" sequence="20"/>
+
+        <menuitem id="menu_credito_pagos" name="Pagos"
+                  parent="menu_credito_root" action="action_credito_pago" sequence="30"/>
+
+        <menuitem id="menu_credito_productos" name="Productos financiables"
+                  parent="menu_credito_root" action="action_product_financiable" sequence="40"/>
+
+        <menuitem id="menu_credito_config" name="Configuración"
+                  parent="menu_credito_root" action="action_credito_config_wizard" sequence="50"/>
+
+        <!-- Dashboard al final del menú, y como página aislada (fuera del layout de
+             Odoo) en vez de embebida — ver views/dashboard_credito.xml. -->
+        <menuitem id="menu_credito_dashboard" name="Dashboard"
+                  parent="menu_credito_root" action="adt_credito.action_dashboard_credito" sequence="60"/>
+    </data>
+</odoo>

@@ -37,6 +37,10 @@ from odoo.http import request, Response
 
 _logger = logging.getLogger(__name__)
 
+# Tag fijo para poder filtrar en el log del servidor (ej. grep "[APP_VERSION_CHECK]" odoo.log)
+# todo lo relacionado al chequeo de versión de la app móvil.
+_APP_VERSION_LOG_TAG = '[APP_VERSION_CHECK]'
+
 # ── Plate regex ────────────────────────────────────────────────────────────
 # Standard format: 3 uppercase letters, dash, 3 digits  e.g.  ABC-123
 # Some plates in Peru use 4+2 variants; we accept both permissively.
@@ -86,6 +90,25 @@ def _mask_token(token_value):
     if len(token_str) <= 10:
         return token_str
     return '%s...%s' % (token_str[:6], token_str[-4:])
+
+
+def _version_tuple(version_str):
+    """'2.10.1' -> (2, 10, 1). Componentes no numéricos se tratan como 0."""
+    parts = []
+    for chunk in str(version_str or '').strip().split('.'):
+        digits = re.sub(r'\D', '', chunk)
+        parts.append(int(digits) if digits else 0)
+    return tuple(parts)
+
+
+def _is_version_older(current_version, latest_version):
+    """True si current_version < latest_version (comparación semver simple)."""
+    current = _version_tuple(current_version)
+    latest = _version_tuple(latest_version)
+    max_len = max(len(current), len(latest))
+    current = current + (0,) * (max_len - len(current))
+    latest = latest + (0,) * (max_len - len(latest))
+    return current < latest
 
 
 def _json_response(data, status=200):
@@ -580,71 +603,101 @@ class MobileAPIController(http.Controller):
         csrf=False,
         cors='*',
     )
-    def app_version(self, **kwargs):
+    def app_version(self, currentVersion=None, **kwargs):
         """
-        Returns the current app version, maintenance mode status,
-        and whether an update is required/available.
+        Returns the latest app version and whether the client (identified by
+        `currentVersion`, ej. ?currentVersion=2.3.0) should update.
+
+        `mobile.app.version` es un registro ÚNICO (singleton) para toda la
+        app: ya no hay uno por plataforma, así que no hay que elegir entre
+        varios ni preocuparse por "cuál es el vigente" — siempre es ese
+        registro. El header X-Platform se sigue leyendo (no se cambia el
+        request) pero ya no se usa para filtrar, solo queda para el log.
+
+        `updateAvailable` y `updateRequired` se calculan igual: comparando
+        currentVersion vs latest_version. Si son iguales (o el cliente va
+        más adelante), no hace falta actualizar. Si currentVersion es más
+        antigua, ambos dan True. No hay flag manual en Odoo para esto.
         No authentication required.
         """
         try:
+            # Se conserva la lectura del header (no se cambia el request), aunque
+            # ya no se usa para filtrar: solo hay un registro para toda la app.
             platform = request.httprequest.headers.get('X-Platform', 'all').lower()
 
-            # Try to find a platform-specific record first, then fall back to 'all'
-            VersionModel = request.env['mobile.app.version'].sudo()
-            version_rec = VersionModel.search(
-                [('active', '=', True), ('platform', 'in', [platform, 'all'])],
-                order='platform asc',  # 'all' comes before 'android'/'ios' alphabetically → override below
-                limit=1,
+            _logger.info(
+                '%s Request recibido -> X-Platform=%s (informativo, ya no filtra) currentVersion=%s',
+                _APP_VERSION_LOG_TAG, platform, currentVersion or 'NO_ENVIADO',
             )
 
-            # Prefer exact platform match
-            exact = VersionModel.search(
-                [('active', '=', True), ('platform', '=', platform)], limit=1)
-            if exact:
-                version_rec = exact
+            VersionModel = request.env['mobile.app.version'].sudo()
+            version_rec = VersionModel.search([('active', '=', True)], limit=1)
+            if version_rec:
+                _logger.info(
+                    '%s Config encontrada -> registro único (id=%s, latest_version=%s)',
+                    _APP_VERSION_LOG_TAG, version_rec.id, version_rec.latest_version,
+                )
+            elif not VersionModel.with_context(active_test=False).search_count([]):
+                # No hay NINGÚN registro todavía (activo ni archivado): se auto-provisiona
+                # el singleton con el default (latest_version='1.0.0') para que el
+                # endpoint nunca dependa de que un admin lo haya abierto antes en el backend.
+                version_rec = VersionModel._get_or_create_singleton()
+                _logger.info(
+                    '%s No existía ningún registro; se creó el singleton por defecto '
+                    '(id=%s, latest_version=%s). Configúralo en Ajustes -> Móvil -> '
+                    'Configuración General -> Versión de la App.',
+                    _APP_VERSION_LOG_TAG, version_rec.id, version_rec.latest_version,
+                )
+            # Si existe un registro pero está archivado (active=False), se respeta como
+            # "sin configuración" a propósito: no se re-crea ni se usa uno nuevo.
 
             if not version_rec:
-                # Return safe defaults if no record configured yet
+                _logger.warning(
+                    '%s Sin registro de configuración de versión activo. Se devuelven valores vacíos.',
+                    _APP_VERSION_LOG_TAG,
+                )
                 data = {
-                    'latestVersion': '1.0.0',
-                    'minimumVersion': '1.0.0',
-                    'updateRequired': False,
+                    'latestVersion': None,
                     'updateAvailable': False,
+                    'updateRequired': False,
                     'updateMessage': None,
-                    'storeUrl': {
-                        'android': None,
-                        'ios': None,
-                    },
-                    'maintenanceMode': False,
-                    'maintenanceMessage': None,
+                    'storeUrl': {'android': None, 'ios': None},
                 }
                 return _json_response(_success(data))
 
+            if currentVersion:
+                # Misma versión -> no actualiza. Versión del front más antigua que la de
+                # Odoo (latest_version) -> actualización obligatoria (sin flag manual).
+                needs_update = _is_version_older(currentVersion, version_rec.latest_version)
+                _logger.info(
+                    '%s Comparación de versión -> cliente=%s vs odoo(latest_version)=%s => '
+                    'currentVersion %s latest_version => needsUpdate=%s',
+                    _APP_VERSION_LOG_TAG, currentVersion, version_rec.latest_version,
+                    '<' if needs_update else '>=', needs_update,
+                )
+            else:
+                needs_update = False
+                _logger.info(
+                    '%s Comparación de versión omitida -> el cliente no envió currentVersion '
+                    '(odoo latest_version=%s) => needsUpdate=False por defecto',
+                    _APP_VERSION_LOG_TAG, version_rec.latest_version,
+                )
+
             data = {
                 'latestVersion': version_rec.latest_version,
-                'minimumVersion': version_rec.minimum_version,
-                'updateRequired': version_rec.update_required,
-                'updateAvailable': version_rec.update_available,
+                'updateAvailable': needs_update,
+                'updateRequired': needs_update,
                 'updateMessage': version_rec.update_message or None,
                 'storeUrl': {
                     'android': version_rec.store_url_android or None,
                     'ios': version_rec.store_url_ios or None,
                 },
-                'maintenanceMode': version_rec.maintenance_mode,
-                'maintenanceMessage': version_rec.maintenance_message or None,
             }
-
-            if version_rec.maintenance_mode:
-                return _json_response(
-                    _error(503, 'SERVICE_UNAVAILABLE',
-                           version_rec.maintenance_message or 'Servidor en mantenimiento.'),
-                    status=503,
-                )
-
+            _logger.info('%s Response enviado -> %s', _APP_VERSION_LOG_TAG, json.dumps(data, ensure_ascii=False))
             return _json_response(_success(data))
 
         except Exception:
-            _logger.exception('Error in GET /v1/app/version')
+            _logger.exception('%s Error inesperado en GET /v1/app/version', _APP_VERSION_LOG_TAG)
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     # ══════════════════════════════════════════════════════════════════════════

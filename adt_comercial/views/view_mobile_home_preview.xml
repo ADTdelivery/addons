@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Vista previa del Home de la app móvil (mobile.home.preview)
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="action_mobile_home_preview" model="ir.actions.client">
+        <field name="name">Mapa de Pantallas</field>
+        <field name="tag">mobile_home_preview</field>
+    </record>
+
+    <!-- Sin sequence propio: al ser la primera hoja (por sequence) dentro
+         de "App", que a su vez es el primer bloque de "Móvil" (ver
+         view_mobile_benefits.xml y view_mobile_models.xml), Odoo navega
+         acá por defecto al entrar al módulo — sin tocar el menú raíz
+         "Móvil" ni su nombre, tal como era antes. -->
+    <menuitem id="menu_mobile_app_home_preview"
+              name="Mapa de Pantallas"
+              parent="menu_mobile_app"
+              action="action_mobile_home_preview"
+              groups="group_access_adt_movil"
+              sequence="5"/>
+
+</odoo>

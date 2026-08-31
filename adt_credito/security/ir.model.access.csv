@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_credito_contrato,credito.contrato,model_credito_contrato,group_credito,1,1,1,1
+access_credito_cuota,credito.cuota,model_credito_cuota,group_credito,1,1,1,1
+access_credito_pago,credito.pago,model_credito_pago,group_credito,1,1,1,1
+access_credito_registrar_mora,credito.registrar.mora,model_credito_registrar_mora,group_credito,1,1,1,1
+access_credito_refinanciamiento,credito.refinanciamiento,model_credito_refinanciamiento,group_credito,1,1,1,1
+access_credito_registrar_pago,credito.registrar.pago,model_credito_registrar_pago,group_credito,1,1,1,1
+access_credito_config_wizard,credito.config.wizard,model_credito_config_wizard,group_credito,1,1,1,1

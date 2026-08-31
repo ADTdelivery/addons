@@ -1,0 +1,32 @@
+<odoo>
+    <data>
+        <record id="view_credito_config_wizard_form" model="ir.ui.view">
+            <field name="name">credito.config.wizard.form</field>
+            <field name="model">credito.config.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Configuración de crédito">
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+                    <group string="Mora">
+                        <field name="credito_mora_tipo"/>
+                        <field name="credito_mora_valor"/>
+                        <field name="credito_mora_dias_gracia"/>
+                        <field name="credito_mora_tope"/>
+                    </group>
+                    <footer>
+                        <button name="action_guardar" type="object" string="Guardar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_credito_config_wizard" model="ir.actions.act_window">
+            <field name="name">Configuración de crédito</field>
+            <field name="res_model">credito.config.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,103 @@
+<odoo>
+    <data>
+        <record id="view_credito_cuota_list" model="ir.ui.view">
+            <field name="name">credito.cuota.list</field>
+            <field name="model">credito.cuota</field>
+            <field name="arch" type="xml">
+                <tree string="Cuotas" decoration-danger="estado == 'vencida'" decoration-success="estado == 'pagada'"
+                      decoration-info="estado == 'parcial'">
+                    <field name="contrato_id"/>
+                    <field name="partner_id"/>
+                    <field name="numero_cuota"/>
+                    <field name="fecha_vencimiento"/>
+                    <field name="monto"/>
+                    <field name="monto_pagado"/>
+                    <field name="saldo"/>
+                    <field name="dias_mora"/>
+                    <field name="mora_monto"/>
+                    <field name="mora_pendiente"/>
+                    <field name="estado" widget="badge"/>
+                    <button name="action_pagar" type="object" string="Pagar" icon="fa-money"
+                            attrs="{'invisible': [('estado', 'in', ('pagada', 'condonada'))]}"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_credito_cuota_form" model="ir.ui.view">
+            <field name="name">credito.cuota.form</field>
+            <field name="model">credito.cuota</field>
+            <field name="arch" type="xml">
+                <form string="Cuota">
+                    <header>
+                        <button name="action_pagar" type="object" string="Registrar pago"
+                                class="oe_highlight"
+                                attrs="{'invisible': [('estado', 'in', ('pagada', 'condonada'))]}"/>
+                        <button name="%(adt_credito.action_credito_registrar_mora)d" type="action"
+                                string="Registrar mora manual" context="{'default_cuota_id': id}"
+                                attrs="{'invisible': [('estado', 'in', ('pagada', 'condonada'))]}"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="contrato_id" readonly="1"/>
+                                <field name="partner_id" readonly="1"/>
+                                <field name="numero_cuota" readonly="1"/>
+                                <field name="fecha_vencimiento" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="monto" readonly="1"/>
+                                <field name="monto_pagado"/>
+                                <field name="saldo"/>
+                                <field name="estado" widget="badge"/>
+                                <field name="dias_mora"/>
+                                <field name="mora_monto"/>
+                                <field name="mora_pagada"/>
+                                <field name="mora_pendiente"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Pagos" name="pagos">
+                                <field name="pago_ids" context="{'default_cuota_id': id}">
+                                    <tree editable="bottom">
+                                        <field name="fecha_pago"/>
+                                        <field name="tipo"/>
+                                        <field name="monto"/>
+                                        <field name="metodo_pago"/>
+                                        <field name="referencia"/>
+                                        <field name="cobrador_id"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_credito_cuota_search" model="ir.ui.view">
+            <field name="name">credito.cuota.search</field>
+            <field name="model">credito.cuota</field>
+            <field name="arch" type="xml">
+                <search string="Cuotas">
+                    <field name="contrato_id"/>
+                    <field name="partner_id"/>
+                    <filter string="Pendientes" name="pendientes" domain="[('estado', '=', 'pendiente')]"/>
+                    <filter string="Vencidas" name="vencidas" domain="[('estado', '=', 'vencida')]"/>
+                    <filter string="Pagadas" name="pagadas" domain="[('estado', '=', 'pagada')]"/>
+                    <group expand="0" string="Agrupar por">
+                        <filter string="Contrato" name="group_contrato" context="{'group_by': 'contrato_id'}"/>
+                        <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Estado" name="group_estado" context="{'group_by': 'estado'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_credito_cuota" model="ir.actions.act_window">
+            <field name="name">Cobranza / Cuotas</field>
+            <field name="res_model">credito.cuota</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{'search_default_vencidas': 1}</field>
+        </record>
+    </data>
+</odoo>

@@ -177,6 +177,9 @@
         <record id="group_access_adt_cobranzas" model="res.groups">
             <field name="name">Acceso a módulo COBRANZAS</field>
         </record>
+        <record id="group_access_adt_movil" model="res.groups">
+            <field name="name">Acceso a módulo MÓVIL</field>
+        </record>
 
         <record id="group_access_adt_comercial_recuperar" model="res.groups">
             <field name="name">Permitir recuperación de vehículos</field>
@@ -264,7 +267,7 @@
         <record id="access_mobile_app_version" model="ir.model.access">
             <field name="name">access.mobile.app.version</field>
             <field name="model_id" ref="model_mobile_app_version"/>
-            <field name="group_id" ref="base.group_user"/>
+            <field name="group_id" ref="group_access_adt_movil"/>
             <field name="perm_read" eval="1"/>
             <field name="perm_write" eval="1"/>
             <field name="perm_create" eval="1"/>
@@ -275,7 +278,7 @@
         <record id="access_mobile_promotion" model="ir.model.access">
             <field name="name">access.mobile.promotion</field>
             <field name="model_id" ref="model_mobile_promotion"/>
-            <field name="group_id" ref="base.group_user"/>
+            <field name="group_id" ref="group_access_adt_movil"/>
             <field name="perm_read" eval="1"/>
             <field name="perm_write" eval="1"/>
             <field name="perm_create" eval="1"/>
@@ -286,7 +289,7 @@
         <record id="access_mobile_notification" model="ir.model.access">
             <field name="name">access.mobile.notification</field>
             <field name="model_id" ref="model_mobile_notification"/>
-            <field name="group_id" ref="base.group_user"/>
+            <field name="group_id" ref="group_access_adt_movil"/>
             <field name="perm_read" eval="1"/>
             <field name="perm_write" eval="1"/>
             <field name="perm_create" eval="1"/>
@@ -297,7 +300,7 @@
         <record id="access_mobile_token" model="ir.model.access">
             <field name="name">access.mobile.token</field>
             <field name="model_id" ref="model_mobile_token"/>
-            <field name="group_id" ref="base.group_user"/>
+            <field name="group_id" ref="group_access_adt_movil"/>
             <field name="perm_read" eval="1"/>
             <field name="perm_write" eval="1"/>
             <field name="perm_create" eval="1"/>

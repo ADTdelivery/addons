@@ -1,0 +1,15 @@
+<odoo noupdate="1">
+    <data>
+        <!-- Producto genérico usado por el wizard de refinanciamiento para representar
+             el saldo (capital + mora) del contrato original dentro del nuevo contrato.
+             No se marca es_financiable: el wizard lo asigna por código (server-side), no
+             por el selector de producto, así que no necesita pasar ese dominio — y así
+             tampoco genera su propio submenú de "producto" en Contratos/Cobranza/Pagos. -->
+        <record id="product_saldo_refinanciado" model="product.product">
+            <field name="name">Saldo refinanciado</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,11 @@
+<odoo noupdate="1">
+    <data>
+        <record id="seq_credito_contrato" model="ir.sequence">
+            <field name="name">Crédito Contrato Sequence</field>
+            <field name="code">credito.contrato</field>
+            <field name="prefix">CR</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>
