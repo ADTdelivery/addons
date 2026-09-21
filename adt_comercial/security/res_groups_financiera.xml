@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_access_adt_comercial_gerencia" model="res.groups">
+        <field name="name">Reporte gerencial de financieras</field>
+    </record>
+
+    <!-- Los administradores del sistema lo tienen sin configurar nada más. -->
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('adt_comercial.group_access_adt_comercial_gerencia'))]"/>
+    </record>
+</odoo>

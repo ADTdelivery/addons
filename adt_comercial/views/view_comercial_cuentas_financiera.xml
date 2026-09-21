@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="adt_comercial_cuentas_form_financiera" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.form.financiera</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="inherit_id" ref="adt_comercial.adt_comercial_cuentas_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='tipo_financiera_id']" position="after">
+                <field name="fin_estado" widget="badge"
+                       decoration-success="fin_estado == 'cancelada'"
+                       decoration-warning="fin_estado == 'pagando'"
+                       decoration-muted="fin_estado == 'sin_datos'"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Financiera" name="financiera">
+                    <group>
+                        <group>
+                            <field name="fin_estado" widget="badge"
+                                   decoration-success="fin_estado == 'cancelada'"
+                                   decoration-warning="fin_estado == 'pagando'"
+                                   decoration-muted="fin_estado == 'sin_datos'"/>
+                        </group>
+                        <group>
+                            <field name="fin_semaforo" widget="badge"
+                                   decoration-danger="fin_semaforo == 'desfase'"
+                                   decoration-info="fin_semaforo == 'al_dia'"
+                                   decoration-success="fin_semaforo == 'ganando'"
+                                   decoration-muted="fin_semaforo == 'sin_datos'"/>
+                            <field name="fin_cancelada_manual"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="fin_html" nolabel="1" colspan="2" widget="html"/>
+                    </group>
+
+                    <separator string="Cronograma de la financiera (lo que ADT paga)"/>
+                    <group>
+                        <group string="Fechas">
+                            <field name="fin_fecha_desembolso"/>
+                            <field name="fin_fecha_inicio"/>
+                            <field name="fin_es_mensual"/>
+                            <field name="fin_fecha_fin"/>
+                            <field name="fin_plazo_dias"/>
+                        </group>
+                        <group string="Montos">
+                            <field name="fin_monto_credito"/>
+                            <field name="fin_monto_cuota"/>
+                            <field name="fin_monto_total"/>
+                            <field name="fin_tasa_interes"/>
+                        </group>
+                    </group>
+                    <group string="Resumen">
+                        <group>
+                            <field name="fin_cantidad_cuotas"/>
+                            <field name="fin_cuotas_pagadas"/>
+                            <field name="fin_pagado"/>
+                        </group>
+                        <group>
+                            <field name="fin_total_cliente"/>
+                            <field name="fin_cobrado_cliente"/>
+                            <field name="fin_ganancia_actual"/>
+                            <field name="fin_ganancia_esperada"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

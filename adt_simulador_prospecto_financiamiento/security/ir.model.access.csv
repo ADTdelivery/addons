@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_financing_vehicle_user,financing.vehicle user,model_financing_vehicle,base.group_user,1,1,1,1
+access_financing_simulation_user,financing.simulation user,model_financing_simulation,base.group_user,1,1,1,1
+access_financing_simulation_wizard_user,financing.simulation.wizard user,model_financing_simulation_wizard,base.group_user,1,1,1,1
+access_financing_simulation_line_user,financing.simulation.line user,model_financing_simulation_line,base.group_user,1,1,1,1

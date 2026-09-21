@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_simulacion" model="ir.actions.report">
+        <field name="name">Simulación de financiamiento</field>
+        <field name="model">financing.simulation</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">adt_simulador_prospecto_financiamiento.report_simulacion</field>
+        <field name="report_file">adt_simulador_prospecto_financiamiento.report_simulacion</field>
+        <field name="print_report_name">'Simulacion-%s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_financing_simulation"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_simulacion">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Simulación de financiamiento</h2>
+                        <p>
+                            <strong><t t-esc="o.name"/></strong> ·
+                            <span t-field="o.fecha" t-options='{"widget": "date"}'/>
+                        </p>
+
+                        <div class="row mt16">
+                            <div class="col-6">
+                                <h5>Cliente</h5>
+                                <t t-if="o.partner_id">
+                                    <div><strong t-esc="o.partner_id.name"/></div>
+                                    <div t-if="o.partner_id.vat">Documento: <span t-esc="o.partner_id.vat"/></div>
+                                    <div t-if="o.partner_id.phone or o.partner_id.mobile">
+                                        Teléfono: <span t-esc="o.partner_id.phone or o.partner_id.mobile"/>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div>Sin cliente asignado</div>
+                                </t>
+                            </div>
+                            <div class="col-6">
+                                <h5>Vehículo</h5>
+                                <div><strong t-esc="o.vehicle_id.name"/></div>
+                                <div>Asesor: <span t-esc="o.user_id.name"/></div>
+                            </div>
+                        </div>
+
+                        <table class="table table-sm mt16">
+                            <tbody>
+                                <tr>
+                                    <td>Cuota inicial</td>
+                                    <td class="text-right">
+                                        <span t-field="o.cuota_inicial" t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Monto a financiar (capital)</td>
+                                    <td class="text-right">
+                                        <span t-field="o.capital" t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Plazo</td>
+                                    <td class="text-right"><span t-field="o.plazo_meses"/> meses</td>
+                                </tr>
+                                <tr>
+                                    <td>Frecuencia de pago</td>
+                                    <td class="text-right"><span t-field="o.frecuencia"/></td>
+                                </tr>
+                                <tr t-if="o.fecha_inicio">
+                                    <td>Fecha de inicio del crédito</td>
+                                    <td class="text-right">
+                                        <span t-field="o.fecha_inicio" t-options='{"widget": "date"}'/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>
+                                        <t t-if="o.frecuencia == 'mensual'">Cuota mensual</t>
+                                        <t t-elif="o.frecuencia == 'semanal'">Cuota semanal</t>
+                                        <t t-else="">Cuota diaria</t>
+                                    </strong></td>
+                                    <td class="text-right"><strong>
+                                        <t t-if="o.frecuencia == 'mensual'">
+                                            <span t-field="o.cuota_mensual" t-options='{"widget": "float", "precision": 2}'/>
+                                        </t>
+                                        <t t-elif="o.frecuencia == 'semanal'">
+                                            <span t-field="o.cuota_semanal" t-options='{"widget": "float", "precision": 2}'/>
+                                        </t>
+                                        <t t-else="">
+                                            <span t-field="o.cuota_diaria" t-options='{"widget": "float", "precision": 2}'/>
+                                        </t>
+                                    </strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Total a pagar en cuotas</td>
+                                    <td class="text-right">
+                                        <span t-field="o.total_credito" t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <t t-if="o.linea_ids">
+                            <h5 class="mt16">Cronograma de pagos (<span t-esc="o.cantidad_cuotas"/> cuotas)</h5>
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>N°</th>
+                                        <th>Fecha de pago</th>
+                                        <th class="text-right">Cuota</th>
+                                        <th class="text-right">Saldo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.linea_ids.sorted('numero')" t-as="l">
+                                        <td><span t-esc="l.numero"/></td>
+                                        <td><span t-field="l.fecha" t-options='{"widget": "date"}'/></td>
+                                        <td class="text-right">
+                                            <span t-field="l.cuota" t-options='{"widget": "float", "precision": 2}'/>
+                                        </td>
+                                        <td class="text-right">
+                                            <span t-field="l.saldo" t-options='{"widget": "float", "precision": 2}'/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                        <p t-else="" class="text-muted mt16">
+                            Esta simulación no tiene cronograma (no se indicó fecha de inicio del crédito).
+                        </p>
+                        <p class="text-muted small mt16">
+                            Simulación referencial, sujeta a evaluación y aprobación del crédito.
+                        </p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

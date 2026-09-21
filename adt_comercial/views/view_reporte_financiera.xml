@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Lista de cuentas: estado con la financiera ── -->
+    <record id="adt_comercial_cuentas_tree_financiera" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.tree.financiera</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="inherit_id" ref="adt_comercial.adt_comercial_cuentas_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='tipo_financiera_id']" position="after">
+                <field name="fin_estado" widget="badge" optional="show"
+                       decoration-success="fin_estado == 'cancelada'"
+                       decoration-warning="fin_estado == 'pagando'"
+                       decoration-muted="fin_estado == 'sin_datos'"/>
+                <field name="fin_semaforo" widget="badge" optional="show"
+                       decoration-danger="fin_semaforo == 'desfase'"
+                       decoration-info="fin_semaforo == 'al_dia'"
+                       decoration-success="fin_semaforo == 'ganando'"
+                       decoration-muted="fin_semaforo == 'sin_datos'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ── Búsqueda de cuentas: filtros por estado con la financiera ── -->
+    <record id="adt_comercial_cuentas_search_financiera" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.search.financiera</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="inherit_id" ref="adt_comercial.adt_comercial_cuentas_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='fecha_cierre']" position="after">
+                <filter name="fin_pagando" string="Pagando a la financiera"
+                        domain="[('fin_estado', '=', 'pagando')]"/>
+                <filter name="fin_cancelada" string="Cancelada a la financiera"
+                        domain="[('fin_estado', '=', 'cancelada')]"/>
+                <filter name="fin_desfase" string="🔴 Con desfase (cobrado &lt; pagado)"
+                        domain="[('fin_semaforo', '=', 'desfase')]"/>
+            </xpath>
+            <xpath expr="//filter[@name='financiera']" position="after">
+                <filter name="group_fin_estado" string="Estado con la financiera" domain="[]"
+                        context="{'group_by': 'fin_estado'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ── Reporte gerencial: detalle por vehículo ── -->
+    <record id="adt_comercial_cuentas_reporte_financiera_tree" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.reporte.financiera.tree</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <tree string="Detalle por vehículo" create="0" delete="0" class="o_adt_fin_report"
+                  decoration-danger="fin_semaforo == 'desfase'"
+                  decoration-success="fin_semaforo == 'ganando'">
+                <field name="reference_no" width="120px"/>
+                <field name="partner_id" optional="hide" width="200px"/>
+                <field name="moto_modelo" optional="hide" width="140px"/>
+                <field name="tipo_financiera_id" width="150px"/>
+                <field name="fin_estado" widget="badge" width="210px"
+                       decoration-success="fin_estado == 'cancelada'"
+                       decoration-warning="fin_estado == 'pagando'"
+                       decoration-muted="fin_estado == 'sin_datos'"/>
+                <field name="fin_semaforo" widget="badge" width="220px"
+                       decoration-danger="fin_semaforo == 'desfase'"
+                       decoration-info="fin_semaforo == 'al_dia'"
+                       decoration-success="fin_semaforo == 'ganando'"
+                       decoration-muted="fin_semaforo == 'sin_datos'"/>
+                <field name="fin_pct_pagado" widget="adt_pct_bar" options="{'color': '#2563eb'}" width="200px"
+                       string="% pagado a la financiera"/>
+                <field name="fin_pagado" sum="Pagado" width="180px"
+                       string="Monto pagado a la financiera"/>
+                <field name="fin_monto_total" sum="Total financiera" width="160px"/>
+                <field name="fin_total_cliente" sum="Total a cobrar" width="180px"
+                       string="Monto total a cobrar al cliente"/>
+                <field name="fin_cobrado_cliente" sum="Cobrado" width="160px"
+                       string="Monto cobrado al cliente"/>
+                <field name="fin_pct_cliente" widget="adt_pct_bar" options="{'color': '#16a34a'}" width="200px"
+                       string="% pagado por el cliente a ADT"/>
+                <field name="fin_faltante_equilibrio" sum="Falta" optional="hide" width="200px"/>
+                <field name="fin_ganancia_actual" sum="Ganancia a la fecha" width="180px"/>
+                <field name="fin_ganancia_esperada" sum="Ganancia esperada" optional="show" width="180px"/>
+                <field name="fin_caja_neta" sum="Caja neta" optional="show" width="220px"
+                       string="Caja neta (cobrado - pagado a la financiera)"
+                       decoration-danger="fin_caja_neta &lt; 0"
+                       decoration-success="fin_caja_neta &gt;= 0"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_comercial_cuentas_reporte_financiera_pivot" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.reporte.financiera.pivot</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <pivot string="Financieras">
+                <field name="tipo_financiera_id" type="row"/>
+                <field name="fin_semaforo" type="col"/>
+                <field name="fin_monto_total" type="measure"/>
+                <field name="fin_pagado" type="measure"/>
+                <field name="fin_cobrado_cliente" type="measure"/>
+                <field name="fin_ganancia_actual" type="measure"/>
+                <field name="fin_ganancia_esperada" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="adt_comercial_cuentas_reporte_financiera_graph" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.reporte.financiera.graph</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <graph string="Ganancia por financiera" type="bar">
+                <field name="tipo_financiera_id"/>
+                <field name="fin_ganancia_actual" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="adt_comercial_cuentas_reporte_financiera_search" model="ir.ui.view">
+        <field name="name">adt.comercial.cuentas.reporte.financiera.search</field>
+        <field name="model">adt.comercial.cuentas</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <search string="Detalle por vehículo">
+                <field name="reference_no"/>
+                <field name="partner_id"/>
+                <field name="tipo_financiera_id"/>
+                <field name="moto_modelo"/>
+                <filter name="pagando" string="Pagando a la financiera"
+                        domain="[('fin_estado', '=', 'pagando')]"/>
+                <filter name="cancelada" string="Cancelada a la financiera"
+                        domain="[('fin_estado', '=', 'cancelada')]"/>
+                <separator/>
+                <filter name="desfase" string="🔴 Con desfase (cobrado &lt; pagado)"
+                        domain="[('fin_semaforo', '=', 'desfase')]"/>
+                <filter name="al_dia" string="🔵 Al día (cobrado ≥ pagado)"
+                        domain="[('fin_semaforo', '=', 'al_dia')]"/>
+                <filter name="ganando" string="🟢 ADT ya está ganando"
+                        domain="[('fin_semaforo', '=', 'ganando')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_financiera" string="Financiera" domain="[]"
+                            context="{'group_by': 'tipo_financiera_id'}"/>
+                    <filter name="group_estado" string="Estado con la financiera" domain="[]"
+                            context="{'group_by': 'fin_estado'}"/>
+                    <filter name="group_semaforo" string="Semáforo (cobrado vs. pagado)" domain="[]"
+                            context="{'group_by': 'fin_semaforo'}"/>
+                    <filter name="group_asesor" string="Asesor" domain="[]"
+                            context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_reporte_financiera_detalle" model="ir.actions.act_window">
+        <field name="name">Reporte - Todas las financieras</field>
+        <field name="res_model">adt.comercial.cuentas</field>
+        <field name="view_mode">tree,pivot,graph,form</field>
+        <field name="domain">[('fin_monto_total', '>', 0)]</field>
+        <field name="search_view_id" ref="adt_comercial_cuentas_reporte_financiera_search"/>
+        <field name="context">{'search_default_group_financiera': 1}</field>
+    </record>
+    <record id="action_reporte_financiera_detalle_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="adt_comercial_cuentas_reporte_financiera_tree"/>
+        <field name="act_window_id" ref="action_reporte_financiera_detalle"/>
+    </record>
+    <record id="action_reporte_financiera_detalle_pivot" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">pivot</field>
+        <field name="view_id" ref="adt_comercial_cuentas_reporte_financiera_pivot"/>
+        <field name="act_window_id" ref="action_reporte_financiera_detalle"/>
+    </record>
+    <record id="action_reporte_financiera_detalle_graph" model="ir.actions.act_window.view">
+        <field name="sequence" eval="3"/>
+        <field name="view_mode">graph</field>
+        <field name="view_id" ref="adt_comercial_cuentas_reporte_financiera_graph"/>
+        <field name="act_window_id" ref="action_reporte_financiera_detalle"/>
+    </record>
+    <record id="action_reporte_financiera_detalle_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="4"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="adt_comercial.adt_comercial_cuentas_form"/>
+        <field name="act_window_id" ref="action_reporte_financiera_detalle"/>
+    </record>
+
+    <!-- ── Reporte gerencial: resumen global ── -->
+    <record id="adt_comercial_financiera_dashboard_form" model="ir.ui.view">
+        <field name="name">adt.comercial.financiera.dashboard.form</field>
+        <field name="model">adt.comercial.financiera.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Resumen gerencial - Financieras" create="0" edit="0" delete="0">
+                <sheet>
+                    <field name="html" nolabel="1" widget="html"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_server_dashboard_financiera" model="ir.actions.server">
+        <field name="name">Resumen gerencial - Financieras</field>
+        <field name="model_id" ref="adt_comercial.model_adt_comercial_financiera_dashboard"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_abrir()</field>
+    </record>
+
+    <!-- ── Menú: una pestaña más en Comercial (solo gerencia) ── -->
+    <menuitem id="adt_comercial_menu_reporte_financiera"
+              name="Reporte Financiera"
+              parent="menu_adt_comercial"
+              sequence="4"
+              groups="adt_comercial.group_access_adt_comercial_gerencia"/>
+    <menuitem id="adt_comercial_menu_reporte_financiera_resumen"
+              name="Resumen gerencial"
+              action="action_server_dashboard_financiera"
+              parent="adt_comercial_menu_reporte_financiera"
+              sequence="1"/>
+    <menuitem id="adt_comercial_menu_reporte_financiera_detalle"
+              name="Todas las financieras"
+              action="action_reporte_financiera_detalle"
+              parent="adt_comercial_menu_reporte_financiera"
+              sequence="10"/>
+</odoo>

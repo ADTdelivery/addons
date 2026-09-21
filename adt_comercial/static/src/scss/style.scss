@@ -504,3 +504,47 @@
     font-weight: 600;
     color: #222;
 }
+
+// Reporte Financiera: las cabeceras se muestran completas (en varias líneas) y no cortadas con "..."
+.o_list_view.o_adt_fin_report {
+    .o_list_table thead th,
+    .o_list_table thead th.o_column_sortable {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        vertical-align: middle;
+        line-height: 1.25;
+        word-break: normal;
+    }
+}
+
+// Barra de porcentaje completa (widget adt_pct_bar)
+.o_adt_pct_bar_field {
+    display: block;
+    width: 100%;
+}
+.o_adt_pct_bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+.o_adt_pct_bar_track {
+    flex: 1 1 auto;
+    min-width: 80px;
+    height: 14px;
+    background: #e5e7eb;
+    border-radius: 7px;
+    overflow: hidden;
+}
+.o_adt_pct_bar_fill {
+    height: 100%;
+}
+.o_adt_pct_bar_text {
+    flex: 0 0 auto;
+    min-width: 48px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}

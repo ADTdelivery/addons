@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_financing_vehicle_tree" model="ir.ui.view">
+        <field name="name">financing.vehicle.tree</field>
+        <field name="model">financing.vehicle</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="name"/>
+                <field name="importe_financiar"/>
+                <field name="tea"/>
+                <field name="tea_porcentaje"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_financing_vehicle_form" model="ir.ui.view">
+        <field name="name">financing.vehicle.form</field>
+        <field name="model">financing.vehicle</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="importe_financiar"/>
+                            <field name="tea"/>
+                            <field name="tea_porcentaje"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_financing_vehicle" model="ir.actions.act_window">
+        <field name="name">Productos financieros</field>
+        <field name="res_model">financing.vehicle</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_financing_simulation_tree" model="ir.ui.view">
+        <field name="name">financing.simulation.tree</field>
+        <field name="model">financing.simulation</field>
+        <field name="arch" type="xml">
+            <tree create="0">
+                <field name="name"/>
+                <field name="fecha"/>
+                <field name="vehicle_id"/>
+                <field name="partner_id"/>
+                <field name="cuota_inicial"/>
+                <field name="plazo_meses"/>
+                <field name="cuota_mensual"/>
+                <field name="cuota_semanal"/>
+                <field name="cuota_diaria"/>
+                <field name="user_id"/>
+                <field name="origen"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_financing_simulation_form" model="ir.ui.view">
+        <field name="name">financing.simulation.form</field>
+        <field name="model">financing.simulation</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <header>
+                    <button name="action_imprimir_pdf" type="object" string="Imprimir PDF"
+                            class="btn-primary"/>
+                </header>
+                <sheet>
+                    <h1><field name="name"/></h1>
+                    <group>
+                        <group string="Datos">
+                            <field name="vehicle_id"/>
+                            <field name="importe_financiar"/>
+                            <field name="tea"/>
+                            <field name="cuota_inicial"/>
+                            <field name="plazo_meses"/>
+                            <field name="frecuencia"/>
+                            <field name="fecha_inicio"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group string="Resultado">
+                            <field name="capital"/>
+                            <field name="interes_mensual"/>
+                            <field name="cuota_mensual"/>
+                            <field name="cuota_semanal"/>
+                            <field name="cuota_diaria"/>
+                            <field name="total_intereses"/>
+                            <field name="total_credito"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="user_id"/>
+                        <field name="fecha"/>
+                        <field name="origen"/>
+                    </group>
+                    <notebook>
+                        <page string="Cronograma" name="cronograma">
+                            <group>
+                                <field name="cantidad_cuotas"/>
+                            </group>
+                            <field name="linea_ids">
+                                <tree>
+                                    <field name="numero"/>
+                                    <field name="fecha"/>
+                                    <field name="cuota"/>
+                                    <field name="saldo"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_financing_simulation_search" model="ir.ui.view">
+        <field name="name">financing.simulation.search</field>
+        <field name="model">financing.simulation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="vehicle_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <filter string="Origen App" name="app" domain="[('origen', '=', 'app')]"/>
+                <filter string="Origen Odoo" name="odoo" domain="[('origen', '=', 'odoo')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Vehículo" name="g_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Usuario" name="g_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Origen" name="g_origen" context="{'group_by': 'origen'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_financing_simulation" model="ir.actions.act_window">
+        <field name="name">Simulaciones</field>
+        <field name="res_model">financing.simulation</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

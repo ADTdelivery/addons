@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_financiamiento_root" name="Financiamiento" sequence="60"/>
+    <menuitem id="menu_financiamiento_simular" name="Simular cuota"
+              parent="menu_financiamiento_root" action="action_financing_simulation_wizard" sequence="10"/>
+    <menuitem id="menu_financiamiento_simulaciones" name="Simulaciones"
+              parent="menu_financiamiento_root" action="action_financing_simulation" sequence="20"/>
+    <menuitem id="menu_financiamiento_config" name="Configuración"
+              parent="menu_financiamiento_root" sequence="90"/>
+    <menuitem id="menu_financiamiento_vehiculos" name="Productos financieros"
+              parent="menu_financiamiento_config" action="action_financing_vehicle" sequence="10"/>
+</odoo>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Valores iniciales tomados del archivo de referencia (25,000 / 26.82%).
+         Ajustar en Financiamiento > Configuración > Productos financieros. -->
+    <record id="vehicle_tvs_deluxe_200" model="financing.vehicle">
+        <field name="name">TVS DELUXE 200CC</field>
+        <field name="importe_financiar">25000</field>
+        <field name="tea">0.2682</field>
+    </record>
+    <record id="vehicle_tvs_duramax_225" model="financing.vehicle">
+        <field name="name">TVS DURAMAX 225CC</field>
+        <field name="importe_financiar">25000</field>
+        <field name="tea">0.2682</field>
+    </record>
+
+    <record id="seq_financing_simulation" model="ir.sequence">
+        <field name="name">Simulación de financiamiento</field>
+        <field name="code">financing.simulation</field>
+        <field name="prefix">SIM-</field>
+        <field name="padding">5</field>
+    </record>
+</odoo>

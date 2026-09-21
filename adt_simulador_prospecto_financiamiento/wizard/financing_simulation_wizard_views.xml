@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_financing_simulation_wizard_form" model="ir.ui.view">
+        <field name="name">financing.simulation.wizard.form</field>
+        <field name="model">financing.simulation.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Simular cuota">
+                <header>
+                    <button name="action_calcular" type="object" string="Calcular" class="btn-primary"/>
+                    <button name="action_imprimir" type="object" string="Descargar PDF"
+                            attrs="{'invisible': [('calculado', '=', False)]}"/>
+                    <button name="action_nuevo" type="object" string="Nuevo cálculo"
+                            attrs="{'invisible': [('calculado', '=', False)]}"/>
+                </header>
+                <sheet>
+                    <field name="calculado" invisible="1"/>
+                    <div class="oe_title">
+                        <h1>Simular cuota</h1>
+                    </div>
+                    <group>
+                        <group string="Datos">
+                            <field name="vehicle_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="importe_financiar"/>
+                            <field name="tea"/>
+                            <field name="cuota_inicial"/>
+                            <field name="plazo_meses"/>
+                            <field name="frecuencia"/>
+                            <field name="fecha_inicio"/>
+                            <field name="partner_id" options="{'no_open': True}"/>
+                        </group>
+                        <group string="Resultado" attrs="{'invisible': [('calculado', '=', False)]}">
+                            <field name="capital"/>
+                            <field name="interes_mensual"/>
+                            <field name="cuota_mensual" class="fw-bold"/>
+                            <field name="cuota_semanal" class="fw-bold"/>
+                            <field name="cuota_diaria" class="fw-bold"/>
+                            <field name="total_intereses"/>
+                            <field name="total_credito"/>
+                        </group>
+                    </group>
+                    <notebook attrs="{'invisible': [('calculado', '=', False)]}">
+                        <page string="Cronograma" name="cronograma">
+                            <group>
+                                <field name="cantidad_cuotas"/>
+                            </group>
+                            <field name="cronograma_ids">
+                                <tree>
+                                    <field name="numero"/>
+                                    <field name="fecha"/>
+                                    <field name="cuota"/>
+                                    <field name="saldo"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_financing_simulation_wizard" model="ir.actions.act_window">
+        <field name="name">Simular cuota</field>
+        <field name="res_model">financing.simulation.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>
