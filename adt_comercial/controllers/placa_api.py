@@ -446,17 +446,19 @@ def _build_single_local_result(vehicle):
 
     # ── Cuentas ────────────────────────────────────────────────────────────
     cuentas = CuentaModel.search([('vehiculo_id', '=', vehicle.id)], order='id desc')
-    cuentas_data = [_build_cuenta_data(c) for c in cuentas]
     vehicle_data['total_cuentas'] = len(cuentas)
 
-    # ── Financiera ─────────────────────────────────────────────────────────
-    financiera_name = None
+    # Cuenta activa: prioriza en_curso/aprobado; fallback a la más reciente no cancelada.
     cuenta_ref = (
         cuentas.filtered(lambda c: c.state == 'en_curso')[:1]
         or cuentas.filtered(lambda c: c.state == 'aprobado')[:1]
         or cuentas.filtered(lambda c: c.state != 'cancelado')[:1]
         or cuentas[:1]
     )
+    cuentas_data = [_build_cuenta_data(cuenta_ref)] if cuenta_ref else []
+
+    # ── Financiera ─────────────────────────────────────────────────────────
+    financiera_name = None
     if not partner and cuenta_ref:
         partner = cuenta_ref.partner_id
         country_name = partner.country_id.name if partner and partner.country_id else None

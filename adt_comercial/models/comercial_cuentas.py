@@ -280,34 +280,29 @@ class ADTComercialCuentas(models.Model):
                     cuota.x_asesora = ""
     @api.depends('cuota_ids')
     def _compute_pagado_restante(self):
-        self.cuotas_saldo = sum(self.cuota_ids.filtered(
-            lambda x: x.state in ['pendiente', 'retrasado', 'a_cuenta'] and x.type == 'cuota').mapped('saldo'))
+        for rec in self:
+            rec.cuotas_saldo = sum(rec.cuota_ids.filtered(
+                lambda x: x.state in ['pendiente', 'retrasado', 'a_cuenta'] and x.type == 'cuota').mapped('saldo'))
 
-        # if self.cuotas_saldo == 0 and self.state == 'en_curso':
-        #     self.write({'state': 'pagado'})
+            rec.cuotas_pagado = sum(rec.cuota_ids.filtered(
+                lambda x: x.state == 'pagado').mapped('monto'))
 
-        self.cuotas_pagado = sum(self.cuota_ids.filtered(
-            lambda x: x.state == 'pagado').mapped('monto'))
-        # self.cuotas_pagado = (self.monto_financiado - self.monto_inicial)-self.cuotas_saldo
-
-        self.cuotas_retrasado = sum(self.cuota_ids.filtered(
-            lambda x: x.state == 'retrasado').mapped('monto'))
+            rec.cuotas_retrasado = sum(rec.cuota_ids.filtered(
+                lambda x: x.state == 'retrasado').mapped('monto'))
 
     @api.depends('cuota_ids')
     def _compute_qty_cuotas(self):
-        self.qty_cuotas_restantes = len(self.cuota_ids.filtered(
-            lambda x: x.state in ['pendiente', 'retrasado', 'a_cuenta'] and x.type == 'cuota'))
-        pagadas = len(self.cuota_ids.filtered(
-            lambda x: x.state == 'pagado' and x.type == 'cuota'))
-        self.qty_cuotas_pagadas = pagadas
+        for rec in self:
+            rec.qty_cuotas_restantes = len(rec.cuota_ids.filtered(
+                lambda x: x.state in ['pendiente', 'retrasado', 'a_cuenta'] and x.type == 'cuota'))
+            pagadas = len(rec.cuota_ids.filtered(
+                lambda x: x.state == 'pagado' and x.type == 'cuota'))
+            rec.qty_cuotas_pagadas = pagadas
+            rec.qty_cuotas_retrasado = len(rec.cuota_ids.filtered(
+                lambda x: x.state == 'retrasado' and x.type == 'cuota'))
 
-        retrasados = len(self.cuota_ids.filtered(
-            lambda x: x.state == 'retrasado' and x.type == 'cuota'))
-
-        self.qty_cuotas_retrasado = retrasados
-
-        if (pagadas > 0) and self.state != 'cancelado':
-            self.state = 'en_curso'
+            if (pagadas > 0) and rec.state != 'cancelado':
+                rec.state = 'en_curso'
 
         for rec in self:
             cuotas = rec.cuota_ids
