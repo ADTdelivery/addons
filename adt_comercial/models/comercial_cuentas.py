@@ -57,6 +57,17 @@ class ADTComercialCuentas(models.Model):
             'type': 'ir.actions.act_window',
         }
 
+    def action_cancelar_credito(self):
+        self.ensure_one()
+        return {
+            'name': _('Cancelar crédito'),
+            'res_model': 'adt.cancelar.credito.wizard',
+            'view_mode': 'form',
+            'context': {'default_cuenta_id': self.id},
+            'target': 'new',
+            'type': 'ir.actions.act_window',
+        }
+
     def cancelar_cuenta(self):
         for cuenta in self:
             cuenta.write({'state': 'cancelado'})

@@ -24,6 +24,7 @@
                             <field name="tea"/>
                             <field name="cuota_inicial"/>
                             <field name="plazo_meses"/>
+                            <field name="cargo_diario"/>
                             <field name="frecuencia"/>
                             <field name="fecha_inicio"/>
                             <field name="partner_id" options="{'no_open': True}"/>
@@ -34,6 +35,7 @@
                             <field name="cuota_mensual" class="fw-bold"/>
                             <field name="cuota_semanal" class="fw-bold"/>
                             <field name="cuota_diaria" class="fw-bold"/>
+                            <field name="total_cargo_diario"/>
                             <field name="total_intereses"/>
                             <field name="total_credito"/>
                         </group>

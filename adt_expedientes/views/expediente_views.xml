@@ -61,6 +61,21 @@
         </field>
     </record>
 
+    <!-- POPUP DOCUMENTO BENEFICIARIO -->
+    <record id="view_foto_beneficiario_popup" model="ir.ui.view">
+        <field name="name">foto.beneficiario.popup</field>
+        <field name="model">adt.expediente</field>
+        <field name="arch" type="xml">
+            <form string="Documento del beneficiario">
+                <sheet>
+                    <group>
+                        <field name="foto_beneficiario_documento" widget="image"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <!-- POPUP SENTINEL 2 -->
     <record id="view_foto_sentinel_2_popup" model="ir.ui.view">
         <field name="name">foto.sentinel.2.popup</field>
@@ -445,6 +460,7 @@
                                         ✘ Sin imagen
                                     </div>
                                     <button name="action_ver_foto_dni_frente" type="object" string="Ver anverso" class="btn-primary" attrs="{'invisible': [('foto_dni_frente','=',False)]}"/>
+                                    <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_dni_frente'}" attrs="{'invisible': [('foto_dni_frente','=',False)]}"/>
 
 
                                     <div class="o_form_label">DNI Reverso</div>
@@ -457,6 +473,7 @@
                                         ✘ Sin imagen
                                     </div>
                                     <button name="action_ver_foto_dni_reverso" type="object" string="Ver reverso" class="btn-primary" attrs="{'invisible': [('foto_dni_reverso','=',False)]}"/>
+                                    <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_dni_reverso'}" attrs="{'invisible': [('foto_dni_reverso','=',False)]}"/>
                                 </group>
 
                                 <group col="2">
@@ -472,7 +489,7 @@
                     <group>
 
 
-                        <!-- EXTRANJERO: CE o Pasaporte -->
+                        <!-- EXTRANJERO: CE (pasaporte solo histórico) -->
                         <div attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}">
 
                             <div class="o_form_label">
@@ -495,6 +512,7 @@
                                         ✘ Sin imagen
                                     </div>
                                     <button name="action_ver_foto_ce_frente" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_ce_frente','=',False)]}"/>
+                                    <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_ce_frente'}" attrs="{'invisible': [('foto_ce_frente','=',False)]}"/>
 
 
                                     <div class="o_form_label">Reverso</div>
@@ -506,6 +524,7 @@
                                         ✘ Sin imagen
                                     </div>
                                     <button name="action_ver_foto_ce_reverso" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_ce_reverso','=',False)]}"/>
+                                    <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_ce_reverso'}" attrs="{'invisible': [('foto_ce_reverso','=',False)]}"/>
 
                                 </group>
 
@@ -517,41 +536,30 @@
                             </group>
 
 
-                            <div class="o_form_label">
-                                <strong>Pasaporte</strong>
+                            <!-- Pasaporte deshabilitado: solo se muestra (lectura) en expedientes históricos que lo tienen -->
+                            <div attrs="{'invisible': [('foto_pasaporte_frente','=',False), ('foto_pasaporte_reverso','=',False)]}">
+                                <div class="o_form_label">
+                                    <strong>Pasaporte (histórico - ya no se solicita)</strong>
+                                </div>
+                                <separator/>
+
+                                <group>
+                                    <group col="1">
+                                        <div class="o_form_label">Anverso</div>
+                                        <field name="foto_pasaporte_frente" widget="binary" nolabel="1" readonly="1"/>
+                                        <button name="action_ver_foto_pasaporte_frente" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_pasaporte_frente','=',False)]}"/>
+
+                                        <div class="o_form_label">Reverso</div>
+                                        <field name="foto_pasaporte_reverso" widget="binary" nolabel="1" readonly="1"/>
+                                        <button name="action_ver_foto_pasaporte_reverso" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_pasaporte_reverso','=',False)]}"/>
+                                    </group>
+
+                                    <group col="2">
+                                        <field name="estado_foto_pasaporte" readonly="1"/>
+                                        <field name="obs_foto_pasaporte" nolabel="1" readonly="1" attrs="{'invisible': [('estado_foto_pasaporte','!=','rechazado')]}"/>
+                                    </group>
+                                </group>
                             </div>
-                            <separator/>
-
-                            <group>
-                                <group col="1">
-                                    <div class="o_form_label">Anverso</div>
-                                    <field name="foto_pasaporte_frente" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
-                                    <div attrs="{'invisible': [('foto_pasaporte_frente','=',False)]}" class="text-success">
-                                        ✔ Imagen cargada
-                                    </div>
-                                    <div attrs="{'invisible': [('foto_pasaporte_frente','!=',False)]}" class="text-danger">
-                                        ✘ Sin imagen
-                                    </div>
-                                    <button name="action_ver_foto_pasaporte_frente" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_pasaporte_frente','=',False)]}"/>
-
-
-                                    <div class="o_form_label">Reverso</div>
-                                    <field name="foto_pasaporte_reverso" widget="binary" nolabel="1" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
-                                    <div attrs="{'invisible': [('foto_pasaporte_reverso','=',False)]}" class="text-success">
-                                        ✔ Imagen cargada
-                                    </div>
-                                    <div attrs="{'invisible': [('foto_pasaporte_reverso','!=',False)]}" class="text-danger">
-                                        ✘ Sin imagen
-                                    </div>
-                                    <button name="action_ver_foto_pasaporte_reverso" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_pasaporte_reverso','=',False)]}"/>
-
-                                </group>
-
-                                <group  col="2">
-                                    <field name="estado_foto_pasaporte" attrs="{'invisible': [('cliente_nationality_code','==','peruana')]}"/>
-                                    <field name="obs_foto_pasaporte" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_pasaporte','!=','rechazado')]}"/>
-                                </group>
-                            </group>
 
                         </div>
 
@@ -578,6 +586,7 @@
                                     string="Ver imagen"
                                     class="btn-primary"
                                     attrs="{'invisible': [('foto_licencia','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_licencia'}" attrs="{'invisible': [('foto_licencia','=',False)]}"/>
                         </group>
 
                         <group col="2">
@@ -603,6 +612,7 @@
                                     <div attrs="{'invisible': [('foto_recibo','=',False)]}" class="text-success">✔ Imagen cargada</div>
                                     <div attrs="{'invisible': [('foto_recibo','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                                     <button name="action_ver_foto_recibo" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_recibo','=',False)]}"/>
+                                    <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_recibo'}" attrs="{'invisible': [('foto_recibo','=',False)]}"/>
                                 </group>
 
                             </group>
@@ -629,12 +639,14 @@
                             <div attrs="{'invisible': [('foto_sentinel_1','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_sentinel_1','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_sentinel_1" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_sentinel_1','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_sentinel_1'}" attrs="{'invisible': [('foto_sentinel_1','=',False)]}"/>
 
                             <div class="o_form_label">Deudas / Servicios (Imagen)</div>
                             <field name="foto_sentinel_2" widget="binary" nolabel="1"/>
                             <div attrs="{'invisible': [('foto_sentinel_2','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_sentinel_2','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_sentinel_2" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_sentinel_2','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_sentinel_2'}" attrs="{'invisible': [('foto_sentinel_2','=',False)]}"/>
 
 
                         </group>
@@ -659,6 +671,7 @@
                             <div attrs="{'invisible': [('foto_moto','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_moto','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_moto" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_moto','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_moto'}" attrs="{'invisible': [('foto_moto','=',False)]}"/>
                         </group>
                         <group col="2">
                             <field name="estado_foto_moto" string="Estado"/>
@@ -674,6 +687,7 @@
                             <div attrs="{'invisible': [('foto_soat','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_soat','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_soat" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_soat','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_soat'}" attrs="{'invisible': [('foto_soat','=',False)]}"/>
                         </group>
                         <group col="2">
                             <field name="estado_foto_soat" string="Estado"/>
@@ -689,12 +703,14 @@
                             <div attrs="{'invisible': [('foto_tarjeta_propiedad_frente','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_tarjeta_propiedad_frente','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_tarjeta_frente" type="object" string="Ver frente" class="btn-primary" attrs="{'invisible': [('foto_tarjeta_propiedad_frente','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_tarjeta_propiedad_frente'}" attrs="{'invisible': [('foto_tarjeta_propiedad_frente','=',False)]}"/>
 
                             <div class="o_form_label">Tarjeta de propiedad - Reverso</div>
                             <field name="foto_tarjeta_propiedad_reverso" widget="binary" nolabel="1"/>
                             <div attrs="{'invisible': [('foto_tarjeta_propiedad_reverso','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_tarjeta_propiedad_reverso','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_tarjeta_reverso" type="object" string="Ver reverso" class="btn-primary" attrs="{'invisible': [('foto_tarjeta_propiedad_reverso','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_tarjeta_propiedad_reverso'}" attrs="{'invisible': [('foto_tarjeta_propiedad_reverso','=',False)]}"/>
                         </group>
                         <group col="2">
                             <field name="estado_foto_tarjeta" string="Estado"/>
@@ -726,6 +742,7 @@
                             <div attrs="{'invisible': [('foto_lugar_trabajo','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_lugar_trabajo','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_lugar_trabajo" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_lugar_trabajo','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_lugar_trabajo'}" attrs="{'invisible': [('foto_lugar_trabajo','=',False)]}"/>
                         </group>
                         <group col="2">
                             <field name="estado_foto_lugar_trabajo" string="Estado"/>
@@ -741,6 +758,7 @@
                             <div attrs="{'invisible': [('foto_lugar_negocio','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_lugar_negocio','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_lugar_negocio" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_lugar_negocio','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_lugar_negocio'}" attrs="{'invisible': [('foto_lugar_negocio','=',False)]}"/>
                         </group>
                         <group col="2">
                             <field name="estado_foto_lugar_negocio" string="Estado"/>
@@ -756,6 +774,7 @@
                             <div attrs="{'invisible': [('foto_boletas','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_boletas','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_boletas" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_boletas','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_boletas'}" attrs="{'invisible': [('foto_boletas','=',False)]}"/>
                         </group>
                         <group col="2">
                             <field name="estado_foto_boletas" string="Estado"/>
@@ -771,6 +790,7 @@
                             <div attrs="{'invisible': [('foto_estado_cuenta','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_estado_cuenta','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_estado_cuenta" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_estado_cuenta','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_estado_cuenta'}" attrs="{'invisible': [('foto_estado_cuenta','=',False)]}"/>
                         </group>
                         <group col="2">
                             <field name="estado_foto_estado_cuenta" string="Estado"/>
@@ -800,6 +820,7 @@
                             <div attrs="{'invisible': [('foto_ubicacion_actual','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_ubicacion_actual','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_ubicacion" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_ubicacion_actual','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_ubicacion_actual'}" attrs="{'invisible': [('foto_ubicacion_actual','=',False)]}"/>
                         </group>
                         <group>
                             <field name="estado_foto_ubicacion" string="Estado"/>
@@ -815,6 +836,7 @@
                             <div attrs="{'invisible': [('foto_fachada_domicilio','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_fachada_domicilio','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_fachada" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_fachada_domicilio','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_fachada_domicilio'}" attrs="{'invisible': [('foto_fachada_domicilio','=',False)]}"/>
                         </group>
                         <group>
                             <field name="estado_foto_fachada" string="Estado"/>
@@ -841,6 +863,7 @@
                             <div attrs="{'invisible': [('foto_contrato_alquiler','=',False)]}" class="text-success">✔ Imagen cargada</div>
                             <div attrs="{'invisible': [('foto_contrato_alquiler','!=',False)]}" class="text-danger">✘ Sin imagen</div>
                             <button name="action_ver_foto_contrato" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_contrato_alquiler','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_contrato_alquiler'}" attrs="{'invisible': [('foto_contrato_alquiler','=',False)]}"/>
                         </group>
                         <group>
                             <field name="estado_foto_contrato" string="Estado"/>
@@ -878,6 +901,7 @@
                                     string="Ver imagen"
                                     class="btn-primary"
                                     attrs="{'invisible': [('foto_entrega','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_entrega'}" attrs="{'invisible': [('foto_entrega','=',False)]}"/>
                         </group>
 
                         <!-- COLUMNA 2: PLACA -->
@@ -890,6 +914,25 @@
                             <field name="chasis" string="🔩 Chasis"/>
                         </group>
 
+                    </group>
+
+                    <separator string="BENEFICIARIO (OPCIONAL)"/>
+
+                    <group>
+                        <group>
+                            <div class="o_form_label">Documento del beneficiario - FOTO</div>
+                            <field name="foto_beneficiario_documento" widget="binary" nolabel="1"/>
+                            <div attrs="{'invisible': [('foto_beneficiario_documento','=',False)]}" class="text-success">✔ Imagen cargada</div>
+                            <div attrs="{'invisible': [('foto_beneficiario_documento','!=',False)]}" class="text-muted">Sin imagen (opcional)</div>
+                            <button name="action_ver_foto_beneficiario" type="object" string="Ver" class="btn-primary" attrs="{'invisible': [('foto_beneficiario_documento','=',False)]}"/>
+                            <button name="action_editar_imagen" type="object" string="Editar" icon="fa-crop" class="btn-secondary" context="{'campo_imagen': 'foto_beneficiario_documento'}" attrs="{'invisible': [('foto_beneficiario_documento','=',False)]}"/>
+                            <field name="beneficiario_celular" placeholder="Celular"/>
+                            <field name="beneficiario_parentesco"/>
+                        </group>
+                        <group>
+                            <field name="estado_foto_beneficiario" string="Estado"/>
+                            <field name="obs_foto_beneficiario" placeholder="Motivo del rechazo..." nolabel="1" attrs="{'invisible': [('estado_foto_beneficiario','!=','rechazado')]}"/>
+                        </group>
                     </group>
 
                     <group string="MOTIVOS DE RECHAZO"

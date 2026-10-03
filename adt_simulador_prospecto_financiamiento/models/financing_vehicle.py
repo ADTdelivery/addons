@@ -15,6 +15,9 @@ class FinancingVehicle(models.Model):
     tea = fields.Float(
         string='TEA (decimal)', digits=(16, 6), required=True,
         help='Tasa efectiva anual en decimal. Ej.: 26.82% = 0.2682')
+    cuota_inicial = fields.Float(
+        string='Cuota inicial', digits=(16, 2), required=True, default=0.0,
+        help='Cuota inicial que se usa en todas las simulaciones de este producto.')
     tea_porcentaje = fields.Float(
         string='TEA (%)', digits=(16, 4), compute='_compute_tea_porcentaje')
     active = fields.Boolean(string='Activo', default=True)
@@ -28,15 +31,20 @@ class FinancingVehicle(models.Model):
         for rec in self:
             rec.tea_porcentaje = rec.tea * 100
 
-    @api.constrains('importe_financiar', 'tea')
+    @api.constrains('importe_financiar', 'tea', 'cuota_inicial')
     def _check_valores(self):
         for rec in self:
             if rec.importe_financiar <= 0:
                 raise ValidationError(_('El importe a financiar debe ser mayor que cero.'))
             if rec.tea <= 0:
                 raise ValidationError(_('La TEA debe ser mayor que cero.'))
+            if rec.cuota_inicial < 0:
+                raise ValidationError(_('La cuota inicial no puede ser negativa.'))
+            if rec.cuota_inicial >= rec.importe_financiar:
+                raise ValidationError(_('La cuota inicial debe ser menor que el importe a financiar.'))
 
-    def calcular(self, cuota_inicial, plazo_meses):
+    def calcular(self, plazo_meses, cargo_diario=0.0):
         """Ejecuta la cadena de fórmulas con los parámetros del producto."""
         self.ensure_one()
-        return calcular_cuotas(self.importe_financiar, cuota_inicial, self.tea, plazo_meses)
+        return calcular_cuotas(self.importe_financiar, self.cuota_inicial, self.tea,
+                               plazo_meses, cargo_diario)

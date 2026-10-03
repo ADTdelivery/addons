@@ -4,7 +4,7 @@ from odoo import fields, http
 from odoo.exceptions import UserError, ValidationError
 from odoo.http import content_disposition, request
 
-from ..models.calculo import FRECUENCIAS
+from ..models.calculo import CARGO_DIARIO_DEFECTO, FRECUENCIAS
 
 MENSAJE_SIMULACION = 'Simulación generada correctamente.'
 LIMITE_MAXIMO = 50
@@ -26,7 +26,8 @@ class SimuladorFinanciamientoController(http.Controller):
     """Servicios que consume la app. Todos son JSON-RPC (POST) con sesión de usuario.
 
     Errores: {ok: false, codigo, error}. La TEA y el importe a financiar nunca se
-    reciben ni se devuelven; los toma el backend del vehículo configurado.
+    reciben ni se devuelven; los toma el backend del vehículo configurado. La
+    cuota inicial sugerida viene del vehículo (catálogo) y el front puede cambiarla.
     """
 
     # ------------------------------------------------------------------ catálogo
@@ -36,7 +37,8 @@ class SimuladorFinanciamientoController(http.Controller):
         vehiculos = request.env['financing.vehicle'].search([])
         return {
             'ok': True,
-            'vehiculos': [{'id': v.id, 'nombre': v.name} for v in vehiculos],
+            'vehiculos': [{'id': v.id, 'nombre': v.name, 'cuota_inicial': v.cuota_inicial}
+                          for v in vehiculos],
         }
 
     # ------------------------------------------------------------------ clientes
@@ -93,24 +95,33 @@ class SimuladorFinanciamientoController(http.Controller):
     # ------------------------------------------------------------------ simulaciones
     @http.route('/api/simulador/cuotas', type='json', auth='user', methods=['POST'])
     def cuotas(self, vehiculo_id=None, cuota_inicial=None, plazo_meses=None,
-               cliente_id=None, fecha_inicio=None, frecuencia=None, **kw):
+               cliente_id=None, fecha_inicio=None, frecuencia=None, cargo_diario=None, **kw):
         """Calcula y registra la simulación (las tres cuotas siempre a la vez).
+
+        `cuota_inicial` es opcional: si no se envía se usa la del vehículo.
 
         Opcionales: `cliente_id` (relaciona la simulación con un cliente),
         `fecha_inicio` (AAAA-MM-DD; genera el cronograma) y `frecuencia`
-        (mensual | semanal | diaria; por defecto mensual).
+        (mensual | semanal | diaria; por defecto mensual) y `cargo_diario`
+        (monto fijo sumado por cada día; por defecto 5.00).
         """
         try:
             vehiculo_id = self._entero(vehiculo_id, 'vehiculo_id')
             plazo_meses = self._entero(plazo_meses, 'plazo_meses')
-            cuota_inicial = self._numero(cuota_inicial, 'cuota_inicial')
             cliente = self._cliente(cliente_id) if cliente_id not in (None, '', False) else None
             fecha = self._fecha(fecha_inicio)
             frecuencia = self._frecuencia(frecuencia)
+            cuota_inicial = (None if cuota_inicial in (None, '')
+                             else self._numero(cuota_inicial, 'cuota_inicial'))
+            cargo_diario = (CARGO_DIARIO_DEFECTO if cargo_diario in (None, '')
+                            else self._numero(cargo_diario, 'cargo_diario'))
 
             vehiculo = request.env['financing.vehicle'].search([('id', '=', vehiculo_id)])
             if not vehiculo:
                 raise ApiError('no_encontrado', 'El vehículo seleccionado no existe o no está activo.')
+
+            if cuota_inicial is None:
+                cuota_inicial = vehiculo.cuota_inicial
 
             # Savepoint: si una validación falla tras el INSERT, no debe quedar registro.
             with request.env.cr.savepoint():
@@ -118,6 +129,7 @@ class SimuladorFinanciamientoController(http.Controller):
                     'vehicle_id': vehiculo.id,
                     'cuota_inicial': cuota_inicial,
                     'plazo_meses': plazo_meses,
+                    'cargo_diario': cargo_diario,
                     'partner_id': cliente.id if cliente else False,
                     'frecuencia': frecuencia,
                     'fecha_inicio': fecha or False,
@@ -235,6 +247,8 @@ class SimuladorFinanciamientoController(http.Controller):
             'frecuencia': s.frecuencia,
             'fecha_inicio': self._iso(s.fecha_inicio),
             'capital': s.capital,
+            'cargo_diario': s.cargo_diario,
+            'total_cargo_diario': s.total_cargo_diario,
             'cuota_mensual': s.cuota_mensual,
             'cuota_semanal': s.cuota_semanal,
             'cuota_diaria': s.cuota_diaria,

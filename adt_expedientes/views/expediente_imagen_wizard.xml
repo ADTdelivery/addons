@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_adt_expediente_imagen_wizard_form" model="ir.ui.view">
+        <field name="name">adt.expediente.imagen.wizard.form</field>
+        <field name="model">adt.expediente.imagen.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Editar imagen">
+                <field name="imagen_original" invisible="1"/>
+                <field name="campo" invisible="1"/>
+                <field name="expediente_id" invisible="1"/>
+                <div class="oe_title">
+                    <h3><field name="campo_label"/></h3>
+                </div>
+                <group>
+                    <group string="Rotar">
+                        <div class="o_row" colspan="2">
+                            <button name="action_rotar_izquierda" type="object" string="Izquierda"
+                                    icon="fa-rotate-left" class="btn-secondary"/>
+                            <button name="action_rotar_derecha" type="object" string="Derecha"
+                                    icon="fa-rotate-right" class="btn-secondary"/>
+                        </div>
+                        <field name="rotacion"/>
+                    </group>
+                    <group string="Recortar (% por lado, máx. 45)">
+                        <field name="recorte_arriba"/>
+                        <field name="recorte_abajo"/>
+                        <field name="recorte_izquierda"/>
+                        <field name="recorte_derecha"/>
+                    </group>
+                </group>
+                <div class="text-center">
+                    <field name="vista_previa" widget="image" nolabel="1"
+                           options="{'size': [0, 450]}"/>
+                </div>
+                <p class="text-muted">
+                    La vista previa se actualiza al rotar o al cambiar los porcentajes de recorte.
+                    La imagen del expediente solo se reemplaza al pulsar "Aplicar".
+                </p>
+                <footer>
+                    <button name="action_aplicar" type="object" string="Aplicar" class="btn-primary"/>
+                    <button name="action_restablecer" type="object" string="Restablecer" class="btn-secondary"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

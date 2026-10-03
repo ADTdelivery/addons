@@ -9,6 +9,7 @@
                 <field name="importe_financiar"/>
                 <field name="tea"/>
                 <field name="tea_porcentaje"/>
+                <field name="cuota_inicial"/>
                 <field name="active" widget="boolean_toggle"/>
             </tree>
         </field>
@@ -29,6 +30,7 @@
                             <field name="importe_financiar"/>
                             <field name="tea"/>
                             <field name="tea_porcentaje"/>
+                            <field name="cuota_inicial"/>
                         </group>
                     </group>
                 </sheet>

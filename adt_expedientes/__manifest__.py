@@ -40,6 +40,7 @@
         'reports/expediente_report.xml',
         'views/expediente_views.xml',
         'views/expediente_rechazo_wizard.xml',
+        'views/expediente_imagen_wizard.xml',
         'views/res_partner_views.xml',
         'views/expediente_references_inherit.xml',
         'views/fcm_device_views.xml',

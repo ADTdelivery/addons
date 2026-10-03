@@ -38,6 +38,7 @@
         'reports/reporte_cronograma_cuenta.xml',
         'views/view_cronograma_tramos_wizard.xml',
         'views/view_cuotas_masivas.xml',
+        'views/view_cancelar_credito_wizard.xml',
         'views/view_egresos_caja.xml',
         'views/dashboard_caja.xml',
         'views/dashboard_cobranzas.xml',

@@ -122,6 +122,30 @@
                                 <img t-att-src="doc.get_data_uri('foto_tarjeta_propiedad_reverso')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
                             </div>
                         </t>
+                        <t t-if="doc.foto_lugar_trabajo">
+                            <div class="image-block">
+                                <h4>Lugar de trabajo</h4>
+                                <img t-att-src="doc.get_data_uri('foto_lugar_trabajo')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_lugar_negocio">
+                            <div class="image-block">
+                                <h4>Lugar del negocio</h4>
+                                <img t-att-src="doc.get_data_uri('foto_lugar_negocio')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_boletas">
+                            <div class="image-block">
+                                <h4>Boletas / Contrato / Recibos</h4>
+                                <img t-att-src="doc.get_data_uri('foto_boletas')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
+                        <t t-if="doc.foto_estado_cuenta">
+                            <div class="image-block">
+                                <h4>Estado de cuenta</h4>
+                                <img t-att-src="doc.get_data_uri('foto_estado_cuenta')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                            </div>
+                        </t>
                         <t t-if="doc.foto_ubicacion_actual">
                             <div class="image-block">
                                 <h4>Ubicacion actual</h4>
@@ -185,18 +209,30 @@
 
                         <table class="table table-sm" style="width:100%; margin-top:8px;">
                             <tbody>
-                                <tr>
-                                    <td style="width:25%;"><strong>Ganancia diaria / mensual:</strong></td>
-                                    <td style="width:25%;">S/ <span t-esc="doc.ganancia_diaria_mensual or ''"/></td>
-                                    <td style="width:25%;"><strong>Tiempo trabajando:</strong></td>
-                                    <td style="width:25%;"><span t-esc="doc.tiempo_trabajando or ''"/></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Empresa asociada:</strong></td>
-                                    <td><span t-esc="doc.moto_empresa or ''"/></td>
-                                    <td><strong>Moto propia o alquilada:</strong></td>
-                                    <td><span t-esc="doc.moto_propiedad or ''"/></td>
-                                </tr>
+                                <!-- Mototaxista -->
+                                <t t-if="doc.cliente_occupation_code == 'mototaxista'">
+                                    <tr>
+                                        <td style="width:25%;"><strong>Ganancia diaria / mensual:</strong></td>
+                                        <td style="width:25%;">S/ <span t-esc="doc.ganancia_diaria_mensual or ''"/></td>
+                                        <td style="width:25%;"><strong>Tiempo trabajando:</strong></td>
+                                        <td style="width:25%;"><span t-esc="doc.tiempo_trabajando or ''"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Empresa asociada:</strong></td>
+                                        <td><span t-esc="doc.moto_empresa or ''"/></td>
+                                        <td><strong>Moto propia o alquilada:</strong></td>
+                                        <td><span t-esc="dict(doc._fields['moto_propiedad'].selection).get(doc.moto_propiedad, doc.moto_propiedad or '')"/></td>
+                                    </tr>
+                                </t>
+                                <!-- Trabajo independiente / no mototaxista -->
+                                <t t-else="">
+                                    <tr>
+                                        <td style="width:25%;"><strong>Ganancia diaria / mensual:</strong></td>
+                                        <td style="width:25%;">S/ <span t-esc="doc.ganancia_diaria_mensual_no or ''"/></td>
+                                        <td style="width:25%;"><strong>Tiempo trabajando:</strong></td>
+                                        <td style="width:25%;"><span t-esc="doc.tiempo_trabajando_no or ''"/></td>
+                                    </tr>
+                                </t>
                                 <tr>
                                     <td><strong>Tipo de vivienda:</strong></td>
                                     <td><span t-esc="doc.tipo_vivienda or ''"/></td>
@@ -247,6 +283,26 @@
                                 </tr>
                             </tbody>
                         </table>
+
+                        <t t-if="doc.foto_beneficiario_documento or doc.beneficiario_celular or doc.beneficiario_parentesco">
+                            <h3>Beneficiario</h3>
+                            <table class="table table-sm" style="width:100%; border-collapse:collapse;">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Celular:</strong></td>
+                                        <td><span t-esc="doc.beneficiario_celular or ''"/></td>
+                                        <td><strong>Parentesco:</strong></td>
+                                        <td><span t-field="doc.beneficiario_parentesco"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <t t-if="doc.foto_beneficiario_documento">
+                                <div class="image-block">
+                                    <h4>Documento del beneficiario</h4>
+                                    <img t-att-src="doc.get_data_uri('foto_beneficiario_documento')" style="width:100%; height:130mm; object-fit:contain; display:block;"/>
+                                </div>
+                            </t>
+                        </t>
 
                     </div>
                 </t>

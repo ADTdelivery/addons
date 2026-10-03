@@ -1,5 +1,6 @@
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 
+from ..models.calculo import CARGO_DIARIO_DEFECTO
 from ..models.financing_simulation import CAMPOS_CALCULADOS
 
 
@@ -13,8 +14,13 @@ class FinancingSimulationWizard(models.TransientModel):
     importe_financiar = fields.Float(
         related='vehicle_id.importe_financiar', string='Importe a financiar', digits=(16, 2))
     tea = fields.Float(related='vehicle_id.tea', string='TEA (decimal)', digits=(16, 6))
-    cuota_inicial = fields.Float(string='Cuota inicial', digits=(16, 2), required=True)
+    cuota_inicial = fields.Float(
+        string='Cuota inicial', digits=(16, 2), required=True,
+        help='Se propone la del producto; puede modificarse para esta simulación.')
     plazo_meses = fields.Integer(string='Plazo (meses)', required=True)
+    cargo_diario = fields.Float(
+        string='Cargo diario', digits=(16, 2), default=CARGO_DIARIO_DEFECTO,
+        help='Monto fijo que se suma por cada día del crédito a la cuota calculada.')
 
     partner_id = fields.Many2one('res.partner', string='Cliente')
     frecuencia = fields.Selection(
@@ -29,6 +35,7 @@ class FinancingSimulationWizard(models.TransientModel):
     cuota_semanal = fields.Float(string='C/ Semanal', digits=(16, 2), readonly=True)
     cuota_diaria = fields.Float(string='C/ Diaria', digits=(16, 2), readonly=True)
     total_credito = fields.Float(string='Total del crédito', digits=(16, 2), readonly=True)
+    total_cargo_diario = fields.Float(string='Total cargo diario', digits=(16, 2), readonly=True)
     total_intereses = fields.Float(string='Total de intereses', digits=(16, 2), readonly=True)
     simulation_id = fields.Many2one('financing.simulation', string='Simulación', readonly=True)
     cronograma_ids = fields.One2many(
@@ -36,12 +43,17 @@ class FinancingSimulationWizard(models.TransientModel):
     cantidad_cuotas = fields.Integer(
         related='simulation_id.cantidad_cuotas', string='Cantidad de cuotas')
 
+    @api.onchange('vehicle_id')
+    def _onchange_vehicle_id(self):
+        self.cuota_inicial = self.vehicle_id.cuota_inicial
+
     def action_calcular(self):
         self.ensure_one()
         simulacion = self.env['financing.simulation'].create({
             'vehicle_id': self.vehicle_id.id,
             'cuota_inicial': self.cuota_inicial,
             'plazo_meses': self.plazo_meses,
+            'cargo_diario': self.cargo_diario,
             'partner_id': self.partner_id.id,
             'frecuencia': self.frecuencia,
             'fecha_inicio': self.fecha_inicio,

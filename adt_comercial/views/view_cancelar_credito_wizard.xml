@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_adt_cancelar_credito_wizard_form" model="ir.ui.view">
+        <field name="name">adt.cancelar.credito.wizard.form</field>
+        <field name="model">adt.cancelar.credito.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Cancelar crédito">
+                <field name="currency_id" invisible="1"/>
+                <group>
+                    <group string="Deuda a la fecha de pago">
+                        <field name="cuenta_id" options="{'no_open': True}"/>
+                        <field name="cuotas_pendientes"/>
+                        <field name="capital_pendiente"/>
+                        <field name="mora_pendiente"/>
+                        <field name="total_adeudado" class="fw-bold"/>
+                    </group>
+                    <group string="Pago">
+                        <field name="payment_date"/>
+                        <field name="numero_operacion"/>
+                        <field name="cancelar_todo"/>
+                        <field name="monto" attrs="{'readonly': [('cancelar_todo', '=', True)], 'required': [('cancelar_todo', '=', False)]}" force_save="1"/>
+                    </group>
+                </group>
+                <p class="text-muted">
+                    El monto se aplica desde la cuota más antigua: primero el capital y luego su mora,
+                    antes de pasar a la siguiente. Si el monto no alcanza para una cuota, se paga en parte
+                    y el saldo queda como subcuota.
+                </p>
+                <footer>
+                    <button string="Registrar pago" name="action_pagar" type="object" class="oe_highlight"/>
+                    <button string="Cancelar" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -62,6 +62,12 @@
                                     <td class="text-right"><span t-field="o.plazo_meses"/> meses</td>
                                 </tr>
                                 <tr>
+                                    <td>Cargo diario</td>
+                                    <td class="text-right">
+                                        <span t-field="o.cargo_diario" t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td>Frecuencia de pago</td>
                                     <td class="text-right"><span t-field="o.frecuencia"/></td>
                                 </tr>
@@ -88,6 +94,12 @@
                                             <span t-field="o.cuota_diaria" t-options='{"widget": "float", "precision": 2}'/>
                                         </t>
                                     </strong></td>
+                                </tr>
+                                <tr t-if="o.total_cargo_diario">
+                                    <td>Total cargo diario (incluido en las cuotas)</td>
+                                    <td class="text-right">
+                                        <span t-field="o.total_cargo_diario" t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Total a pagar en cuotas</td>

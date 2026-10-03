@@ -1,6 +1,6 @@
 {
     'name': 'ADT Simulador de Financiamiento',
-    'version': '15.0.1.0.0',
+    'version': '15.0.1.2.0',
     'category': 'Sales',
     'summary': 'Simulador de cuotas (mensual, semanal y diaria) por vehículo financiable',
     'description': """

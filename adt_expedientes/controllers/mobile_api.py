@@ -13,6 +13,14 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+# Pasaporte deshabilitado: los datos históricos se conservan (solo lectura), pero la
+# API ya no los recibe ni los usa para faltantes/progreso. Extranjeros: solo CE.
+CAMPOS_PASAPORTE = (
+    'foto_pasaporte_frente', 'foto_pasaporte_reverso',
+    'estado_foto_pasaporte', 'obs_foto_pasaporte',
+)
+ERROR_PASAPORTE = 'El pasaporte ya no se registra; los clientes extranjeros deben usar Carné de Extranjería.'
+
 PLATE_RE = re.compile(r'^[A-Z0-9]{2,4}-?[A-Z0-9]{2,4}$', re.IGNORECASE)
 
 WORKSHOP_STATE_LABELS = {
@@ -727,7 +735,8 @@ class AdtExpedientesMobileAPI(http.Controller):
                 vals = payload.get('vals')
             else:
                 # Build vals from common expediente fields
-                candidate_keys = ['cliente_id', 'vehiculo', 'fecha', 'direccion_cliente', 'placa', 'chasis']
+                candidate_keys = ['cliente_id', 'vehiculo', 'fecha', 'direccion_cliente', 'placa', 'chasis',
+                                  'beneficiario_celular', 'beneficiario_parentesco']
                 vals = {}
                 for k in candidate_keys:
                     if k in payload and payload.get(k) is not None:
@@ -752,6 +761,8 @@ class AdtExpedientesMobileAPI(http.Controller):
         #user, err = self._ensure_auth()
         #if err:
         #    return err
+
+        vals = {k: v for k, v in vals.items() if k not in CAMPOS_PASAPORTE}
 
         Exp = request.env['adt.expediente'].sudo()
         try:
@@ -793,7 +804,7 @@ class AdtExpedientesMobileAPI(http.Controller):
             # Sanitize vals: mobile clients sometimes send empty strings for binary fields
             # to indicate "no change". Writing '' to a binary field will clear the stored
             # image and may change computed state unexpectedly. We'll skip such keys.
-            write_vals = dict(vals)
+            write_vals = {k: v for k, v in vals.items() if k not in CAMPOS_PASAPORTE}
             for key in list(write_vals.keys()):
                 field = Exp._fields.get(key)
                 if field and field.type == 'binary':
@@ -864,6 +875,8 @@ class AdtExpedientesMobileAPI(http.Controller):
         if not rec.exists():
             return {'success': False, 'error': 'expediente not found'}
         # validate that the field exists and is binary
+        if field_name in CAMPOS_PASAPORTE:
+            return {'success': False, 'error': ERROR_PASAPORTE}
         field = rec._fields.get(field_name)
         if not field or field.type not in ('binary',):
             return {'success': False, 'error': 'invalid field_name'}
@@ -874,6 +887,17 @@ class AdtExpedientesMobileAPI(http.Controller):
             return {'success': True, 'data': {'id': rec.id, 'field': field_name}}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+    @http.route('/adt_expedientes/mobile/expediente/parentesco_options', type='json', auth='none', methods=['POST'], csrf=False)
+    def expediente_parentesco_options(self, **kwargs):
+        """Opciones de parentesco del beneficiario: [{value, label}, ...]."""
+        # 🔒 VALIDACIÓN DE AUTENTICACIÓN
+        user, err = self._ensure_auth()
+        if err:
+            return err
+        field = request.env['adt.expediente'].sudo()._fields['beneficiario_parentesco']
+        selection = field.selection(request.env) if callable(field.selection) else field.selection
+        return {'success': True, 'data': [{'value': k, 'label': v} for k, v in selection]}
 
     # Endpoint to mark a document state (aceptado/rechazado) optionally with an observation
     @http.route('/adt_expedientes/mobile/expediente/set_doc_state', type='json', auth='none', methods=['POST'], csrf=False)
@@ -896,6 +920,8 @@ class AdtExpedientesMobileAPI(http.Controller):
         rec = request.env['adt.expediente'].sudo().browse(int(expediente_id))
         if not rec.exists():
             return {'success': False, 'error': 'expediente not found'}
+        if field_state in CAMPOS_PASAPORTE:
+            return {'success': False, 'error': ERROR_PASAPORTE}
         if field_state not in rec._fields:
             return {'success': False, 'error': 'invalid state field'}
         try:
@@ -974,9 +1000,9 @@ class AdtExpedientesMobileAPI(http.Controller):
             if not rec.foto_dni_reverso:
                 missing.append('foto_dni_reverso')
         elif nat and nat != 'peruana':
-            # require CE or passport
-            if not (rec.foto_ce_frente and rec.foto_ce_reverso) and not (rec.foto_pasaporte_frente and rec.foto_pasaporte_reverso):
-                missing.append('foto_ce_or_pasaporte')
+            # require CE (front + back)
+            if not (rec.foto_ce_frente and rec.foto_ce_reverso):
+                missing.append('foto_ce')
 
         # common documents
         for f in ['foto_licencia', 'foto_recibo', 'foto_sentinel_1']:
@@ -1044,6 +1070,8 @@ class AdtExpedientesMobileAPI(http.Controller):
         rec = request.env['adt.expediente'].sudo().browse(int(expediente_id))
         if not rec.exists():
             return {'success': False, 'error': 'expediente not found'}
+        if field_name in CAMPOS_PASAPORTE:
+            return {'success': False, 'error': ERROR_PASAPORTE}
         field = rec._fields.get(field_name)
         if not field or field.type not in ('binary',):
             return {'success': False, 'error': 'invalid field_name'}
@@ -1178,8 +1206,8 @@ class AdtExpedientesMobileAPI(http.Controller):
                 if not getattr(r, 'foto_dni_reverso'):
                     missing.append('foto_dni_reverso')
             elif nat and nat != 'peruana':
-                if not (getattr(r, 'foto_ce_frente') and getattr(r, 'foto_ce_reverso')) and not (getattr(r, 'foto_pasaporte_frente') and getattr(r, 'foto_pasaporte_reverso')):
-                    missing.append('foto_ce_or_pasaporte')
+                if not (getattr(r, 'foto_ce_frente') and getattr(r, 'foto_ce_reverso')):
+                    missing.append('foto_ce')
 
             # common documents
             for f in ['foto_licencia', 'foto_recibo', 'foto_sentinel_1']:
@@ -1651,13 +1679,10 @@ class AdtExpedientesMobileAPI(http.Controller):
                 if getattr(r, 'foto_dni_frente') and getattr(r, 'foto_dni_reverso') and getattr(r, 'estado_foto_dni') == 'aceptado':
                     completed += ['foto_dni_frente', 'foto_dni_reverso']
             else:
-                # foreign: either CE or passport
-                required += ['foto_ce_frente|foto_pasaporte_frente']
-                # mark completed if either set accepted
-                ce_ok = bool(getattr(r, 'foto_ce_frente') and getattr(r, 'foto_ce_reverso') and getattr(r, 'estado_foto_ce') == 'aceptado')
-                pas_ok = bool(getattr(r, 'foto_pasaporte_frente') and getattr(r, 'foto_pasaporte_reverso') and getattr(r, 'estado_foto_pasaporte') == 'aceptado')
-                if ce_ok or pas_ok:
-                    completed += ['foto_ce_frente|foto_pasaporte_frente']
+                # foreign: CE (el pasaporte ya no se acepta)
+                required += ['foto_ce_frente', 'foto_ce_reverso']
+                if getattr(r, 'foto_ce_frente') and getattr(r, 'foto_ce_reverso') and getattr(r, 'estado_foto_ce') == 'aceptado':
+                    completed += ['foto_ce_frente', 'foto_ce_reverso']
 
             # general docs always apply
             general = ['foto_licencia', 'foto_recibo', 'foto_sentinel_1']
@@ -1725,8 +1750,12 @@ class AdtExpedientesMobileAPI(http.Controller):
             else:
                 identity['ce_frente'] = doc_field(r, 'foto_ce_frente', 'estado_foto_ce', 'obs_foto_ce')
                 identity['ce_reverso'] = doc_field(r, 'foto_ce_reverso', 'estado_foto_ce', 'obs_foto_ce')
-                identity['pasaporte_frente'] = doc_field(r, 'foto_pasaporte_frente', 'estado_foto_pasaporte', 'obs_foto_pasaporte')
-                identity['pasaporte_reverso'] = doc_field(r, 'foto_pasaporte_reverso', 'estado_foto_pasaporte', 'obs_foto_pasaporte')
+                # Pasaporte: solo se informa en expedientes antiguos que lo tienen (histórico).
+                if r.foto_pasaporte_frente or r.foto_pasaporte_reverso:
+                    identity['pasaporte_historico'] = {
+                        'frente': doc_field(r, 'foto_pasaporte_frente', 'estado_foto_pasaporte', 'obs_foto_pasaporte'),
+                        'reverso': doc_field(r, 'foto_pasaporte_reverso', 'estado_foto_pasaporte', 'obs_foto_pasaporte'),
+                    }
 
             # Expose licencia, recibo and sentinel as top-level keys (mobile-friendly)
             licencia = doc_field(r, 'foto_licencia', 'estado_foto_licencia', 'obs_foto_licencia')
@@ -1774,6 +1803,14 @@ class AdtExpedientesMobileAPI(http.Controller):
                 'obs_referencias': {'value': r.obs_referencias}
             }
 
+            # Opcional: no se incluye en required/completed del progreso.
+            beneficiario = {
+                'foto_documento': doc_field(r, 'foto_beneficiario_documento', 'estado_foto_beneficiario', 'obs_foto_beneficiario'),
+                'celular': {'value': r.beneficiario_celular},
+                'parentesco': {'value': r.beneficiario_parentesco,
+                               'label': sel_label(r, 'beneficiario_parentesco', r.beneficiario_parentesco)},
+            }
+
             meta = {
                 'expediente_id': r.id,
                 'state': r.state,
@@ -1817,6 +1854,7 @@ class AdtExpedientesMobileAPI(http.Controller):
                 'ingresos': ingresos,
                 'vivienda': vivienda,
                 'referencias': referencias,
+                'beneficiario': beneficiario,
                 'progress': progress
             })
 

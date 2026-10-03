@@ -11,6 +11,7 @@
                 <field name="partner_id"/>
                 <field name="cuota_inicial"/>
                 <field name="plazo_meses"/>
+                <field name="cargo_diario" optional="show"/>
                 <field name="cuota_mensual"/>
                 <field name="cuota_semanal"/>
                 <field name="cuota_diaria"/>
@@ -38,6 +39,7 @@
                             <field name="tea"/>
                             <field name="cuota_inicial"/>
                             <field name="plazo_meses"/>
+                            <field name="cargo_diario"/>
                             <field name="frecuencia"/>
                             <field name="fecha_inicio"/>
                             <field name="partner_id"/>
@@ -48,6 +50,7 @@
                             <field name="cuota_mensual"/>
                             <field name="cuota_semanal"/>
                             <field name="cuota_diaria"/>
+                            <field name="total_cargo_diario"/>
                             <field name="total_intereses"/>
                             <field name="total_credito"/>
                         </group>

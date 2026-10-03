@@ -7,9 +7,10 @@ from odoo.exceptions import ValidationError
 
 DIAS_MES = 30
 DIAS_SEMANA = 7
+CARGO_DIARIO_DEFECTO = 5.0
 
 
-def validar_parametros(importe_financiar, cuota_inicial, tea, plazo_meses):
+def validar_parametros(importe_financiar, cuota_inicial, tea, plazo_meses, cargo_diario=0.0):
     """Devuelve un mensaje de error, o None si los parámetros son válidos."""
     if not tea or tea <= 0:
         return _('La TEA debe ser mayor que cero (se guarda en decimal, ej. 26.82% = 0.2682).')
@@ -19,23 +20,32 @@ def validar_parametros(importe_financiar, cuota_inicial, tea, plazo_meses):
         return _('La cuota inicial no puede ser negativa.')
     if importe_financiar - cuota_inicial <= 0:
         return _('La cuota inicial debe ser menor que el importe a financiar.')
+    if (cargo_diario or 0.0) < 0:
+        return _('El cargo diario no puede ser negativo.')
     return None
 
 
-def calcular_cuotas(importe_financiar, cuota_inicial, tea, plazo_meses):
+def calcular_cuotas(importe_financiar, cuota_inicial, tea, plazo_meses, cargo_diario=0.0):
     """Cadena de fórmulas del simulador (sin redondeos intermedios).
 
     F4  = F2 - F3                    capital
     E9  = (1 + TEA)^(1/12) - 1       interés mensual (im)
     I9  = im * (1 + im)^plazo        factor A
     K9  = (1 + im)^plazo - 1         factor B
-    K10 = F4 * I9 / K9               cuota mensual
-    K12 = K10 / 30                   cuota diaria
-    K11 = K12 * 7                    cuota semanal
-    G12 = K10 * plazo                total del crédito
-    G10 = G12 - F4                   total de intereses
+    K10 = F4 * I9 / K9               cuota mensual (sin cargo)
+    K12 = K10 / 30                   cuota diaria (sin cargo)
+
+    A la cuota diaria se le suma el `cargo_diario` (monto fijo por cada día) y
+    las demás cuotas se derivan de ella con las mismas equivalencias:
+
+    cuota diaria  = K12 + cargo
+    cuota semanal = cuota diaria * 7
+    cuota mensual = K10 + cargo * 30
+    total del crédito  = cuota mensual * plazo
+    total cargo diario = cargo * plazo * 30
+    total de intereses = K10 * plazo - F4   (no incluye el cargo diario)
     """
-    error = validar_parametros(importe_financiar, cuota_inicial, tea, plazo_meses)
+    error = validar_parametros(importe_financiar, cuota_inicial, tea, plazo_meses, cargo_diario)
     if error:
         raise ValidationError(error)
 
@@ -44,10 +54,13 @@ def calcular_cuotas(importe_financiar, cuota_inicial, tea, plazo_meses):
     interes_mensual = (1 + tea) ** (1 / 12) - 1
     factor_a = interes_mensual * (1 + interes_mensual) ** plazo
     factor_b = (1 + interes_mensual) ** plazo - 1
-    cuota_mensual = capital * factor_a / factor_b
-    cuota_diaria = cuota_mensual / DIAS_MES
+    cargo = cargo_diario or 0.0
+    cuota_mensual_base = capital * factor_a / factor_b
+    cuota_mensual = cuota_mensual_base + cargo * DIAS_MES
+    cuota_diaria = cuota_mensual_base / DIAS_MES + cargo
     cuota_semanal = cuota_diaria * DIAS_SEMANA
     total_credito = cuota_mensual * plazo
+    total_cargo_diario = cargo * plazo * DIAS_MES
     return {
         'capital': capital,
         'interes_mensual': interes_mensual,
@@ -55,7 +68,8 @@ def calcular_cuotas(importe_financiar, cuota_inicial, tea, plazo_meses):
         'cuota_semanal': cuota_semanal,
         'cuota_diaria': cuota_diaria,
         'total_credito': total_credito,
-        'total_intereses': total_credito - capital,
+        'total_cargo_diario': total_cargo_diario,
+        'total_intereses': total_credito - total_cargo_diario - capital,
     }
 
 

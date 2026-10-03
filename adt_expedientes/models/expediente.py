@@ -229,7 +229,9 @@ class AdtExpediente(models.Model):
     ], default='aceptado')
     obs_foto_dni = fields.Text()
 
-    # For foreign clients we need front/reverse for CE and passport
+    # For foreign clients we need front/reverse for CE.
+    # Pasaporte DESHABILITADO: los campos se conservan solo para el historial
+    # (lectura); no se solicitan ni forman parte de ninguna validación.
     foto_ce_frente = fields.Binary(attachment=True)
     foto_ce_reverso = fields.Binary(attachment=True)
     estado_foto_ce = fields.Selection([
@@ -353,6 +355,34 @@ class AdtExpediente(models.Model):
         ('rechazado', 'Rechazado'),
     ], default='aceptado', string='Estado referencias')
     obs_referencias = fields.Text(string='Observaciones referencias')
+
+    # ----------------------
+    # BENEFICIARIO (opcional: no cuenta para el progreso ni el estado)
+    # ----------------------
+    foto_beneficiario_documento = fields.Binary(attachment=True, string='Documento del beneficiario - Foto')
+    estado_foto_beneficiario = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_foto_beneficiario = fields.Text(string='Observaciones beneficiario')
+    beneficiario_celular = fields.Char(string='Celular del beneficiario')
+    beneficiario_parentesco = fields.Selection([
+        ('conyuge', 'Cónyuge'),
+        ('conviviente', 'Conviviente'),
+        ('hijo', 'Hijo(a)'),
+        ('padre', 'Padre'),
+        ('madre', 'Madre'),
+        ('hermano', 'Hermano(a)'),
+        ('abuelo', 'Abuelo(a)'),
+        ('nieto', 'Nieto(a)'),
+        ('tio', 'Tío(a)'),
+        ('sobrino', 'Sobrino(a)'),
+        ('primo', 'Primo(a)'),
+        ('suegro', 'Suegro(a)'),
+        ('cunado', 'Cuñado(a)'),
+        ('yerno_nuera', 'Yerno / Nuera'),
+        ('otro', 'Otro'),
+    ], string='Parentesco del beneficiario')
 
     # ======================
     # PUSH NOTIFICATIONS
@@ -504,6 +534,27 @@ class AdtExpediente(models.Model):
             'target': 'new',
         }
 
+    # Imágenes que se pueden editar (rotar / recortar). El pasaporte queda fuera: es solo histórico.
+    def _campos_imagen_editables(self):
+        return [nombre for nombre, campo in self._fields.items()
+                if campo.type == 'binary' and nombre.startswith('foto_')
+                and not nombre.startswith('foto_pasaporte_')]
+
+    def action_editar_imagen(self):
+        self.ensure_one()
+        campo = self.env.context.get('campo_imagen')
+        if campo not in self._campos_imagen_editables():
+            raise UserError('La imagen indicada no se puede editar.')
+        if not self[campo]:
+            raise UserError('No hay imagen cargada para editar.')
+        wizard = self.env['adt.expediente.imagen.wizard'].create({
+            'expediente_id': self.id,
+            'campo': campo,
+            'campo_label': self._fields[campo].get_description(self.env)['string'],
+            'imagen_original': self[campo],
+        })
+        return wizard._reabrir()
+
     def action_ver_foto_vivienda(self):
         return self._open_popup('adt_expedientes.view_foto_vivienda_popup', 'Foto vivienda')
 
@@ -521,6 +572,9 @@ class AdtExpediente(models.Model):
 
     def action_ver_foto_licencia(self):
         return self._open_popup('adt_expedientes.view_foto_licencia_popup', 'Foto licencia')
+
+    def action_ver_foto_beneficiario(self):
+        return self._open_popup('adt_expedientes.view_foto_beneficiario_popup', 'Documento del beneficiario')
 
     def action_ver_foto_entrega(self):
         return self._open_popup('adt_expedientes.view_foto_entrega_popup', 'Foto entrega')
@@ -738,7 +792,7 @@ class AdtExpediente(models.Model):
                 # Intentionally left blank to avoid recalculation while debugging.
                 pass
 """
-    @api.constrains('cliente_id', 'foto_dni_frente', 'foto_dni_reverso', 'foto_ce_frente', 'foto_ce_reverso', 'foto_pasaporte_frente', 'foto_pasaporte_reverso')
+    @api.constrains('cliente_id', 'foto_dni_frente', 'foto_dni_reverso', 'foto_ce_frente', 'foto_ce_reverso')
     def _check_document_photos(self):
         for rec in self:
             if not rec.cliente_id:
@@ -751,12 +805,8 @@ class AdtExpediente(models.Model):
                 if rec.estado_foto_dni != 'aceptado':
                     raise ValidationError("El DNI debe estar en estado 'Aceptado'.")
             elif nat and nat != 'peruana':
-                # require CE front+back OR passport front+back, and the provided doc must be accepted
-                ce_present = bool(rec.foto_ce_frente and rec.foto_ce_reverso)
-                pas_present = bool(rec.foto_pasaporte_frente and rec.foto_pasaporte_reverso)
-                if not (ce_present or pas_present):
-                    raise ValidationError("Cliente extranjero: debe subir Carnet de Extranjería (anverso/reverso) o Pasaporte (anverso/reverso) vigentes.")
-                if ce_present and rec.estado_foto_ce != 'aceptado':
-                    raise ValidationError("El Carnet de Extranjería debe estar en estado 'Aceptado'.")
-                if pas_present and rec.estado_foto_pasaporte != 'aceptado':
-                    raise ValidationError("El Pasaporte debe estar en estado 'Aceptado'.")"""
+                # require CE front+back, and it must be accepted (pasaporte ya no se acepta)
+                if not (rec.foto_ce_frente and rec.foto_ce_reverso):
+                    raise ValidationError("Cliente extranjero: debe subir Carnet de Extranjería (anverso/reverso) vigente.")
+                if rec.estado_foto_ce != 'aceptado':
+                    raise ValidationError("El Carnet de Extranjería debe estar en estado 'Aceptado'.")"""

@@ -70,6 +70,8 @@
                 <header>
                     <button name="aprobar_cuenta" type="object" string="Aprobar"
                             attrs="{'invisible': [('state', '!=', 'borrador')]}" class="oe_highlight"/>
+                    <button name="action_cancelar_credito" type="object" string="Cancelar crédito"
+                            attrs="{'invisible': [('state', '!=', 'en_curso')]}" class="oe_highlight"/>
                     <button name="cancelar_cuenta" type="object" string="Cancelar"
                             attrs="{'invisible': [('state', 'in', ['borrador', 'cancelado'])]}"/>
                     <button name="refinanciar_cuotas" type="object" string="Refinanciamiento"

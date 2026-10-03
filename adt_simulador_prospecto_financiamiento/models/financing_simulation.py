@@ -1,14 +1,15 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
-from .calculo import calcular_cuotas, generar_cronograma, validar_parametros
+from .calculo import CARGO_DIARIO_DEFECTO, calcular_cuotas, generar_cronograma, validar_parametros
 
 CAMPOS_CALCULADOS = (
     'capital', 'interes_mensual', 'cuota_mensual', 'cuota_semanal',
-    'cuota_diaria', 'total_credito', 'total_intereses',
+    'cuota_diaria', 'total_credito', 'total_cargo_diario', 'total_intereses',
 )
 CAMPOS_CRONOGRAMA = (
-    'importe_financiar', 'tea', 'cuota_inicial', 'plazo_meses', 'frecuencia', 'fecha_inicio',
+    'importe_financiar', 'tea', 'cuota_inicial', 'plazo_meses', 'cargo_diario',
+    'frecuencia', 'fecha_inicio',
 )
 
 
@@ -27,6 +28,9 @@ class FinancingSimulation(models.Model):
     tea = fields.Float(string='TEA (decimal)', digits=(16, 6), readonly=True)
     cuota_inicial = fields.Float(string='Cuota inicial', digits=(16, 2), required=True)
     plazo_meses = fields.Integer(string='Plazo (meses)', required=True)
+    cargo_diario = fields.Float(
+        string='Cargo diario', digits=(16, 2), default=CARGO_DIARIO_DEFECTO,
+        help='Monto fijo que se suma por cada día del crédito a la cuota calculada.')
 
     capital = fields.Float(
         string='Capital', digits=(16, 2), compute='_compute_cuotas', store=True)
@@ -40,6 +44,8 @@ class FinancingSimulation(models.Model):
         string='C/ Diaria', digits=(16, 2), compute='_compute_cuotas', store=True)
     total_credito = fields.Float(
         string='Total del crédito', digits=(16, 2), compute='_compute_cuotas', store=True)
+    total_cargo_diario = fields.Float(
+        string='Total cargo diario', digits=(16, 2), compute='_compute_cuotas', store=True)
     total_intereses = fields.Float(
         string='Total de intereses', digits=(16, 2), compute='_compute_cuotas', store=True)
 
@@ -66,6 +72,7 @@ class FinancingSimulation(models.Model):
     def _onchange_vehicle_id(self):
         self.importe_financiar = self.vehicle_id.importe_financiar
         self.tea = self.vehicle_id.tea
+        self.cuota_inicial = self.vehicle_id.cuota_inicial
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -74,6 +81,7 @@ class FinancingSimulation(models.Model):
             if vehicle:
                 vals.setdefault('importe_financiar', vehicle.importe_financiar)
                 vals.setdefault('tea', vehicle.tea)
+                vals.setdefault('cuota_inicial', vehicle.cuota_inicial)
             if vals.get('name', _('Nueva')) == _('Nueva'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('financing.simulation') or _('Nueva')
         simulaciones = super().create(vals_list)
@@ -100,30 +108,35 @@ class FinancingSimulation(models.Model):
         for rec in self:
             rec.linea_ids.unlink()
             if not rec.fecha_inicio or validar_parametros(
-                    rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses):
+                    rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses,
+                    rec.cargo_diario):
                 continue
-            r = calcular_cuotas(rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses)
+            r = calcular_cuotas(rec.importe_financiar, rec.cuota_inicial, rec.tea,
+                                rec.plazo_meses, rec.cargo_diario)
             filas = generar_cronograma(
                 rec.fecha_inicio, rec.frecuencia, rec.plazo_meses,
                 r['cuota_mensual'], r['total_credito'])
             self.env['financing.simulation.line'].create(
                 [dict(fila, simulation_id=rec.id) for fila in filas])
 
-    @api.depends('importe_financiar', 'cuota_inicial', 'tea', 'plazo_meses')
+    @api.depends('importe_financiar', 'cuota_inicial', 'tea', 'plazo_meses', 'cargo_diario')
     def _compute_cuotas(self):
         for rec in self:
-            if validar_parametros(rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses):
+            if validar_parametros(rec.importe_financiar, rec.cuota_inicial, rec.tea,
+                                  rec.plazo_meses, rec.cargo_diario):
                 resultado = dict.fromkeys(CAMPOS_CALCULADOS, 0.0)
             else:
                 resultado = calcular_cuotas(
-                    rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses)
+                    rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses,
+                    rec.cargo_diario)
             for campo in CAMPOS_CALCULADOS:
                 rec[campo] = resultado[campo]
 
-    @api.constrains('importe_financiar', 'cuota_inicial', 'tea', 'plazo_meses')
+    @api.constrains('importe_financiar', 'cuota_inicial', 'tea', 'plazo_meses', 'cargo_diario')
     def _check_parametros(self):
         for rec in self:
             error = validar_parametros(
-                rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses)
+                rec.importe_financiar, rec.cuota_inicial, rec.tea, rec.plazo_meses,
+                rec.cargo_diario)
             if error:
                 raise ValidationError(error)
