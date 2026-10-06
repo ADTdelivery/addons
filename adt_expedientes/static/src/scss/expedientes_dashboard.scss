@@ -1,0 +1,377 @@
+// Dashboard de Expedientes — mismo lenguaje visual que los dashboards de Comercial, sin depender de ellos.
+
+.adt_exp {
+    --exp-page: #f4f5f7;
+    --exp-surface: #ffffff;
+    --exp-border: rgba(11, 11, 11, 0.08);
+    --exp-grid: #e7e7e3;
+    --exp-ink: #14161a;
+    --exp-ink-2: #52514e;
+    --exp-muted: #898781;
+    --exp-accent: #2a78d6;
+    --exp-ok: #0ca30c;
+    --exp-warn: #fab219;
+    --exp-info: #2a78d6;
+    --exp-info-soft: #86b6ef;
+    --exp-bad: #d03b3b;
+
+    position: relative;
+    height: 100%;
+    background: var(--exp-page);
+    color: var(--exp-ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+
+    *, *::before, *::after { box-sizing: border-box; }
+    h1, h2, p { margin: 0; }
+}
+
+.adt_exp__fill--ok { background: var(--exp-ok); }
+.adt_exp__fill--warn { background: var(--exp-warn); }
+.adt_exp__fill--info { background: var(--exp-info); }
+.adt_exp__fill--info-soft { background: var(--exp-info-soft); }
+.adt_exp__fill--bad { background: var(--exp-bad); }
+
+.adt_exp__scroll { height: 100%; overflow: auto; padding: 24px 28px 48px; }
+
+.adt_exp__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.adt_exp__title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.adt_exp__subtitle, .adt_exp__muted { color: var(--exp-muted); }
+.adt_exp__subtitle { margin-top: 2px !important; font-size: 14px; }
+
+.adt_exp__btn {
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 16px;
+    background: var(--exp-ink);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled { opacity: .45; cursor: default; }
+    &--ghost { background: var(--exp-surface); color: var(--exp-ink); box-shadow: inset 0 0 0 1px var(--exp-border); }
+}
+
+.adt_exp__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.adt_exp__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.adt_exp__chip {
+    border: 0;
+    border-radius: 999px;
+    padding: 7px 14px;
+    background: var(--exp-surface);
+    box-shadow: inset 0 0 0 1px var(--exp-border);
+    color: var(--exp-ink-2);
+    font-weight: 600;
+    cursor: pointer;
+
+    &.is-active { background: var(--exp-ink); color: #fff; box-shadow: none; }
+}
+
+.adt_exp__select {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-weight: 400;
+
+    span { font-size: 12px; font-weight: 600; color: var(--exp-muted); }
+    select {
+        height: 34px;
+        min-width: 180px;
+        padding: 0 10px;
+        border: 1px solid var(--exp-border);
+        border-radius: 999px;
+        background: var(--exp-surface);
+    }
+}
+
+.adt_exp__empty {
+    padding: 48px;
+    border-radius: 14px;
+    background: var(--exp-surface);
+    text-align: center;
+    color: var(--exp-muted);
+}
+
+// ---------------------------------------------------------------- Indicadores
+
+.adt_exp__kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.adt_exp__kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 16px 18px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--exp-surface);
+    box-shadow: inset 4px 0 0 var(--exp-kpi), 0 0 0 1px var(--exp-border);
+    text-align: left;
+    color: var(--exp-ink);
+
+    &--ok { --exp-kpi: var(--exp-ok); }
+    &--warn { --exp-kpi: var(--exp-warn); }
+    &--info { --exp-kpi: var(--exp-info); }
+    &--bad { --exp-kpi: var(--exp-bad); }
+}
+
+button.adt_exp__kpi { cursor: pointer; &:hover { transform: translateY(-2px); } }
+.adt_exp__kpi-label { font-size: 12px; font-weight: 600; color: var(--exp-ink-2); }
+.adt_exp__kpi-value { font-size: 30px; font-weight: 750; line-height: 1.1; }
+.adt_exp__kpi-sub { font-size: 12px; color: var(--exp-muted); }
+
+// ---------------------------------------------------------------- Tarjetas
+
+.adt_exp__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.adt_exp__card {
+    min-width: 0;
+    margin-bottom: 14px;
+    padding: 20px 22px;
+    border-radius: 14px;
+    background: var(--exp-surface);
+    box-shadow: 0 0 0 1px var(--exp-border), 0 1px 2px rgba(0, 0, 0, .04);
+}
+
+.adt_exp__card-head {
+    margin-bottom: 14px;
+
+    h2 { font-size: 16px; font-weight: 700; }
+    p { margin-top: 2px !important; font-size: 12px; color: var(--exp-muted); }
+}
+
+.adt_exp__note { margin-top: 10px !important; font-size: 12px; color: var(--exp-ink-2); }
+.adt_exp__ok { padding: 16px; border-radius: 10px; background: #ecf8ec; font-weight: 600; }
+
+.adt_exp__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px 2px 6px;
+    border-radius: 999px;
+    background: #f1f2f4;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    i { width: 9px; height: 9px; border-radius: 50%; }
+    &--ok i { background: var(--exp-ok); }
+    &--warn i { background: var(--exp-warn); }
+    &--info i { background: var(--exp-info); }
+    &--info-soft i { background: var(--exp-info-soft); }
+    &--bad i { background: var(--exp-bad); }
+}
+
+.adt_exp__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--exp-ink-2);
+
+    span { display: inline-flex; align-items: center; gap: 6px; }
+    i { width: 10px; height: 10px; border-radius: 3px; }
+}
+
+// Barras horizontales
+.adt_exp__hbars { display: flex; flex-direction: column; gap: 2px; }
+
+.adt_exp__hbar {
+    display: grid;
+    grid-template-columns: minmax(130px, 40%) 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    border-radius: 8px;
+
+    &:hover { background: rgba(0, 0, 0, .03); }
+}
+
+.adt_exp__hbar-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--exp-ink-2); }
+
+.adt_exp__track {
+    display: block;
+    height: 14px;
+
+    > span { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; }
+}
+
+.adt_exp__hbar-val { min-width: 32px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+// Columnas apiladas por mes
+.adt_exp__cols { display: flex; gap: 6px; border-bottom: 1px solid #c3c2b7; }
+
+.adt_exp__col {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    border-radius: 8px;
+
+    &:hover { background: rgba(0, 0, 0, .03); }
+}
+
+.adt_exp__col-plot { position: relative; width: 100%; height: 190px; }
+
+.adt_exp__stack {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+    width: 64%;
+    max-width: 30px;
+
+    > span { display: block; min-height: 2px; }
+    > span:last-child { border-radius: 4px 4px 0 0; }
+}
+
+.adt_exp__col-val { position: absolute; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 700; }
+.adt_exp__col-label { padding: 6px 0; font-size: 11px; font-weight: 600; color: var(--exp-ink-2); white-space: nowrap; }
+
+// Tablas
+.adt_exp__table-wrap { overflow: auto; }
+
+.adt_exp__table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-variant-numeric: tabular-nums;
+
+    th {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--exp-grid);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--exp-muted);
+        text-align: left;
+        white-space: nowrap;
+    }
+    td { padding: 9px 10px; border-bottom: 1px solid #f0f0ec; white-space: nowrap; }
+    .num { text-align: right; }
+
+    &--click tbody tr { cursor: pointer; &:hover td { background: #f5f8fd; } }
+    tr.is-active td { background: #e8f1fc; }
+}
+
+.adt_exp__obs { white-space: normal !important; max-width: 360px; color: var(--exp-ink-2); }
+.adt_exp__late { color: var(--exp-bad); font-weight: 700; }
+
+.adt_exp__meter {
+    display: inline-block;
+    width: 90px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--exp-grid);
+    vertical-align: middle;
+    overflow: hidden;
+
+    > span { display: block; height: 100%; border-radius: 4px; }
+}
+
+.adt_exp__pct { margin-left: 8px; font-size: 12px; }
+
+.adt_exp__rechazos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        padding: 10px 8px;
+        border-bottom: 1px solid #f0f0ec;
+        border-radius: 8px;
+        cursor: pointer;
+
+        &:hover { background: #f5f8fd; }
+        p { margin-top: 4px !important; color: var(--exp-ink-2); }
+    }
+}
+
+.adt_exp__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--exp-grid);
+}
+
+.adt_exp__tab {
+    padding: 10px 14px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: none;
+    font-weight: 600;
+    color: var(--exp-ink-2);
+    cursor: pointer;
+
+    span { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--exp-page); font-size: 12px; }
+    &.is-active { color: var(--exp-ink); border-bottom-color: var(--exp-ink); }
+}
+
+.adt_exp__pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--exp-muted);
+}
+
+// Tooltip
+.adt_exp__tooltip {
+    position: fixed;
+    z-index: 1050;
+    min-width: 160px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #14161a;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.5;
+    pointer-events: none;
+    opacity: 0;
+
+    &.is-visible { opacity: 1; }
+}
+
+@media (max-width: 1200px) {
+    .adt_exp__kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+    .adt_exp__grid { grid-template-columns: minmax(0, 1fr); }
+    .adt_exp__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -66,6 +66,41 @@ class TestSimuladorCuotas(TransactionCase):
         self.assertEqual(sim.cuota_diaria, 38.10)
         self.assertAlmostEqual(sum(sim.linea_ids.mapped('cuota')), 29719.13, places=2)
 
+    def test_cargo_diario_del_producto(self):
+        vehiculo = self.env['financing.vehicle'].create({
+            'name': 'TEST CARGO', 'importe_financiar': 25000, 'tea': 0.2682,
+            'cuota_inicial': 2000, 'cargo_diario': 7.5})
+        sim = self.env['financing.simulation'].create({
+            'vehicle_id': vehiculo.id, 'plazo_meses': 26})
+        self.assertEqual(sim.cargo_diario, 7.5)
+        self.assertEqual(sim.total_cargo_diario, 5850)
+        self.assertAlmostEqual(vehiculo.calcular(26)['total_cargo_diario'], 5850)
+        vehiculo.cargo_diario = 0
+        sim.invalidate_cache()
+        self.assertEqual(sim.cargo_diario, 7.5)
+        nueva = self.env['financing.simulation'].create({
+            'vehicle_id': vehiculo.id, 'plazo_meses': 26})
+        self.assertEqual(nueva.cargo_diario, 0)
+        vehiculo.cargo_diario = 9
+        explicita = self.env['financing.simulation'].create({
+            'vehicle_id': vehiculo.id, 'plazo_meses': 26, 'cargo_diario': 0})
+        self.assertEqual(explicita.cargo_diario, 0)
+        wizard = self.env['financing.simulation.wizard'].new({'vehicle_id': vehiculo.id})
+        wizard._onchange_vehicle_id()
+        self.assertEqual(wizard.cargo_diario, 9)
+        defaults = self.env['financing.simulation.wizard'].with_context(
+            default_vehicle_id=vehiculo.id).default_get(['vehicle_id', 'cargo_diario'])
+        self.assertEqual(defaults['cargo_diario'], 9)
+        creado = self.env['financing.simulation.wizard'].create({
+            'vehicle_id': vehiculo.id, 'plazo_meses': 26})
+        self.assertEqual(creado.cargo_diario, 9)
+        self.assertEqual(self.env['financing.simulation.wizard'].default_get(
+            ['cargo_diario']).get('cargo_diario', 0), 0)
+        sim._onchange_vehicle_id()
+        self.assertEqual(sim.cargo_diario, 9)
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            vehiculo.cargo_diario = -1
+
     def test_cuota_inicial_del_producto(self):
         vehiculo = self.env['financing.vehicle'].create(
             {'name': 'TEST5', 'importe_financiar': 25000, 'tea': 0.2682,

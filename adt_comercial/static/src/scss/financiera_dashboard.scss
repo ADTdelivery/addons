@@ -1,0 +1,853 @@
+// Resumen gerencial de financieras — diseño propio (misma línea visual que el Dashboard de Stock).
+
+.adt_fin {
+    --fin-page: #f4f5f7;
+    --fin-surface: #ffffff;
+    --fin-border: rgba(11, 11, 11, 0.08);
+    --fin-grid: #e7e7e3;
+    --fin-ink: #14161a;
+    --fin-ink-2: #52514e;
+    --fin-muted: #898781;
+    --fin-accent: #2a78d6;
+    --fin-accent-soft: #e8f1fc;
+    --fin-in: #2a78d6;      // entra: cobro a clientes
+    --fin-out: #eb6834;     // sale: pago a financieras
+    --fin-gain: #0ca30c;    // ganancia
+    --fin-gain-text: #006300;
+    --fin-loss: #d03b3b;
+    --fin-warn: #fab219;
+    --fin-radius: 14px;
+
+    position: relative;
+    height: 100%;
+    background: var(--fin-page);
+    color: var(--fin-ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+
+    *, *::before, *::after { box-sizing: border-box; }
+    h1, h2, p { margin: 0; }
+
+    .is-in { background: var(--fin-in); }
+    .is-out { background: var(--fin-out); }
+    .is-gain { background: var(--fin-gain); }
+    .is-loss { background: var(--fin-loss); }
+}
+
+.adt_fin__scroll {
+    height: 100%;
+    overflow: auto;
+    padding: 24px 28px 48px;
+}
+
+.adt_fin__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.adt_fin__title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.adt_fin__subtitle, .adt_fin__muted {
+    color: var(--fin-muted);
+}
+
+.adt_fin__subtitle { margin-top: 2px; font-size: 14px; }
+
+.adt_fin__header-actions { display: flex; gap: 8px; }
+
+.adt_fin__btn {
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 16px;
+    background: var(--fin-ink);
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { opacity: .88; }
+    &:disabled { opacity: .45; cursor: default; }
+
+    &--ghost {
+        background: var(--fin-surface);
+        color: var(--fin-ink);
+        box-shadow: inset 0 0 0 1px var(--fin-border);
+        &:hover:not(:disabled) { background: var(--fin-accent-soft); opacity: 1; }
+    }
+}
+
+// ---------------------------------------------------------------- Filtros: financiera y cliente
+
+.adt_fin__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.adt_fin__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.adt_fin__search {
+    position: relative;
+    flex: 0 1 380px;
+
+    input {
+        width: 100%;
+        height: 38px;
+        padding: 0 14px 0 36px;
+        border: 1px solid var(--fin-border);
+        border-radius: 999px;
+        background: var(--fin-surface) no-repeat 13px center / 15px 15px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23898781' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+        font-size: 13px;
+        color: var(--fin-ink);
+
+        &:focus { outline: 2px solid var(--fin-accent); outline-offset: -1px; }
+    }
+}
+
+.adt_fin__suggest {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: none;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    border-radius: 12px;
+    background: var(--fin-surface);
+    box-shadow: 0 0 0 1px var(--fin-border), 0 12px 32px rgba(0, 0, 0, .14);
+
+    &.is-open { display: block; }
+
+    li {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+
+        &:hover, &.is-active { background: var(--fin-accent-soft); }
+    }
+}
+
+.adt_fin__suggest-meta {
+    font-size: 12px;
+    color: var(--fin-muted);
+}
+
+.adt_fin__doc {
+    display: block;
+    font-size: 11px;
+    color: var(--fin-muted);
+}
+
+.adt_fin__meter.adt_fin__meter--inline {
+    display: inline-block;
+    width: 80px;
+    height: 8px;
+    vertical-align: middle;
+}
+
+.adt_fin__pct {
+    margin-left: 8px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.adt_fin__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+
+    &--bad { color: var(--fin-loss); }
+    &--ok { color: var(--fin-gain-text); }
+}
+
+.adt_fin__pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--fin-muted);
+
+    span { margin-right: 8px; }
+}
+
+.adt_fin__chip {
+    border: 0;
+    border-radius: 999px;
+    padding: 7px 14px;
+    background: var(--fin-surface);
+    box-shadow: inset 0 0 0 1px var(--fin-border);
+    color: var(--fin-ink-2);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+
+    &:hover { background: var(--fin-accent-soft); }
+    &.is-active {
+        background: var(--fin-ink);
+        color: #fff;
+        box-shadow: none;
+    }
+}
+
+// ---------------------------------------------------------------- Respuestas principales
+
+.adt_fin__answers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.adt_fin__answer {
+    position: relative;
+    padding: 22px 24px;
+    border-radius: var(--fin-radius);
+    background: var(--fin-surface);
+    box-shadow: 0 0 0 1px var(--fin-border), 0 1px 2px rgba(0, 0, 0, .04);
+    overflow: hidden;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+    }
+    &--gain::before { background: var(--fin-gain); }
+    &--debt::before { background: var(--fin-out); }
+}
+
+.adt_fin__question {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+}
+
+.adt_fin__big {
+    margin: 4px 0 8px !important;
+    font-size: 40px;
+    font-weight: 750;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.adt_fin__sentence {
+    color: var(--fin-ink-2);
+    font-size: 14px;
+    line-height: 1.45;
+    margin-bottom: 14px !important;
+}
+
+.adt_fin__due {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-bottom: 14px;
+
+    div { display: flex; flex-direction: column; }
+    span { font-size: 12px; color: var(--fin-muted); }
+    b { font-size: 18px; }
+}
+
+.adt_fin__meter {
+    display: block;
+    height: 12px;
+    border-radius: 6px;
+    background: var(--fin-grid);
+    overflow: hidden;
+
+    > span { display: block; height: 100%; border-radius: 6px; }
+    &--sm { height: 8px; margin-top: 4px; }
+}
+
+.adt_fin__meter-caption {
+    margin-top: 8px !important;
+    font-size: 12px;
+    color: var(--fin-ink-2);
+}
+
+// ---------------------------------------------------------------- Indicadores secundarios
+
+.adt_fin__tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.adt_fin__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--fin-surface);
+    box-shadow: 0 0 0 1px var(--fin-border);
+
+    &--warn { box-shadow: inset 0 0 0 1px var(--fin-warn); background: #fffaf0; }
+    &--bad { box-shadow: inset 0 0 0 1px var(--fin-loss); background: #fdf3f3; }
+}
+
+.adt_fin__tile-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+}
+
+.adt_fin__tile-value { font-size: 22px; font-weight: 700; }
+.adt_fin__tile-sub { font-size: 12px; color: var(--fin-muted); }
+
+.adt_fin__status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 800;
+    color: #fff;
+
+    &--warn { background: var(--fin-warn); color: var(--fin-ink); }
+    &--bad { background: var(--fin-loss); }
+    &--ok { background: var(--fin-gain); }
+    &--idle { background: #c3c2b7; }
+}
+
+// ---------------------------------------------------------------- Tarjetas
+
+.adt_fin__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.adt_fin__card {
+    min-width: 0;
+    padding: 20px 22px;
+    border-radius: var(--fin-radius);
+    background: var(--fin-surface);
+    box-shadow: 0 0 0 1px var(--fin-border), 0 1px 2px rgba(0, 0, 0, .04);
+}
+
+.adt_fin__card-head {
+    margin-bottom: 14px;
+
+    h2 { font-size: 16px; font-weight: 700; }
+    p { margin-top: 2px; font-size: 12px; color: var(--fin-muted); }
+}
+
+.adt_fin__empty {
+    padding: 48px;
+    text-align: center;
+    color: var(--fin-muted);
+    font-size: 14px;
+    border-radius: var(--fin-radius);
+    background: var(--fin-surface);
+}
+
+.adt_fin__takeaway {
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--fin-page);
+    font-size: 15px;
+    line-height: 1.45;
+    margin-bottom: 18px !important;
+}
+
+.adt_fin__note {
+    margin-top: 10px !important;
+    font-size: 12px;
+    color: var(--fin-ink-2);
+}
+
+.adt_fin__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--fin-ink-2);
+
+    span { display: inline-flex; align-items: center; }
+}
+
+.adt_fin__dot {
+    display: inline-block;
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 6px;
+}
+
+// ---------------------------------------------------------------- Gráfico puente
+
+.adt_fin__bridge {
+    display: flex;
+    gap: 24px;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.adt_fin__bridge-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.adt_fin__bridge-plot {
+    position: relative;
+    width: 100%;
+    height: 240px;
+    margin-top: 28px;
+    border-bottom: 1px solid #c3c2b7;
+}
+
+.adt_fin__bridge-bar {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 72%;
+    max-width: 120px;
+    min-height: 2px;
+    border-radius: 4px;
+}
+
+.adt_fin__bridge-val {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+// Línea punteada que conecta el tope de una barra con la siguiente.
+.adt_fin__bridge-link {
+    position: absolute;
+    left: 50%;
+    width: calc(100% + 24px);
+    border-top: 1px dashed var(--fin-muted);
+}
+
+.adt_fin__bridge-label {
+    padding-top: 10px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+}
+
+// ---------------------------------------------------------------- Calendario mensual
+
+.adt_fin__calendar {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    padding-top: 12px;
+    padding-left: 64px;
+    overflow-x: auto;
+}
+
+.adt_fin__grid-lines {
+    position: absolute;
+    top: 12px;
+    left: 64px;
+    right: 0;
+    height: 220px;
+    pointer-events: none;
+}
+
+.adt_fin__gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--fin-grid);
+
+    em {
+        position: absolute;
+        right: calc(100% + 8px);
+        transform: translateY(-50%);
+        font-size: 11px;
+        font-style: normal;
+        color: var(--fin-muted);
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.adt_fin__month {
+    position: relative;
+    flex: 1 0 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 8px;
+    cursor: default;
+
+    &:hover { background: rgba(42, 120, 214, .06); }
+}
+
+.adt_fin__month-plot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 220px;
+}
+
+.adt_fin__bar {
+    width: 38%;
+    max-width: 22px;
+    min-height: 1px;
+    border-radius: 4px 4px 0 0;
+}
+
+.adt_fin__month-label {
+    padding-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+    white-space: nowrap;
+}
+
+.adt_fin__month-net {
+    padding-bottom: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &.is-pos { color: var(--fin-gain-text); background: none; }
+    &.is-neg { color: var(--fin-loss); background: none; }
+}
+
+.adt_fin__notes {
+    margin: 14px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    color: var(--fin-ink-2);
+
+    li + li { margin-top: 4px; }
+}
+
+.adt_fin__table-toggle, .adt_fin__howto {
+    margin-top: 14px;
+
+    summary {
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--fin-accent);
+    }
+}
+
+.adt_fin__howto {
+    padding: 14px 18px;
+    border-radius: var(--fin-radius);
+    background: var(--fin-surface);
+    box-shadow: 0 0 0 1px var(--fin-border);
+
+    ul { margin: 10px 0 0; padding-left: 18px; color: var(--fin-ink-2); line-height: 1.6; }
+}
+
+// ---------------------------------------------------------------- Por financiera
+
+.adt_fin__fin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+}
+
+.adt_fin__fin {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--fin-page);
+    text-align: left;
+    color: var(--fin-ink);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 1px var(--fin-border), 0 8px 20px rgba(0, 0, 0, .08);
+        background: var(--fin-surface);
+    }
+}
+
+.adt_fin__fin-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+
+    b { font-size: 15px; }
+}
+
+.adt_fin__fin-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+
+    > span { color: var(--fin-ink-2); }
+    b { font-variant-numeric: tabular-nums; }
+}
+
+.adt_fin__fin-big { font-size: 20px; }
+.adt_fin__fin-caption { font-size: 11px; color: var(--fin-muted); margin-top: -4px; }
+.adt_fin__gain-text { color: var(--fin-gain-text); }
+.adt_fin__loss-text { color: var(--fin-loss); font-weight: 700; }
+
+.adt_fin__fin-alert, .adt_fin__fin-ok {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.adt_fin__fin-alert { color: var(--fin-loss); }
+.adt_fin__fin-ok { color: var(--fin-gain-text); }
+
+// ---------------------------------------------------------------- Tablas
+
+.adt_fin__table-wrap { overflow: auto; max-height: 460px; }
+.adt_fin__table-wrap--full { max-height: none; }
+
+.adt_fin__table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-variant-numeric: tabular-nums;
+
+    th {
+        position: sticky;
+        top: 0;
+        padding: 9px 10px;
+        background: var(--fin-surface);
+        border-bottom: 1px solid var(--fin-grid);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--fin-muted);
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #f0f0ec;
+        white-space: nowrap;
+    }
+
+    .num { text-align: right; }
+
+    th.is-sortable {
+        cursor: pointer;
+        user-select: none;
+        &:hover { color: var(--fin-ink); }
+    }
+
+    tfoot td {
+        font-weight: 700;
+        border-top: 1px solid var(--fin-grid);
+        border-bottom: 0;
+    }
+
+    &--click tbody tr {
+        cursor: pointer;
+        &:hover td { background: #f5f8fd; }
+    }
+}
+
+// ---------------------------------------------------------------- Tooltip
+
+.adt_fin__tooltip {
+    position: fixed;
+    z-index: 1050;
+    min-width: 200px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #14161a;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .1s;
+
+    &.is-visible { opacity: 1; }
+}
+
+.adt_fin__tip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    color: rgba(255, 255, 255, .85);
+
+    span { display: inline-flex; align-items: center; }
+    b { color: #fff; }
+}
+
+.adt_fin__tip-total {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, .15);
+}
+
+// ---------------------------------------------------------------- Ficha de un cliente
+
+.adt_fin--cliente {
+    .adt_fin__chips { display: none; }
+    .adt_fin__filters { justify-content: flex-end; }
+}
+
+.adt_fin__crumb {
+    margin: 0 0 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--fin-accent);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+}
+
+.adt_fin__ficha {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.adt_fin__ficha-item {
+    position: relative;
+    padding: 20px 22px;
+    border-radius: var(--fin-radius);
+    background: var(--fin-surface);
+    box-shadow: 0 0 0 1px var(--fin-border), 0 1px 2px rgba(0, 0, 0, .04);
+    overflow: hidden;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+    }
+    &--gain::before { background: var(--fin-gain); }
+    &--neutral::before { background: var(--fin-in); }
+    &--debt::before { background: var(--fin-out); }
+
+    .adt_fin__big { font-size: 32px; }
+    .adt_fin__sentence { margin-bottom: 0 !important; font-size: 13px; }
+}
+
+.adt_fin__compare {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr) 260px;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+}
+
+.adt_fin__compare-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+}
+
+.adt_fin__compare-track {
+    display: block;
+    height: 22px;
+    border-radius: 6px;
+    background: var(--fin-grid);
+    overflow: hidden;
+
+    > span { display: block; height: 100%; }
+}
+
+.adt_fin__compare-val {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.adt_fin__verdict {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 14px !important;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.45;
+
+    .adt_fin__status { margin-top: 2px; }
+    &--ok { background: #ecf8ec; }
+    &--bad { background: #fdf3f3; }
+    &--warn { background: #fffaf0; margin-top: 8px !important; }
+}
+
+// ---------------------------------------------------------------- Responsive
+
+@media (max-width: 1100px) {
+    .adt_fin__ficha { grid-template-columns: minmax(0, 1fr); }
+    .adt_fin__compare { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+}
+
+@media (max-width: 900px) {
+    .adt_fin__answers { grid-template-columns: minmax(0, 1fr); }
+    .adt_fin__big { font-size: 32px; }
+}
+
+@media (max-width: 640px) {
+    .adt_fin__scroll { padding: 16px 16px 32px; }
+    .adt_fin__bridge { gap: 10px; }
+    .adt_fin__bridge-val { font-size: 14px; }
+    .adt_fin__bridge-link { width: calc(100% + 10px); }
+}

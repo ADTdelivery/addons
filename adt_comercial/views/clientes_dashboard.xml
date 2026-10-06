@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Seguimiento de clientes para un nuevo préstamo ── -->
+    <record id="adt_cliente_seguimiento_tree" model="ir.ui.view">
+        <field name="name">adt.cliente.seguimiento.tree</field>
+        <field name="model">adt.cliente.seguimiento</field>
+        <field name="arch" type="xml">
+            <tree string="Seguimiento de clientes">
+                <field name="partner_id"/>
+                <field name="estado" widget="badge"
+                       decoration-success="estado == 'nuevo_prestamo'"
+                       decoration-info="estado == 'interesado'"
+                       decoration-muted="estado == 'no_interesado'"/>
+                <field name="proximo_contacto"/>
+                <field name="clasificacion_manual" widget="badge"
+                       decoration-danger="clasificacion_manual == 'no_prestar'"
+                       decoration-success="clasificacion_manual == 'apto'"
+                       decoration-warning="clasificacion_manual == 'evaluar'"/>
+                <field name="motivo_manual" optional="show"/>
+                <field name="user_id" optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_cliente_seguimiento_form" model="ir.ui.view">
+        <field name="name">adt.cliente.seguimiento.form</field>
+        <field name="model">adt.cliente.seguimiento</field>
+        <field name="arch" type="xml">
+            <form string="Seguimiento del cliente">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="estado"/>
+                            <field name="proximo_contacto"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group>
+                            <field name="clasificacion_manual"/>
+                            <field name="motivo_manual"
+                                   attrs="{'required': [('clasificacion_manual', '=', 'no_prestar')]}"/>
+                        </group>
+                    </group>
+                    <field name="notas" placeholder="Notas del seguimiento…"/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cliente_seguimiento" model="ir.actions.act_window">
+        <field name="name">Seguimiento de clientes</field>
+        <field name="res_model">adt.cliente.seguimiento</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- ── Dashboard de Clientes (JS) ── -->
+    <record id="action_dashboard_clientes" model="ir.actions.client">
+        <field name="name">Dashboard de Clientes</field>
+        <field name="tag">adt_clientes_dashboard</field>
+    </record>
+
+    <menuitem id="adt_comercial_menu_dashboard_clientes"
+              name="Dashboard de Clientes"
+              parent="adt_comercial_menu_dashboards"
+              action="action_dashboard_clientes"
+              sequence="5"
+              groups="adt_comercial.group_access_adt_comercial,adt_comercial.group_access_adt_comercial_gerencia"/>
+</odoo>

@@ -1,0 +1,389 @@
+// Reporte de Cobranzas — usa la base de financiera_dashboard.scss (.adt_fin) y agrega lo propio.
+
+.adt_cob {
+    --cob-ok: #0ca30c;
+    --cob-warn: #fab219;
+    --cob-serious: #ec835a;
+    --cob-bad: #d03b3b;
+    --cob-prog: #c3c2b7;
+
+    .adt_fin__card { margin-bottom: 14px; }
+    .adt_cob__prog { background: var(--cob-prog); }
+}
+
+.adt_cob__grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+
+    > .adt_fin__card { margin-bottom: 14px; }
+}
+
+// Filtro de cartera (lista desplegable al lado de las financieras)
+.adt_cob__select {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-weight: 400;
+
+    span { font-size: 12px; font-weight: 600; color: var(--fin-muted); }
+
+    select {
+        height: 34px;
+        min-width: 150px;
+        padding: 0 10px;
+        border: 1px solid var(--fin-border);
+        border-radius: 999px;
+        background: var(--fin-surface);
+        font-size: 13px;
+        color: var(--fin-ink);
+        cursor: pointer;
+    }
+}
+
+// ---------------------------------------------------------------- Íconos y etiquetas de estado
+
+.adt_cob__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 800;
+    color: #fff;
+
+    &--ok { background: var(--cob-ok); }
+    &--warn { background: var(--cob-warn); color: #14161a; }
+    &--serious { background: var(--cob-serious); color: #14161a; }
+    &--bad { background: var(--cob-bad); }
+}
+
+.adt_cob__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px 2px 4px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &--bad { background: #fdecec; }
+}
+
+.adt_cob__ok {
+    display: flex;
+    align-items: center;
+    padding: 18px;
+    border-radius: 10px;
+    background: #ecf8ec;
+    font-weight: 600;
+}
+
+// ---------------------------------------------------------------- Estado de la cartera
+
+.adt_cob__states {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.adt_cob__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--fin-page);
+    box-shadow: inset 4px 0 0 var(--cob-state, transparent);
+    text-align: left;
+    color: var(--fin-ink);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, background .15s;
+
+    &:hover { transform: translateY(-2px); background: #eef0f3; }
+    &.is-active { background: var(--fin-surface); box-shadow: inset 4px 0 0 var(--cob-state), 0 0 0 1px var(--fin-border), 0 6px 16px rgba(0, 0, 0, .06); }
+
+    &--ok { --cob-state: var(--cob-ok); }
+    &--warn { --cob-state: var(--cob-warn); }
+    &--serious { --cob-state: var(--cob-serious); }
+    &--bad { --cob-state: var(--cob-bad); }
+}
+
+.adt_cob__state-label {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+}
+
+.adt_cob__state-value {
+    font-size: 30px;
+    font-weight: 750;
+    line-height: 1.1;
+}
+
+.adt_cob__state-sub {
+    font-size: 12px;
+    color: var(--fin-muted);
+}
+
+.adt_cob__bar {
+    display: flex;
+    gap: 2px;
+    height: 16px;
+    margin-bottom: 16px;
+}
+
+.adt_cob__seg {
+    min-width: 3px;
+    cursor: pointer;
+
+    &:first-child { border-radius: 6px 0 0 6px; }
+    &:last-child { border-radius: 0 6px 6px 0; }
+    &:only-child { border-radius: 6px; }
+    &:hover { filter: brightness(.92); }
+}
+
+.adt_cob__seg--ok { background: var(--cob-ok); }
+.adt_cob__seg--warn { background: var(--cob-warn); }
+.adt_cob__seg--serious { background: var(--cob-serious); }
+.adt_cob__seg--bad { background: var(--cob-bad); }
+
+.adt_cob__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 40px;
+
+    > div { display: flex; flex-direction: column; }
+    span { font-size: 12px; color: var(--fin-muted); }
+    b { font-size: 20px; }
+    em { font-size: 12px; font-style: normal; color: var(--fin-ink-2); }
+}
+
+.adt_cob__facts-list {
+    margin: 14px 0 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--fin-ink-2);
+    line-height: 1.7;
+}
+
+// ---------------------------------------------------------------- Antigüedad (columnas)
+
+.adt_cob__cols {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #c3c2b7;
+    padding-bottom: 0;
+}
+
+.adt_cob__col {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    border-radius: 8px;
+
+    &:hover { background: rgba(0, 0, 0, .03); }
+}
+
+.adt_cob__col-plot {
+    position: relative;
+    width: 100%;
+    height: 200px;
+}
+
+.adt_cob__col-bar {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 62%;
+    max-width: 52px;
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+}
+
+.adt_cob__col-val {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.adt_cob__col-label {
+    padding-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+    text-align: center;
+}
+
+.adt_cob__col-sub {
+    padding-bottom: 6px;
+    font-size: 11px;
+    color: var(--fin-muted);
+}
+
+// ---------------------------------------------------------------- Barras horizontales
+
+.adt_cob__hbars { display: flex; flex-direction: column; gap: 2px; }
+
+.adt_cob__hbar {
+    display: grid;
+    grid-template-columns: minmax(110px, 36%) 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    border-radius: 8px;
+
+    &:hover { background: rgba(0, 0, 0, .03); }
+}
+
+.adt_cob__hbar-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--fin-ink-2);
+}
+
+.adt_cob__track {
+    display: flex;
+    gap: 2px;
+    height: 14px;
+
+    > span { display: block; height: 100%; }
+    > span:last-child { border-radius: 0 4px 4px 0; }
+}
+
+.adt_cob__hbar-val {
+    min-width: 48px;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+// ---------------------------------------------------------------- Recaudación
+
+.adt_cob__kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.adt_cob__kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--fin-page);
+}
+
+.adt_cob__kpi-label { font-size: 12px; font-weight: 600; color: var(--fin-ink-2); }
+.adt_cob__kpi-value { font-size: 26px; font-weight: 750; }
+.adt_cob__kpi-sub { font-size: 12px; color: var(--fin-muted); }
+
+.adt_cob__chart-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+
+    .adt_fin__legend { margin-bottom: 0; }
+}
+
+.adt_cob__calendar .adt_fin__month { flex-basis: 40px; }
+
+.adt_cob__rate {
+    padding-bottom: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--fin-ink-2);
+    font-variant-numeric: tabular-nums;
+}
+
+// ---------------------------------------------------------------- Cuentas para gestionar
+
+.adt_cob__gestion-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.adt_cob__tools { display: flex; gap: 8px; }
+
+.adt_cob__search {
+    width: 300px;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--fin-border);
+    border-radius: 999px;
+    background: var(--fin-page);
+    font-size: 13px;
+
+    &:focus { outline: 2px solid var(--fin-accent); outline-offset: -1px; background: var(--fin-surface); }
+}
+
+.adt_cob__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--fin-grid);
+}
+
+.adt_cob__tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 14px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+    cursor: pointer;
+
+    &:hover { color: var(--fin-ink); }
+    &.is-active { color: var(--fin-ink); border-bottom-color: var(--fin-ink); }
+}
+
+.adt_cob__tab-n {
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--fin-page);
+    font-size: 12px;
+}
+
+// ---------------------------------------------------------------- Responsive
+
+@media (max-width: 1100px) {
+    .adt_cob__grid2 { grid-template-columns: minmax(0, 1fr); }
+    .adt_cob__states { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .adt_cob__kpis { grid-template-columns: minmax(0, 1fr); }
+    .adt_cob__search { width: 100%; }
+    .adt_cob__tools { width: 100%; }
+}

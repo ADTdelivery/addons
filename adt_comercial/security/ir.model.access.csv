@@ -59,3 +59,6 @@ access_adt_editar_mora_wizard_admin,adt.editar.mora.wizard admin,model_adt_edita
 access_adt_editar_mora_wizard_user,adt.editar.mora.wizard user,model_adt_editar_mora_wizard,base.group_user,1,1,1,1
 access_adt_cancelar_credito_wizard_admin,adt.cancelar.credito.wizard admin,model_adt_cancelar_credito_wizard,base.group_system,1,1,1,1
 access_adt_cancelar_credito_wizard_user,adt.cancelar.credito.wizard user,model_adt_cancelar_credito_wizard,base.group_user,1,1,1,1
+access_adt_cliente_seguimiento_comercial,adt.cliente.seguimiento comercial,model_adt_cliente_seguimiento,adt_comercial.group_access_adt_comercial,1,1,1,0
+access_adt_cliente_seguimiento_gerencia,adt.cliente.seguimiento gerencia,model_adt_cliente_seguimiento,adt_comercial.group_access_adt_comercial_gerencia,1,1,1,1
+access_adt_cliente_seguimiento_admin,adt.cliente.seguimiento admin,model_adt_cliente_seguimiento,base.group_system,1,1,1,1

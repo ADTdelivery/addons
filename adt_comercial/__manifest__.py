@@ -17,6 +17,7 @@
         'security/res_groups_financiera.xml',
         'security/ir.model.access.csv',
         'views/view_comercial_socios.xml',
+        'views/menu_dashboards.xml',
         'views/view_comercial_financiera.xml',
         'views/view_comercial_cuentas.xml',
         'views/view_comercial_cuentas_financiera.xml',
@@ -50,6 +51,8 @@
         'views/view_mobile_benefits.xml',
         'views/view_mobile_home_preview.xml',
         'data/mobile_benefit_data.xml',
+        'views/cobranza_dashboard.xml',
+        'views/clientes_dashboard.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -57,10 +60,19 @@
             'adt_comercial/static/src/js/image_carousel_widget.js',
             'adt_comercial/static/src/js/fin_pct_bar_widget.js',
             'adt_comercial/static/src/js/mobile_home_preview_action.js',
+            'adt_comercial/static/src/scss/financiera_dashboard.scss',
+            'adt_comercial/static/src/js/financiera_dashboard.js',
+            'adt_comercial/static/src/scss/cobranza_dashboard.scss',
+            'adt_comercial/static/src/js/cobranza_dashboard.js',
+            'adt_comercial/static/src/scss/clientes_dashboard.scss',
+            'adt_comercial/static/src/js/clientes_dashboard.js',
         ],
         'web.assets_qweb': [
             'adt_comercial/static/src/xml/image_carousel.xml',
             'adt_comercial/static/src/xml/mobile_home_preview.xml',
+            'adt_comercial/static/src/xml/financiera_dashboard.xml',
+            'adt_comercial/static/src/xml/cobranza_dashboard.xml',
+            'adt_comercial/static/src/xml/clientes_dashboard.xml',
         ],
     },
 }

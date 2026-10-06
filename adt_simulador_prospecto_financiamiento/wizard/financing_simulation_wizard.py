@@ -1,6 +1,5 @@
 from odoo import _, api, fields, models
 
-from ..models.calculo import CARGO_DIARIO_DEFECTO
 from ..models.financing_simulation import CAMPOS_CALCULADOS
 
 
@@ -19,8 +18,8 @@ class FinancingSimulationWizard(models.TransientModel):
         help='Se propone la del producto; puede modificarse para esta simulación.')
     plazo_meses = fields.Integer(string='Plazo (meses)', required=True)
     cargo_diario = fields.Float(
-        string='Cargo diario', digits=(16, 2), default=CARGO_DIARIO_DEFECTO,
-        help='Monto fijo que se suma por cada día del crédito a la cuota calculada.')
+        string='Cargo diario', digits=(16, 2),
+        help='Se propone el cargo diario del producto; puede modificarse para esta simulación.')
 
     partner_id = fields.Many2one('res.partner', string='Cliente')
     frecuencia = fields.Selection(
@@ -43,9 +42,30 @@ class FinancingSimulationWizard(models.TransientModel):
     cantidad_cuotas = fields.Integer(
         related='simulation_id.cantidad_cuotas', string='Cantidad de cuotas')
 
+    @api.model
+    def default_get(self, fields_list):
+        vals = super().default_get(fields_list)
+        vehicle = self.env['financing.vehicle'].browse(vals.get('vehicle_id'))
+        if vehicle:
+            for campo in ('cuota_inicial', 'cargo_diario'):
+                if campo in fields_list:
+                    vals[campo] = vehicle[campo]
+        return vals
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            vehicle = self.env['financing.vehicle'].browse(
+                vals.get('vehicle_id') or self.env.context.get('default_vehicle_id'))
+            if vehicle:
+                vals.setdefault('cuota_inicial', vehicle.cuota_inicial)
+                vals.setdefault('cargo_diario', vehicle.cargo_diario)
+        return super().create(vals_list)
+
     @api.onchange('vehicle_id')
     def _onchange_vehicle_id(self):
         self.cuota_inicial = self.vehicle_id.cuota_inicial
+        self.cargo_diario = self.vehicle_id.cargo_diario
 
     def action_calcular(self):
         self.ensure_one()

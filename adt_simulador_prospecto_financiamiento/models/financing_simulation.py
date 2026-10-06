@@ -1,7 +1,7 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
-from .calculo import CARGO_DIARIO_DEFECTO, calcular_cuotas, generar_cronograma, validar_parametros
+from .calculo import calcular_cuotas, generar_cronograma, validar_parametros
 
 CAMPOS_CALCULADOS = (
     'capital', 'interes_mensual', 'cuota_mensual', 'cuota_semanal',
@@ -29,7 +29,7 @@ class FinancingSimulation(models.Model):
     cuota_inicial = fields.Float(string='Cuota inicial', digits=(16, 2), required=True)
     plazo_meses = fields.Integer(string='Plazo (meses)', required=True)
     cargo_diario = fields.Float(
-        string='Cargo diario', digits=(16, 2), default=CARGO_DIARIO_DEFECTO,
+        string='Cargo diario', digits=(16, 2),
         help='Monto fijo que se suma por cada día del crédito a la cuota calculada.')
 
     capital = fields.Float(
@@ -73,6 +73,7 @@ class FinancingSimulation(models.Model):
         self.importe_financiar = self.vehicle_id.importe_financiar
         self.tea = self.vehicle_id.tea
         self.cuota_inicial = self.vehicle_id.cuota_inicial
+        self.cargo_diario = self.vehicle_id.cargo_diario
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -82,6 +83,7 @@ class FinancingSimulation(models.Model):
                 vals.setdefault('importe_financiar', vehicle.importe_financiar)
                 vals.setdefault('tea', vehicle.tea)
                 vals.setdefault('cuota_inicial', vehicle.cuota_inicial)
+                vals.setdefault('cargo_diario', vehicle.cargo_diario)
             if vals.get('name', _('Nueva')) == _('Nueva'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('financing.simulation') or _('Nueva')
         simulaciones = super().create(vals_list)

@@ -1,0 +1,187 @@
+// Dashboard Ejecutivo — usa la base de los dashboards de Comercial (.adt_fin, .adt_cob, .adt_cli).
+
+.adt_ceo {
+    .adt_cob__grid2 > .adt_fin__card { margin-bottom: 0; }
+    .adt_cob__grid2 { margin-bottom: 14px; }
+}
+
+// ---------------------------------------------------------------- Indicadores clave
+
+.adt_ceo__kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.adt_ceo__kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 18px 20px;
+    border: 0;
+    border-radius: var(--fin-radius);
+    background: var(--fin-surface);
+    box-shadow: inset 4px 0 0 var(--ceo-kpi, var(--fin-grid)), 0 0 0 1px var(--fin-border), 0 1px 2px rgba(0, 0, 0, .04);
+    text-align: left;
+    color: var(--fin-ink);
+
+    &--ok { --ceo-kpi: #0ca30c; }
+    &--warn { --ceo-kpi: #fab219; }
+    &--bad { --ceo-kpi: #d03b3b; }
+}
+
+button.adt_ceo__kpi {
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+
+    &:hover { transform: translateY(-2px); }
+}
+
+.adt_ceo__kpi-label {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fin-ink-2);
+}
+
+.adt_ceo__kpi-value { font-size: 28px; font-weight: 750; line-height: 1.1; letter-spacing: -0.01em; }
+.adt_ceo__kpi-sub { font-size: 12px; color: var(--fin-muted); }
+
+// ---------------------------------------------------------------- Tarjetas
+
+.adt_ceo__wide { margin-bottom: 14px; }
+
+.adt_ceo__card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.adt_ceo__link {
+    flex: none;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--fin-accent-soft);
+    color: var(--fin-accent);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover { background: #d6e7fb; }
+}
+
+.adt_ceo__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--fin-ink-2);
+
+    span { display: inline-flex; align-items: center; }
+    b { margin-left: 4px; color: var(--fin-ink); }
+}
+
+.adt_ceo__facts {
+    gap: 10px 32px;
+    margin-top: 14px;
+
+    b { font-size: 18px; }
+}
+
+.adt_ceo__mini-title {
+    margin-bottom: 8px !important;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--fin-ink-2);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.adt_ceo__meter-row { margin-bottom: 14px; }
+
+.adt_ceo__meter-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-size: 13px;
+
+    span { color: var(--fin-ink-2); font-weight: 600; }
+}
+
+// Alturas de los gráficos dentro de este tablero
+.adt_ceo__plot { height: 170px; }
+.adt_ceo__month-plot { height: 170px; }
+.adt_ceo__calendar {
+    padding-left: 0;
+    overflow: visible;
+
+    .adt_fin__month { flex: 1 1 0; min-width: 0; }
+    .adt_fin__month-label { font-size: 11px; }
+}
+
+// ---------------------------------------------------------------- Alertas
+
+.adt_ceo__alertas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.adt_ceo__alerta {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--fin-page);
+
+    b { display: block; font-size: 14px; }
+    p { margin: 2px 0 0 !important; font-size: 13px; color: var(--fin-ink-2); }
+
+    &--bad { background: #fdf0f0; }
+    &--warn { background: #fff8e8; }
+    &--ok { background: #eef8ee; }
+}
+
+.adt_ceo__alerta-icon { margin-top: 2px; }
+
+.adt_ceo__alerta-area {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--fin-muted);
+}
+
+// ---------------------------------------------------------------- Flota
+
+.adt_ceo__flota {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+}
+
+// ---------------------------------------------------------------- Responsive
+
+@media (max-width: 1200px) {
+    .adt_ceo__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .adt_ceo__alertas { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .adt_ceo__flota { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,0 +1,337 @@
+// Dashboard de Clientes — usa la base de financiera_dashboard.scss (.adt_fin) y cobranza_dashboard.scss (.adt_cob).
+
+.adt_cli {
+    --cli-ok: #0ca30c;
+    --cli-warn: #fab219;
+    --cli-info: #2a78d6;
+    --cli-info-soft: #86b6ef;
+    --cli-bad: #d03b3b;
+
+    overflow: hidden;
+}
+
+.adt_cli__fill--ok { background: var(--cli-ok); }
+.adt_cli__fill--warn { background: var(--cli-warn); }
+.adt_cli__fill--info { background: var(--cli-info); }
+.adt_cli__fill--info-soft { background: var(--cli-info-soft); }
+.adt_cli__fill--bad { background: var(--cli-bad); }
+
+// ---------------------------------------------------------------- Íconos y etiquetas de segmento
+
+.adt_cli__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 800;
+    color: #fff;
+
+    &--ok { background: var(--cli-ok); }
+    &--warn { background: var(--cli-warn); color: #14161a; }
+    &--info { background: var(--cli-info); }
+    &--info-soft { background: var(--cli-info-soft); color: #14161a; }
+    &--bad { background: var(--cli-bad); }
+}
+
+.adt_cli__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px 2px 4px;
+    border-radius: 999px;
+    background: #f1f2f4;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.adt_cli__tag {
+    margin-left: 4px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #e3f6e3;
+    color: #006300;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+// ---------------------------------------------------------------- Respuestas estratégicas
+
+.adt_cli__hero {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.adt_cli__hero-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 22px;
+    border: 0;
+    border-radius: var(--fin-radius);
+    background: var(--fin-surface);
+    box-shadow: 0 0 0 1px var(--fin-border), 0 1px 2px rgba(0, 0, 0, .04);
+    text-align: left;
+    color: var(--fin-ink);
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform .15s, box-shadow .15s;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+    }
+    &--ok::before { background: var(--cli-ok); }
+    &--info::before { background: var(--cli-info); }
+    &--bad::before { background: var(--cli-bad); }
+
+    &:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px var(--fin-border), 0 8px 20px rgba(0, 0, 0, .08); }
+
+    .adt_fin__big { font-size: 36px; }
+    .adt_fin__sentence { margin-bottom: 0 !important; font-size: 13px; }
+}
+
+// ---------------------------------------------------------------- Segmentos
+
+.adt_cli__bar { height: 18px; }
+
+.adt_cli__seg-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+}
+
+.adt_cli__seg-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+
+    b { font-size: 18px; }
+    .adt_cli__badge { align-self: center; }
+}
+
+// ---------------------------------------------------------------- Embudo
+
+.adt_cli__funnel { display: flex; flex-direction: column; gap: 10px; }
+
+.adt_cli__funnel-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 38%) 1fr 80px;
+    align-items: center;
+    gap: 12px;
+}
+
+.adt_cli__funnel-label { font-size: 13px; color: var(--fin-ink-2); }
+
+.adt_cli__funnel-track {
+    display: block;
+    height: 26px;
+    border-radius: 6px;
+    background: var(--fin-page);
+    overflow: hidden;
+
+    > span { display: block; height: 100%; background: var(--cli-ok); border-radius: 6px; }
+}
+
+.adt_cli__funnel-val { text-align: right; font-variant-numeric: tabular-nums; }
+
+// ---------------------------------------------------------------- Columnas apiladas y puntaje
+
+.adt_cli__stack {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+    width: 62%;
+    max-width: 52px;
+
+    > span { display: block; min-height: 2px; }
+    > span:last-child { border-radius: 4px 4px 0 0; }
+}
+
+.adt_cli__hist .adt_cob__col-plot { height: 170px; }
+
+.adt_cli__score {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    b { min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
+}
+
+.adt_cli__score-track {
+    display: inline-block;
+    width: 70px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--fin-grid);
+    overflow: hidden;
+
+    > span { display: block; height: 100%; border-radius: 4px; }
+}
+
+.adt_cli__motivos { white-space: normal !important; max-width: 340px; color: var(--cli-bad); font-weight: 600; }
+
+// ---------------------------------------------------------------- Panel lateral (ficha del cliente)
+
+.adt_cli__backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(20, 22, 26, .28);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+}
+
+.adt_cli__panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 31;
+    width: 520px;
+    max-width: 100%;
+    overflow-y: auto;
+    padding: 22px 24px 32px;
+    background: var(--fin-surface);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, .18);
+    transform: translateX(100%);
+    transition: transform .22s ease;
+
+    h2 { margin: 0 0 2px; font-size: 20px; font-weight: 700; }
+    h3 { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
+    p { margin: 0 0 8px; }
+    .adt_fin__table { margin-top: 0; }
+}
+
+.adt_cli--panel {
+    .adt_cli__backdrop { opacity: 1; pointer-events: auto; }
+    .adt_cli__panel { transform: translateX(0); }
+}
+
+.adt_cli__panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--fin-grid);
+
+    p { color: var(--fin-muted); }
+}
+
+.adt_cli__close {
+    border: 0;
+    background: none;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--fin-muted);
+    cursor: pointer;
+
+    &:hover { color: var(--fin-ink); }
+}
+
+.adt_cli__panel-sec {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--fin-grid);
+
+    &:last-child { border-bottom: 0; }
+}
+
+.adt_cli__big-score {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 6px;
+
+    > b { font-size: 40px; font-weight: 750; line-height: 1; }
+    > span { color: var(--fin-muted); }
+    .adt_cli__score { margin-left: 12px; align-self: center; }
+    .adt_cli__score-track { width: 160px; height: 10px; }
+    .adt_cli__score b { display: none; }
+}
+
+.adt_cli__factores {
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+        border-bottom: 1px dashed var(--fin-grid);
+        font-size: 13px;
+    }
+    b { color: var(--cli-bad); font-variant-numeric: tabular-nums; }
+}
+
+.adt_cli__form {
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 0 0 10px;
+        font-weight: 400;
+
+        &[hidden] { display: none; }
+        > span { font-size: 12px; font-weight: 600; color: var(--fin-ink-2); }
+    }
+
+    select, input, textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--fin-border);
+        border-radius: 8px;
+        background: var(--fin-surface);
+        font-family: inherit;
+        font-size: 13px;
+        color: var(--fin-ink);
+
+        &:focus { outline: 2px solid var(--fin-accent); outline-offset: -1px; }
+    }
+}
+
+.adt_cli__form-error {
+    color: var(--cli-bad);
+    font-weight: 600;
+
+    &[hidden] { display: none; }
+}
+
+.adt_cli__form-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.adt_cli__updated { margin-top: 10px !important; font-size: 12px; }
+
+// ---------------------------------------------------------------- Responsive
+
+@media (max-width: 1100px) {
+    .adt_cli__hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .adt_cli__hero { grid-template-columns: minmax(0, 1fr); }
+    .adt_cli__funnel-row { grid-template-columns: minmax(0, 1fr) 70px; }
+    .adt_cli__funnel-track { grid-column: 1 / -1; grid-row: 2; }
+}

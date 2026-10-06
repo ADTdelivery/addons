@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="adt_expedientes.Dashboard">
+        <div class="o_action adt_exp">
+            <div class="adt_exp__scroll">
+                <header class="adt_exp__header">
+                    <div>
+                        <h1 class="adt_exp__title">Expedientes</h1>
+                        <p class="adt_exp__subtitle" data-ref="subtitle"/>
+                    </div>
+                    <button type="button" class="adt_exp__btn" data-action="refresh">Actualizar</button>
+                </header>
+                <div class="adt_exp__filters">
+                    <nav class="adt_exp__chips" data-ref="periodos" aria-label="Periodo"/>
+                    <label class="adt_exp__select"><span>Asesora</span><select data-ref="asesora"/></label>
+                </div>
+                <div data-ref="body"><div class="adt_exp__empty">Cargando expedientes…</div></div>
+            </div>
+            <div class="adt_exp__tooltip" data-ref="tooltip" role="tooltip"/>
+        </div>
+    </t>
+
+</templates>

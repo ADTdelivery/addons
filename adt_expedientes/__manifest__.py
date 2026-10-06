@@ -1,6 +1,6 @@
 {
     'name': 'ADT Expedientes',
-    'version': '15.0.4.0.0',
+    'version': '15.0.4.1.0',
     'category': 'Operations/Security',
     'summary': 'Gestión de expedientes con sistema de seguridad móvil y notificaciones push',
     'description': '''
@@ -45,6 +45,15 @@
         'views/expediente_references_inherit.xml',
         'views/fcm_device_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'adt_expedientes/static/src/scss/expedientes_dashboard.scss',
+            'adt_expedientes/static/src/js/expedientes_dashboard.js',
+        ],
+        'web.assets_qweb': [
+            'adt_expedientes/static/src/xml/expedientes_dashboard.xml',
+        ],
+    },
     'installable': True,
     'application': True,
     'license': 'LGPL-3',

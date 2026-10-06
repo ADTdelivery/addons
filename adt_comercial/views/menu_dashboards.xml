@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Comercial > Dashboards: agrupa los dashboards y Cuotas Masivas en una sola pestaña.
+         Los submenús se declaran en sus propios archivos con parent="adt_comercial_menu_dashboards". -->
+    <menuitem id="adt_comercial_menu_dashboards"
+              name="Dashboards"
+              parent="menu_adt_comercial"
+              sequence="10"
+              groups="adt_comercial.group_access_adt_comercial"/>
+</odoo>

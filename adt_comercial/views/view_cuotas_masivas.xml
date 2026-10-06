@@ -244,8 +244,8 @@
     <menuitem id="adt_comercial_menu_cuotas_masivas"
               name="Cuotas Masivas"
               action="action_cuotas_masivas_wizard"
-              parent="menu_adt_comercial"
-              sequence="10"
+              parent="adt_comercial_menu_dashboards"
+              sequence="30"
               groups="adt_comercial.group_access_adt_comercial"/>
 
 </odoo>

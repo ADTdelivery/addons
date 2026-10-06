@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Reporte de Cobranzas (dashboard JS) ── -->
+    <record id="action_reporte_cobranzas" model="ir.actions.client">
+        <field name="name">Reporte de Cobranzas</field>
+        <field name="tag">adt_cobranza_dashboard</field>
+    </record>
+
+    <menuitem id="adt_cobranza_menu_reporte"
+              name="Reporte de Cobranzas"
+              parent="menu_adt_cobranza"
+              action="action_reporte_cobranzas"
+              sequence="1"
+              groups="adt_comercial.group_access_adt_cobranzas,adt_comercial.group_access_adt_comercial_gerencia,base.group_system"/>
+
+    <!-- Comercial > Dashboard Cobranzas: antes abría una página aparte (/web/dashboard/cobranzas);
+         ahora muestra el mismo reporte dentro de Odoo. -->
+    <menuitem id="adt_comercial_menu_dashboard_cobranzas"
+              name="Dashboard Cobranzas"
+              parent="adt_comercial_menu_dashboards"
+              action="action_reporte_cobranzas"
+              sequence="20"
+              groups="adt_comercial.group_access_adt_comercial"/>
+</odoo>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_ceo_dashboard" model="ir.actions.client">
+        <field name="name">Dashboard Ejecutivo</field>
+        <field name="tag">adt_ceo_dashboard</field>
+    </record>
+
+    <!-- App propia en el menú principal, solo para gerencia -->
+    <menuitem id="menu_ceo_dashboard_root"
+              name="Dashboard Ejecutivo"
+              action="action_ceo_dashboard"
+              web_icon="adt_dashboard_ceo,static/description/icon.png"
+              groups="adt_comercial.group_access_adt_comercial_gerencia,base.group_system"
+              sequence="1"/>
+</odoo>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Reutiliza la base visual de los dashboards de Comercial (adt_fin, adt_cob, adt_cli). -->
+    <t t-name="adt_dashboard_ceo.Dashboard">
+        <div class="o_action adt_fin adt_cob adt_cli adt_ceo">
+            <div class="adt_fin__scroll">
+                <header class="adt_fin__header">
+                    <div>
+                        <h1 class="adt_fin__title">Estado de la compañía</h1>
+                        <p class="adt_fin__subtitle" data-ref="subtitle"/>
+                    </div>
+                    <div class="adt_fin__header-actions">
+                        <button type="button" class="adt_fin__btn" data-action="refresh">Actualizar</button>
+                    </div>
+                </header>
+                <div data-ref="body">
+                    <div class="adt_fin__empty">Reuniendo los indicadores de todas las áreas…</div>
+                </div>
+            </div>
+            <div class="adt_fin__tooltip" data-ref="tooltip" role="tooltip"/>
+        </div>
+    </t>
+
+</templates>

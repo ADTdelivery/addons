@@ -4,7 +4,7 @@ from odoo import fields, http
 from odoo.exceptions import UserError, ValidationError
 from odoo.http import content_disposition, request
 
-from ..models.calculo import CARGO_DIARIO_DEFECTO, FRECUENCIAS
+from ..models.calculo import FRECUENCIAS
 
 MENSAJE_SIMULACION = 'Simulación generada correctamente.'
 LIMITE_MAXIMO = 50
@@ -37,7 +37,8 @@ class SimuladorFinanciamientoController(http.Controller):
         vehiculos = request.env['financing.vehicle'].search([])
         return {
             'ok': True,
-            'vehiculos': [{'id': v.id, 'nombre': v.name, 'cuota_inicial': v.cuota_inicial}
+            'vehiculos': [{'id': v.id, 'nombre': v.name, 'cuota_inicial': v.cuota_inicial,
+                           'cargo_diario': v.cargo_diario}
                           for v in vehiculos],
         }
 
@@ -103,7 +104,7 @@ class SimuladorFinanciamientoController(http.Controller):
         Opcionales: `cliente_id` (relaciona la simulación con un cliente),
         `fecha_inicio` (AAAA-MM-DD; genera el cronograma) y `frecuencia`
         (mensual | semanal | diaria; por defecto mensual) y `cargo_diario`
-        (monto fijo sumado por cada día; por defecto 5.00).
+        (monto fijo sumado por cada día; por defecto el configurado en el producto).
         """
         try:
             vehiculo_id = self._entero(vehiculo_id, 'vehiculo_id')
@@ -113,7 +114,7 @@ class SimuladorFinanciamientoController(http.Controller):
             frecuencia = self._frecuencia(frecuencia)
             cuota_inicial = (None if cuota_inicial in (None, '')
                              else self._numero(cuota_inicial, 'cuota_inicial'))
-            cargo_diario = (CARGO_DIARIO_DEFECTO if cargo_diario in (None, '')
+            cargo_diario = (None if cargo_diario in (None, '')
                             else self._numero(cargo_diario, 'cargo_diario'))
 
             vehiculo = request.env['financing.vehicle'].search([('id', '=', vehiculo_id)])
@@ -122,6 +123,8 @@ class SimuladorFinanciamientoController(http.Controller):
 
             if cuota_inicial is None:
                 cuota_inicial = vehiculo.cuota_inicial
+            if cargo_diario is None:
+                cargo_diario = vehiculo.cargo_diario
 
             # Savepoint: si una validación falla tras el INSERT, no debe quedar registro.
             with request.env.cr.savepoint():

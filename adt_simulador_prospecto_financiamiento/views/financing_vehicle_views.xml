@@ -10,6 +10,7 @@
                 <field name="tea"/>
                 <field name="tea_porcentaje"/>
                 <field name="cuota_inicial"/>
+                <field name="cargo_diario"/>
                 <field name="active" widget="boolean_toggle"/>
             </tree>
         </field>
@@ -31,6 +32,7 @@
                             <field name="tea"/>
                             <field name="tea_porcentaje"/>
                             <field name="cuota_inicial"/>
+                            <field name="cargo_diario"/>
                         </group>
                     </group>
                 </sheet>

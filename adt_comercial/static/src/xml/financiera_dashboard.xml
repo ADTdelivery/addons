@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="adt_comercial.FinancieraDashboard">
+        <div class="o_action adt_fin">
+            <div class="adt_fin__scroll">
+                <header class="adt_fin__header">
+                    <div>
+                        <div data-ref="crumb"/>
+                        <h1 class="adt_fin__title" data-ref="title">Financieras: ganancia y pagos</h1>
+                        <p class="adt_fin__subtitle" data-ref="subtitle"/>
+                    </div>
+                    <div class="adt_fin__header-actions">
+                        <button type="button" class="adt_fin__btn adt_fin__btn--ghost" data-action="detalle">Ver cuentas</button>
+                        <button type="button" class="adt_fin__btn" data-action="refresh">Actualizar</button>
+                    </div>
+                </header>
+                <div class="adt_fin__filters">
+                    <nav class="adt_fin__chips" data-ref="chips"/>
+                    <div class="adt_fin__search" role="combobox" aria-haspopup="listbox" aria-owns="adt_fin_suggest">
+                        <input type="search" data-ref="buscar" autocomplete="off" aria-autocomplete="list"
+                               placeholder="Buscar cliente por nombre, DNI/RUC o n° de cuenta…"/>
+                        <ul class="adt_fin__suggest" id="adt_fin_suggest" data-ref="suggest" role="listbox"/>
+                    </div>
+                </div>
+                <div data-ref="body">
+                    <div class="adt_fin__empty">Cargando información de las financieras…</div>
+                </div>
+            </div>
+            <div class="adt_fin__tooltip" data-ref="tooltip" role="tooltip"/>
+        </div>
+    </t>
+
+</templates>

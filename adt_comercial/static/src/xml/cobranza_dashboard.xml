@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Reutiliza la base visual del Resumen de financieras (clase adt_fin) y agrega lo propio (adt_cob). -->
+    <t t-name="adt_comercial.CobranzaDashboard">
+        <div class="o_action adt_fin adt_cob">
+            <div class="adt_fin__scroll">
+                <header class="adt_fin__header">
+                    <div>
+                        <h1 class="adt_fin__title">Cobranzas</h1>
+                        <p class="adt_fin__subtitle" data-ref="subtitle"/>
+                    </div>
+                    <div class="adt_fin__header-actions">
+                        <button type="button" class="adt_fin__btn" data-action="refresh">Actualizar</button>
+                    </div>
+                </header>
+                <div class="adt_fin__filters">
+                    <nav class="adt_fin__chips" data-ref="financieras" aria-label="Financiera"/>
+                    <label class="adt_cob__select">
+                        <span>Cartera</span>
+                        <select data-ref="cartera"/>
+                    </label>
+                </div>
+                <div data-ref="body">
+                    <div class="adt_fin__empty">Cargando la cartera…</div>
+                </div>
+            </div>
+            <div class="adt_fin__tooltip" data-ref="tooltip" role="tooltip"/>
+        </div>
+    </t>
+
+</templates>

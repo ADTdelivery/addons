@@ -3,6 +3,7 @@ from . import account_payment
 from . import comercial_cuentas
 from . import comercial_cuentas_financiera
 from . import financiera_dashboard
+from . import cobranza_dashboard
 from . import comercial_financiera
 from . import comercial_financiera_reporte
 from . import comercial_cuotas
@@ -21,3 +22,5 @@ from . import notificaciones_cron
 from . import mobile_home_preview
 
 
+from . import cliente_seguimiento
+from . import clientes_dashboard
