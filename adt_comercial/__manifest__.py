@@ -53,6 +53,7 @@
         'data/mobile_benefit_data.xml',
         'views/cobranza_dashboard.xml',
         'views/clientes_dashboard.xml',
+        'views/cartera_reporte.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -66,6 +67,8 @@
             'adt_comercial/static/src/js/cobranza_dashboard.js',
             'adt_comercial/static/src/scss/clientes_dashboard.scss',
             'adt_comercial/static/src/js/clientes_dashboard.js',
+            'adt_comercial/static/src/scss/cartera_reporte.scss',
+            'adt_comercial/static/src/js/cartera_reporte.js',
         ],
         'web.assets_qweb': [
             'adt_comercial/static/src/xml/image_carousel.xml',
@@ -73,6 +76,7 @@
             'adt_comercial/static/src/xml/financiera_dashboard.xml',
             'adt_comercial/static/src/xml/cobranza_dashboard.xml',
             'adt_comercial/static/src/xml/clientes_dashboard.xml',
+            'adt_comercial/static/src/xml/cartera_reporte.xml',
         ],
     },
 }

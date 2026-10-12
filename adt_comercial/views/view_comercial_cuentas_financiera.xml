@@ -12,7 +12,9 @@
                        decoration-muted="fin_estado == 'sin_datos'"/>
             </xpath>
             <xpath expr="//notebook" position="inside">
-                <page string="Financiera" name="financiera">
+                <!-- Obsoleta: reemplazada por "Cronograma de financiera" (lectura del PDF).
+                     Se oculta pero sus campos se conservan: el PDF los llena. -->
+                <page string="Financiera" name="financiera" invisible="1">
                     <group>
                         <group>
                             <field name="fin_estado" widget="badge"
@@ -62,6 +64,89 @@
                             <field name="fin_ganancia_esperada"/>
                         </group>
                     </group>
+                </page>
+                <page string="Cronograma de financiera" name="cronograma_financiera">
+                    <group>
+                        <group>
+                            <field name="cf_pdf" filename="cf_pdf_nombre"/>
+                            <field name="cf_pdf_nombre" invisible="1"/>
+                        </group>
+                        <group>
+                            <button name="cf_leer_pdf" type="object" string="Volver a leer PDF"
+                                    class="btn-secondary" attrs="{'invisible': [('cf_pdf', '=', False)]}"/>
+                            <field name="cf_estado" widget="badge"
+                                   decoration-success="cf_estado == 'valido'"
+                                   decoration-warning="cf_estado == 'observado'"/>
+                            <field name="cf_confianza" attrs="{'invisible': [('cf_estado', '=', False)]}"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Crédito">
+                            <field name="cf_nro_solicitud"/>
+                            <field name="cf_nro_expediente"/>
+                            <field name="cf_agencia"/>
+                            <field name="cf_producto"/>
+                            <field name="cf_tipo_credito"/>
+                            <field name="cf_tipo_cobro"/>
+                            <field name="cf_analista"/>
+                        </group>
+                        <group string="Socio">
+                            <field name="cf_socio"/>
+                            <field name="cf_codigo_socio"/>
+                            <field name="cf_dni"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Condiciones">
+                            <field name="cf_monto_credito"/>
+                            <field name="cf_fecha_desembolso"/>
+                            <field name="cf_plazo_dias"/>
+                            <field name="cf_frecuencia_cuota"/>
+                            <field name="cf_tasa_interes_anual"/>
+                            <field name="cf_tasa_desgravamen"/>
+                        </group>
+                        <group string="Resumen">
+                            <field name="cf_monto_cuota"/>
+                            <field name="cf_cuotas_pendientes"/>
+                            <field name="cf_primera_cuota"/>
+                            <field name="cf_ultima_cuota"/>
+                            <field name="cf_proximo_vencimiento"/>
+                            <field name="cf_capital_pendiente"/>
+                            <field name="cf_capital_amortizado"/>
+                            <field name="cf_total_pdf"/>
+                        </group>
+                    </group>
+                    <separator string="Cronograma de pagos"/>
+                    <field name="cf_cuota_ids" nolabel="1">
+                        <tree>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="fecha_vencimiento"/>
+                            <field name="nro_cuota"/>
+                            <field name="capital" sum="Total"/>
+                            <field name="interes" sum="Total"/>
+                            <field name="seguro_desgravamen" sum="Total"/>
+                            <field name="comision_operativa" sum="Total"/>
+                            <field name="interes_vencido" sum="Total"/>
+                            <field name="interes_moratorio" sum="Total"/>
+                            <field name="interes_compensatorio" sum="Total"/>
+                            <field name="aporte" sum="Total"/>
+                            <field name="otros" sum="Total"/>
+                            <field name="total" sum="Total"/>
+                            <field name="estado"/>
+                        </tree>
+                    </field>
+                    <group string="Emisión del PDF">
+                        <group>
+                            <field name="cf_oficina"/>
+                            <field name="cf_usuario_emisor"/>
+                        </group>
+                        <group>
+                            <field name="cf_fecha_sistema"/>
+                            <field name="cf_fecha_emision"/>
+                        </group>
+                    </group>
+                    <separator string="Validaciones de la lectura"/>
+                    <field name="cf_validacion_html" nolabel="1"/>
                 </page>
             </xpath>
         </field>

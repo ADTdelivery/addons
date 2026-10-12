@@ -2,6 +2,8 @@ from . import res_partner
 from . import account_payment
 from . import comercial_cuentas
 from . import comercial_cuentas_financiera
+from . import comercial_cuentas_cronograma_financiera
+from . import cartera_reporte
 from . import financiera_dashboard
 from . import cobranza_dashboard
 from . import comercial_financiera

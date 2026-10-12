@@ -1,11 +1,11 @@
 # API de Stock de Motos (app de ventas)
 
-Módulo: `adt_dashboard_flota` · Versión: `15.0.1.1.0` · Odoo 15
+Módulo: `adt_dashboard_flota` · Versión: `15.0.2.0.0` · Odoo 15
 
 Servicios para que la app de ventas consulte las motos disponibles para vender, cuáles tienen
 placa lista para entrega inmediata, y los modelos, colores y años que hay en stock.
 
-Usa las mismas reglas que el **Dashboard Stock** de Flota, así que la app y gerencia siempre ven
+Usa las mismas reglas que el **Dashboard** de *Operación de motos*, así que la app y gerencia siempre ven
 los mismos números.
 
 ---
@@ -15,8 +15,8 @@ los mismos números.
 | Término | Definición |
 |---|---|
 | **Stock** | Vehículo **activo** de Flota **sin conductor/dueño** asignado (`driver_id` vacío). |
-| **Placa lista** | La placa tiene un valor real con al menos un número (ej. `1234-AB`). No cuentan textos como `S/P`, `EN TRAMITE` ni `PENDIENTE`. También cuenta si el trámite de placa está **Inscrito** y ya tiene número. |
-| **En trámite** | No tiene placa lista, pero tiene un trámite de placa que no está **Tachado** (Borrador, Notaría, SUNARP, Observado, o Inscrito sin número de placa todavía). |
+| **Placa lista** | La placa tiene un valor real con al menos un número (ej. `1234-AB`). No cuentan textos como `S/P`, `EN TRAMITE` ni `PENDIENTE`. También cuenta si el trámite de placa (`adt_tramite_placa`) está **Finalizado** (o en **Historial**) y ya tiene número. |
+| **En trámite** | No tiene placa lista y su trámite de placa está **En trámite** u **Observado**. Un trámite **Pendiente** (aún no iniciado) cuenta como *Sin placa*. |
 | **Sin placa** | No tiene placa lista ni trámite abierto. |
 
 Códigos de `estado_placa`:
@@ -357,3 +357,10 @@ curl -s -b cookies.txt -H "Content-Type: application/json" \
 - **Código fuente:**
   - Controlador: `adt_dashboard_flota/controllers/stock_api.py`
   - Lógica: `adt_dashboard_flota/models/stock_service.py`
+
+---
+
+## 8. API de operación (stock y estado del proceso)
+
+Para ver además en qué punto del proceso está cada moto (fibra y placa), ver
+[`API_OPERACION.md`](API_OPERACION.md) (`/api/operacion/*`, solo lectura).

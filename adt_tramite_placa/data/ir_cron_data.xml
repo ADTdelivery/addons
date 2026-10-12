@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="cron_pasar_a_historial" model="ir.cron">
+        <field name="name">Trámite de placa: pasar finalizados a Historial</field>
+        <field name="model_id" ref="model_adt_tramite_placa"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_pasar_a_historial()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+    </record>
+
+</odoo>

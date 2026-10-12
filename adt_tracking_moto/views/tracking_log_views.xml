@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="adt_moto_tracking_log_view_tree" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.log.tree</field>
+        <field name="model">adt.moto.tracking.log</field>
+        <field name="arch" type="xml">
+            <tree create="false" edit="false" delete="false">
+                <field name="fecha_inicio"/>
+                <field name="vehicle_id"/>
+                <field name="flujo"/>
+                <field name="etapa_desde"/>
+                <field name="etapa_hasta"/>
+                <field name="taller_fibra_id" optional="show"/>
+                <field name="fecha_fin"/>
+                <field name="duracion_horas" optional="hide"/>
+                <field name="duracion_dias"/>
+                <field name="user_id" optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_moto_tracking_log_view_pivot" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.log.pivot</field>
+        <field name="model">adt.moto.tracking.log</field>
+        <field name="arch" type="xml">
+            <pivot string="Tiempos por etapa" sample="1">
+                <field name="etapa_id" type="row"/>
+                <field name="fecha_inicio" interval="month" type="col"/>
+                <field name="duracion_dias" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="adt_moto_tracking_log_view_graph" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.log.graph</field>
+        <field name="model">adt.moto.tracking.log</field>
+        <field name="arch" type="xml">
+            <graph string="Tiempos por etapa" type="bar" sample="1">
+                <field name="etapa_id"/>
+                <field name="duracion_dias" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="adt_moto_tracking_log_view_search" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.log.search</field>
+        <field name="model">adt.moto.tracking.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="vehicle_id"/>
+                <field name="etapa_id"/>
+                <field name="taller_fibra_id"/>
+                <filter name="logistica" string="Logística" domain="[('flujo', '=', 'logistica')]"/>
+                <filter name="placa" string="Placa" domain="[('flujo', '=', 'placa')]"/>
+                <filter name="hitos" string="Hitos" domain="[('flujo', '=', 'hito')]"/>
+                <separator/>
+                <filter name="finalizados" string="Finalizados" domain="[('fecha_fin', '!=', False)]"/>
+                <filter name="en_curso" string="En curso" domain="[('fecha_fin', '=', False)]"/>
+                <separator/>
+                <filter name="observaciones" string="Observaciones de placa" domain="[('flujo', '=', 'placa'), ('codigo_hasta', '=', 'observado')]"/>
+                <filter name="fecha_inicio" string="Fecha" date="fecha_inicio"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_etapa" string="Etapa" context="{'group_by': 'etapa_id'}"/>
+                    <filter name="group_hacia" string="Estado alcanzado" context="{'group_by': 'etapa_hasta'}"/>
+                    <filter name="group_taller" string="Taller de fibra" context="{'group_by': 'taller_fibra_id'}"/>
+                    <filter name="group_modelo" string="Modelo" context="{'group_by': 'modelo_id'}"/>
+                    <filter name="group_mes" string="Mes" context="{'group_by': 'fecha_inicio:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_moto_tracking_log_reporte" model="ir.actions.act_window">
+        <field name="name">Reporte de tiempos</field>
+        <field name="res_model">adt.moto.tracking.log</field>
+        <field name="view_mode">pivot,graph,tree</field>
+        <field name="context">{'search_default_logistica': 1, 'search_default_finalizados': 1}</field>
+    </record>
+
+</odoo>

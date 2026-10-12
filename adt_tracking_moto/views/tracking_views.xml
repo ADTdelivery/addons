@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Kanban ─────────────────────────────────────────────────────────── -->
+    <record id="adt_moto_tracking_view_kanban" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.kanban</field>
+        <field name="model">adt.moto.tracking</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="etapa_id" class="o_adt_kanban" quick_create="false" group_create="false"
+                    group_delete="false" group_edit="false" records_draggable="true" sample="1">
+                <field name="etapa_id"/>
+                <field name="etapa_codigo"/>
+                <field name="estado_placa"/>
+                <field name="estado_global"/>
+                <field name="demorado"/>
+                <field name="dias_etapa"/>
+                <field name="modelo_id"/>
+                <field name="vehicle_id"/>
+                <field name="partner_id"/>
+                <field name="taller_fibra_id"/>
+                <field name="license_plate"/>
+                <field name="asignado_antes_listo"/>
+                <field name="activity_state"/>
+                <progressbar field="estado_placa"
+                             colors='{"finalizado": "success", "en_tramite": "info", "observado": "warning", "pendiente": "muted"}'/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <t t-set="pasos" t-value="['recojo', 'almacen', 'fibra', 'listo']"/>
+                        <t t-set="actual" t-value="pasos.indexOf(record.etapa_codigo.raw_value)"/>
+                        <div t-attf-class="oe_kanban_global_click adt_kcard adt_kcard--#{record.estado_global.raw_value} #{record.demorado.raw_value ? 'is-late' : ''}">
+                            <div class="adt_kcard__head">
+                                <span class="adt_kcard__img" aria-hidden="true"><i class="fa fa-motorcycle"/></span>
+                                <div class="adt_kcard__title">
+                                    <strong t-att-title="record.vehicle_id.value"><t t-esc="record.modelo_id.value || record.vehicle_id.value"/></strong>
+                                    <span class="adt_kcard__sub"><field name="name"/> · <span class="adt_kcard__mono"><field name="chasis"/></span></span>
+                                </div>
+                                <span t-if="record.license_plate.raw_value" class="adt_kcard__plate" title="Placa">
+                                    <t t-esc="record.license_plate.raw_value"/>
+                                </span>
+                            </div>
+                            <div class="adt_kcard__progress" t-att-title="'Etapa: ' + record.etapa_id.value">
+                                <t t-foreach="pasos" t-as="p">
+                                    <span t-attf-class="adt_kcard__seg #{p_index &lt; actual ? 'is-done' : ''} #{p_index == actual ? 'is-current' : ''}"/>
+                                </t>
+                                <span class="adt_kcard__progress-label"><t t-esc="actual + 1"/>/4</span>
+                            </div>
+                            <div class="adt_kcard__chips">
+                                <span t-attf-class="adt_kcard__pill is-#{record.estado_placa.raw_value}" title="Estado de placa">
+                                    <i class="fa fa-id-card-o"/> <field name="estado_placa"/>
+                                </span>
+                                <span t-if="record.taller_fibra_id.raw_value" class="adt_kcard__pill is-taller" title="Taller de fibra">
+                                    <i class="fa fa-wrench"/> <field name="taller_fibra_id"/>
+                                </span>
+                                <span t-if="record.asignado_antes_listo.raw_value" class="adt_kcard__pill is-observado" title="Asignada antes de terminar la logística">
+                                    <i class="fa fa-bolt"/> Antes de tiempo
+                                </span>
+                            </div>
+                            <div class="adt_kcard__foot">
+                                <span t-attf-class="adt_kcard__age #{record.demorado.raw_value ? 'is-late' : ''}" title="Días en la etapa">
+                                    <i t-attf-class="fa #{record.demorado.raw_value ? 'fa-exclamation-triangle' : 'fa-clock-o'}"/>
+                                    <t t-esc="Math.round(record.dias_etapa.raw_value * 10) / 10"/> d
+                                </span>
+                                <field name="activity_ids" widget="kanban_activity"/>
+                                <span class="adt_kcard__spacer"/>
+                                <t t-if="record.partner_id.raw_value">
+                                    <span class="adt_kcard__owner" t-att-title="record.partner_id.value">
+                                        <img t-att-src="kanban_image('res.partner', 'avatar_128', record.partner_id.raw_value)"
+                                             class="adt_kcard__avatar" alt="Cliente"/>
+                                        <span class="adt_kcard__owner-name"><t t-esc="record.partner_id.value"/></span>
+                                    </span>
+                                </t>
+                                <span t-else="" class="adt_kcard__pill is-stock"><i class="fa fa-cube"/> En stock</span>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ── Lista ──────────────────────────────────────────────────────────── -->
+    <record id="adt_moto_tracking_view_tree" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.tree</field>
+        <field name="model">adt.moto.tracking</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="demorado" sample="1">
+                <field name="name"/>
+                <field name="vehicle_id"/>
+                <field name="chasis" optional="show"/>
+                <field name="factura_id" optional="show"/>
+                <field name="etapa_id"/>
+                <field name="taller_fibra_id" optional="show"/>
+                <field name="estado_placa" widget="badge"
+                       decoration-muted="estado_placa == 'pendiente'"
+                       decoration-info="estado_placa == 'en_tramite'"
+                       decoration-warning="estado_placa == 'observado'"
+                       decoration-success="estado_placa == 'finalizado'"/>
+                <field name="license_plate" optional="hide"/>
+                <field name="partner_id" optional="show"/>
+                <field name="estado_global" widget="badge"
+                       decoration-info="estado_global == 'listo_asignar'"
+                       decoration-warning="estado_global == 'asignado_sin_placa'"
+                       decoration-success="estado_global in ('asignado_con_placa', 'entregado')"/>
+                <field name="dias_etapa" optional="show"/>
+                <field name="dias_totales" optional="show"/>
+                <field name="demorado" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Formulario ─────────────────────────────────────────────────────── -->
+    <record id="adt_moto_tracking_view_form" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.form</field>
+        <field name="model">adt.moto.tracking</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_llevar_almacen" type="object" string="Llegó al almacén" class="oe_highlight"
+                            attrs="{'invisible': [('etapa_codigo', '!=', 'recojo')]}"/>
+                    <button name="action_enviar_fibra" type="object" string="Enviar a fibra" class="oe_highlight"
+                            attrs="{'invisible': [('etapa_codigo', '!=', 'almacen')]}"/>
+                    <button name="action_regreso_fibra" type="object" string="Regresó con fibra" class="oe_highlight"
+                            attrs="{'invisible': [('etapa_codigo', '!=', 'fibra')]}"/>
+                    <button name="action_enviar_fibra" type="object" string="Reenviar a fibra"
+                            groups="adt_tracking_moto.group_tracking_manager"
+                            attrs="{'invisible': [('etapa_codigo', '!=', 'listo')]}"/>
+                    <button name="action_iniciar_tramite" type="object" string="Iniciar trámite de placa"
+                            attrs="{'invisible': [('estado_placa', '!=', 'pendiente')]}"/>
+                    <field name="etapa_id" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_tramite" type="object" class="oe_stat_button" icon="fa-id-card-o"
+                                attrs="{'invisible': [('tramite_placa_id', '=', False)]}">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Trámite placa</span>
+                                <field name="estado_placa" readonly="1" class="o_stat_value"/>
+                            </div>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Demorado" bg_color="bg-danger"
+                            attrs="{'invisible': [('demorado', '=', False)]}"/>
+                    <widget name="web_ribbon" title="Entregado" bg_color="bg-success"
+                            attrs="{'invisible': [('estado_global', '!=', 'entregado')]}"/>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                        <h3><field name="vehicle_id" attrs="{'readonly': [('id', '!=', False)]}"/></h3>
+                    </div>
+                    <group>
+                        <group string="Moto">
+                            <field name="modelo_id"/>
+                            <field name="chasis"/>
+                            <field name="motor"/>
+                            <field name="color"/>
+                            <field name="factura_id"/>
+                        </group>
+                        <group string="Estado">
+                            <field name="estado_global" widget="badge"/>
+                            <field name="partner_id"/>
+                            <field name="fecha_asignacion"/>
+                            <field name="asignado_antes_listo" attrs="{'invisible': [('asignado_antes_listo', '=', False)]}"/>
+                            <field name="fecha_entrega"/>
+                            <field name="dias_totales"/>
+                            <field name="demorado" invisible="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Logística">
+                            <field name="etapa_codigo" invisible="1"/>
+                            <field name="taller_fibra_id" readonly="1"
+                                   attrs="{'invisible': [('taller_fibra_id', '=', False)]}"/>
+                            <field name="fecha_etapa"/>
+                            <field name="dias_etapa"/>
+                            <field name="fecha_recojo"/>
+                            <field name="fecha_ingreso_almacen"/>
+                            <field name="fecha_envio_fibra"/>
+                            <field name="fecha_listo"/>
+                        </group>
+                        <group string="Placa">
+                            <field name="estado_placa" widget="badge"
+                                   decoration-muted="estado_placa == 'pendiente'"
+                                   decoration-info="estado_placa == 'en_tramite'"
+                                   decoration-warning="estado_placa == 'observado'"
+                                   decoration-success="estado_placa == 'finalizado'"/>
+                            <field name="license_plate"/>
+                            <field name="tramite_placa_id"/>
+                            <field name="fecha_inicio_tramite"/>
+                            <field name="fecha_placa_ok"/>
+                            <field name="cant_observaciones"/>
+                            <field name="motivo_observacion" attrs="{'invisible': [('estado_placa', '!=', 'observado')]}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Historial" name="historial">
+                            <field name="log_ids">
+                                <tree decoration-muted="flujo == 'hito'" decoration-bf="not fecha_fin and flujo != 'hito'">
+                                    <field name="fecha_inicio"/>
+                                    <field name="flujo"/>
+                                    <field name="etapa_desde"/>
+                                    <field name="etapa_hasta"/>
+                                    <field name="taller_fibra_id" optional="show"/>
+                                    <field name="fecha_fin"/>
+                                    <field name="duracion_dias"/>
+                                    <field name="user_id" optional="show"/>
+                                    <field name="nota" optional="show"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Búsqueda ───────────────────────────────────────────────────────── -->
+    <record id="adt_moto_tracking_view_search" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.search</field>
+        <field name="model">adt.moto.tracking</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="vehicle_id"/>
+                <field name="chasis"/>
+                <field name="name"/>
+                <field name="factura_id"/>
+                <field name="partner_id"/>
+                <field name="taller_fibra_id"/>
+                <filter name="abiertos" string="Abiertos" domain="[('estado_global', '!=', 'entregado')]"/>
+                <filter name="sin_duenio" string="Sin dueño" domain="[('partner_id', '=', False)]"/>
+                <filter name="listos" string="Listas para asignar" domain="[('estado_global', '=', 'listo_asignar')]"/>
+                <filter name="asignados_sin_placa" string="Asignadas sin placa" domain="[('estado_global', '=', 'asignado_sin_placa')]"/>
+                <filter name="placa_observada" string="Placa observada" domain="[('estado_placa', '=', 'observado')]"/>
+                <filter name="demorados" string="Demoradas" domain="[('demorado', '=', True)]"/>
+                <filter name="antes_listo" string="Asignadas antes de estar listas" domain="[('asignado_antes_listo', '=', True)]"/>
+                <separator/>
+                <filter name="entregados" string="Entregadas" domain="[('estado_global', '=', 'entregado')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_etapa" string="Etapa" context="{'group_by': 'etapa_id'}"/>
+                    <filter name="group_taller" string="Taller de fibra" context="{'group_by': 'taller_fibra_id'}"/>
+                    <filter name="group_placa" string="Estado de placa" context="{'group_by': 'estado_placa'}"/>
+                    <filter name="group_estado" string="Estado" context="{'group_by': 'estado_global'}"/>
+                    <filter name="group_modelo" string="Modelo" context="{'group_by': 'modelo_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_moto_tracking" model="ir.actions.act_window">
+        <field name="name">Tracking de motos</field>
+        <field name="res_model">adt.moto.tracking</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="context">{'search_default_abiertos': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay motos en el tracking</p>
+            <p>Las motos entran automáticamente cuando se crean en flota sin placa ni dueño
+               (por ejemplo, al registrar la factura). Para incorporar las que ya existían use
+               <b>Sincronizar vehículos</b>.</p>
+        </field>
+    </record>
+
+</odoo>

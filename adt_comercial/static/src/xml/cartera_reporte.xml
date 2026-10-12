@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="adt_comercial.CarteraReporte">
+        <div class="o_action adt_cart">
+            <div class="adt_cart__scroll">
+                <header class="adt_cart__header">
+                    <div>
+                        <h1 class="adt_cart__title">Cartera y financieras</h1>
+                        <p class="adt_cart__subtitle" data-ref="subtitle"/>
+                        <p class="adt_cart__print-meta" data-ref="print-meta"/>
+                    </div>
+                    <div class="adt_cart__actions">
+                        <input type="search" class="adt_cart__search" data-ref="buscar" autocomplete="off"
+                               placeholder="Buscar por cliente, DNI, placa o n° de cuenta…"/>
+                        <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="exportar">Exportar CSV</button>
+                        <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="imprimir">Imprimir / PDF</button>
+                        <button type="button" class="adt_cart__btn" data-action="refresh">Actualizar</button>
+                    </div>
+                </header>
+                <div class="adt_cart__chips" data-ref="chips"/>
+                <div data-ref="body">
+                    <div class="adt_cart__empty">Calculando cartera…</div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

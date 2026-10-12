@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="adt_tramite_placa_observar_wizard_form" model="ir.ui.view">
+        <field name="name">adt.tramite.placa.observar.wizard.form</field>
+        <field name="model">adt.tramite.placa.observar.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Observar trámite">
+                <group>
+                    <field name="tramite_id" readonly="1"/>
+                    <field name="motivo" placeholder="¿Por qué se observó el trámite?"/>
+                </group>
+                <footer>
+                    <button name="action_confirmar" type="object" string="Observar" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

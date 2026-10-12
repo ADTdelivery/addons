@@ -2,16 +2,16 @@
 <odoo>
 
     <record id="action_adt_fleet_dashboard" model="ir.actions.client">
-        <field name="name">Dashboard de Flota</field>
+        <field name="name">Operación de motos</field>
         <field name="tag">adt_fleet_dashboard</field>
     </record>
 
-    <!-- Acceso desde la app Flota: a la derecha de "Configuración" (fleet.fleet_configuration, sequence 100) -->
+    <!-- Primera opción de la aplicación "Operación de motos" (adt_tracking_moto). -->
     <menuitem id="menu_adt_fleet_dashboard_in_fleet"
-              name="Dashboard Stock"
-              parent="fleet.menu_root"
+              name="Dashboard"
+              parent="adt_tracking_moto.menu_operacion_motos_root"
               action="action_adt_fleet_dashboard"
-              groups="fleet.fleet_group_user"
-              sequence="110"/>
+              groups="adt_tracking_moto.group_tracking_user"
+              sequence="1"/>
 
 </odoo>

@@ -6,15 +6,14 @@
             <div class="adt_fd__scroll">
                 <header class="adt_fd__header">
                     <div>
-                        <h1 class="adt_fd__title">Stock de flota</h1>
-                        <p class="adt_fd__subtitle">Motos sin dueño asignado y estado de placa</p>
+                        <h1 class="adt_fd__title">Operación de flota</h1>
+                        <p class="adt_fd__subtitle">Stock, placas y salud del flujo desde la factura hasta la entrega</p>
                     </div>
                     <div class="adt_fd__header-actions">
                         <span class="adt_fd__updated" data-ref="updated"/>
                         <button type="button" class="adt_fd__btn" data-action="refresh">Actualizar</button>
                     </div>
                 </header>
-                <div class="adt_fd__filters" data-ref="filters"/>
                 <div data-ref="body">
                     <div class="adt_fd__loading">Cargando datos de flota…</div>
                 </div>

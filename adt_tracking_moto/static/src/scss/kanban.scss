@@ -1,0 +1,79 @@
+// Kanban de Motos: usa la base .adt_kcard de adt_tramite_placa y agrega lo propio.
+
+// Franja izquierda según el estado general de la moto.
+.o_adt_kanban .adt_kcard {
+    &.adt_kcard--en_proceso { --kc-strip: var(--kc-blue); }
+    &.adt_kcard--listo_asignar { --kc-strip: var(--kc-aqua); }
+    &.adt_kcard--asignado_sin_placa { --kc-strip: var(--kc-orange); }
+    &.adt_kcard--asignado_con_placa { --kc-strip: var(--kc-green); }
+    &.adt_kcard--entregado { --kc-strip: #b9bcc4; }
+    &.is-late { --kc-strip: var(--kc-red); }
+}
+
+.adt_kcard__plate {
+    flex: none;
+    margin-left: auto;
+    padding: 1px 7px;
+    border: 1.5px solid #1e2430;
+    border-top-width: 4px;
+    border-top-color: #0b4ea2;
+    border-radius: 5px;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .05em;
+    color: #1e2430;
+    background: #fff;
+}
+
+// Avance logístico: 4 segmentos.
+.adt_kcard__progress {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.adt_kcard__seg {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--kc-line);
+
+    &.is-done { background: var(--kc-blue); opacity: .45; }
+    &.is-current { background: var(--kc-blue); }
+}
+
+.adt_kcard--listo_asignar, .adt_kcard--asignado_con_placa, .adt_kcard--asignado_sin_placa, .adt_kcard--entregado {
+    .adt_kcard__seg.is-done, .adt_kcard__seg.is-current { background: var(--kc-aqua); }
+}
+
+.adt_kcard__progress-label {
+    margin-left: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--kc-muted);
+}
+
+.adt_kcard__owner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 55%;
+}
+
+.adt_kcard__avatar {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.adt_kcard__owner-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--kc-ink-2);
+}

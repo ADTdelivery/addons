@@ -1,0 +1,273 @@
+// Tarjetas kanban de "Operación de motos" (base compartida con adt_tracking_moto).
+
+.o_adt_kanban {
+    --kc-ink: #14161a;
+    --kc-ink-2: #4b4f58;
+    --kc-muted: #8a8f99;
+    --kc-line: #eceef2;
+    --kc-blue: #2a78d6;     --kc-blue-soft: #e8f1fc;
+    --kc-violet: #6250d6;   --kc-violet-soft: #efedfb;
+    --kc-aqua: #148a60;     --kc-aqua-soft: #e2f5ee;
+    --kc-green: #0a8a0a;    --kc-green-soft: #e5f5e5;
+    --kc-orange: #c4531f;   --kc-orange-soft: #fdeee6;
+    --kc-warn: #b07800;     --kc-warn-soft: #fff3d6;
+    --kc-red: #d03b3b;      --kc-red-soft: #fbe7e7;
+
+    background: #f3f5f9;
+
+    .o_kanban_group {
+        background: transparent;
+    }
+
+    .o_kanban_header_title .o_column_title {
+        font-weight: 700;
+        color: var(--kc-ink);
+    }
+}
+
+// La tarjeta reemplaza el estilo plano de Odoo 15 por uno tipo Odoo 18.
+.o_adt_kanban .o_kanban_record.adt_kcard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 0 10px;
+    padding: 14px 14px 12px 18px;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(16, 24, 40, .06), 0 2px 6px rgba(16, 24, 40, .05);
+    transition: transform .15s ease, box-shadow .15s ease;
+    overflow: hidden;
+
+    // Franja de estado a la izquierda (el color lo define cada modelo).
+    &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--kc-strip, var(--kc-line));
+    }
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 1px rgba(16, 24, 40, .06), 0 12px 24px rgba(16, 24, 40, .10);
+    }
+
+    &.o_kanban_ghost, &.o_kanban_dragged { box-shadow: 0 16px 32px rgba(16, 24, 40, .18); }
+}
+
+.adt_kcard__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+// Ícono de moto teñido con el color de estado de la tarjeta.
+.adt_kcard__img {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 18px;
+    color: var(--kc-strip, var(--kc-blue));
+    background: #f3f5f9;
+    background: color-mix(in srgb, var(--kc-strip, var(--kc-blue)) 12%, #fff);
+}
+
+.adt_kcard__title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+        color: var(--kc-ink);
+    }
+}
+
+.adt_kcard__sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--kc-muted);
+}
+
+.adt_kcard__mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .02em;
+}
+
+.adt_kcard__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.adt_kcard__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #f1f2f5;
+    color: var(--kc-ink-2);
+
+    &.is-pendiente { background: #f1f2f5; color: var(--kc-ink-2); }
+    &.is-en_tramite { background: var(--kc-blue-soft); color: var(--kc-blue); }
+    &.is-observado { background: var(--kc-warn-soft); color: var(--kc-warn); }
+    &.is-finalizado { background: var(--kc-green-soft); color: var(--kc-green); }
+    &.is-taller { background: var(--kc-violet-soft); color: var(--kc-violet); }
+    &.is-stock { background: var(--kc-blue-soft); color: var(--kc-blue); }
+}
+
+.adt_kcard__foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--kc-line);
+    font-size: 12px;
+}
+
+.adt_kcard__spacer { flex: 1; }
+
+.adt_kcard__age {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--kc-muted);
+
+    &.is-late {
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: var(--kc-red-soft);
+        color: var(--kc-red);
+        font-weight: 700;
+    }
+}
+
+.adt_kcard__alert {
+    display: flex;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--kc-warn-soft);
+    color: #6b4a00;
+    font-size: 12px;
+
+    .fa { margin-top: 2px; color: var(--kc-warn); }
+    span {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+}
+
+// Stepper con etiquetas (trámite de placa)
+.adt_kcard__stepper {
+    display: flex;
+    align-items: flex-start;
+}
+
+.adt_kcard__stepper-item {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--kc-muted);
+
+    // Línea que une con el siguiente paso.
+    &:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: calc(50% + 8px);
+        right: calc(-50% + 8px);
+        height: 2px;
+        border-radius: 1px;
+        background: var(--kc-line);
+    }
+
+    &.is-done::after { background: var(--kc-green); }
+    &.is-done .adt_kcard__stepper-dot { background: var(--kc-green); border-color: var(--kc-green); }
+    &.is-current { color: var(--kc-ink); font-weight: 700; }
+    &.is-current .adt_kcard__stepper-dot { background: var(--kc-blue); border-color: var(--kc-blue); box-shadow: 0 0 0 4px var(--kc-blue-soft); }
+    &.is-final { color: var(--kc-green); font-weight: 700; }
+    &.is-final .adt_kcard__stepper-dot { background: var(--kc-green); border-color: var(--kc-green); box-shadow: 0 0 0 4px var(--kc-green-soft); }
+    &.is-warn { color: var(--kc-warn); font-weight: 700; }
+    &.is-warn .adt_kcard__stepper-dot { background: #fab219; border-color: #fab219; box-shadow: 0 0 0 4px var(--kc-warn-soft); }
+}
+
+.adt_kcard__stepper-dot {
+    position: relative;
+    z-index: 1;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #d5d8de;
+    background: #fff;
+}
+
+// ---------------------------------------------------------------- Trámite de placa
+
+.o_adt_kanban .adt_kcard {
+    &.adt_kcard--pendiente { --kc-strip: #b9bcc4; }
+    &.adt_kcard--en_tramite { --kc-strip: var(--kc-blue); }
+    &.adt_kcard--observado { --kc-strip: #fab219; }
+    &.adt_kcard--finalizado { --kc-strip: var(--kc-green); }
+    &.adt_kcard--historial { --kc-strip: #b9bcc4; }
+}
+
+// Placa peruana dibujada
+.adt_plate {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    align-self: center;
+    width: 150px;
+    border: 2px solid #1e2430;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 2px #fff, 0 2px 6px rgba(16, 24, 40, .12);
+}
+
+.adt_plate__band {
+    padding: 1px 0;
+    background: linear-gradient(90deg, #0b4ea2, #1c67c4);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .3em;
+    text-align: center;
+}
+
+.adt_plate__num {
+    padding: 3px 0 4px;
+    font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-align: center;
+    color: #1e2430;
+    white-space: nowrap;
+
+    &.is-empty { color: #c4c8d0; letter-spacing: .02em; }
+}

@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'ADT Dashboard de Flota',
-    'version': '15.0.1.1.0',
+    'version': '15.0.2.0.0',
     'category': 'Human Resources/Fleet',
-    'summary': 'Dashboard gerencial de stock de motos (sin dueño) y placas listas',
+    'summary': 'Dashboard operativo de flota: stock, placas, flujo y alertas',
     'description': """
 Dashboard de Flota
 ==================
-* Stock = vehículos activos de flota sin conductor/dueño asignado.
-* Indicador de motos en stock con placa lista, en trámite y sin placa.
-* Agrupaciones por modelo, año, color, estado de flota y estado de placa.
-* Filtros cruzados dinámicos, mapa de calor modelo × año y detalle exportable.
+* Indicadores: flota, con placa, stock disponible, listas para entregar, proceso completo.
+* Combinaciones dueño × placa.
+* Alertas operativas (cliente sin placa, trámites observados o sin iniciar, motos demoradas,
+  stock envejecido, asignadas antes de estar listas, vehículos fuera del flujo).
+* Flujo en curso por etapa y estado de placa, tiempos de ciclo (mediana y P85),
+  ritmo semanal, antigüedad del stock y talleres de fibra.
 * API JSON para la app de ventas: /api/stock/resumen, /api/stock/vehiculos,
   /api/stock/vehiculos/detalle.
     """,
     'author': 'CM Innovación',
-    'depends': ['base', 'web', 'fleet'],
+    'depends': ['base', 'web', 'fleet', 'adt_tracking_moto', 'adt_tramite_placa'],
     'data': [
         'views/fleet_dashboard_views.xml',
     ],

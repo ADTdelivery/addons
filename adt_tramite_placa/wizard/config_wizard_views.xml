@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="adt_tramite_placa_config_form" model="ir.ui.view">
+        <field name="name">adt.tramite.placa.config.form</field>
+        <field name="model">adt.tramite.placa.config</field>
+        <field name="arch" type="xml">
+            <form string="Parámetros del trámite de placa">
+                <group>
+                    <label for="dias_finalizado"/>
+                    <div class="o_row">
+                        <field name="dias_finalizado" class="oe_inline"/>
+                        <span>días y luego pasa a Historial</span>
+                    </div>
+                </group>
+                <footer>
+                    <button name="action_guardar" type="object" string="Guardar" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_tramite_placa_config" model="ir.actions.act_window">
+        <field name="name">Parámetros de placa</field>
+        <field name="res_model">adt.tramite.placa.config</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,606 @@
+odoo.define('adt_comercial.CarteraReporte', function (require) {
+    'use strict';
+
+    /**
+     * Cartera y financieras: cuentas por cobrar (clientes → ADT), cuentas por pagar
+     * (ADT → financieras) y lo que le queda a ADT.
+     *
+     * Precisión: el servidor envía todos los montos en céntimos enteros. Aquí solo se suman
+     * enteros (exacto) y se da formato al final; nunca se opera con decimales.
+     */
+    var AbstractAction = require('web.AbstractAction');
+    var core = require('web.core');
+
+    var esc = _.escape;
+    var TRAMOS = {'1_30': 'Atrasadas hasta 1 mes', '31_60': 'Atrasadas de 1 a 2 meses', '61_90': 'Atrasadas de 2 a 3 meses', '91_mas': 'Atrasadas más de 3 meses (difíciles de cobrar)'};
+    var ESTADOS = {aprobado: 'Aprobado', en_curso: 'En curso', cancelado: 'Cancelado', pagado: 'Pagado'};
+
+    function normalizar(texto) {
+        return String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+    }
+
+    function sumar(filas, fn) {
+        return filas.reduce(function (acc, f) { return acc + (fn(f) || 0); }, 0);
+    }
+
+    // Céntimos enteros -> "1,234.56" sin pasar por decimales binarios.
+    function numero(cents) {
+        var abs = Math.abs(cents);
+        var entero = Math.floor(abs / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        var dec = ('0' + (abs % 100)).slice(-2);
+        return entero + '.' + dec;
+    }
+
+    // Razón entre dos montos en céntimos (enteros), como porcentaje con 2 decimales.
+    function ratio(parte, total) {
+        return total > 0 ? parte / total : null;
+    }
+
+    var POR_PAGINA = 20;
+    var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+        'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    function mesLargo(clave) {
+        var p = clave.split('-');
+        var nombre = MESES[parseInt(p[1], 10) - 1];
+        return nombre.charAt(0).toUpperCase() + nombre.slice(1) + ' ' + p[0];
+    }
+
+    function fecha(iso) {
+        if (!iso) { return '—'; }
+        var p = iso.split('-');
+        return p[2] + '/' + p[1] + '/' + p[0];
+    }
+
+    var COLUMNAS = [
+        {key: 'documento', label: 'DNI', tipo: 'texto', valor: function (f) { return f.documento; }},
+        {key: 'cliente', label: 'Cliente', tipo: 'texto', valor: function (f) { return f.cliente; }},
+        {key: 'placa', label: 'Placa', tipo: 'texto', valor: function (f) { return f.placa; }},
+        {key: 'estado', label: 'Estado', tipo: 'texto', valor: function (f) { return ESTADOS[f.estado] || f.estado; }},
+        {key: 'fin', label: 'Culmina', tipo: 'fecha', valor: function (f) { return f.fin; },
+            title: 'Última cuota a la financiera'},
+        {key: 'restantes', label: 'Cuotas rest.', tipo: 'entero', valor: function (f) { return f.cliente_resumen.cuotas_restantes; }},
+        {key: 'cuota', label: 'Cuota cliente', tipo: 'monto', valor: function (f) { return f.cliente_resumen.cuota; }},
+        {key: 'por_cobrar', label: 'Por cobrar', tipo: 'monto', total: true, valor: function (f) { return f.cliente_resumen.por_cobrar; },
+            title: 'Saldo de todas las cuotas del cliente sin pagar (vencidas y por vencer)'},
+        {key: 'vencido', label: 'Vencido', tipo: 'monto', total: true, valor: function (f) { return f.cliente_resumen.vencido; }},
+        {key: 'atraso', label: 'Días atraso', tipo: 'entero', valor: function (f) { return f.cliente_resumen.dias_atraso; },
+            title: 'Días desde la cuota impaga más antigua'},
+        {key: 'cuota_fin', label: 'Cuota financiera', tipo: 'monto', total: true,
+            valor: function (f) { return f.financiera.cuotas_pendientes ? f.financiera.cuota : 0; },
+            title: 'Próxima cuota que ADT paga a la financiera'},
+        {key: 'deuda', label: 'Deuda nominal', tipo: 'monto', total: true, valor: function (f) { return f.financiera.pendiente; },
+            title: 'Suma de las cuotas a la financiera que faltan pagar (capital + interés + seguros + aportes)'},
+        {key: 'liquidar', label: 'Para liquidar hoy', tipo: 'monto', total: true, valor: function (f) { return f.financiera.para_liquidar; },
+            title: 'Capital pendiente + interés devengado a hoy. Solo con cronograma PDF.'},
+        {key: 'a_favor', label: 'Saldo a favor', tipo: 'monto', total: true, valor: function (f) { return Math.max(saldo(f), 0); },
+            title: 'Por cobrar − para liquidar (o − deuda nominal si no hay PDF, marcado con N)'},
+        {key: 'en_contra', label: 'Saldo en contra', tipo: 'monto', total: true, valor: function (f) { return Math.min(saldo(f), 0); }},
+        {key: 'ganancia', label: 'Ganancia del crédito', tipo: 'monto', total: true, valor: function (f) { return f.posicion.ganancia_esperada; },
+            title: 'Total del cronograma del cliente − total pagado y por pagar a la financiera'},
+    ];
+
+    // Saldo a favor (+) / en contra (−): contra el monto para liquidar; sin PDF, contra la deuda nominal.
+    function saldo(f) {
+        return f.posicion.neto_liquidar !== null ? f.posicion.neto_liquidar : f.posicion.neto_nominal;
+    }
+
+    var CarteraReporte = AbstractAction.extend({
+        template: 'adt_comercial.CarteraReporte',
+        hasControlPanel: false,
+
+        events: {
+            'click [data-action="refresh"]': '_onRefresh',
+            'click [data-action="exportar"]': '_onExportar',
+            'click [data-action="imprimir"]': '_onImprimir',
+            'click [data-financiera]': '_onFinanciera',
+            'click [data-filtro]': '_onFiltro',
+            'click [data-sort]': '_onSort',
+            'click [data-pagina]': '_onPagina',
+            'click [data-action="toggle-meses"]': '_onToggleMeses',
+            'click [data-cuenta]': '_onCuenta',
+            'input [data-ref="buscar"]': '_onBuscar',
+        },
+
+        init: function () {
+            this._super.apply(this, arguments);
+            this.data = null;
+            this.financieraId = null;
+            this.filtro = 'todas';
+            this.busqueda = '';
+            this.sort = {key: 'saldo', dir: 1};
+            this.pagina = 0;
+            this.mesesAbierto = false;
+            this.imprimiendo = false;
+        },
+
+        willStart: function () {
+            return Promise.all([this._super.apply(this, arguments), this._load()]);
+        },
+
+        start: function () {
+            var self = this;
+            return this._super.apply(this, arguments).then(function () { self._render(); });
+        },
+
+        _load: function () {
+            var self = this;
+            return this._rpc({
+                model: 'adt.comercial.cartera.reporte',
+                method: 'get_report_data',
+                args: [],
+            }).then(function (data) {
+                self.data = data;
+                data.cuentas.forEach(function (f) {
+                    f._buscar = normalizar([f.cliente, f.documento, f.referencia, f.placa].join(' '));
+                });
+            });
+        },
+
+        _ref: function (name) {
+            return this.$('[data-ref="' + name + '"]');
+        },
+
+        _money: function (cents) {
+            if (cents === null || cents === undefined) { return '—'; }
+            var txt = numero(cents);
+            var m = this.data.moneda;
+            txt = m.posicion === 'after' ? txt + ' ' + m.simbolo : m.simbolo + ' ' + txt;
+            return (cents < 0 ? '−' : '') + txt;
+        },
+
+        _pct: function (r) {
+            return r === null ? '—' : (r * 100).toFixed(2) + ' %';
+        },
+
+        // ------------------------------------------------------------------ cálculo
+        _filas: function () {
+            var self = this;
+            var q = normalizar(this.busqueda);
+            return this.data.cuentas.filter(function (f) {
+                if (self.financieraId !== null && f.financiera_id !== self.financieraId) { return false; }
+                if (q && f._buscar.indexOf(q) === -1) { return false; }
+                if (self.filtro === 'atraso') { return f.cliente_resumen.vencido > 0; }
+                if (self.filtro === 'contra') { return saldo(f) < 0; }
+                if (self.filtro === 'alertas') { return f.alertas.length > 0; }
+                return true;
+            });
+        },
+
+        _vista: function (filas) {
+            var cli = function (k) { return sumar(filas, function (f) { return f.cliente_resumen[k]; }); };
+            var fin = function (k) { return sumar(filas, function (f) { return f.financiera[k]; }); };
+            var pos = function (k) { return sumar(filas, function (f) { return f.posicion[k]; }); };
+            var conPdf = filas.filter(function (f) { return f.financiera.para_liquidar !== null; });
+            var sinPdf = filas.filter(function (f) { return f.financiera.para_liquidar === null && f.financiera.pendiente > 0; });
+            var tramos = {};
+            this.data.tramos.forEach(function (t) {
+                tramos[t] = sumar(filas, function (f) { return f.cliente_resumen.tramos[t]; });
+            });
+            var v = {
+                n: filas.length,
+                total: cli('total'),
+                cobrado: cli('cobrado'),
+                porCobrar: cli('por_cobrar'),
+                vigente: cli('vigente'),
+                vencido: cli('vencido'),
+                tramos: tramos,
+                creditosAtraso: filas.filter(function (f) { return f.cliente_resumen.vencido > 0; }).length,
+                finTotal: fin('total'),
+                finPagado: fin('pagado'),
+                finPagadoEstimado: fin('pagado_estimado'),
+                deuda: fin('pendiente'),
+                capital: sumar(conPdf, function (f) { return f.financiera.capital; }),
+                interesFuturo: sumar(conPdf, function (f) { return f.financiera.interes; }),
+                otros: sumar(conPdf, function (f) { return f.financiera.otros; }),
+                deudaPdf: sumar(conPdf, function (f) { return f.financiera.pendiente; }),
+                liquidar: sumar(conPdf, function (f) { return f.financiera.para_liquidar; }),
+                nSinPdf: sinPdf.length,
+                deudaSinPdf: sumar(sinPdf, function (f) { return f.financiera.pendiente; }),
+                pagoMensual: sumar(filas, function (f) { return f.financiera.cuotas_pendientes ? f.financiera.cuota : 0; }),
+                aFavor: sumar(filas, function (f) { return Math.max(saldo(f), 0); }),
+                enContra: sumar(filas, function (f) { return Math.min(saldo(f), 0); }),
+                nAFavor: filas.filter(function (f) { return saldo(f) > 0; }).length,
+                nEnContra: filas.filter(function (f) { return saldo(f) < 0; }).length,
+                gananciaEsperada: pos('ganancia_esperada'),
+                gananciaRealizada: pos('ganancia_realizada'),
+                gananciaPorRealizar: pos('ganancia_por_realizar'),
+                cuadreOk: filas.filter(function (f) { return f.cuadre_ok; }).length,
+            };
+            var meses = {};
+            filas.forEach(function (f) {
+                _.each(f.mensual, function (m, k) {
+                    var t = meses[k] || (meses[k] = {cobrado: 0, mora: 0, pago: 0});
+                    t.cobrado += m.cobrado;
+                    t.mora += m.mora;
+                    t.pago += m.pago;
+                });
+            });
+            v.meses = meses;
+            v.sinFecha = cli('sin_fecha');
+            // Cancelar hoy = lo que pide la financiera (con PDF) + cuotas pendientes de los créditos sin PDF.
+            v.cancelarHoy = v.liquidar + v.deudaSinPdf;
+            v.ahorro = v.deudaPdf - v.liquidar;
+            return v;
+        },
+
+        // ------------------------------------------------------------------ render
+        _render: function () {
+            this._ref('subtitle').text('Créditos en curso al ' + fecha(this.data.hoy) + ' · montos exactos al céntimo');
+            this._renderChips();
+            var filas = this._filas();
+            if (!this.data.cuentas.length) {
+                this._ref('body').html('<div class="adt_cart__empty">Aún no hay créditos en curso con cronograma.</div>');
+                return;
+            }
+            var v = this._vista(filas);
+            this._ref('body').html(
+                this._resumenHtml(v) +
+                this._mensualHtml(v) +
+                this._seccion('Detalle por crédito', v.n + (v.n === 1 ? ' crédito' : ' créditos') +
+                    ' · toca una fila para abrir la cuenta · los totales incluyen todos', this._tablaHtml(filas)) +
+                this._seccion('Cuadre y calidad de datos', 'Controles automáticos sobre cada crédito', this._cuadreHtml(v, filas)) +
+                this._metodoHtml()
+            );
+        },
+
+        _renderChips: function () {
+            var self = this;
+            var chip = function (attr, valor, activo, texto) {
+                return '<button type="button" class="adt_cart__chip' + (activo ? ' is-active' : '') + '" ' +
+                    attr + '="' + valor + '">' + esc(texto) + '</button>';
+            };
+            var fin = chip('data-financiera', 'all', this.financieraId === null, 'Todas');
+            this.data.financieras.forEach(function (f) {
+                fin += chip('data-financiera', f.id, self.financieraId === f.id, f.name);
+            });
+            var filtros = [['todas', 'Todos'], ['atraso', 'Con atraso'], ['contra', 'Saldo en contra'], ['alertas', 'Con alertas']];
+            var filtro = filtros.map(function (p) { return chip('data-filtro', p[0], self.filtro === p[0], p[1]); }).join('');
+            this._ref('chips').html(
+                '<div class="adt_cart__chipgroup"><span>Financiera</span>' + fin + '</div>' +
+                '<div class="adt_cart__chipgroup"><span>Ver</span>' + filtro + '</div>');
+        },
+
+        _seccion: function (titulo, sub, cuerpo) {
+            return '<section class="adt_cart__card"><header><h2>' + esc(titulo) + '</h2>' +
+                (sub ? '<p>' + esc(sub) + '</p>' : '') + '</header>' + cuerpo + '</section>';
+        },
+
+        _linea: function (texto, cents, opts) {
+            opts = opts || {};
+            var cls = ['adt_cart__line'];
+            if (opts.total) { cls.push('is-total'); }
+            if (opts.sub) { cls.push('is-sub'); }
+            if (opts.signo && cents < 0) { cls.push('is-neg'); }
+            if (opts.signo && cents > 0) { cls.push('is-pos'); }
+            return '<div class="' + cls.join(' ') + '">' +
+                '<span>' + texto + '</span><b>' + (opts.resta ? '− ' : '') + this._money(cents) + '</b></div>';
+        },
+
+        _pregunta: function (num, titulo, monto, explicacion, cuerpo, tono) {
+            return '<section class="adt_cart__answer' + (tono ? ' is-' + tono : '') + '">' +
+                '<p class="adt_cart__answer-q"><span>' + num + '</span>' + esc(titulo) + '</p>' +
+                '<p class="adt_cart__answer-big">' + this._money(monto) + '</p>' +
+                '<p class="adt_cart__answer-why">' + explicacion + '</p>' + cuerpo + '</section>';
+        },
+
+        // Resumen para gerencia: tres preguntas en lenguaje simple + el resultado de los créditos.
+        _resumenHtml: function (v) {
+            var self = this;
+            var creditos = function (n) { return n + (n === 1 ? ' crédito' : ' créditos'); };
+            var atrasoTxt = v.vencido ?
+                '<b>' + this._pct(ratio(v.vencido, v.porCobrar)) + '</b> de lo que nos deben ya está atrasado ' +
+                '(' + creditos(v.creditosAtraso) + ').' : 'Ningún cliente tiene cuotas atrasadas.';
+            var tramos = this.data.tramos.map(function (t) {
+                return v.tramos[t] ? self._linea(TRAMOS[t], v.tramos[t], {sub: true}) : '';
+            }).join('');
+
+            var deben = this._pregunta(1, '¿Cuánto nos deben los clientes?', v.porCobrar,
+                'Lo que falta cobrar a los clientes de ' + creditos(v.n) + ', sumando todas sus cuotas pendientes.',
+                this._linea('Cuotas que aún no vencen', v.vigente) +
+                this._linea('Cuotas atrasadas (ya debieron pagarlas)', v.vencido) + tramos +
+                '<p class="adt_cart__answer-foot">' + atrasoTxt + '</p>', 'in');
+
+            var sinPdf = v.nSinPdf ? this._linea('Créditos sin cronograma de la financiera', v.deudaSinPdf) : '';
+            var cancelar = '<div class="adt_cart__callout"><p>Si quisiéramos <b>cancelar todo hoy</b>, pagaríamos</p>' +
+                '<b>' + this._money(v.cancelarHoy) + '</b>' +
+                (v.ahorro > 0 ? '<p>Nos ahorraríamos <b>' + this._money(v.ahorro) + '</b> de intereses y cargos que todavía no se generan.</p>' : '') +
+                (v.nSinPdf ? '<p class="adt_cart__muted">Incluye ' + this._money(v.deudaSinPdf) + ' de ' + creditos(v.nSinPdf) +
+                    ' sin cronograma de la financiera, tomados por el total de sus cuotas.</p>' : '') + '</div>';
+            var debemos = this._pregunta(2, '¿Cuánto debemos a la financiera?', v.deuda,
+                'Lo que falta pagarle si seguimos pagando cuota por cuota hasta el final.',
+                this._linea('El préstamo (capital)', v.capital) +
+                this._linea('Intereses', v.interesFuturo) +
+                this._linea('Seguro de desgravamen y aportes', v.otros) + sinPdf +
+                '<p class="adt_cart__answer-foot">Cada mes pagamos aproximadamente <b>' + this._money(v.pagoMensual) +
+                '</b> (la próxima cuota de cada crédito).</p>' + cancelar, 'out');
+
+            var queda = this._pregunta(3, '¿Cuánto nos queda?', v.gananciaPorRealizar,
+                'Lo que nos deben los clientes menos lo que debemos a la financiera: lo que quedará para ADT cuando todos terminen de pagar.',
+                this._linea('Si además cancelamos hoy a la financiera', v.aFavor + v.enContra, {signo: true}) +
+                this._linea('Créditos que dejan saldo a favor (' + v.nAFavor + ')', v.aFavor, {sub: true, signo: true}) +
+                this._linea('Créditos donde lo que debe el cliente no alcanza para pagar la financiera (' + v.nEnContra + ')',
+                    v.enContra, {sub: true, signo: true}) +
+                (v.vencido ? '<p class="adt_cart__answer-foot">Supone que los clientes pagan todo, incluidos ' +
+                    this._money(v.vencido) + ' que hoy están atrasados.</p>' : ''),
+                v.gananciaPorRealizar < 0 ? 'loss' : 'gain');
+
+            var resultado = '<section class="adt_cart__card adt_cart__result"><header><h2>Resultado de estos créditos, de principio a fin</h2>' +
+                '<p>Lo que ya pasó más lo que falta: cuánto ganamos en total</p></header>' +
+                this._linea('Ya cobramos a los clientes', v.cobrado) +
+                this._linea('Ya pagamos a la financiera', v.finPagado, {resta: true}) +
+                this._linea('Resultado hasta hoy', v.gananciaRealizada, {total: true, signo: true}) +
+                this._linea('Lo que nos queda por delante (punto 3)', v.gananciaPorRealizar, {signo: true}) +
+                this._linea('Ganancia total cuando terminen los créditos', v.gananciaEsperada, {total: true, signo: true}) +
+                (v.n ? '<p class="adt_cart__answer-foot">En promedio, <b>' + this._money(Math.round(v.gananciaEsperada / v.n)) +
+                    '</b> por crédito.' + (v.finPagadoEstimado ? ' Lo pagado a la financiera incluye ' +
+                    this._money(v.finPagadoEstimado) + ' de cuotas anteriores al PDF, estimadas.' : '') + '</p>' : '') +
+                '</section>';
+
+            var excluidas = this.data.excluidas_con_deuda.map(function (e) {
+                return creditos(e.cantidad) + ' ' + (ESTADOS[e.estado] || e.estado).toLowerCase() +
+                    (e.cantidad === 1 ? '' : 's') + ' con ' + self._money(e.deuda) + ' pendientes con la financiera';
+            });
+            var nota = excluidas.length ? '<p class="adt_cart__note adt_cart__note--warn">Solo se cuentan créditos en curso. ' +
+                'Atención: hay ' + excluidas.join(' y ') + ' que no están en estos totales.</p>' : '';
+
+            return '<div class="adt_cart__answers">' + deben + debemos + queda + '</div>' + resultado + nota;
+        },
+
+        // Solo meses ya cerrados (el servidor no envía el mes en curso ni los futuros). Plegable.
+        _mensualHtml: function (v) {
+            var self = this;
+            var claves = _.keys(v.meses).filter(function (k) {
+                var m = v.meses[k];
+                return m.cobrado || m.mora || m.pago;
+            }).sort();
+            var tot = {cobrado: 0, mora: 0, pago: 0};
+            claves.forEach(function (k) {
+                tot.cobrado += v.meses[k].cobrado + v.meses[k].mora;
+                tot.mora += v.meses[k].mora;
+                tot.pago += v.meses[k].pago;
+            });
+            var resultado = tot.cobrado - tot.pago;
+            var mesActual = mesLargo(this.data.hoy.slice(0, 7)).toLowerCase();
+            var resumen = claves.length ?
+                claves.length + (claves.length === 1 ? ' mes cerrado' : ' meses cerrados') + ' (' +
+                    mesLargo(claves[0]) + ' a ' + mesLargo(claves[claves.length - 1]) + ') · cobramos ' +
+                    this._money(tot.cobrado) + ' · pagamos ' + this._money(tot.pago) + ' · resultado ' +
+                    '<b class="' + (resultado < 0 ? 'neg' : 'pos') + '">' + this._money(resultado) + '</b>' :
+                'Aún no hay meses cerrados con movimientos.';
+            var html = '<section class="adt_cart__card adt_cart__months' + (this.mesesAbierto ? ' is-open' : '') + '">' +
+                '<header class="adt_cart__toggle-head"><div><h2>Mes a mes: lo que cobramos y lo que pagamos a la financiera</h2>' +
+                '<p>' + resumen + '</p></div>' +
+                (claves.length ? '<button type="button" class="adt_cart__btn adt_cart__btn--ghost adt_cart__toggle" data-action="toggle-meses">' +
+                    (this.mesesAbierto ? 'Ocultar meses ▴' : 'Ver meses ▾') + '</button>' : '') + '</header>';
+            if (!this.mesesAbierto || !claves.length) { return html + '</section>'; }
+
+            var acumulado = 0;
+            var celda = function (c, cls) {
+                return '<td class="num' + (cls ? ' ' + cls : '') + (c < 0 ? ' neg' : '') + '">' + (c ? self._money(c) : '—') + '</td>';
+            };
+            var filas = claves.map(function (k) {
+                var m = v.meses[k];
+                var cobrado = m.cobrado + m.mora;
+                var dif = cobrado - m.pago;
+                acumulado += dif;
+                return '<tr><td>' + esc(mesLargo(k)) + '</td>' + celda(cobrado) + celda(m.pago) +
+                    celda(dif, 'is-strong') + celda(acumulado) + '</tr>';
+            }).join('');
+            var notas = ['El mes en curso (' + mesActual + ') aparecerá cuando termine.'];
+            if (tot.mora) { notas.push('Lo cobrado incluye ' + this._money(tot.mora) + ' de moras.'); }
+            if (v.finPagadoEstimado) {
+                notas.push('Los pagos a la financiera anteriores al PDF son estimados con la cuota del PDF.');
+            }
+            return html + '<div class="adt_cart__tablewrap adt_cart__tablewrap--full"><table class="adt_cart__table adt_cart__table--meses"><thead><tr>' +
+                '<th>Mes</th><th class="num">Cobramos a los clientes</th><th class="num">Pagamos a la financiera</th>' +
+                '<th class="num">Nos quedó en el mes</th><th class="num">Acumulado</th></tr></thead><tbody>' + filas +
+                '</tbody><tfoot><tr><td>Total</td>' + celda(tot.cobrado) + celda(tot.pago) + celda(resultado) +
+                '<td class="num">' + (claves.length ? 'promedio ' + this._money(Math.round(resultado / claves.length)) + '/mes' : '') +
+                '</td></tr></tfoot></table></div>' +
+                '<p class="adt_cart__note">' + notas.join(' ') + '</p></section>';
+        },
+
+        _ordenar: function (filas) {
+            var s = this.sort;
+            var col = _.findWhere(COLUMNAS, {key: s.key});
+            var val = col ? col.valor : saldo;
+            return filas.slice().sort(function (a, b) {
+                var x = val(a), y = val(b);
+                if (x === null || x === undefined) { x = col && col.tipo === 'texto' ? '' : -Infinity; }
+                if (y === null || y === undefined) { y = col && col.tipo === 'texto' ? '' : -Infinity; }
+                if (typeof x === 'string') { return s.dir * x.localeCompare(y); }
+                return s.dir * (x - y);
+            });
+        },
+
+        _celda: function (col, f) {
+            var v = col.valor(f);
+            if (col.tipo === 'monto') {
+                var neg = v < 0;
+                var marca = (col.key === 'a_favor' || col.key === 'en_contra') && v && f.posicion.neto_liquidar === null ?
+                    '<sup title="Calculado contra la deuda nominal: no hay cronograma PDF">N</sup>' : '';
+                return '<td class="num' + (neg ? ' neg' : '') + '">' + (v || v === 0 ? this._money(v) : '—') + marca + '</td>';
+            }
+            if (col.tipo === 'entero') { return '<td class="num">' + (v || v === 0 ? v : '—') + '</td>'; }
+            if (col.tipo === 'fecha') { return '<td>' + fecha(v) + '</td>'; }
+            return '<td>' + esc(v || '') + '</td>';
+        },
+
+        _tablaHtml: function (filas) {
+            var self = this;
+            var head = '<th>#</th>' + COLUMNAS.map(function (c) {
+                var activo = self.sort.key === c.key;
+                return '<th class="' + (c.tipo === 'monto' || c.tipo === 'entero' ? 'num ' : '') + 'is-sortable' +
+                    (activo ? ' is-sorted' : '') + '" data-sort="' + c.key + '"' +
+                    (c.title ? ' title="' + esc(c.title) + '"' : '') + '>' + esc(c.label) +
+                    (activo ? (self.sort.dir > 0 ? ' ▲' : ' ▼') : '') + '</th>';
+            }).join('') + '<th></th>';
+            var ordenadas = this._ordenar(filas);
+            var paginas = Math.max(1, Math.ceil(ordenadas.length / POR_PAGINA));
+            this.pagina = Math.min(this.pagina, paginas - 1);
+            var desde = this.imprimiendo ? 0 : this.pagina * POR_PAGINA;
+            var visibles = this.imprimiendo ? ordenadas : ordenadas.slice(desde, desde + POR_PAGINA);
+            var body = visibles.map(function (f, j) {
+                var i = desde + j;
+                var alerta = f.alertas.length ?
+                    '<span class="adt_cart__alert' + (f.cuadre_ok ? '' : ' is-bad') + '" title="' + esc(f.alertas.join('\n')) + '">!</span>' : '';
+                return '<tr data-cuenta="' + f.id + '"><td class="num">' + (i + 1) + '</td>' +
+                    COLUMNAS.map(function (c) { return self._celda(c, f); }).join('') + '<td>' + alerta + '</td></tr>';
+            }).join('');
+            var foot = '<td></td>' + COLUMNAS.map(function (c) {
+                if (!c.total) { return c.key === 'cliente' ? '<td><b>Total (' + filas.length + ')</b></td>' : '<td></td>'; }
+                var t = sumar(filas, c.valor);
+                return '<td class="num' + (t < 0 ? ' neg' : '') + '">' + self._money(t) + '</td>';
+            }).join('') + '<td></td>';
+            var pager = '';
+            if (!this.imprimiendo && paginas > 1) {
+                var p = this.pagina;
+                pager = '<div class="adt_cart__pager"><span>Mostrando ' + (desde + 1) + '–' + (desde + visibles.length) +
+                    ' de ' + ordenadas.length + '</span>' +
+                    '<button type="button" class="adt_cart__chip" data-pagina="' + (p - 1) + '"' + (p === 0 ? ' disabled' : '') + '>‹ Anterior</button>' +
+                    '<span>Página ' + (p + 1) + ' de ' + paginas + '</span>' +
+                    '<button type="button" class="adt_cart__chip" data-pagina="' + (p + 1) + '"' + (p >= paginas - 1 ? ' disabled' : '') + '>Siguiente ›</button></div>';
+            }
+            return '<div class="adt_cart__tablewrap"><table class="adt_cart__table adt_cart__table--detalle">' +
+                '<thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody>' +
+                '<tfoot><tr>' + foot + '</tr></tfoot></table></div>' + pager;
+        },
+
+        _cuadreHtml: function (v, filas) {
+            var conteo = {};
+            filas.forEach(function (f) {
+                f.alertas.forEach(function (a) { conteo[a] = (conteo[a] || 0) + 1; });
+            });
+            var lista = _.map(conteo, function (n, a) { return '<li><b>' + n + '</b> ' + esc(a) + '</li>'; }).join('');
+            var identidades = [
+                ['Cartera por cobrar = vigente + vencida', v.porCobrar === v.vigente + v.vencido],
+                ['Cronograma del cliente = cobrado + por cobrar', v.total === v.cobrado + v.porCobrar],
+                ['Total financiera = pagado + deuda nominal', v.finTotal === v.finPagado + v.deuda],
+                ['Ganancia esperada = realizada + por realizar',
+                    v.gananciaEsperada === v.gananciaRealizada + v.gananciaPorRealizar],
+                ['Deuda con PDF = capital + interés futuro + otros', v.deudaPdf === v.capital + v.interesFuturo + v.otros],
+                ['Saldos a favor + en contra = cartera − cancelar hoy', v.aFavor + v.enContra === v.porCobrar - v.cancelarHoy],
+            ].map(function (p) {
+                return '<li class="' + (p[1] ? 'ok' : 'bad') + '">' + (p[1] ? '✔ ' : '✘ ') + esc(p[0]) + '</li>';
+            }).join('');
+            return '<div class="adt_cart__cuadre">' +
+                '<div><h3>Identidades del total</h3><ul>' + identidades + '</ul>' +
+                '<p class="adt_cart__note">' + v.cuadreOk + ' de ' + v.n + ' créditos cuadran al céntimo en todas sus identidades.</p></div>' +
+                '<div><h3>Alertas de datos</h3>' + (lista ? '<ul>' + lista + '</ul>' : '<p>Sin alertas.</p>') + '</div>' +
+                '</div>';
+        },
+
+        _metodoHtml: function () {
+            return '<details class="adt_cart__card adt_cart__method"><summary>¿Cómo se calcula?</summary><ul>' +
+                '<li><b>Por cobrar</b>: saldo de las cuotas del cronograma del cliente no anuladas. <b>Vencido</b>: cuotas con fecha anterior a hoy y saldo; se agrupa por días de atraso de cada cuota.</li>' +
+                '<li><b>Deuda nominal</b>: cuotas de la financiera con vencimiento posterior a hoy. Se asume que ADT paga cada cuota en su fecha.</li>' +
+                '<li><b>Para liquidar hoy</b>: capital pendiente del cronograma PDF + interés devengado desde el último vencimiento: capital · ((1 + TEA)^(días/360) − 1). Es la misma fórmula que usa la financiera en su cronograma. Confirmar con la financiera antes de pagar: puede cobrar cargos adicionales.</li>' +
+                '<li><b>Saldo a favor / en contra</b>: por cobrar − para liquidar. Si el crédito no tiene PDF, por cobrar − deuda nominal (marcado <sup>N</sup>).</li>' +
+                '<li><b>Ganancia del crédito</b>: total del cronograma del cliente − total de la financiera (pagado + pendiente). Las cuotas a la financiera anteriores a la primera del PDF se estiman con la cuota del PDF y se avisan como alerta.</li>' +
+                '<li><b>Precisión</b>: todos los montos se manejan en céntimos enteros con redondeo contable (HALF_UP); los totales son la suma exacta de las filas.</li>' +
+                '</ul></details>';
+        },
+
+        // ------------------------------------------------------------------ eventos
+        _onRefresh: function () {
+            var self = this;
+            return this._load().then(function () { self._render(); });
+        },
+
+        // El navegador arma el PDF ("Guardar como PDF") con los estilos de impresión de cartera_reporte.scss.
+        _onImprimir: function () {
+            var filtro = [];
+            if (this.financieraId !== null) {
+                var f = _.findWhere(this.data.financieras, {id: this.financieraId});
+                filtro.push('Financiera: ' + (f ? f.name : ''));
+            }
+            if (this.filtro !== 'todas') { filtro.push('Ver: ' + this.$('[data-filtro="' + this.filtro + '"]').text()); }
+            if (this.busqueda) { filtro.push('Búsqueda: "' + this.busqueda + '"'); }
+            this._ref('print-meta').text('Impreso el ' + moment().format('DD/MM/YYYY HH:mm') +
+                (filtro.length ? ' · ' + filtro.join(' · ') : ' · todas las financieras'));
+            // En papel van todos los créditos, no solo la página visible.
+            this.imprimiendo = true;
+            this._render();
+            window.print();
+            this.imprimiendo = false;
+            this._render();
+        },
+
+        _onPagina: function (ev) {
+            this.pagina = parseInt($(ev.currentTarget).data('pagina'), 10);
+            this._render();
+            this.$('.adt_cart__table--detalle')[0].scrollIntoView({block: 'nearest'});
+        },
+
+        _onToggleMeses: function () {
+            this.mesesAbierto = !this.mesesAbierto;
+            this._render();
+        },
+
+        _onFinanciera: function (ev) {
+            var v = $(ev.currentTarget).data('financiera');
+            this.financieraId = v === 'all' ? null : parseInt(v, 10);
+            this.pagina = 0;
+            this._render();
+        },
+
+        _onFiltro: function (ev) {
+            this.filtro = $(ev.currentTarget).data('filtro');
+            this.pagina = 0;
+            this._render();
+        },
+
+        _onSort: function (ev) {
+            var key = $(ev.currentTarget).data('sort');
+            this.sort = {key: key, dir: this.sort.key === key ? -this.sort.dir : 1};
+            this.pagina = 0;
+            this._render();
+        },
+
+        _onBuscar: _.debounce(function (ev) {
+            this.busqueda = ev.target.value;
+            this.pagina = 0;
+            this._render();
+        }, 200),
+
+        _onCuenta: function (ev) {
+            this.do_action({
+                type: 'ir.actions.act_window',
+                res_model: 'adt.comercial.cuentas',
+                res_id: $(ev.currentTarget).data('cuenta'),
+                views: [[false, 'form']],
+                target: 'current',
+            });
+        },
+
+        // CSV para Excel: números con punto decimal y sin separador de miles, en soles.
+        _onExportar: function () {
+            var filas = this._ordenar(this._filas());
+            var csv = function (v) { return '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""') + '"'; };
+            var soles = function (c) {
+                if (c === null || c === undefined) { return ''; }
+                var abs = Math.abs(c);
+                return (c < 0 ? '-' : '') + Math.floor(abs / 100) + '.' + ('0' + (abs % 100)).slice(-2);
+            };
+            var lineas = [['#'].concat(COLUMNAS.map(function (c) { return c.label; }), ['Alertas']).map(csv).join(',')];
+            filas.forEach(function (f, i) {
+                lineas.push([i + 1].concat(COLUMNAS.map(function (c) {
+                    var v = c.valor(f);
+                    return c.tipo === 'monto' ? soles(v) : c.tipo === 'fecha' ? fecha(v) : v;
+                }), [f.alertas.join(' | ')]).map(csv).join(','));
+            });
+            var blob = new Blob(['﻿' + lineas.join('\r\n')], {type: 'text/csv;charset=utf-8'});
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'cartera_financieras_' + this.data.hoy + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        },
+    });
+
+    core.action_registry.add('adt_cartera_reporte', CarteraReporte);
+    return CarteraReporte;
+});

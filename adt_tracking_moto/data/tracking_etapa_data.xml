@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- noupdate: si el administrador renombra una etapa, actualizar el módulo no la pisa. -->
+<odoo noupdate="1">
+
+    <record id="etapa_recojo" model="adt.moto.tracking.etapa">
+        <field name="name">Gambeta</field>
+        <field name="codigo">recojo</field>
+        <field name="sequence">1</field>
+        <field name="descripcion">Recojo de la moto en el almacén del distribuidor (en cajón, sin armar).</field>
+    </record>
+
+    <record id="etapa_almacen" model="adt.moto.tracking.etapa">
+        <field name="name">Base</field>
+        <field name="codigo">almacen</field>
+        <field name="sequence">2</field>
+        <field name="descripcion">Moto en el almacén de la empresa, sin armar.</field>
+    </record>
+
+    <record id="etapa_fibra" model="adt.moto.tracking.etapa">
+        <field name="name">Fibra</field>
+        <field name="codigo">fibra</field>
+        <field name="sequence">3</field>
+        <field name="descripcion">Moto armada y enviada a un taller/proveedor para ponerle la fibra.</field>
+    </record>
+
+    <record id="etapa_listo" model="adt.moto.tracking.etapa">
+        <field name="name">Base con fibra</field>
+        <field name="codigo">listo</field>
+        <field name="sequence">4</field>
+        <field name="descripcion">Moto de vuelta en el almacén con la fibra lista. Ya se puede asignar a un cliente.</field>
+    </record>
+
+</odoo>

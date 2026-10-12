@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="fleet_vehicle_view_form_adt_tramite_placa" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.adt.tramite.placa</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <field name="adt_tramite_placa_id" invisible="1"/>
+                <button name="action_ver_adt_tramite_placa" type="object" class="oe_stat_button" icon="fa-id-card-o"
+                        attrs="{'invisible': [('adt_tramite_placa_id', '=', False)]}">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Placa</span>
+                        <field name="adt_tramite_placa_state" readonly="1" class="o_stat_value"/>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+</odoo>

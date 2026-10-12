@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_adt_tramite_placa_user,adt.tramite.placa user,model_adt_tramite_placa,base.group_user,1,1,1,0
+access_adt_tramite_placa_manager,adt.tramite.placa manager,model_adt_tramite_placa,fleet.fleet_group_manager,1,1,1,1
+access_adt_tramite_placa_observar_wizard_user,adt.tramite.placa.observar.wizard user,model_adt_tramite_placa_observar_wizard,base.group_user,1,1,1,0
+access_adt_tramite_placa_config_system,adt.tramite.placa.config system,model_adt_tramite_placa_config,base.group_system,1,1,1,0

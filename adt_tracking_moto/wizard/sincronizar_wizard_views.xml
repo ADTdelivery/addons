@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="adt_moto_tracking_sincronizar_wizard_form" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.sincronizar.wizard.form</field>
+        <field name="model">adt.moto.tracking.sincronizar.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Sincronizar vehículos">
+                <p>
+                    Se incorporan al flujo todos los vehículos activos de flota que todavía no están en el
+                    tracking, <b>salvo los que ya tienen placa y dueño</b>. A los que no tienen placa se les
+                    crea su trámite de placa (Pendiente). Los que ya tienen dueño entran en la última etapa.
+                </p>
+                <div class="alert alert-success" role="status" attrs="{'invisible': [('cantidad', '!=', 0)]}">
+                    No hay vehículos pendientes: toda la flota ya está en el flujo (o tiene placa y dueño).
+                </div>
+                <group attrs="{'invisible': [('cantidad', '=', 0)]}">
+                    <field name="cantidad"/>
+                    <field name="cantidad_con_duenio"/>
+                    <field name="cantidad_sin_placa"/>
+                    <field name="etapa_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="etapa_codigo" invisible="1"/>
+                    <field name="taller_id" options="{'no_create': True}"
+                           attrs="{'invisible': [('etapa_codigo', '!=', 'fibra')], 'required': [('etapa_codigo', '=', 'fibra')]}"/>
+                </group>
+                <footer>
+                    <button name="action_confirmar" type="object" string="Sincronizar" class="btn-primary"
+                            attrs="{'invisible': [('cantidad', '=', 0)]}"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_moto_tracking_sincronizar_wizard" model="ir.actions.act_window">
+        <field name="name">Sincronizar vehículos</field>
+        <field name="res_model">adt.moto.tracking.sincronizar.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

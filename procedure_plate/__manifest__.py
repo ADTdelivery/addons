@@ -24,8 +24,8 @@
 
     # always loaded
     'data': [
+        'security/res_groups.xml',
         'views/views_plate_model.xml',
-        'security/res_groups.xml'
     ],
 
 }

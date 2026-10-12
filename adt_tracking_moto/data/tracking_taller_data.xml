@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="taller_fibra_pp" model="adt.moto.tracking.taller">
+        <field name="name">Fibra PP</field>
+        <field name="codigo">PP</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="taller_fibra_ves" model="adt.moto.tracking.taller">
+        <field name="name">Fibra VES</field>
+        <field name="codigo">VES</field>
+        <field name="sequence">2</field>
+    </record>
+
+    <record id="taller_fibra_sjm" model="adt.moto.tracking.taller">
+        <field name="name">Fibra SJM</field>
+        <field name="codigo">SJM</field>
+        <field name="sequence">3</field>
+    </record>
+
+</odoo>

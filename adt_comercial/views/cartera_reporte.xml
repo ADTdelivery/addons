@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Cartera y financieras (reporte JS): cuentas por cobrar vs. deuda con financieras ── -->
+    <record id="action_cartera_reporte" model="ir.actions.client">
+        <field name="name">Cartera y financieras</field>
+        <field name="tag">adt_cartera_reporte</field>
+    </record>
+
+    <menuitem id="adt_comercial_menu_cartera_reporte"
+              name="Cartera y financieras"
+              parent="adt_comercial_menu_dashboards"
+              action="action_cartera_reporte"
+              sequence="5"
+              groups="adt_comercial.group_access_adt_comercial_gerencia"/>
+</odoo>

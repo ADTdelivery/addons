@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Aplicación propia: se delega con un solo grupo, sin dar acceso a Flota. -->
+    <menuitem id="menu_operacion_motos_root" name="Operación de motos" sequence="221"
+              web_icon="fleet,static/description/icon.png" groups="group_tracking_user"/>
+
+    <!-- 1: Dashboard (lo agrega adt_dashboard_flota) -->
+
+    <menuitem id="menu_gestion_moto" name="Gestión de moto" parent="menu_operacion_motos_root" sequence="2"/>
+
+    <menuitem id="menu_adt_moto_tracking" name="Motos" parent="menu_gestion_moto"
+              action="action_adt_moto_tracking" sequence="1"/>
+
+    <menuitem id="menu_adt_tramite_placa" name="Trámites de placa" parent="menu_gestion_moto"
+              action="adt_tramite_placa.action_adt_tramite_placa" sequence="2"/>
+
+    <menuitem id="menu_adt_moto_tracking_sincronizar" name="Sincronizar vehículos" parent="menu_gestion_moto"
+              action="action_adt_moto_tracking_sincronizar_wizard" sequence="3" groups="group_tracking_manager"/>
+
+    <menuitem id="menu_operacion_motos_config" name="Configuración" parent="menu_operacion_motos_root"
+              sequence="90" groups="group_tracking_manager"/>
+
+    <menuitem id="menu_adt_moto_tracking_etapas" name="Etapas del tracking" parent="menu_operacion_motos_config"
+              action="action_adt_moto_tracking_etapa" sequence="1"/>
+
+    <menuitem id="menu_adt_moto_tracking_talleres" name="Talleres de fibra" parent="menu_operacion_motos_config"
+              action="action_adt_moto_tracking_taller" sequence="2"/>
+
+    <menuitem id="menu_adt_tramite_placa_config" name="Parámetros de placa" parent="menu_operacion_motos_config"
+              action="adt_tramite_placa.action_adt_tramite_placa_config" sequence="3"/>
+
+</odoo>

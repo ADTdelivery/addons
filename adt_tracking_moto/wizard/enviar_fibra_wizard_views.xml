@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="adt_moto_tracking_fibra_wizard_form" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.fibra.wizard.form</field>
+        <field name="model">adt.moto.tracking.fibra.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Enviar a fibra">
+                <group>
+                    <field name="taller_id" options="{'no_create': True}"/>
+                    <field name="tracking_ids" widget="many2many_tags"/>
+                </group>
+                <footer>
+                    <button name="action_confirmar" type="object" string="Enviar a fibra" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_moto_tracking_fibra_wizard" model="ir.actions.act_window">
+        <field name="name">Enviar a fibra</field>
+        <field name="res_model">adt.moto.tracking.fibra.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_adt_moto_tracking"/>
+        <field name="binding_view_types">list,kanban</field>
+    </record>
+
+</odoo>

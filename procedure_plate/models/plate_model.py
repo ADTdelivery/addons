@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, fields, api
-from odoo.http import request
 
 
 class ProcedurePlateModel(models.Model):
@@ -57,16 +56,28 @@ class ProcedurePlateModel(models.Model):
      chasis = fields.Char(string="Chasis", related="vehiculo_id.vin_sn")
      tarjeta_propiedad = fields.Binary(string="Tarjeta de propiedad")
 
-     @api.onchange('num_plate')
-     def num_plate_change(self):
-          vehicle_id = request.env['fleet.vehicle'].search([['id', '=', self.vehiculo_id.id ]])
-          vehicle_id.write({'license_plate':self.num_plate})
+     # Placa y tarjeta de propiedad se pasan al vehículo al guardar (no en onchange).
+     @api.model_create_multi
+     def create(self, vals_list):
+          records = super().create(vals_list)
+          records._sync_vehiculo()
+          return records
 
-     @api.onchange('tarjeta_propiedad')
-     def tarjeta_propiedad_change(self):
-          vehicle_tarjeta = request.env['fleet.vehicle'].create(self)
-          data = self
-          print("data")
-          data2 = data
-          print(str(vehicle_tarjeta))
+     def write(self, vals):
+          res = super().write(vals)
+          if {'num_plate', 'tarjeta_propiedad', 'vehiculo_id'} & vals.keys():
+               self._sync_vehiculo()
+          return res
+
+     def _sync_vehiculo(self):
+          for plate in self.filtered('vehiculo_id'):
+               vehicle = plate.vehiculo_id.sudo()
+               vals = {}
+               if plate.num_plate and plate.num_plate != vehicle.license_plate:
+                    vals['license_plate'] = plate.num_plate
+               # tarjeta_propiedad_attachment lo agrega adt_fleet / fleet_addons, si están instalados.
+               if plate.tarjeta_propiedad and 'tarjeta_propiedad_attachment' in vehicle._fields:
+                    vals['tarjeta_propiedad_attachment'] = plate.tarjeta_propiedad
+               if vals:
+                    vehicle.write(vals)
 

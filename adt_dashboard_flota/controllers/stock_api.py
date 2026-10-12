@@ -44,3 +44,20 @@ class StockFlotaController(http.Controller):
     def detalle(self, vehiculo_id=None, **kw):
         """Ficha de una moto e indicador de si sigue disponible."""
         return self._responder(lambda s: {'vehiculo': s.api_stock_detalle(vehiculo_id)})
+
+    # ------------------------------------------------------------------ operación (solo lectura)
+    @http.route('/api/operacion/resumen', type='json', auth='user', methods=['POST'])
+    def operacion_resumen(self, **kw):
+        """Totales, combinaciones dueño × placa, carga por etapa (logística y placa) y alertas."""
+        return self._responder(lambda s: s.api_operacion_resumen())
+
+    @http.route('/api/operacion/motos', type='json', auth='user', methods=['POST'])
+    def operacion_motos(self, alcance='stock', filtros=None, limite=20, offset=0, **kw):
+        """Motos con su proceso completo (fibra y placa). alcance: stock | flota.
+        filtros: etapa, estado_placa, demorado, con_duenio, lista_para_entregar, modelo_id, texto."""
+        return self._responder(lambda s: s.api_operacion_motos(alcance, filtros, limite, offset))
+
+    @http.route('/api/operacion/motos/detalle', type='json', auth='user', methods=['POST'])
+    def operacion_moto_detalle(self, vehiculo_id=None, **kw):
+        """Una moto con su proceso y su línea de tiempo."""
+        return self._responder(lambda s: {'moto': s.api_operacion_moto_detalle(vehiculo_id)})

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="adt_tramite_placa_view_tree" model="ir.ui.view">
+        <field name="name">adt.tramite.placa.tree</field>
+        <field name="model">adt.tramite.placa</field>
+        <field name="arch" type="xml">
+            <tree sample="1">
+                <field name="name"/>
+                <field name="vehicle_id"/>
+                <field name="chasis" optional="show"/>
+                <field name="factura_id" optional="show"/>
+                <field name="proveedor_id" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('pendiente', 'historial')"
+                       decoration-info="state == 'en_tramite'"
+                       decoration-warning="state == 'observado'"
+                       decoration-success="state == 'finalizado'"/>
+                <field name="num_placa"/>
+                <field name="fecha_inicio" optional="show"/>
+                <field name="dias_tramite" optional="show"/>
+                <field name="cant_observaciones" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_tramite_placa_view_kanban" model="ir.ui.view">
+        <field name="name">adt.tramite.placa.kanban</field>
+        <field name="model">adt.tramite.placa</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_adt_kanban" records_draggable="false" quick_create="false"
+                    group_create="false" group_delete="false" group_edit="false" sample="1">
+                <field name="state"/>
+                <field name="num_placa"/>
+                <field name="modelo_id"/>
+                <field name="vehicle_id"/>
+                <field name="cant_observaciones"/>
+                <field name="dias_tramite"/>
+                <field name="dias_sin_iniciar"/>
+                <field name="motivo_observacion"/>
+                <field name="activity_state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <!-- Pendiente → Trámite (u observado) → Placa -->
+                        <t t-set="paso" t-value="['pendiente', 'en_tramite', 'finalizado'].indexOf(record.state.raw_value == 'observado' ? 'en_tramite' : (record.state.raw_value == 'historial' ? 'finalizado' : record.state.raw_value))"/>
+                        <t t-set="etiquetas" t-value="['Pendiente', 'Trámite', 'Placa']"/>
+                        <div t-attf-class="oe_kanban_global_click adt_kcard adt_kcard--#{record.state.raw_value}">
+                            <div class="adt_plate" t-att-title="record.num_placa.raw_value ? 'Placa asignada' : 'Aún sin placa'">
+                                <span class="adt_plate__band">PERÚ</span>
+                                <span t-attf-class="adt_plate__num #{record.num_placa.raw_value ? '' : 'is-empty'}">
+                                    <t t-esc="record.num_placa.raw_value || '· · · - · · ·'"/>
+                                </span>
+                            </div>
+                            <div class="adt_kcard__head">
+                                <span class="adt_kcard__img" aria-hidden="true"><i class="fa fa-motorcycle"/></span>
+                                <div class="adt_kcard__title">
+                                    <strong t-att-title="record.vehicle_id.value"><t t-esc="record.modelo_id.value || record.vehicle_id.value"/></strong>
+                                    <span class="adt_kcard__sub"><field name="name"/> · <span class="adt_kcard__mono"><field name="chasis"/></span></span>
+                                </div>
+                            </div>
+                            <div class="adt_kcard__stepper">
+                                <t t-foreach="etiquetas" t-as="etq">
+                                    <div t-attf-class="adt_kcard__stepper-item #{etq_index &lt; paso ? 'is-done' : ''} #{etq_index == paso ? (record.state.raw_value == 'observado' ? 'is-warn' : (['finalizado', 'historial'].includes(record.state.raw_value) ? 'is-final' : 'is-current')) : ''}">
+                                        <span class="adt_kcard__stepper-dot"/>
+                                        <span class="adt_kcard__stepper-label"><t t-esc="etq"/></span>
+                                    </div>
+                                </t>
+                            </div>
+                            <div t-if="record.state.raw_value == 'observado'" class="adt_kcard__alert">
+                                <i class="fa fa-exclamation-triangle" title="Observado"/>
+                                <span><field name="motivo_observacion"/></span>
+                            </div>
+                            <div class="adt_kcard__foot">
+                                <span t-if="record.state.raw_value == 'pendiente'"
+                                      t-attf-class="adt_kcard__age #{record.dias_sin_iniciar.raw_value &gt; 7 ? 'is-late' : ''}" title="Días sin iniciar el trámite">
+                                    <i class="fa fa-hourglass-half"/> <t t-esc="Math.round(record.dias_sin_iniciar.raw_value)"/> d sin iniciar
+                                </span>
+                                <span t-else="" class="adt_kcard__age" title="Días de trámite">
+                                    <i class="fa fa-clock-o"/> <t t-esc="Math.round(record.dias_tramite.raw_value * 10) / 10"/> d
+                                </span>
+                                <span t-if="record.cant_observaciones.raw_value" class="adt_kcard__pill is-observado" title="Veces observado">
+                                    <i class="fa fa-eye"/> <t t-esc="record.cant_observaciones.raw_value"/>
+                                </span>
+                                <span t-if="record.state.raw_value == 'historial'" class="adt_kcard__pill" title="Archivado de la vista diaria">
+                                    <i class="fa fa-archive"/> Historial
+                                </span>
+                                <span class="adt_kcard__spacer"/>
+                                <field name="activity_ids" widget="kanban_activity"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="adt_tramite_placa_view_form" model="ir.ui.view">
+        <field name="name">adt.tramite.placa.form</field>
+        <field name="model">adt.tramite.placa</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_iniciar" type="object" string="Iniciar trámite" class="oe_highlight"
+                            states="pendiente"/>
+                    <button name="action_finalizar" type="object" string="Finalizar" class="oe_highlight"
+                            states="en_tramite"/>
+                    <button name="action_observar" type="object" string="Observar" states="en_tramite"/>
+                    <button name="action_levantar_observacion" type="object" string="Levantar observación"
+                            class="oe_highlight" states="observado"/>
+                    <button name="action_reabrir" type="object" string="Reabrir" states="finalizado,historial"
+                            groups="fleet.fleet_group_manager"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                        <h3><field name="vehicle_id" attrs="{'readonly': [('id', '!=', False)]}"/></h3>
+                    </div>
+                    <div class="alert alert-warning" role="alert" attrs="{'invisible': [('state', '!=', 'observado')]}">
+                        <strong>Observado:</strong> <field name="motivo_observacion" class="oe_inline"/>
+                    </div>
+                    <group>
+                        <group string="Moto">
+                            <field name="modelo_id"/>
+                            <field name="chasis"/>
+                            <field name="motor"/>
+                            <field name="factura_id"/>
+                            <field name="proveedor_id"/>
+                        </group>
+                        <group string="Trámite">
+                            <field name="num_placa" attrs="{'readonly': [('state', 'in', ('finalizado', 'historial'))]}"/>
+                            <field name="tarjeta_propiedad" filename="tarjeta_propiedad_filename"/>
+                            <field name="tarjeta_propiedad_filename" invisible="1"/>
+                            <field name="fecha_inicio"/>
+                            <field name="fecha_ultima_observacion" attrs="{'invisible': [('cant_observaciones', '=', 0)]}"/>
+                            <field name="fecha_fin"/>
+                            <field name="fecha_historial" attrs="{'invisible': [('fecha_historial', '=', False)]}"/>
+                            <field name="dias_tramite"/>
+                            <field name="cant_observaciones"/>
+                        </group>
+                    </group>
+                    <field name="notas" placeholder="Notas del trámite..."/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="adt_tramite_placa_view_search" model="ir.ui.view">
+        <field name="name">adt.tramite.placa.search</field>
+        <field name="model">adt.tramite.placa</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="vehicle_id"/>
+                <field name="chasis"/>
+                <field name="num_placa"/>
+                <field name="name"/>
+                <field name="factura_id"/>
+                <filter name="pendientes" string="Pendientes" domain="[('state', '=', 'pendiente')]"/>
+                <filter name="en_tramite" string="En trámite" domain="[('state', '=', 'en_tramite')]"/>
+                <filter name="observados" string="Observados" domain="[('state', '=', 'observado')]"/>
+                <filter name="finalizados" string="Finalizados" domain="[('state', '=', 'finalizado')]"/>
+                <filter name="historial" string="Historial" domain="[('state', '=', 'historial')]"/>
+                <separator/>
+                <filter name="abiertos" string="Sin finalizar" domain="[('state', 'not in', ('finalizado', 'historial'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_proveedor" string="Proveedor" context="{'group_by': 'proveedor_id'}"/>
+                    <filter name="group_modelo" string="Modelo" context="{'group_by': 'modelo_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_tramite_placa" model="ir.actions.act_window">
+        <field name="name">Trámites de placa</field>
+        <field name="res_model">adt.tramite.placa</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay trámites de placa</p>
+            <p>Se crean automáticamente al registrar la factura de una moto.</p>
+        </field>
+    </record>
+
+    <!-- El menú vive en la aplicación "Operación de motos" (adt_tracking_moto). -->
+
+</odoo>

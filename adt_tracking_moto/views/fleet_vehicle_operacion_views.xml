@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vistas simples de vehículo para "Operación de motos": no requieren permisos de Flota
+         (la ficha estándar arrastra contratos, servicios, historial de conductores, etc.). -->
+    <record id="fleet_vehicle_view_tree_operacion" model="ir.ui.view">
+        <field name="name">fleet.vehicle.tree.operacion</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <tree string="Vehículos" create="false" edit="false" delete="false">
+                <field name="name"/>
+                <field name="license_plate"/>
+                <field name="model_id"/>
+                <field name="vin_sn"/>
+                <field name="x_motor_sn" optional="hide"/>
+                <field name="color" optional="show"/>
+                <field name="driver_id"/>
+                <field name="x_id_facturacion" optional="show"/>
+                <field name="fecha_entrega" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="fleet_vehicle_view_form_operacion" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.operacion</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <form string="Vehículo" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                        <h3><field name="license_plate" readonly="1" placeholder="Sin placa"/></h3>
+                    </div>
+                    <group>
+                        <group string="Moto">
+                            <field name="model_id" readonly="1" options="{'no_open': True}"/>
+                            <field name="vin_sn" readonly="1"/>
+                            <field name="x_motor_sn" readonly="1"/>
+                            <field name="color" readonly="1"/>
+                            <field name="model_year" readonly="1"/>
+                        </group>
+                        <group string="Cliente y factura">
+                            <field name="driver_id" readonly="1"/>
+                            <field name="fecha_entrega" readonly="1"/>
+                            <field name="x_id_facturacion" readonly="1" options="{'no_open': True}"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Desde Motos y Trámites, el enlace al vehículo abre la vista simple. -->
+    <record id="adt_moto_tracking_view_form_vehiculo_operacion" model="ir.ui.view">
+        <field name="name">adt.moto.tracking.form.vehiculo.operacion</field>
+        <field name="model">adt.moto.tracking</field>
+        <field name="inherit_id" ref="adt_moto_tracking_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]//field[@name='vehicle_id']" position="attributes">
+                <attribute name="context">{'form_view_ref': 'adt_tracking_moto.fleet_vehicle_view_form_operacion'}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="adt_tramite_placa_view_form_vehiculo_operacion" model="ir.ui.view">
+        <field name="name">adt.tramite.placa.form.vehiculo.operacion</field>
+        <field name="model">adt.tramite.placa</field>
+        <field name="inherit_id" ref="adt_tramite_placa.adt_tramite_placa_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]//field[@name='vehicle_id']" position="attributes">
+                <attribute name="context">{'form_view_ref': 'adt_tracking_moto.fleet_vehicle_view_form_operacion'}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

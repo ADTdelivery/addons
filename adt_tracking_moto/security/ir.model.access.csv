@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_adt_moto_tracking_user,adt.moto.tracking user,model_adt_moto_tracking,group_tracking_user,1,1,1,0
+access_adt_moto_tracking_manager,adt.moto.tracking manager,model_adt_moto_tracking,group_tracking_manager,1,1,1,1
+access_adt_moto_tracking_etapa_user,adt.moto.tracking.etapa user,model_adt_moto_tracking_etapa,group_tracking_user,1,0,0,0
+access_adt_moto_tracking_etapa_manager,adt.moto.tracking.etapa manager,model_adt_moto_tracking_etapa,group_tracking_manager,1,1,0,0
+access_adt_moto_tracking_taller_user,adt.moto.tracking.taller user,model_adt_moto_tracking_taller,group_tracking_user,1,0,0,0
+access_adt_moto_tracking_taller_manager,adt.moto.tracking.taller manager,model_adt_moto_tracking_taller,group_tracking_manager,1,1,1,1
+access_adt_moto_tracking_log_user,adt.moto.tracking.log user,model_adt_moto_tracking_log,group_tracking_user,1,0,0,0
+access_adt_moto_tracking_fibra_wizard_user,adt.moto.tracking.fibra.wizard user,model_adt_moto_tracking_fibra_wizard,group_tracking_user,1,1,1,0
+access_adt_moto_tracking_sincronizar_wizard_manager,adt.moto.tracking.sincronizar.wizard manager,model_adt_moto_tracking_sincronizar_wizard,group_tracking_manager,1,1,1,0
+access_fleet_vehicle_tracking_user,fleet.vehicle tracking user (lectura),fleet.model_fleet_vehicle,group_tracking_user,1,0,0,0
+access_fleet_vehicle_model_tracking_user,fleet.vehicle.model tracking user (lectura),fleet.model_fleet_vehicle_model,group_tracking_user,1,0,0,0
+access_fleet_vehicle_model_brand_tracking_user,fleet.vehicle.model.brand tracking user (lectura),fleet.model_fleet_vehicle_model_brand,group_tracking_user,1,0,0,0
+access_fleet_vehicle_state_tracking_user,fleet.vehicle.state tracking user (lectura),fleet.model_fleet_vehicle_state,group_tracking_user,1,0,0,0
+access_fleet_vehicle_tag_tracking_user,fleet.vehicle.tag tracking user (lectura),fleet.model_fleet_vehicle_tag,group_tracking_user,1,0,0,0
+access_adt_tramite_placa_config_tracking_manager,adt.tramite.placa.config tracking manager,adt_tramite_placa.model_adt_tramite_placa_config,group_tracking_manager,1,1,1,0

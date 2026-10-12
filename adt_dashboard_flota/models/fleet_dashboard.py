@@ -33,27 +33,18 @@ class AdtFleetDashboard(models.AbstractModel):
 
     @api.model
     def _get_plate_procedures(self, vehicle_ids):
-        """Último trámite de placa por vehículo (módulo procedure_plate, si está instalado)."""
-        if 'procedure.plate.model' not in self.env:
+        """Trámite de placa por vehículo (adt_tramite_placa)."""
+        Tramite = self.env['adt.tramite.placa']
+        if not Tramite.check_access_rights('read', raise_exception=False):
             return {}
-        Procedure = self.env['procedure.plate.model']
-        if not Procedure.check_access_rights('read', raise_exception=False):
-            return {}
-        state_labels = dict(Procedure._fields['state_procedure'].selection)
+        state_labels = dict(Tramite._fields['state']._description_selection(self.env))
         result = {}
-        records = Procedure.search_read(
-            [('vehiculo_id', 'in', vehicle_ids)],
-            ['vehiculo_id', 'state_procedure', 'num_plate'],
-            order='id desc',
-        )
-        for rec in records:
-            vehicle_id = rec['vehiculo_id'] and rec['vehiculo_id'][0]
-            if vehicle_id and vehicle_id not in result:
-                result[vehicle_id] = {
-                    'state': rec['state_procedure'],
-                    'state_label': state_labels.get(rec['state_procedure'], ''),
-                    'num_plate': rec['num_plate'],
-                }
+        for rec in Tramite.search_read([('vehicle_id', 'in', vehicle_ids)], ['vehicle_id', 'state', 'num_placa']):
+            result[rec['vehicle_id'][0]] = {
+                'state': rec['state'],
+                'state_label': state_labels.get(rec['state'], ''),
+                'num_plate': rec['num_placa'],
+            }
         return result
 
     @api.model
@@ -61,9 +52,9 @@ class AdtFleetDashboard(models.AbstractModel):
         if plate_is_ready(plate):
             return 'lista'
         if procedure:
-            if procedure['state'] == 'inscrito' and plate_is_ready(procedure['num_plate']):
+            if procedure['state'] in ('finalizado', 'historial') and plate_is_ready(procedure['num_plate']):
                 return 'lista'
-            if procedure['state'] != 'tachado':
+            if procedure['state'] in ('en_tramite', 'observado'):
                 return 'tramite'
         return 'sin_placa'
 
@@ -95,7 +86,7 @@ class AdtFleetDashboard(models.AbstractModel):
             color = r['color'] or r.get('x_facturacion_color') or ''
             plate = (r['license_plate'] or '').strip()
             if not plate_is_ready(plate) and procedure and plate_is_ready(procedure['num_plate']) \
-                    and procedure['state'] == 'inscrito':
+                    and procedure['state'] in ('finalizado', 'historial'):
                 plate = procedure['num_plate'].strip()
             status = self._compute_plate_status(r['license_plate'], procedure)
             vehicles.append({
@@ -126,6 +117,6 @@ class AdtFleetDashboard(models.AbstractModel):
         return {
             'vehicles': self._vehicle_rows(),
             'plate_status_labels': PLATE_STATUS_LABELS,
-            'has_plate_procedures': 'procedure.plate.model' in self.env,
+            'has_plate_procedures': True,
             'generated_at': fields.Datetime.to_string(fields.Datetime.now()),
         }

@@ -1,0 +1,336 @@
+// Cartera y financieras: reporte contable, sobrio. Números tabulares alineados a la derecha.
+
+.adt_cart {
+    --cart-page: #f4f5f7;
+    --cart-surface: #ffffff;
+    --cart-border: rgba(11, 11, 11, 0.09);
+    --cart-ink: #14161a;
+    --cart-ink-2: #52514e;
+    --cart-muted: #898781;
+    --cart-accent: #2a78d6;
+    --cart-pos: #006300;
+    --cart-neg: #c02828;
+    --cart-warn: #9a6400;
+
+    height: 100%;
+    background: var(--cart-page);
+    color: var(--cart-ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+
+    *, *::before, *::after { box-sizing: border-box; }
+    h1, h2, h3, p { margin: 0; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .neg { color: var(--cart-neg); }
+}
+
+.adt_cart__scroll {
+    height: 100%;
+    overflow: auto;
+    padding: 24px 28px 48px;
+}
+
+.adt_cart__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.adt_cart__title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.adt_cart__subtitle { color: var(--cart-muted); margin-top: 2px; }
+
+.adt_cart__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.adt_cart__search {
+    width: 300px;
+    max-width: 100%;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--cart-border);
+    border-radius: 8px;
+    background: var(--cart-surface);
+    &:focus { outline: 2px solid var(--cart-accent); outline-offset: -1px; }
+}
+
+.adt_cart__btn {
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid var(--cart-accent);
+    border-radius: 8px;
+    background: var(--cart-accent);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    &--ghost { background: var(--cart-surface); color: var(--cart-accent); }
+}
+
+.adt_cart__chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+
+.adt_cart__chipgroup {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    > span { width: 96px; color: var(--cart-muted); font-size: 12px; }
+}
+
+.adt_cart__chip {
+    padding: 3px 12px;
+    border: 1px solid var(--cart-border);
+    border-radius: 999px;
+    background: var(--cart-surface);
+    color: var(--cart-ink-2);
+    cursor: pointer;
+    &.is-active { background: var(--cart-ink); border-color: var(--cart-ink); color: #fff; }
+}
+
+.adt_cart__card {
+    background: var(--cart-surface);
+    border: 1px solid var(--cart-border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    > header {
+        margin-bottom: 12px;
+        h2 { font-size: 16px; font-weight: 700; }
+        p { color: var(--cart-muted); font-size: 12px; margin-top: 2px; }
+    }
+}
+
+.adt_cart__line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--cart-border);
+    b { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+    &.is-sub { padding-left: 16px; color: var(--cart-ink-2); b { font-weight: 400; } }
+    &.is-total { border-bottom: 2px solid var(--cart-ink); font-weight: 700; b { font-weight: 700; } }
+    &.is-pos b { color: var(--cart-pos); }
+    &.is-neg b { color: var(--cart-neg); }
+}
+
+.adt_cart__note {
+    margin-top: 10px;
+    color: var(--cart-muted);
+    font-size: 12px;
+    &--warn {
+        margin: 0 0 16px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: #fff6e0;
+        color: var(--cart-warn);
+        font-size: 13px;
+    }
+}
+
+.adt_cart__muted { color: var(--cart-muted); }
+
+// Resumen para gerencia: tres respuestas
+.adt_cart__answers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+    @media (max-width: 1200px) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.adt_cart__answer {
+    background: var(--cart-surface);
+    border: 1px solid var(--cart-border);
+    border-top: 5px solid var(--cart-accent);
+    border-radius: 12px;
+    padding: 18px 20px;
+    &.is-out { border-top-color: #eb6834; }
+    &.is-gain { border-top-color: #0ca30c; .adt_cart__answer-big { color: var(--cart-pos); } }
+    &.is-loss { border-top-color: var(--cart-neg); .adt_cart__answer-big { color: var(--cart-neg); } }
+}
+
+.adt_cart__answer-q {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--cart-ink);
+        color: #fff;
+        font-size: 12px;
+    }
+}
+
+.adt_cart__answer-big {
+    margin: 10px 0 4px !important;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.adt_cart__answer-why { color: var(--cart-ink-2); margin-bottom: 12px !important; line-height: 1.45; }
+.adt_cart__answer-foot { margin-top: 10px !important; color: var(--cart-ink-2); font-size: 12px; line-height: 1.45; }
+
+.adt_cart__callout {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f1f6fd;
+    line-height: 1.45;
+    > b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; margin: 2px 0 4px; }
+    p { font-size: 12px; color: var(--cart-ink-2); }
+}
+
+.adt_cart__result { max-width: 760px; }
+
+.adt_cart__tablewrap { overflow: auto; max-height: 70vh; }
+
+.adt_cart__table {
+    width: 100%;
+    border-collapse: collapse;
+    th, td { padding: 6px 10px; border-bottom: 1px solid var(--cart-border); }
+    thead th {
+        position: sticky;
+        top: 0;
+        background: #fafafa;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--cart-ink-2);
+        text-transform: uppercase;
+        white-space: nowrap;
+        z-index: 1;
+    }
+    tfoot td { position: sticky; bottom: 0; background: #f1f2f4; font-weight: 700; border-top: 2px solid var(--cart-ink); }
+    tr.is-total td { font-weight: 700; border-top: 2px solid var(--cart-ink); }
+    tr.is-muted td { color: var(--cart-ink-2); font-style: italic; }
+    th.is-sortable { cursor: pointer; user-select: none; }
+    th.is-sorted { color: var(--cart-accent); }
+    sup { color: var(--cart-warn); font-weight: 700; margin-left: 2px; }
+
+    &--detalle tbody tr { cursor: pointer; }
+    &--detalle tbody tr:hover td { background: #f5f8fd; }
+    &--detalle td { white-space: nowrap; }
+}
+
+.adt_cart__alert {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fde9b5;
+    color: var(--cart-warn);
+    font-weight: 700;
+    font-size: 11px;
+    cursor: help;
+    &.is-bad { background: #f8d4d4; color: var(--cart-neg); }
+}
+
+.adt_cart__cuadre {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    @media (max-width: 900px) { grid-template-columns: minmax(0, 1fr); }
+    h3 { font-size: 13px; margin-bottom: 6px; }
+    ul { margin: 0; padding-left: 18px; line-height: 1.8; }
+    li.ok { color: var(--cart-pos); list-style: none; margin-left: -18px; }
+    li.bad { color: var(--cart-neg); list-style: none; margin-left: -18px; font-weight: 700; }
+}
+
+.adt_cart__method {
+    summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+    ul { margin: 10px 0 0; padding-left: 18px; line-height: 1.7; color: var(--cart-ink-2); }
+}
+
+.adt_cart__empty { padding: 40px; text-align: center; color: var(--cart-muted); }
+
+// Mes a mes
+.adt_cart__tablewrap--full { max-height: none; }
+
+.adt_cart__months:not(.is-open) > header { margin-bottom: 0; }
+
+.adt_cart__toggle-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    .pos { color: var(--cart-pos); }
+}
+
+.adt_cart__toggle { flex: none; }
+
+.adt_cart__pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+    color: var(--cart-ink-2);
+    font-size: 12px;
+    > span:first-child { margin-right: auto; }
+    button[disabled] { opacity: 0.4; cursor: default; }
+}
+
+.adt_cart__table--meses {
+    td.is-strong { font-weight: 700; }
+    tr.is-current td { background: #f1f6fd; font-weight: 600; }
+    tr.is-future td { color: var(--cart-ink-2); }
+    tr td.neg { color: var(--cart-neg); }
+}
+
+.adt_cart__print-meta { display: none; }
+
+// ------------------------------------------------------------------ impresión / PDF
+@media print {
+    @page { size: A4 landscape; margin: 10mm; }
+
+    // Odoo fija alturas y oculta el desborde: en papel todo debe fluir.
+    html, body, .o_web_client, .o_action_manager, .o_action, .adt_cart, .adt_cart__scroll {
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+    .o_main_navbar, .o_notification_manager, .adt_cart__chips, .adt_cart__actions, .adt_cart__method,
+    .adt_cart__alert, .adt_cart__toggle, .adt_cart__pager { display: none !important; }
+
+    .adt_cart {
+        background: #fff;
+        font-size: 10px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .adt_cart__scroll { padding: 0; }
+    .adt_cart__title { font-size: 18px; }
+    .adt_cart__print-meta { display: block; color: var(--cart-muted); font-size: 10px; }
+    .adt_cart__card, .adt_cart__answer { break-inside: avoid; padding: 10px 12px; margin-bottom: 10px; }
+    .adt_cart__answer-why, .adt_cart__answer-foot, .adt_cart__callout p, .adt_cart__note, .adt_cart__line,
+    .adt_cart__card > header p { font-size: 9px; }
+    .adt_cart__callout > b { font-size: 14px; }
+    .adt_cart__answers { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .adt_cart__answer-big { font-size: 20px; }
+    .adt_cart__cuadre { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    // Las tablas largas sí se parten entre páginas, repitiendo el encabezado.
+    .adt_cart__card:has(.adt_cart__table) { break-inside: auto; }
+    .adt_cart__tablewrap { overflow: visible; max-height: none; }
+    .adt_cart__table {
+        th, td { padding: 3px 5px; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        thead th, tfoot td { position: static; }
+        tr { break-inside: avoid; }
+    }
+    .adt_cart__table--detalle {
+        font-size: 8px;
+        td { white-space: normal; }
+    }
+}
