@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="adt_flota_360.Main">
+        <div class="o_action adt_f360">
+            <div class="adt_f360__scroll" data-ref="scroll">
+                <header class="adt_f360__top">
+                    <div class="adt_f360__titlebar">
+                        <h1 class="adt_f360__title">Flota 360</h1>
+                        <span class="adt_f360__subtitle">Consulta unificada de vehículos, clientes y deuda</span>
+                    </div>
+                    <div class="adt_f360__search">
+                        <i class="fa fa-search adt_f360__search-icon" aria-hidden="true"/>
+                        <input type="search" class="adt_f360__search-input" data-ref="q" autocomplete="off"
+                               aria-label="Buscar vehículo"
+                               placeholder="Placa, DNI/RUC, nombre, chasis, motor, teléfono o N° de cuenta"/>
+                        <button type="button" class="adt_f360__search-clear" data-action="clear" title="Limpiar" aria-label="Limpiar búsqueda">
+                            <i class="fa fa-times"/>
+                        </button>
+                        <kbd class="adt_f360__kbd" title="Atajo de teclado">/</kbd>
+                    </div>
+                    <nav class="adt_f360__filters" data-ref="filtros" aria-label="Filtros"/>
+                </header>
+                <section class="adt_f360__figures" data-ref="cartera" aria-label="Resumen de la selección"/>
+                <section class="adt_f360__table-wrap" data-ref="grid" aria-live="polite"/>
+                <div class="adt_f360__more" data-ref="more"/>
+            </div>
+            <div class="adt_f360__backdrop" data-ref="backdrop" data-action="close"/>
+            <aside class="adt_f360__drawer" data-ref="drawer" role="dialog" aria-modal="true" aria-label="Ficha del vehículo"/>
+        </div>
+    </t>
+
+</templates>
