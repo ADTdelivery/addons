@@ -6,12 +6,18 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
 from .cliente_seguimiento import CLASIFICACION_MANUAL, ESTADO_SEGUIMIENTO
+from .traspaso_notarial import ESTADO_TRASPASO, ESTADOS_REQUIEREN_PAGO
 
 TOLERANCIA_DIAS = 3          # una cuota pagada hasta 3 días después de su fecha cuenta como puntual
 PUNTAJE_APTO = 75
 PUNTAJE_MINIMO = 50
 DIAS_PROXIMOS_A_TERMINAR = 90
 ESTADOS_CAPTURA_GRAVE = ('disolucion_contrato',)
+DIAS_PREPARAR_TRASPASO = 60       # cuentas que terminan en estos días: ir preparando documentos
+ATRASO_MAX_PREPARAR_TRASPASO = 30  # con más atraso no se prepara (no está cerca de terminar)
+DIAS_HISTORICO_TRASPASO = 365      # cuentas pagadas antes de esto sin traspaso registrado no se listan
+CAMPOS_TRASPASO = ('estado', 'notaria', 'fecha_firma', 'fecha_completado', 'notas')
+LEER_TRASPASO = ['cuenta_id', 'estado', 'notaria', 'fecha_firma', 'fecha_completado', 'notas', 'user_id', 'write_date']
 
 SEGMENTOS = {
     'apto': 'Listo para nuevo préstamo',
@@ -156,7 +162,9 @@ class AdtClientesDashboard(models.AbstractModel):
 
     # ------------------------------------------------------------------ datos
     @api.model
-    def get_dashboard_data(self):
+    def get_dashboard_data(self, traspasos=False):
+        """Clientes con su puntaje y segmento; con traspasos=True también las motos por traspasar
+        (vista Traspaso notarial, que muestra si el cliente es candidato a un nuevo préstamo)."""
         self._check_acceso()
         seguimiento_model = self.env['adt.cliente.seguimiento']
         self = self.sudo()
@@ -166,7 +174,7 @@ class AdtClientesDashboard(models.AbstractModel):
         cuentas = self.env['adt.comercial.cuentas'].search_read(
             ['|', ('state', 'in', ['en_curso', 'pagado']), '&', ('state', '=', 'cancelado'), ('recuperado', '=', True)],
             ['reference_no', 'partner_id', 'partner_document', 'mobile', 'state', 'recuperado', 'tipo_financiera_id',
-             'monto_total', 'fecha_desembolso', 'moto_modelo', 'moto_placa', 'vehiculo_id'],
+             'monto_total', 'fecha_desembolso', 'moto_modelo', 'moto_placa', 'vehiculo_id', 'mora_pendiente'],
             order='fecha_desembolso asc, id asc')
         cuentas = [c for c in cuentas if c['partner_id']]
         ids = [c['id'] for c in cuentas]
@@ -271,6 +279,8 @@ class AdtClientesDashboard(models.AbstractModel):
                 'seguimiento': self._seguimiento_dict(seg),
             })
 
+        lista_traspasos = self._traspasos(cuentas, cuotas, papeletas, financieras, hoy) if traspasos else []
+        ids_financieras = {c['financiera_id'] for c in clientes} | {t['financiera_id'] for t in lista_traspasos}
         moneda = self.env.company.currency_id
         return {
             'hoy': fields.Date.to_string(hoy),
@@ -279,14 +289,115 @@ class AdtClientesDashboard(models.AbstractModel):
             'clasificaciones': dict(CLASIFICACION_MANUAL),
             'estados_seguimiento': dict(ESTADO_SEGUIMIENTO),
             'financieras': sorted(
-                [{'id': i, 'nombre': financieras.get(i) or _('Sin financiera')} for i in {c['financiera_id'] for c in clientes}],
+                [{'id': i, 'nombre': financieras.get(i) or _('Sin financiera')} for i in ids_financieras],
                 key=lambda f: f['nombre']),
             'umbral_apto': PUNTAJE_APTO,
             'umbral_minimo': PUNTAJE_MINIMO,
             'dias_proximos': DIAS_PROXIMOS_A_TERMINAR,
             'clientes': clientes,
+            'traspasos': lista_traspasos,
+            'estados_traspaso': dict(ESTADO_TRASPASO),
+            'estados_requieren_pago': list(ESTADOS_REQUIEREN_PAGO),
+            'dias_preparar_traspaso': DIAS_PREPARAR_TRASPASO,
             'vista_cuenta': self.env.ref('adt_comercial.adt_comercial_cuentas_form').id,
         }
+
+    # ------------------------------------------------------------------ traspaso notarial
+    def _traspasos(self, cuentas, cuotas, papeletas, financieras, hoy):
+        """Cuentas cuya moto hay que pasar a nombre del cliente: las que terminan pronto (preparar documentos),
+        las ya pagadas sin traspaso y las que tienen un traspaso registrado."""
+        registros = {t['cuenta_id'][0]: t for t in self.env['adt.traspaso.notarial'].search_read(
+            [('cuenta_id', 'in', [c['id'] for c in cuentas])], LEER_TRASPASO)}
+        limite_preparar = hoy + relativedelta(days=DIAS_PREPARAR_TRASPASO)
+        desde_historico = hoy - relativedelta(days=DIAS_HISTORICO_TRASPASO)
+        out = []
+        for c in cuentas:
+            if c['state'] not in ('en_curso', 'pagado'):
+                continue
+            q = cuotas.get(c['id'], {})
+            fin = q.get('ultima_fecha')
+            restantes = q.get('restantes', 0)
+            deuda_dias = q.get('deuda_dias', 0)
+            # Igual que AdtTraspasoNotarial.cuenta_terminada, con los datos ya calculados en SQL.
+            terminada = c['state'] == 'pagado' or (bool(q) and not restantes and not c['mora_pendiente'])
+            t = registros.get(c['id'])
+            if t:
+                etapa = 'completado' if t['estado'] == 'completado' else (
+                    'en_tramite' if t['estado'] != 'pendiente' else ('listo' if terminada else 'preparar'))
+            elif terminada:
+                if fin and fin < desde_historico:
+                    continue
+                etapa = 'listo'
+            elif fin and fin <= limite_preparar and deuda_dias <= ATRASO_MAX_PREPARAR_TRASPASO:
+                etapa = 'preparar'
+            else:
+                continue
+
+            alertas = []
+            if not c['moto_placa']:
+                alertas.append('Moto sin placa')
+            if papeletas.get(c['id'], {}).get('impagas'):
+                alertas.append('Papeleta impaga')
+            if not terminada and deuda_dias:
+                alertas.append('Cuotas atrasadas (%d %s)' % (deuda_dias, 'día' if deuda_dias == 1 else 'días'))
+            if c['mora_pendiente']:
+                alertas.append('Mora pendiente')
+            out.append({
+                'cuenta_id': c['id'],
+                'referencia': c['reference_no'] or '',
+                'cliente_id': c['partner_id'][0],
+                'nombre': c['partner_id'][1],
+                'documento': c['partner_document'] or '',
+                'telefono': c['mobile'] or '',
+                'financiera_id': c['tipo_financiera_id'][0] if c['tipo_financiera_id'] else 0,
+                'financiera': financieras.get(c['tipo_financiera_id'] and c['tipo_financiera_id'][0], ''),
+                'moto': c['moto_modelo'] or '',
+                'placa': c['moto_placa'] or '',
+                'terminada': terminada,
+                'fin': fields.Date.to_string(fin) if fin else None,
+                'restantes': restantes,
+                'etapa': etapa,
+                'alertas': alertas,
+                'traspaso': self._traspaso_dict(t),
+            })
+        return out
+
+    @staticmethod
+    def _traspaso_dict(t):
+        if not t:
+            return None
+        return {
+            'id': t['id'],
+            'estado': t['estado'],
+            'notaria': t['notaria'] or '',
+            'fecha_firma': fields.Date.to_string(t['fecha_firma']) if t['fecha_firma'] else None,
+            'fecha_completado': fields.Date.to_string(t['fecha_completado']) if t['fecha_completado'] else None,
+            'notas': t['notas'] or '',
+            'responsable': t['user_id'][1] if t['user_id'] else '',
+            'actualizado': fields.Datetime.to_string(t['write_date']) if t['write_date'] else None,
+        }
+
+    @api.model
+    def guardar_traspaso(self, cuenta_id, valores):
+        """Crea o actualiza el traspaso notarial de la cuenta. Usa los permisos del usuario (queda en el historial)."""
+        self._check_acceso()
+        if not isinstance(valores, dict):
+            raise UserError(_("Datos del traspaso inválidos."))
+        cuenta = self.env['adt.comercial.cuentas'].browse(int(cuenta_id)).exists()
+        if not cuenta:
+            raise UserError(_("La cuenta ya no existe."))
+        vals = {k: valores[k] or False for k in CAMPOS_TRASPASO if k in valores}
+        if 'estado' in vals and not vals['estado']:
+            del vals['estado']
+        if vals.get('estado') == 'completado' and not vals.get('fecha_completado'):
+            vals.pop('fecha_completado', None)  # el modelo pone la fecha de hoy
+        Traspaso = self.env['adt.traspaso.notarial']
+        registro = Traspaso.search([('cuenta_id', '=', cuenta.id)], limit=1)
+        if registro:
+            registro.write(vals)
+        else:
+            registro = Traspaso.create(dict(vals, cuenta_id=cuenta.id))
+        return self._traspaso_dict(registro.read(LEER_TRASPASO)[0])
 
     @staticmethod
     def _seguimiento_dict(seg):

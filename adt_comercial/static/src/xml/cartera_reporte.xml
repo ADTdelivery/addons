@@ -1,25 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
 
+    <!-- Misma estructura visual que Flota 360 (adt_flota_360): barra superior fija con
+         título, buscador y filtros como pestañas; contenido en paneles. -->
     <t t-name="adt_comercial.CarteraReporte">
         <div class="o_action adt_cart">
             <div class="adt_cart__scroll">
                 <header class="adt_cart__header">
-                    <div>
+                    <div class="adt_cart__titlebar">
                         <h1 class="adt_cart__title">Cartera y financieras</h1>
                         <p class="adt_cart__subtitle" data-ref="subtitle"/>
                         <p class="adt_cart__print-meta" data-ref="print-meta"/>
                     </div>
-                    <div class="adt_cart__actions">
-                        <input type="search" class="adt_cart__search" data-ref="buscar" autocomplete="off"
-                               placeholder="Buscar por cliente, DNI, placa o n° de cuenta…"/>
-                        <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="exportar">Exportar CSV</button>
-                        <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="imprimir">Imprimir / PDF</button>
-                        <button type="button" class="adt_cart__btn" data-action="refresh">Actualizar</button>
+                    <div class="adt_cart__toolbar">
+                        <div class="adt_cart__searchbox">
+                            <i class="fa fa-search adt_cart__search-icon" aria-hidden="true"/>
+                            <input type="search" class="adt_cart__search" data-ref="buscar" autocomplete="off"
+                                   aria-label="Buscar en la cartera"
+                                   placeholder="Buscar por cliente, DNI, placa o n° de cuenta…"/>
+                        </div>
+                        <div class="adt_cart__actions">
+                            <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="exportar">
+                                <i class="fa fa-download" aria-hidden="true"/>Exportar CSV</button>
+                            <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="imprimir">
+                                <i class="fa fa-print" aria-hidden="true"/>Imprimir / PDF</button>
+                            <button type="button" class="adt_cart__btn" data-action="refresh">
+                                <i class="fa fa-refresh" aria-hidden="true"/>Actualizar</button>
+                        </div>
                     </div>
+                    <div class="adt_cart__chips" data-ref="chips"/>
                 </header>
-                <div class="adt_cart__chips" data-ref="chips"/>
-                <div data-ref="body">
+                <div class="adt_cart__body" data-ref="body">
                     <div class="adt_cart__empty">Calculando cartera…</div>
                 </div>
             </div>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="module_category_adt_gerencia" model="ir.module.category">
+        <field name="name">App de gerencia</field>
+        <field name="description">Acceso a los indicadores de la empresa desde la app móvil de gerencia.</field>
+        <field name="sequence">90</field>
+    </record>
+
+    <!-- Solo los usuarios de este grupo pueden iniciar sesión en la API y leer los indicadores. -->
+    <record id="group_gerencia_api" model="res.groups">
+        <field name="name">Acceso a la app de gerencia</field>
+        <field name="category_id" ref="module_category_adt_gerencia"/>
+        <field name="comment">Puede consultar desde la app móvil la cartera, la cobranza, los vehículos, los candidatos a préstamo y los traspasos.</field>
+    </record>
+
+</odoo>

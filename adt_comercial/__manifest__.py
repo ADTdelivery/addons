@@ -69,6 +69,8 @@
             'adt_comercial/static/src/js/clientes_dashboard.js',
             'adt_comercial/static/src/scss/cartera_reporte.scss',
             'adt_comercial/static/src/js/cartera_reporte.js',
+            'adt_comercial/static/src/scss/flota_clientes.scss',
+            'adt_comercial/static/src/js/flota_clientes.js',
         ],
         'web.assets_qweb': [
             'adt_comercial/static/src/xml/image_carousel.xml',
@@ -77,6 +79,7 @@
             'adt_comercial/static/src/xml/cobranza_dashboard.xml',
             'adt_comercial/static/src/xml/clientes_dashboard.xml',
             'adt_comercial/static/src/xml/cartera_reporte.xml',
+            'adt_comercial/static/src/xml/flota_clientes.xml',
         ],
     },
 }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Candidatos a préstamo y Traspaso notarial (menú Flota): mismo diseño que Flota 360. -->
+    <t t-name="adt_comercial.FlotaClientes">
+        <div class="o_action adt_cf">
+            <div class="adt_cf__scroll" data-ref="scroll">
+                <header class="adt_cf__top">
+                    <div class="adt_cf__titlebar">
+                        <h1 class="adt_cf__title" t-esc="widget.titulo"/>
+                        <span class="adt_cf__subtitle" data-ref="subtitulo"/>
+                        <div class="adt_cf__actions">
+                            <button type="button" class="adt_cf__btn" data-action="export"><i class="fa fa-download"/>Exportar</button>
+                            <button type="button" class="adt_cf__btn is-icon" data-action="refresh" title="Actualizar" aria-label="Actualizar">
+                                <i class="fa fa-refresh"/>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="adt_cf__tools">
+                        <div class="adt_cf__search">
+                            <i class="fa fa-search" aria-hidden="true"/>
+                            <input type="search" class="adt_cf__input" data-ref="q" autocomplete="off" aria-label="Buscar"
+                                   placeholder="Nombre, DNI/RUC, teléfono, placa o N° de cuenta"/>
+                        </div>
+                        <select class="adt_cf__input" data-ref="financiera" aria-label="Financiera"/>
+                    </div>
+                </header>
+                <section class="adt_cf__figures" data-ref="figuras"/>
+                <section class="adt_cf__table-wrap" data-ref="grid"/>
+                <div class="adt_cf__more" data-ref="more"/>
+            </div>
+            <aside class="adt_cf__side" data-ref="side" role="dialog" aria-modal="false"/>
+        </div>
+    </t>
+
+</templates>

@@ -25,8 +25,9 @@
                 <section class="adt_f360__table-wrap" data-ref="grid" aria-live="polite"/>
                 <div class="adt_f360__more" data-ref="more"/>
             </div>
-            <div class="adt_f360__backdrop" data-ref="backdrop" data-action="close"/>
-            <aside class="adt_f360__drawer" data-ref="drawer" role="dialog" aria-modal="true" aria-label="Ficha del vehículo"/>
+            <section class="adt_f360__drawer" data-ref="drawer" role="region" aria-label="Ficha del vehículo"/>
+            <div class="adt_f360__modal-root" data-ref="modal"/>
+            <input type="file" class="d-none" data-ref="archivo" accept="image/*,application/pdf" tabindex="-1" aria-hidden="true"/>
         </div>
     </t>
 

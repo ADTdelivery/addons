@@ -6,11 +6,39 @@
         <field name="tag">adt_flota_360</field>
     </record>
 
-    <menuitem id="menu_adt_flota_360"
+    <!-- Menú "Flota 360" de la app Flota: agrupa la consulta 360 y las vistas de
+         otros módulos que se cuelgan aquí (p. ej. candidatos a préstamo y
+         traspaso notarial de adt_comercial). -->
+    <menuitem id="menu_adt_flota_360_root"
               name="Flota 360"
               parent="fleet.menu_root"
+              groups="fleet.fleet_group_user"
+              sequence="1"/>
+
+    <menuitem id="menu_adt_flota_360"
+              name="Consulta de vehículos"
+              parent="menu_adt_flota_360_root"
               action="action_adt_flota_360"
               groups="fleet.fleet_group_user"
               sequence="1"/>
+
+    <!-- Las vistas de flota de adt_comercial se mueven aquí. Se hace desde este
+         módulo (que depende de adt_comercial) para que el menú no dependa del
+         orden en que se actualicen los módulos. -->
+    <record id="adt_comercial.menu_fleet_candidatos_prestamo" model="ir.ui.menu">
+        <field name="parent_id" ref="menu_adt_flota_360_root"/>
+    </record>
+
+    <record id="adt_comercial.menu_fleet_traspaso_notarial" model="ir.ui.menu">
+        <field name="parent_id" ref="menu_adt_flota_360_root"/>
+    </record>
+
+    <!-- Acceso directo al dashboard de Cartera y financieras (sigue también en Comercial > Dashboards). -->
+    <menuitem id="menu_adt_flota_360_cartera"
+              name="Cartera y financieras"
+              parent="menu_adt_flota_360_root"
+              action="adt_comercial.action_cartera_reporte"
+              sequence="10"
+              groups="adt_comercial.group_access_adt_comercial_gerencia"/>
 
 </odoo>

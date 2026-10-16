@@ -25,6 +25,7 @@ FILTROS = [
     ('mora', 'Cuotas vencidas'),
     ('papeletas', 'Papeletas pendientes'),
     ('capturas', 'Capturados'),
+    ('sin_expediente', 'Sin expediente'),
     ('gps_off', 'GPS sin señal'),
     ('sin_placa', 'Sin placa'),
     ('taller', 'En taller'),
@@ -42,7 +43,6 @@ EXPEDIENTE_NIVEL = {
     'completo': 'ok', 'aprobado_sin_desembolso': 'ok', 'por_revisar': 'info',
     'incompleto_expediente': 'atencion', 'incompleto_fase_final': 'atencion', 'rechazado': 'neutral',
 }
-SIGLAS = {'ce', 'dni', 'soat', 'ruc'}
 # Cambios de estado del formulario del expediente (todos envían notificación push).
 EXPEDIENTE_ESTADOS = [
     ('action_mark_completo', 'completo', 'Marcar completo', 'fa-check'),
@@ -86,6 +86,21 @@ def accion_metodo(modelo, res_id, metodo, label, icono, confirmar=None, primaria
 
 def accion_url(url, label, icono):
     return {'tipo': 'url', 'url': url, 'label': label, 'icon': icono}
+
+
+def accion_form(clave, label, icono, res_id=False, params=None, primaria=False):
+    """Formulario nativo de la vista (ver flota_360_ops: _form_<clave>)."""
+    return {'tipo': 'form', 'form': clave, 'res_id': res_id, 'params': params or {},
+            'label': label, 'icon': icono, 'primary': primaria}
+
+
+def accion_credito(label, icono, cuenta_id=False, primaria=False):
+    """Asistente de crédito: nueva cuenta con su cronograma o edición de un borrador."""
+    return {'tipo': 'credito', 'cuenta_id': cuenta_id, 'label': label, 'icon': icono, 'primary': primaria}
+
+
+def accion_tab(tab, label, icono='fa-angle-right'):
+    return {'tipo': 'tab', 'tab': tab, 'label': label, 'icon': icono}
 
 
 class AdtFlota360(models.AbstractModel):
@@ -233,7 +248,7 @@ class AdtFlota360(models.AbstractModel):
             if taller is not None:
                 self._resumen_taller(taller.get(vid), modulos, alertas, filtros)
             if expedientes is not None and cliente:
-                self._resumen_expediente(expedientes.get(cliente['id']), modulos, alertas)
+                self._resumen_expediente(expedientes.get(cliente['id']), modulos, alertas, filtros)
 
             criticos = sum(1 for a in alertas if a['nivel'] == 'critico')
             atencion = sum(1 for a in alertas if a['nivel'] == 'atencion')
@@ -308,8 +323,9 @@ class AdtFlota360(models.AbstractModel):
         vencidas = {}
         Cuota = self._modelo('adt.comercial.cuotas', 'cuenta_id', 'state', 'fecha_cronograma', 'saldo')
         if Cuota is not None:
-            dominio = [('cuenta_id', 'in', [c['id'] for c in elegida.values()]),
-                       ('state', 'in', list(CUOTAS_ABIERTAS)), ('fecha_cronograma', '<', hoy)]
+            # Solo las cuentas en curso cuentan como cartera (mismo criterio que el Reporte de Cobranzas).
+            dominio = [('cuenta_id', 'in', [c['id'] for c in elegida.values() if c['state'] == 'en_curso']),
+                       ('state', 'in', list(CUOTAS_ABIERTAS)), ('fecha_cronograma', '<', hoy), ('saldo', '>', 0)]
             if 'type' in Cuota._fields:
                 dominio.append(('type', '=', 'cuota'))
             for g in Cuota.read_group(dominio, ['cuenta_id', 'saldo:sum', 'fecha_cronograma:min'], ['cuenta_id']):
@@ -331,7 +347,7 @@ class AdtFlota360(models.AbstractModel):
                 'vencidas': n,
                 'monto_vencido': monto,
                 'dias_atraso': dias,
-                'mora': c.get('mora_pendiente') or 0.0,
+                'mora': (c.get('mora_pendiente') or 0.0) if c['state'] == 'en_curso' else 0.0,
             }
         return res
 
@@ -506,9 +522,12 @@ class AdtFlota360(models.AbstractModel):
         alertas.append(self._alerta('capturas', 'critico', _('Vehículo %s (%s)') % (texto.lower(), c['name'])))
         modulos.append(self._chip('capturas', 'fa-lock', 'Captura', texto, 'critico'))
 
-    def _resumen_expediente(self, e, modulos, alertas):
+    def _resumen_expediente(self, e, modulos, alertas, filtros):
         if not e:
-            modulos.append(self._chip('expediente', 'fa-folder-open-o', 'Expediente', 'Sin expediente', 'neutral'))
+            # Todo crédito empieza con el expediente del cliente: si no existe se marca.
+            filtros.add('sin_expediente')
+            alertas.append(self._alerta('expediente', 'atencion', _('Cliente sin expediente registrado')))
+            modulos.append(self._chip('expediente', 'fa-folder-open-o', 'Expediente', 'Sin expediente', 'atencion'))
             return
         Expediente = self.env['adt.expediente']
         nivel = EXPEDIENTE_NIVEL.get(e['state'], 'neutral')
@@ -552,20 +571,109 @@ class AdtFlota360(models.AbstractModel):
                 secciones.append(seccion)
 
         resumen['secciones'] = secciones
-        resumen['acciones'] = self._acciones_rapidas(vehiculo)
+        resumen['acciones'] = self._acciones_rapidas(vehiculo, resumen['cliente'])
+        resumen['recorrido'] = self._recorrido(vehiculo, resumen, {s['key']: s for s in secciones})
         return resumen
 
-    def _acciones_rapidas(self, v):
+    def _acciones_rapidas(self, v, cliente):
         acciones = []
-        for metodo, label, icono in (
-            ('action_new_cuenta', 'Nueva cuenta', 'fa-credit-card'),
-            ('action_new_adt_papeleta', 'Registrar papeleta', 'fa-file-text-o'),
-            ('action_new_work_order', 'Orden de taller', 'fa-wrench'),
-            ('action_new_adt_captura', 'Registrar captura', 'fa-lock'),
-        ):
-            if self._metodo('fleet.vehicle', metodo):
-                acciones.append(accion_metodo('fleet.vehicle', v.id, metodo, label, icono))
+        cuentas = self._lote_cuentas([v.id], fields.Date.context_today(self)) or {}
+        cuenta = cuentas.get(v.id)
+        if 'adt.comercial.cuentas' in self.env and not (cuenta and cuenta['state'] in ('borrador', 'aprobado', 'en_curso')):
+            acciones.append(accion_credito('Nueva cuenta y cronograma', 'fa-credit-card'))
+        if cliente and self._modelo('adt.expediente', 'cliente_id') is not None:
+            acciones.append(accion_form('expediente', 'Nuevo expediente', 'fa-folder-open-o',
+                                        params={'cliente_id': cliente['id']}))
+        if self._modelo('adt.papeleta', 'vehicle_id') is not None:
+            acciones.append(accion_form('papeleta', 'Registrar papeleta', 'fa-file-text-o'))
+        if cuenta and cuenta['state'] in ('en_curso', 'aprobado') and self._modelo('adt.captura.record', 'cuenta_id') is not None:
+            acciones.append(accion_form('captura', 'Registrar captura', 'fa-lock'))
+        if self._modelo('maintenance.work.order', 'vehicle_id') is not None:
+            acciones.append(accion_form('orden_taller', 'Orden de taller', 'fa-wrench',
+                                        params={'cliente_id': cliente and cliente['id']}))
         return acciones
+
+    # --- Recorrido del vehículo -------------------------------------------
+    # Las etapas por las que pasa un vehículo financiado, en orden. Cada una
+    # indica si está cumplida y, si no, qué falta y cómo resolverlo.
+
+    def _recorrido(self, v, resumen, secciones):
+        mods = {m['key']: m for m in resumen['modulos']}
+        cliente = resumen['cliente']
+        pasos = []
+
+        def paso(key, titulo, nivel, texto, tab=None, accion=None, detalle=''):
+            pasos.append({'key': key, 'titulo': titulo, 'nivel': nivel, 'texto': texto, 'tab': tab,
+                          'accion': accion, 'detalle': detalle})
+
+        # 1. Cliente
+        if cliente:
+            paso('cliente', 'Cliente', 'ok', cliente['nombre'], 'cliente', detalle=cliente.get('documento') or '')
+        else:
+            paso('cliente', 'Cliente', 'pendiente', 'Sin cliente asignado', 'vehiculo',
+                 accion_form('vehiculo', 'Asignar cliente', 'fa-user-plus'))
+
+        # 2. Expediente
+        if 'expediente' in secciones:
+            exp = secciones['expediente'].get('expedientes') or []
+            if not cliente:
+                paso('expediente', 'Expediente', 'pendiente', 'Requiere cliente', 'expediente')
+            elif not exp:
+                paso('expediente', 'Expediente', 'atencion', 'Sin expediente', 'expediente',
+                     accion_form('expediente', 'Crear expediente', 'fa-plus', params={'cliente_id': cliente['id']}),
+                     'Recomendado antes de otorgar el crédito')
+            else:
+                e = exp[0]
+                av = e['avance']
+                paso('expediente', 'Expediente', e['nivel'], e['estado'], 'expediente',
+                     detalle='%s de %s documentos' % (av['completos'], av['requeridos']) +
+                             (' · %s rechazados' % av['rechazados'] if av['rechazados'] else ''))
+
+        # 3. Crédito
+        if 'cuentas' in secciones:
+            deuda = secciones['cuentas'].get('deuda') or []
+            vigente = deuda[0] if deuda else None
+            if not vigente:
+                paso('credito', 'Crédito', 'pendiente', 'Sin cuenta', 'cuentas',
+                     accion_credito('Crear cuenta', 'fa-plus') if cliente else None, 'Crea la cuenta y su cronograma')
+            elif vigente['state'] == 'borrador':
+                paso('credito', 'Crédito', 'atencion', 'Borrador por aprobar', 'cuentas',
+                     accion_credito('Revisar cronograma', 'fa-calendar', vigente['id']), vigente['referencia'])
+            else:
+                nivel = {'en_curso': 'ok', 'aprobado': 'ok', 'pagado': 'ok'}.get(vigente['state'], 'neutral')
+                paso('credito', 'Crédito', nivel, vigente['estado'], 'cuentas',
+                     detalle='%s de %s cuotas pagadas' % (vigente['cifras']['pagadas'], vigente['cifras']['total_cuotas']))
+
+        # 4. Entrega y documentos del vehículo
+        docs = secciones.get('vehiculo', {}).get('documentos_vehiculo') or []
+        req = [d for d in docs if d['obligatorio']]
+        listos = [d for d in req if d['estado'] == 'aceptado']
+        entregado = bool(v.fecha_entrega) if 'fecha_entrega' in v._fields else False
+        if req:
+            faltan = [d['label'] for d in req if d['estado'] != 'aceptado']
+            paso('documentos', 'Entrega y documentos', 'ok' if not faltan else ('atencion' if cliente else 'pendiente'),
+                 'Completos' if not faltan else '%s de %s cargados' % (len(listos), len(req)), 'vehiculo',
+                 detalle=('Entregado el %s' % v.fecha_entrega.strftime('%d/%m/%Y')) if entregado
+                 else ('Falta: %s' % ', '.join(faltan) if faltan else ''))
+
+        # 5. Placa
+        if 'placa' in mods:
+            m = mods['placa']
+            paso('placa', 'Placa', 'ok' if m['nivel'] == 'ok' else (m['nivel'] if m['nivel'] != 'neutral' else 'pendiente'),
+                 m['texto'], 'placa' if 'placa' in secciones else 'vehiculo')
+
+        # 6. GPS
+        if 'gps' in mods:
+            m = mods['gps']
+            paso('gps', 'GPS', m['nivel'] if m['nivel'] != 'neutral' else 'pendiente', m['texto'], 'gps',
+                 detalle='Último reporte registrado' if m.get('desde') else '')
+
+        # 7. Cobranza
+        if 'cuentas' in mods and mods['cuentas']['texto'] != 'Sin cuenta':
+            m = mods['cuentas']
+            paso('cobranza', 'Cobranza', m['nivel'] if m['nivel'] != 'neutral' else 'pendiente', m['texto'], 'cuentas',
+                 detalle=('%s d de atraso' % m['dias']) if m.get('dias') else '')
+        return pasos
 
     def _campo(self, label, valor):
         return [label, valor] if valor not in (False, None, '') else None
@@ -574,17 +682,8 @@ class AdtFlota360(models.AbstractModel):
         return [p for p in pares if p]
 
     def _seccion_vehiculo(self, v):
-        def doc(campo, label):
-            if campo in v._fields:
-                return {'label': label, 'ok': bool(v[campo])}
-        documentos = [d for d in (
-            doc('soat_attachment', 'SOAT'),
-            doc('tarjeta_propiedad_attachment', 'Tarjeta de propiedad'),
-            doc('contrato_attachment', 'Contrato'),
-            doc('chip_gnv_attachment', 'Chip GNV'),
-        ) if d]
         g = lambda c: v[c] if c in v._fields else False
-        acciones = [accion_abrir('fleet.vehicle', v.id, 'Editar vehículo', 'fa-pencil')]
+        acciones = [accion_form('vehiculo', 'Editar', 'fa-pencil')]
         if self._metodo('fleet.vehicle', 'action_print_acta_vehicular'):
             acciones.append(accion_metodo('fleet.vehicle', v.id, 'action_print_acta_vehicular', 'Acta vehicular', 'fa-print'))
         if self._metodo('fleet.vehicle', 'action_print_contrato_tvs'):
@@ -603,7 +702,8 @@ class AdtFlota360(models.AbstractModel):
                 self._campo('Fecha de entrega', g('fecha_entrega') and fields.Date.to_string(g('fecha_entrega'))),
                 self._campo('Kilometraje (GPS)', g('traccar_km_actual') and '%s km' % '{:,.0f}'.format(g('traccar_km_actual'))),
             ),
-            'documentos': documentos,
+            'documentos_vehiculo': self._documentos_vehiculo(v),
+            'modelo': 'fleet.vehicle', 'res_id': v.id,
             'acciones': acciones,
         }
 
@@ -611,9 +711,9 @@ class AdtFlota360(models.AbstractModel):
         if not cliente:
             return {'key': 'cliente', 'titulo': 'Cliente', 'icon': 'fa-user',
                     'vacio': 'Este vehículo no tiene cliente asignado.',
-                    'acciones': [accion_abrir('fleet.vehicle', v.id, 'Asignar conductor', 'fa-user-plus')]}
+                    'acciones': [accion_form('vehiculo', 'Asignar cliente', 'fa-user-plus', primaria=True)]}
         partner = self.env['res.partner'].browse(cliente['id'])
-        acciones = [accion_abrir('res.partner', partner.id, 'Ver contacto', 'fa-user')]
+        acciones = [accion_form('cliente', 'Editar', 'fa-pencil', res_id=partner.id)]
         digitos = re.sub(r'\D', '', cliente['telefono'] or '')
         if len(digitos) == 9:
             digitos = '51' + digitos
@@ -628,6 +728,10 @@ class AdtFlota360(models.AbstractModel):
                 self._campo('Documento', partner.vat),
                 self._campo('Teléfono', cliente['telefono']),
                 self._campo('Correo', partner.email),
+                self._campo('Nacionalidad', self._etiqueta(partner, 'nationality', partner.nationality)
+                            if 'nationality' in partner._fields else False),
+                self._campo('Ocupación', self._etiqueta(partner, 'occupation', partner.occupation)
+                            if 'occupation' in partner._fields else False),
                 self._campo('Dirección', partner.contact_address and partner.contact_address.replace('\n', ', ').strip(', ')),
             ),
             'acciones': acciones,
@@ -699,6 +803,8 @@ class AdtFlota360(models.AbstractModel):
         M = 'adt.comercial.cuentas'
         user = self.env.user
         principal, mas = [], []
+        if c.state == 'borrador':
+            principal.append(accion_credito('Revisar cronograma', 'fa-calendar', c.id))
         if c.state == 'borrador' and self._metodo(M, 'aprobar_cuenta'):
             principal.append(accion_metodo(M, c.id, 'aprobar_cuenta', 'Aprobar cuenta', 'fa-check', primaria=True,
                                            confirmar='¿Aprobar la cuenta? Se generará el cronograma de cuotas.'))
@@ -884,12 +990,12 @@ class AdtFlota360(models.AbstractModel):
                 'captura_prioridad': self._etiqueta(c, 'captura_prioridad', c.captura_prioridad)
                 if 'captura_prioridad' in c._fields else '',
             })
+        vigente = any(c['state'] in ('borrador', 'aprobado', 'en_curso') for c in resultado)
         return {
-            'key': 'cuentas', 'titulo': 'Deuda', 'icon': 'fa-credit-card',
+            'key': 'cuentas', 'titulo': 'Crédito y cuotas', 'icon': 'fa-credit-card',
             'deuda': resultado,
             'vacio': 'El vehículo no tiene cuentas registradas.',
-            'acciones': [accion_metodo('fleet.vehicle', v.id, 'action_new_cuenta', 'Nueva cuenta', 'fa-plus')]
-            if self._metodo('fleet.vehicle', 'action_new_cuenta') else [],
+            'acciones': [] if vigente else [accion_credito('Nueva cuenta y cronograma', 'fa-plus', primaria=True)],
         }
 
     def _reporte_app(self, r, cuota):
@@ -952,7 +1058,7 @@ class AdtFlota360(models.AbstractModel):
             if p.state != 'pagado' and self._metodo('adt.papeleta', 'action_mark_pagado'):
                 acciones.append(accion_metodo('adt.papeleta', p.id, 'action_mark_pagado', 'Marcar pagada', 'fa-check',
                                               confirmar='¿Marcar la papeleta %s como pagada?' % p.name, primaria=True))
-            acciones.append(accion_abrir('adt.papeleta', p.id))
+            acciones.append(accion_form('papeleta', 'Editar', 'fa-pencil', res_id=p.id))
             items.append({
                 'titulo': 'Papeleta %s' % p.name,
                 'subtitulo': (p.detalle or '').strip()[:120],
@@ -970,8 +1076,7 @@ class AdtFlota360(models.AbstractModel):
             'key': 'papeletas', 'titulo': 'Papeletas', 'icon': 'fa-file-text-o',
             'items': items,
             'vacio': 'Sin papeletas registradas.',
-            'acciones': [accion_metodo('fleet.vehicle', v.id, 'action_new_adt_papeleta', 'Registrar papeleta', 'fa-plus')]
-            if self._metodo('fleet.vehicle', 'action_new_adt_papeleta') else [],
+            'acciones': [accion_form('papeleta', 'Registrar papeleta', 'fa-plus', primaria=True)],
         }
 
     def _seccion_gps(self, v, hoy):
@@ -1081,8 +1186,9 @@ class AdtFlota360(models.AbstractModel):
         return {
             'key': 'capturas', 'titulo': 'Capturas', 'icon': 'fa-lock', 'items': items,
             'vacio': 'Sin capturas registradas.',
-            'acciones': [accion_metodo('fleet.vehicle', v.id, 'action_new_adt_captura', 'Registrar captura', 'fa-plus')]
-            if self._metodo('fleet.vehicle', 'action_new_adt_captura') else [],
+            'acciones': [accion_form('captura', 'Registrar captura', 'fa-plus')]
+            if self.env['adt.comercial.cuentas'].search_count(
+                [('vehiculo_id', '=', v.id), ('state', 'in', ('en_curso', 'aprobado'))]) else [],
         }
 
     # --- Expediente (adt_expedientes) --------------------------------------
@@ -1101,42 +1207,11 @@ class AdtFlota360(models.AbstractModel):
             pids.append(cuenta['partner_id'])
         return pids
 
-    def _documentos_expediente(self, e):
-        """Estado de cada documento: aceptado, rechazado (con observación) o sin cargar."""
-        cargados = set(self.env['ir.attachment'].sudo().search(
-            [('res_model', '=', e._name), ('res_id', '=', e.id), ('res_field', '=like', 'foto_%')]
-        ).mapped('res_field'))
-        documentos = []
-        for nombre, campo in e._fields.items():
-            if not nombre.startswith('estado_') or campo.type != 'selection':
-                continue
-            clave = nombre[len('estado_'):]                     # foto_dni, direccion, referencias…
-            fotos = [f for f in e._fields if f.startswith(clave) and e._fields[f].type == 'binary'] \
-                if clave.startswith('foto_') else []
-            valor = e[nombre]
-            obs_campo = 'obs_' + clave
-            obs = e[obs_campo] if obs_campo in e._fields else ''
-            if fotos:
-                etiqueta = (e._fields[fotos[0]].string or clave).split(' - ')[0]
-                etiqueta = etiqueta[5:] if etiqueta.lower().startswith('foto ') else etiqueta
-                if not any(f in cargados for f in fotos):
-                    estado = 'falta'
-                else:
-                    estado = 'rechazado' if valor == 'rechazado' else 'aceptado'
-            elif valor == 'rechazado':
-                etiqueta, estado = clave.replace('_', ' ').capitalize(), 'rechazado'
-            else:
-                continue
-            etiqueta = ' '.join(w.upper() if w.lower() in SIGLAS else w for w in etiqueta.split(' '))
-            documentos.append({'label': etiqueta[:1].upper() + etiqueta[1:], 'estado': estado, 'obs': obs or ''})
-        orden = {'rechazado': 0, 'falta': 1, 'aceptado': 2}
-        return sorted(documentos, key=lambda d: (orden[d['estado']], d['label']))
-
     def _acciones_expediente(self, e):
         M = 'adt.expediente'
-        principal = [accion_abrir(M, e.id, 'Abrir expediente')]
+        principal = [accion_form('expediente_datos', 'Editar datos', 'fa-pencil', res_id=e.id)]
         if self._metodo(M, 'action_print_expediente_pdf'):
-            principal.append(accion_metodo(M, e.id, 'action_print_expediente_pdf', 'Generar PDF', 'fa-file-pdf-o'))
+            principal.append(accion_metodo(M, e.id, 'action_print_expediente_pdf', 'PDF', 'fa-file-pdf-o'))
         mas = []
         for metodo, estado, label, icono in EXPEDIENTE_ESTADOS:
             if e.state != estado and self._metodo(M, metodo):
@@ -1145,55 +1220,73 @@ class AdtFlota360(models.AbstractModel):
         if e.state != 'rechazado' and self._metodo(M, 'action_rechazar'):
             mas.append(accion_metodo(M, e.id, 'action_rechazar', 'Rechazar expediente', 'fa-ban', peligro=True,
                                      confirmar='Se abrirá el formulario de rechazo para indicar el motivo.'))
+        mas.append(accion_abrir(M, e.id, 'Formulario completo'))
         return principal, mas
+
+    def _datos_expediente(self, e):
+        """Datos declarados en el expediente (domicilio, trabajo, referencias)."""
+        g = lambda c: e[c] if c in e._fields else False
+        et = lambda c: self._etiqueta(e, c, e[c]) if c in e._fields and e[c] else False
+        referencias = []
+        for i in range(1, 5):
+            nombre = g('ref_%s_name' % i)
+            if nombre:
+                referencias.append(' · '.join(filter(None, [nombre, g('ref_%s_phone' % i), et('ref_%s_vinculo' % i)])))
+        mototaxista = g('cliente_occupation_code') == 'mototaxista'
+        return {
+            'campos': self._campos(
+                self._campo('Moto solicitada', et('vehiculo')),
+                self._campo('Asesora', e.asesora_id.name),
+                self._campo('Dirección', g('direccion_cliente')),
+                self._campo('Vivienda', ' · '.join(filter(None, [et('tipo_vivienda'), g('tiempo_viviendo')]))),
+                self._campo('Ganancia', g('ganancia_diaria_mensual') if mototaxista else g('ganancia_diaria_mensual_no')),
+                self._campo('Tiempo trabajando', g('tiempo_trabajando') if mototaxista else g('tiempo_trabajando_no')),
+                self._campo('Beneficiario', ' · '.join(filter(None, [g('beneficiario_celular'), et('beneficiario_parentesco')]))),
+                self._campo('Placa / chasis (fase final)', ' · '.join(filter(None, [g('placa'), g('chasis')]))),
+            ),
+            'referencias': referencias,
+            'referencias_estado': g('estado_referencias'),
+            'referencias_obs': g('obs_referencias') or '',
+            'direccion_estado': g('estado_direccion'),
+            'direccion_obs': g('obs_direccion') or '',
+        }
 
     def _seccion_expediente(self, v, hoy):
         Expediente = self._modelo('adt.expediente', 'cliente_id', 'state')
         if Expediente is None:
             return None
         pids = self._clientes_de_turno(v, hoy)
-        nuevo = []
-        if pids:
-            nuevo = [accion_abrir('adt.expediente', False, 'Nuevo expediente', 'fa-plus',
-                                  contexto={'default_cliente_id': pids[0]})]
+        base = {'key': 'expediente', 'titulo': 'Expediente', 'icon': 'fa-folder-open-o', 'expedientes': []}
         if not pids:
-            return {'key': 'expediente', 'titulo': 'Expediente', 'icon': 'fa-folder-open-o', 'items': [],
-                    'vacio': 'El vehículo no tiene cliente de turno; asigna un conductor para ver su expediente.'}
-        items = []
-        expedientes = Expediente.search([('cliente_id', 'in', pids)], order='fecha desc, id desc')
-        for i, e in enumerate(expedientes):
-            documentos = self._documentos_expediente(e)
-            rechazados = [d for d in documentos if d['estado'] == 'rechazado']
-            cargados = [d for d in documentos if d['estado'] != 'falta']
+            return dict(base, vacio='El vehículo no tiene cliente; asígnale uno para registrar su expediente.',
+                        acciones=[accion_form('vehiculo', 'Asignar cliente', 'fa-user-plus')])
+        expedientes = []
+        for i, e in enumerate(Expediente.search([('cliente_id', 'in', pids)], order='fecha desc, id desc')):
+            grupos, avance = self._documentos_expediente_grupos(e)
             principal, mas = self._acciones_expediente(e)
-            vehiculo = self._etiqueta(e, 'vehiculo', e.vehiculo) if 'vehiculo' in e._fields else ''
-            items.append({
-                'titulo': 'Expediente del %s' % (e.fecha.strftime('%d/%m/%Y') if e.fecha else '—')
-                          + ('' if i else ' · vigente'),
-                'subtitulo': ' · '.join(filter(None, [
-                    e.cliente_id.name if len(pids) > 1 else '',
-                    e.asesora_id.name and 'Asesora %s' % e.asesora_id.name,
-                    vehiculo and 'Solicita %s' % vehiculo,
-                ])),
-                'badge': {'texto': self._etiqueta(e, 'state', e.state) or 'Sin estado',
-                          'nivel': EXPEDIENTE_NIVEL.get(e.state, 'neutral')},
-                'kpis': [
-                    {'label': 'Documentos cargados', 'texto': str(len(cargados))},
-                    {'label': 'Rechazados', 'texto': str(len(rechazados)),
-                     'nivel': 'critico' if rechazados else False},
-                ] + ([{'label': 'Fecha de rechazo', 'texto': e.fecha_rechazo.strftime('%d/%m/%Y')}]
-                     if e.state == 'rechazado' and e.fecha_rechazo else []),
-                'nota': 'Motivo de rechazo: %s' % e.motivo_rechazo if e.state == 'rechazado' and e.motivo_rechazo else False,
-                'documentos': documentos,
+            nivel = EXPEDIENTE_NIVEL.get(e.state, 'neutral')
+            # Un documento rechazado requiere acción aunque el estado general diga otra cosa.
+            if avance['rechazados'] and e.state != 'rechazado':
+                nivel = 'atencion'
+            expedientes.append({
+                'id': e.id,
+                'vigente': i == 0,
+                'titulo': 'Expediente del %s' % (e.fecha.strftime('%d/%m/%Y') if e.fecha else '—'),
+                'cliente': e.cliente_id.name if len(pids) > 1 else '',
+                'estado': self._etiqueta(e, 'state', e.state) or 'Por revisar',
+                'nivel': 'info' if nivel == 'neutral' and e.state != 'rechazado' else nivel,
+                'rechazo': e.motivo_rechazo if e.state == 'rechazado' and e.motivo_rechazo else '',
+                'fecha_rechazo': e.fecha_rechazo.strftime('%d/%m/%Y') if e.state == 'rechazado' and e.fecha_rechazo else '',
+                'avance': avance,
+                'grupos': grupos,
+                'datos': self._datos_expediente(e),
                 'acciones': principal,
                 'mas': mas,
             })
-        return {
-            'key': 'expediente', 'titulo': 'Expediente', 'icon': 'fa-folder-open-o',
-            'items': items,
-            'vacio': 'El cliente de turno no tiene expedientes registrados.',
-            'acciones': nuevo,
-        }
+        nuevo = accion_form('expediente', 'Nuevo expediente', 'fa-plus', params={'cliente_id': pids[0]},
+                            primaria=not expedientes)
+        return dict(base, expedientes=expedientes, acciones=[nuevo],
+                    vacio='El cliente no tiene expediente. Regístralo para revisar sus documentos antes del crédito.')
 
     def _seccion_taller(self, v, hoy):
         Orden = self._modelo('maintenance.work.order', 'vehicle_id')
@@ -1226,6 +1319,6 @@ class AdtFlota360(models.AbstractModel):
         return {
             'key': 'taller', 'titulo': 'Taller y mantenimiento', 'icon': 'fa-wrench', 'items': items,
             'vacio': 'Sin órdenes de taller ni mantenimientos pendientes.',
-            'acciones': [accion_metodo('fleet.vehicle', v.id, 'action_new_work_order', 'Nueva orden', 'fa-plus')]
-            if self._metodo('fleet.vehicle', 'action_new_work_order') else [],
+            'acciones': [accion_form('orden_taller', 'Nueva orden', 'fa-plus', primaria=True,
+                                     params={'cliente_id': v.driver_id.id})],
         }
