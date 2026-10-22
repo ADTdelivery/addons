@@ -591,8 +591,40 @@ class AdtFlota360(models.AbstractModel):
                 secciones.append(seccion)
 
         resumen['secciones'] = secciones
+        try:
+            resumen['historial_crediticio'] = self._historial_crediticio_vehiculo(vehiculo)
+        except AccessError:
+            resumen['historial_crediticio'] = {'disponible': False}
         resumen['recorrido'] = self._recorrido(vehiculo, resumen, {s['key']: s for s in secciones})
         return resumen
+
+    def _historial_crediticio_vehiculo(self, vehiculo):
+        Cuenta = self._modelo('adt.comercial.cuentas', 'vehiculo_id', 'partner_id', 'cuota_ids')
+        if Cuenta is None:
+            return {'disponible': False}
+        cuentas = Cuenta.with_context(active_test=False).search([
+            ('vehiculo_id', '=', vehiculo.id), ('company_id', 'in', self.env.companies.ids),
+            ('state', 'in', ['en_curso', 'pagado', 'cancelado'])], order='id')
+        titulares = []
+        total = 0
+        for cliente in cuentas.mapped('partner_id'):
+            anteriores = set()
+            coincidencias = explicitos = 0
+            propias = cuentas.filtered(lambda c: c.partner_id == cliente)
+            for cuenta in propias:
+                nombres = {re.sub(r'\s+', ' ', q.name.strip()).casefold()
+                           for q in cuenta.cuota_ids if q.name and not q.parent_id}
+                if anteriores.intersection(nombres):
+                    coincidencias += 1
+                if any(re.match(r'^cuota\s+r\.', nombre) for nombre in nombres):
+                    explicitos += 1
+                anteriores.update(nombres)
+            detectados = max(coincidencias, explicitos)
+            total += detectados
+            titulares.append({'nombre': cliente.display_name, 'cuentas': len(propias),
+                              'refinanciamientos': detectados})
+        return {'disponible': True, 'titulares': titulares, 'duenos': len(titulares),
+                'refinanciamientos': total, 'cuentas': len(cuentas)}
 
     # --- Recorrido del vehículo -------------------------------------------
     # Las etapas por las que pasa un vehículo financiado, en orden. Cada una

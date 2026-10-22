@@ -110,3 +110,26 @@ class TestPagosFlota360(SavepointCase):
         self.account.message_ids.mapped('tracking_value_ids').mapped('field_desc')
         section = self.service.with_user(user)._seccion_cuentas(self.vehicle.with_user(user), fields.Date.today())
         self.assertEqual(section['key'], 'cuentas')
+
+    def test_vehicle_owners_and_refinancing_history(self):
+        history = self.service._historial_crediticio_vehiculo(self.vehicle)
+        self.assertEqual((history['duenos'], history['refinanciamientos']), (1, 0))
+        second = self.env['adt.comercial.cuentas'].create({'partner_id': self.partner.id,
+            'vehiculo_id': self.vehicle.id, 'company_id': self.company.id, 'state': 'en_curso'})
+        for name in ['1', '2']:
+            self.env['adt.comercial.cuotas'].create({'cuenta_id': second.id,
+                'company_id': self.company.id, 'name': name, 'monto': 100,
+                'fecha_cronograma': fields.Date.today()})
+        history = self.service._historial_crediticio_vehiculo(self.vehicle)
+        self.assertEqual((history['duenos'], history['refinanciamientos']), (1, 1))
+        other = self.env['res.partner'].create({'name': 'QA segundo titular'})
+        third = self.env['adt.comercial.cuentas'].create({'partner_id': other.id,
+            'vehiculo_id': self.vehicle.id, 'company_id': self.company.id, 'state': 'pagado'})
+        self.env['adt.comercial.cuotas'].create({'cuenta_id': third.id,
+            'company_id': self.company.id, 'name': '1', 'monto': 100,
+            'fecha_cronograma': fields.Date.today()})
+        history = self.service._historial_crediticio_vehiculo(self.vehicle)
+        self.assertEqual((history['duenos'], history['refinanciamientos']), (2, 1))
+        self.quota.name = 'Cuota R. - 1'
+        history = self.service._historial_crediticio_vehiculo(self.vehicle)
+        self.assertEqual(history['refinanciamientos'], 1)

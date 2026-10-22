@@ -738,6 +738,21 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     valor: 'Sin crédito', sub: 'Créalo con «Nuevo crédito»'});
             }
 
+            var historial = d.historial_crediticio;
+            if (historial && sec.cuentas) {
+                var disponible = historial.disponible;
+                add({tab: 'cuentas', icono: 'fa-refresh', titulo: 'Refinanciamientos',
+                    nivel: disponible ? (historial.refinanciamientos ? 'atencion' : 'neutral') : 'neutral',
+                    estado: disponible ? (historial.refinanciamientos ? 'Detectados' : 'Sin indicios') : 'Sin acceso',
+                    valor: disponible ? String(historial.refinanciamientos) : '—',
+                    sub: disponible ? 'Según el historial de cuotas' : 'Historial no disponible'});
+                add({tab: 'cuentas', icono: 'fa-users', titulo: 'Dueños / titulares',
+                    nivel: disponible && historial.duenos > 1 ? 'atencion' : 'neutral',
+                    estado: disponible ? 'Registrados' : 'Sin acceso',
+                    valor: disponible ? String(historial.duenos) : '—',
+                    sub: disponible ? 'Clientes distintos en los créditos' : 'Historial no disponible'});
+            }
+
             var exp = sec.expediente;
             if (exp) {
                 var e = exp.expedientes && exp.expedientes[0];
