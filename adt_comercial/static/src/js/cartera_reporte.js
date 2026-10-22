@@ -100,6 +100,8 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             'click [data-action="toggle-meses"]': '_onToggleMeses',
             'click [data-cuenta]': '_onCuenta',
             'input [data-ref="buscar"]': '_onBuscar',
+            'change [data-ref="cliente-recuperado"]': '_onClienteRecuperado',
+            'click [data-action="limpiar-recuperado"]': '_onLimpiarRecuperado',
         },
 
         init: function () {
@@ -108,6 +110,8 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             this.financieraId = null;
             this.filtro = 'todas';
             this.busqueda = '';
+            this.clienteRecuperado = null;  // clave del cliente elegido en el punto 4
+            this.textoRecuperado = '';
             this.sort = {key: 'saldo', dir: 1};
             this.pagina = 0;
             this.mesesAbierto = false;
@@ -131,8 +135,12 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
                 args: [],
             }).then(function (data) {
                 self.data = data;
-                data.cuentas.forEach(function (f) {
+                data.cuentas.concat(data.recuperadas).forEach(function (f) {
                     f._buscar = normalizar([f.cliente, f.documento, f.referencia, f.placa].join(' '));
+                });
+                data.recuperadas.forEach(function (f) {
+                    f._cliente = f.documento || f.cliente;
+                    f._etiqueta = f.cliente + (f.documento ? ' · ' + f.documento : '');
                 });
             });
         },
@@ -164,6 +172,18 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
                 if (self.filtro === 'contra') { return saldo(f) < 0; }
                 if (self.filtro === 'alertas') { return f.alertas.length > 0; }
                 return true;
+            });
+        },
+
+        // Motos recuperadas: solo se filtran por financiera, búsqueda y el cliente elegido en el punto 4
+        // (no tienen cliente que pague). Sin `porCliente` se devuelven las de todos los clientes.
+        _recuperadas: function (porCliente) {
+            var self = this;
+            var q = normalizar(this.busqueda);
+            return this.data.recuperadas.filter(function (f) {
+                if (self.financieraId !== null && f.financiera_id !== self.financieraId) { return false; }
+                if (porCliente && self.clienteRecuperado !== null && f._cliente !== self.clienteRecuperado) { return false; }
+                return !q || f._buscar.indexOf(q) !== -1;
             });
         },
 
@@ -277,14 +297,14 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
                 '<span>' + texto + '</span><b>' + (opts.resta ? '− ' : '') + this._money(cents) + '</b></div>';
         },
 
-        _pregunta: function (num, titulo, monto, explicacion, cuerpo, tono) {
+        _pregunta: function (num, titulo, monto, explicacion, cuerpo, tono, cabecera) {
             return '<section class="adt_cart__answer' + (tono ? ' is-' + tono : '') + '">' +
-                '<p class="adt_cart__answer-q"><span>' + num + '</span>' + esc(titulo) + '</p>' +
+                '<p class="adt_cart__answer-q"><span>' + num + '</span>' + esc(titulo) + '</p>' + (cabecera || '') +
                 '<p class="adt_cart__answer-big">' + this._money(monto) + '</p>' +
                 '<p class="adt_cart__answer-why">' + explicacion + '</p>' + cuerpo + '</section>';
         },
 
-        // Resumen para gerencia: tres preguntas en lenguaje simple + el resultado de los créditos.
+        // Resumen para gerencia: cuatro preguntas en lenguaje simple + el resultado de los créditos.
         _resumenHtml: function (v) {
             var self = this;
             var creditos = function (n) { return n + (n === 1 ? ' crédito' : ' créditos'); };
@@ -344,7 +364,61 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             var nota = excluidas.length ? '<p class="adt_cart__note adt_cart__note--warn">Solo se cuentan créditos en curso. ' +
                 'Atención: hay ' + excluidas.join(' y ') + ' que no están en estos totales.</p>' : '';
 
-            return '<div class="adt_cart__answers">' + deben + debemos + queda + '</div>' + resultado + nota;
+            return '<div class="adt_cart__answers">' + deben + debemos + queda + this._recuperadasHtml() + '</div>' +
+                resultado + nota;
+        },
+
+        // Motos recuperadas: el cliente dejó de pagar y se le retiró la moto, pero ADT sigue pagando
+        // la financiera para mantenerla al día. No entran en los totales de los créditos en curso.
+        _recuperadasHtml: function () {
+            var self = this;
+            var todas = this._recuperadas(false);
+            var filas = this._recuperadas(true);
+            var elegido = this.clienteRecuperado !== null && filas.length ? filas[0] : null;
+            var motos = function (n) { return n + (n === 1 ? ' moto' : ' motos'); };
+            var conPdf = filas.filter(function (f) { return f.para_liquidar !== null; });
+            var sinPdf = filas.filter(function (f) { return f.para_liquidar === null; });
+            var pendiente = sumar(filas, function (f) { return f.pendiente; });
+            var mensual = sumar(filas, function (f) { return f.cuota; });
+            var cancelarHoy = sumar(conPdf, function (f) { return f.para_liquidar; }) +
+                sumar(sinPdf, function (f) { return f.pendiente; });
+            var detalle = _.sortBy(filas, function (f) { return -f.pendiente; }).map(function (f) {
+                return '<li data-cuenta="' + f.id + '" title="' + esc(f.referencia + ' · ' + f.cliente) + '"><span>' +
+                    esc(f.placa || f.referencia) + ' · ' + esc(f.cliente) +
+                    '<small>' + f.cuotas_pendientes + (f.cuotas_pendientes === 1 ? ' cuota' : ' cuotas') +
+                    ' de ' + self._money(f.cuota) + ' · culmina ' + fecha(f.fin) + '</small></span>' +
+                    '<b>' + self._money(f.pendiente) + '</b></li>';
+            }).join('');
+            // Buscador de cliente: lista los clientes de las motos recuperadas visibles.
+            var clientes = _.uniq(_.sortBy(todas, '_etiqueta'), false, '_cliente');
+            var buscador = clientes.length ? '<div class="adt_cart__answer-search">' +
+                '<i class="fa fa-user" aria-hidden="true"></i>' +
+                '<input type="search" data-ref="cliente-recuperado" list="adt_cart_clientes_recuperados" autocomplete="off" ' +
+                    'aria-label="Seleccionar un cliente" placeholder="Seleccionar cliente (nombre o DNI)…" value="' +
+                    esc(elegido ? elegido._etiqueta : this.textoRecuperado) + '"/>' +
+                (this.clienteRecuperado !== null || this.textoRecuperado ?
+                    '<button type="button" data-action="limpiar-recuperado" title="Ver todos los clientes">×</button>' : '') +
+                '<datalist id="adt_cart_clientes_recuperados">' + clientes.map(function (f) {
+                    return '<option value="' + esc(f._etiqueta) + '"></option>';
+                }).join('') + '</datalist></div>' +
+                (this.textoRecuperado && this.clienteRecuperado === null ?
+                    '<p class="adt_cart__muted">Ningún cliente con moto recuperada coincide con "' + esc(this.textoRecuperado) + '".</p>' : '')
+                : '';
+            return this._pregunta(4, '¿Cuánto pagamos por motos recuperadas?', pendiente,
+                elegido ?
+                    'Lo que falta pagar a la financiera por ' + (filas.length === 1 ? 'la moto' : 'las ' + motos(filas.length)) +
+                        ' recuperada' + (filas.length === 1 ? '' : 's') + ' a <b>' + esc(elegido.cliente) + '</b>. El cliente ya no paga: lo cubre ADT.' :
+                filas.length ?
+                    'Lo que falta pagar a la financiera por ' + motos(filas.length) + ' que se retiraron al cliente y aún no tienen nuevo crédito. El cliente ya no paga: lo cubre ADT.' :
+                    'No hay motos recuperadas con cuotas pendientes con la financiera.',
+                filas.length ? (
+                    this._linea('Cada mes pagamos (próxima cuota de cada moto)', mensual) +
+                    this._linea('Si las cancelamos hoy', cancelarHoy) +
+                    (sinPdf.length ? '<p class="adt_cart__muted">' + motos(sinPdf.length) +
+                        ' sin cronograma PDF: se toman por el total de sus cuotas pendientes.</p>' : '') +
+                    '<ul class="adt_cart__answer-list">' + detalle + '</ul>' +
+                    '<p class="adt_cart__answer-foot">No está incluido en los puntos 1 a 3. Al colocar la moto con un nuevo cliente sale de aquí.</p>'
+                ) : '', filas.length ? 'loss' : '', buscador);
         },
 
         // Solo meses ya cerrados (el servidor no envía el mes en curso ni los futuros). Plegable.
@@ -498,6 +572,7 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
                 '<li><b>Para liquidar hoy</b>: capital pendiente del cronograma PDF + interés devengado desde el último vencimiento: capital · ((1 + TEA)^(días/360) − 1). Es la misma fórmula que usa la financiera en su cronograma. Confirmar con la financiera antes de pagar: puede cobrar cargos adicionales.</li>' +
                 '<li><b>Saldo a favor / en contra</b>: por cobrar − para liquidar. Si el crédito no tiene PDF, por cobrar − deuda nominal (marcado <sup>N</sup>).</li>' +
                 '<li><b>Ganancia del crédito</b>: total del cronograma del cliente − total de la financiera (pagado + pendiente). Las cuotas a la financiera anteriores a la primera del PDF se estiman con la cuota del PDF y se avisan como alerta.</li>' +
+                '<li><b>Motos recuperadas</b>: cuentas canceladas con vehículo recuperado cuya moto no tiene un nuevo crédito aprobado o en curso. Se suma lo que falta pagar a la financiera por cada moto (una vez por moto), aunque el cliente ya no pague.</li>' +
                 '<li><b>Precisión</b>: todos los montos se manejan en céntimos enteros con redondeo contable (HALF_UP); los totales son la suma exacta de las filas.</li>' +
                 '</ul></details>';
         },
@@ -556,6 +631,28 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             this.sort = {key: key, dir: this.sort.key === key ? -this.sort.dir : 1};
             this.pagina = 0;
             this._render();
+        },
+
+        // Elige el cliente por su etiqueta exacta (opción de la lista) o, si lo escrito
+        // coincide con un solo cliente, ese cliente.
+        _onClienteRecuperado: function (ev) {
+            var texto = ev.target.value.trim();
+            var q = normalizar(texto);
+            var todas = this._recuperadas(false);
+            var exacta = _.find(todas, function (f) { return normalizar(f._etiqueta) === q; });
+            var parciales = _.uniq(todas.filter(function (f) {
+                return q && (normalizar(f._etiqueta).indexOf(q) !== -1 || f._buscar.indexOf(q) !== -1);
+            }).map(function (f) { return f._cliente; }));
+            this.clienteRecuperado = !q ? null : exacta ? exacta._cliente : parciales.length === 1 ? parciales[0] : null;
+            this.textoRecuperado = this.clienteRecuperado === null ? texto : '';
+            this._render();
+        },
+
+        _onLimpiarRecuperado: function () {
+            this.clienteRecuperado = null;
+            this.textoRecuperado = '';
+            this._render();
+            this._ref('cliente-recuperado').focus();
         },
 
         _onBuscar: _.debounce(function (ev) {

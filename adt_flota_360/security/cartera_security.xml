@@ -1,0 +1,56 @@
+<odoo>
+    <record id="group_cobrador" model="res.groups">
+        <field name="name">Flota 360: Cobrador (solo su cartera)</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="cartera_company_rule" model="ir.rule">
+        <field name="name">Carteras: empresas permitidas</field><field name="model_id" ref="model_adt_flota360_cartera"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="cartera_linea_company_rule" model="ir.rule">
+        <field name="name">Gestiones: empresas permitidas</field><field name="model_id" ref="model_adt_flota360_cartera_linea"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="cartera_cuota_company_rule" model="ir.rule">
+        <field name="name">Objetivos: empresas permitidas</field><field name="model_id" ref="model_adt_flota360_cartera_cuota"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="cartera_user_rule" model="ir.rule">
+        <field name="name">Trabajador: sus carteras</field><field name="model_id" ref="model_adt_flota360_cartera"/>
+        <field name="groups" eval="[(4, ref('fleet.fleet_group_user')), (4, ref('adt_flota_360.group_cobrador'))]"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
+    <record id="cartera_linea_user_rule" model="ir.rule">
+        <field name="name">Trabajador: sus gestiones</field><field name="model_id" ref="model_adt_flota360_cartera_linea"/>
+        <field name="groups" eval="[(4, ref('fleet.fleet_group_user')), (4, ref('adt_flota_360.group_cobrador'))]"/>
+        <field name="domain_force">[('cartera_id.user_id', '=', user.id)]</field>
+    </record>
+    <record id="cartera_cuota_user_rule" model="ir.rule">
+        <field name="name">Trabajador: sus objetivos</field><field name="model_id" ref="model_adt_flota360_cartera_cuota"/>
+        <field name="groups" eval="[(4, ref('fleet.fleet_group_user')), (4, ref('adt_flota_360.group_cobrador'))]"/>
+        <field name="domain_force">[('linea_id.cartera_id.user_id', '=', user.id)]</field>
+    </record>
+    <record id="cartera_manager_rule" model="ir.rule">
+        <field name="name">Gerencia: todas las carteras</field><field name="model_id" ref="model_adt_flota360_cartera"/>
+        <field name="groups" eval="[(4, ref('adt_comercial.group_access_adt_comercial_gerencia'))]"/><field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="cartera_linea_manager_rule" model="ir.rule">
+        <field name="name">Gerencia: todas las gestiones</field><field name="model_id" ref="model_adt_flota360_cartera_linea"/>
+        <field name="groups" eval="[(4, ref('adt_comercial.group_access_adt_comercial_gerencia'))]"/><field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="cartera_cuota_manager_rule" model="ir.rule">
+        <field name="name">Gerencia: todos los objetivos</field><field name="model_id" ref="model_adt_flota360_cartera_cuota"/>
+        <field name="groups" eval="[(4, ref('adt_comercial.group_access_adt_comercial_gerencia'))]"/><field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <!-- Global rules prevent other group rules from widening a collector's account scope. -->
+    <record id="cobrador_cuentas_rule" model="ir.rule">
+        <field name="name">Cobrador: cuentas de su cartera</field>
+        <field name="model_id" ref="adt_comercial.model_adt_comercial_cuentas"/>
+        <field name="domain_force">[('cartera_gestion_ids.cartera_id.user_id', '=', user.id), ('company_id', 'in', company_ids)] if user.has_group('adt_flota_360.group_cobrador') and not user.has_group('adt_comercial.group_access_adt_comercial_gerencia') else [(1, '=', 1)]</field>
+    </record>
+    <record id="cobrador_cuotas_rule" model="ir.rule">
+        <field name="name">Cobrador: cuotas de sus cuentas</field>
+        <field name="model_id" ref="adt_comercial.model_adt_comercial_cuotas"/>
+        <field name="domain_force">[('cuenta_id.cartera_gestion_ids.cartera_id.user_id', '=', user.id), ('company_id', 'in', company_ids)] if user.has_group('adt_flota_360.group_cobrador') and not user.has_group('adt_comercial.group_access_adt_comercial_gerencia') else [(1, '=', 1)]</field>
+    </record>
+</odoo>

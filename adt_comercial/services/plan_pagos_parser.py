@@ -56,6 +56,12 @@ HEADER_LABELS = [
     ('ANALISTA', 'analista'),
 ]
 
+# Campos de cabecera que pueden faltar en el PDF: se usa este valor por defecto
+# en lugar de rechazar el documento.
+HEADER_DEFAULTS = {
+    'nro_solicitud': '0',
+}
+
 # Columnas numéricas de la tabla de cuotas, en el orden del PDF
 CUOTA_COLUMNS = [
     'capital', 'interes', 'seguro_desgravamen', 'comision_operativa',
@@ -170,6 +176,9 @@ def _parse_header(text):
         raw.setdefault(m.group(1), value)
 
     header = {key: raw.get(label) for label, key in HEADER_LABELS}
+    for key, default in HEADER_DEFAULTS.items():
+        if not header.get(key):
+            header[key] = default
 
     missing = [k for _, k in HEADER_LABELS if not header.get(k)]
     if missing:

@@ -1,6 +1,6 @@
 {
     'name': 'ADT Expedientes',
-    'version': '15.0.4.1.0',
+    'version': '15.0.4.2.0',
     'category': 'Operations/Security',
     'summary': 'Gestión de expedientes con sistema de seguridad móvil y notificaciones push',
     'description': '''

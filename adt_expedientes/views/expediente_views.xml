@@ -407,7 +407,9 @@
                     <button string="Marcar incompleto - Fase Final" name="action_mark_incompleto_fase_final" type="object" class="btn-warning"/>
                     <button string="Marcar Completo" name="action_mark_completo" type="object" class="btn-success"/>
                     <button string="Aprobado sin desembolso" name="action_mark_aprobado_sin_desembolso" type="object" class="btn-info"/>
-                    <button string="Generar PDF" name="action_print_expediente_pdf" type="object" class="btn-secondary"/>
+                    <!-- Sin PDF generado cuando el expediente vino en un solo archivo: se descarga ese archivo. -->
+                    <button string="Generar PDF" name="action_print_expediente_pdf" type="object" class="btn-secondary"
+                            attrs="{'invisible': [('requisitos_cubiertos', '=', True)]}"/>
 
                     <field name="state" widget="statusbar"
                            statusbar_visible="por_revisar,incompleto_expediente,incompleto_fase_final,completo,aprobado_sin_desembolso,rechazado"/>
@@ -432,6 +434,35 @@
 
                     <group>
                         <field name="vehiculo"/>
+                    </group>
+
+                    <separator string="EXPEDIENTE EN UN SOLO ARCHIVO (OPCIONAL)"/>
+
+                    <!-- Alternativa a cargar cada foto: un PDF o Word con todo el expediente. -->
+                    <field name="requisitos_cubiertos" invisible="1"/>
+                    <div class="alert alert-info" role="status" attrs="{'invisible': [('archivo_consolidado', '!=', False)]}">
+                        Si el cliente entregó todo el expediente en un solo PDF o Word, súbelo aquí: los requisitos
+                        se darán por completos sin cargar cada documento por separado.
+                    </div>
+                    <div class="alert alert-success" role="status" attrs="{'invisible': [('requisitos_cubiertos', '=', False)]}">
+                        <strong>Requisitos cubiertos por el archivo único.</strong>
+                        No es necesario cargar cada documento por separado.
+                    </div>
+                    <div class="alert alert-danger" role="alert" attrs="{'invisible': ['|', ('archivo_consolidado', '=', False), ('estado_archivo_consolidado', '!=', 'rechazado')]}">
+                        <strong>Archivo único rechazado:</strong> los requisitos vuelven a exigirse por separado.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="archivo_consolidado_nombre" invisible="1"/>
+                            <field name="archivo_consolidado" filename="archivo_consolidado_nombre" widget="binary"/>
+                            <field name="archivo_consolidado_fecha" attrs="{'invisible': [('archivo_consolidado', '=', False)]}"/>
+                            <field name="archivo_consolidado_usuario_id" attrs="{'invisible': [('archivo_consolidado', '=', False)]}"/>
+                        </group>
+                        <group attrs="{'invisible': [('archivo_consolidado', '=', False)]}">
+                            <field name="estado_archivo_consolidado" string="Revisión"/>
+                            <field name="obs_archivo_consolidado" placeholder="Motivo del rechazo..." nolabel="1" colspan="2"
+                                   attrs="{'invisible': [('estado_archivo_consolidado', '!=', 'rechazado')]}"/>
+                        </group>
                     </group>
 
                     <separator string="REQUISITOS DEL EXPEDIENTE"/>

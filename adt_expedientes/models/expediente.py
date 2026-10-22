@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
+import base64
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -385,6 +386,83 @@ class AdtExpediente(models.Model):
     ], string='Parentesco del beneficiario')
 
     # ======================
+    # EXPEDIENTE EN UN SOLO ARCHIVO
+    # ======================
+    # Alternativa a cargar cada foto: un PDF o Word con todo el expediente.
+    # Mientras esté cargado y no rechazado, los requisitos del formulario se
+    # consideran completos (ver `requisitos_cubiertos`). No cambia el estado:
+    # el expediente sigue pasando por la revisión habitual.
+
+    archivo_consolidado = fields.Binary(attachment=True, string='Expediente en un solo archivo',
+                                        help='PDF o Word con todos los documentos del expediente.')
+    archivo_consolidado_nombre = fields.Char(string='Nombre del archivo')
+    estado_archivo_consolidado = fields.Selection([
+        ('aceptado', 'Aceptado'),
+        ('rechazado', 'Rechazado')
+    ], default='aceptado')
+    obs_archivo_consolidado = fields.Text(string='Observaciones del archivo')
+    archivo_consolidado_fecha = fields.Datetime(string='Archivo cargado el', readonly=True, copy=False)
+    archivo_consolidado_usuario_id = fields.Many2one('res.users', string='Archivo cargado por', readonly=True, copy=False)
+    requisitos_cubiertos = fields.Boolean(
+        string='Requisitos cubiertos por archivo', compute='_compute_requisitos_cubiertos', store=True,
+        help='El expediente se cargó en un solo archivo aceptado: no se exige cada documento por separado.')
+
+    # Firmas de los formatos admitidos (el contenido manda, no la extensión).
+    FIRMAS_ARCHIVO_CONSOLIDADO = (
+        (b'%PDF', 'PDF'),
+        (b'PK\x03\x04', 'Word (.docx)'),
+        (b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1', 'Word (.doc)'),
+    )
+
+    @api.depends('archivo_consolidado', 'estado_archivo_consolidado')
+    def _compute_requisitos_cubiertos(self):
+        for rec in self:
+            rec.requisitos_cubiertos = bool(rec.archivo_consolidado) and rec.estado_archivo_consolidado != 'rechazado'
+
+    @api.constrains('archivo_consolidado', 'archivo_consolidado_nombre')
+    def _check_archivo_consolidado(self):
+        for rec in self:
+            datos = rec.with_context(bin_size=False).archivo_consolidado
+            if not datos:
+                continue
+            cabecera = base64.b64decode(datos[:24])
+            if not any(cabecera.startswith(firma) for firma, _n in self.FIRMAS_ARCHIVO_CONSOLIDADO):
+                raise ValidationError('El expediente en un solo archivo debe ser PDF o Word (.doc / .docx).')
+            nombre = (rec.archivo_consolidado_nombre or '').lower()
+            # Un .docx es un ZIP: la extensión evita aceptar otros comprimidos.
+            if cabecera.startswith(b'PK') and nombre and not nombre.endswith('.docx'):
+                raise ValidationError('El archivo comprimido no es un documento Word (.docx).')
+
+    def _marcar_archivo_consolidado(self, vals):
+        if 'archivo_consolidado' not in vals:
+            return vals
+        vals = dict(vals)
+        if vals['archivo_consolidado']:
+            vals.update(archivo_consolidado_fecha=fields.Datetime.now(), archivo_consolidado_usuario_id=self.env.uid)
+            # Un archivo nuevo vuelve a revisión: se limpia un rechazo anterior.
+            vals.setdefault('estado_archivo_consolidado', 'aceptado')
+            vals.setdefault('obs_archivo_consolidado', False)
+        else:
+            vals.update(archivo_consolidado_fecha=False, archivo_consolidado_usuario_id=False,
+                        archivo_consolidado_nombre=False, estado_archivo_consolidado='aceptado',
+                        obs_archivo_consolidado=False)
+        return vals
+
+    def _check_pdf_generable(self):
+        """El PDF se arma con las fotos cargadas: no aplica si el expediente vino en un solo archivo."""
+        cubiertos = self.filtered('requisitos_cubiertos')
+        if cubiertos:
+            raise UserError('El expediente de %s se cargó en un solo archivo (PDF o Word): descarga ese archivo '
+                            'en lugar de generar el PDF.' % ', '.join(cubiertos.mapped('cliente_id.name')))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        return super().create([self._marcar_archivo_consolidado(v) for v in vals_list])
+
+    def write(self, vals):
+        return super().write(self._marcar_archivo_consolidado(vals))
+
+    # ======================
     # PUSH NOTIFICATIONS
     # ======================
 
@@ -650,6 +728,7 @@ class AdtExpediente(models.Model):
     def action_print_expediente_pdf(self):
         """Generate a PDF document with expediente data and attached images."""
         self.ensure_one()
+        self._check_pdf_generable()
         if not self.cliente_id:
             raise UserError('Debe seleccionar un cliente antes de generar el PDF.')
 

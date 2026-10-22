@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+cartera_user,cartera.user,model_adt_flota360_cartera,fleet.fleet_group_user,1,0,0,0
+cartera_manager,cartera.manager,model_adt_flota360_cartera,adt_comercial.group_access_adt_comercial_gerencia,1,1,1,0
+cartera_linea_user,cartera.linea.user,model_adt_flota360_cartera_linea,fleet.fleet_group_user,1,1,0,0
+cartera_linea_manager,cartera.linea.manager,model_adt_flota360_cartera_linea,adt_comercial.group_access_adt_comercial_gerencia,1,1,1,0
+cartera_cuota_user,cartera.cuota.user,model_adt_flota360_cartera_cuota,fleet.fleet_group_user,1,0,0,0
+cartera_cuota_manager,cartera.cuota.manager,model_adt_flota360_cartera_cuota,adt_comercial.group_access_adt_comercial_gerencia,1,0,1,0
+cartera_cobrador,cartera.cobrador,model_adt_flota360_cartera,adt_flota_360.group_cobrador,1,0,0,0
+cartera_linea_cobrador,cartera.linea.cobrador,model_adt_flota360_cartera_linea,adt_flota_360.group_cobrador,1,1,0,0
+cartera_cuota_cobrador,cartera.cuota.cobrador,model_adt_flota360_cartera_cuota,adt_flota_360.group_cobrador,1,0,0,0

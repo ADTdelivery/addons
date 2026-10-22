@@ -41,4 +41,16 @@
               sequence="10"
               groups="adt_comercial.group_access_adt_comercial_gerencia"/>
 
+    <record id="action_carteras" model="ir.actions.client">
+        <field name="name">Carteras de cobranza</field>
+        <field name="tag">adt_flota_360_carteras</field>
+    </record>
+    <menuitem id="menu_carteras" name="Carteras de cobranza" parent="menu_adt_flota_360_root"
+              action="action_carteras" sequence="11" groups="fleet.fleet_group_user"/>
+    <record id="action_mi_cartera" model="ir.actions.client">
+        <field name="name">Mi cartera</field>
+        <field name="tag">adt_flota_360_carteras</field>
+    </record>
+    <menuitem id="menu_mi_cartera_root" name="Mi cartera" action="action_mi_cartera"
+              sequence="8" groups="adt_flota_360.group_cobrador"/>
 </odoo>

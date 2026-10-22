@@ -6,6 +6,7 @@ el buscador responda rápido aun recorriendo toda la flota. Cada módulo es
 opcional: si su modelo no está instalado o el usuario no tiene acceso, su
 información simplemente no aparece.
 """
+import base64
 import logging
 import re
 from collections import defaultdict
@@ -15,6 +16,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 from odoo.osv import expression
 from odoo.tools import html2plaintext
+from odoo.tools.mimetypes import guess_mimetype
 
 _logger = logging.getLogger(__name__)
 
@@ -37,6 +39,9 @@ CUOTAS_CRITICAS = 3          # desde cuántas cuotas vencidas es crítico
 GPS_HORAS_SIN_SENAL = 24     # sin reporte del equipo por más de N horas
 CUOTAS_ABIERTAS = ('pendiente', 'a_cuenta', 'retrasado')
 CAPTURA_ACTIVA = ('capturado', 'disolucion_contrato')
+# Botones del formulario de la captura que la ficha puede ejecutar.
+CAPTURA_BOTONES = ('action_registrar_pago', 'action_liberar', 'action_retener', 'action_recolocar',
+                   'action_cancelar', 'action_ver_mantenimientos')
 TALLER_ABIERTO = ('pending', 'in_progress', 'blocked')
 # Estado del expediente → nivel del indicador.
 EXPEDIENTE_NIVEL = {
@@ -99,6 +104,16 @@ def accion_credito(label, icono, cuenta_id=False, primaria=False):
     return {'tipo': 'credito', 'cuenta_id': cuenta_id, 'label': label, 'icon': icono, 'primary': primaria}
 
 
+def frase(nivel, texto, detalle=''):
+    """Estado de una sección en una frase: nivel (ok/atencion/critico/info/neutral), texto y detalle."""
+    return {'nivel': nivel, 'texto': texto, 'detalle': detalle or ''}
+
+
+def cifra(etiqueta, valor, icono, sub='', nivel='', principal=False):
+    """Una cifra de la cabecera de una sección. `valor` ya formateado."""
+    return {'label': etiqueta, 'valor': valor, 'icon': icono, 'sub': sub or '', 'nivel': nivel or '', 'principal': principal}
+
+
 def accion_tab(tab, label, icono='fa-angle-right'):
     return {'tipo': 'tab', 'tab': tab, 'label': label, 'icon': icono}
 
@@ -127,7 +142,8 @@ class AdtFlota360(models.AbstractModel):
         return modelo in self.env and hasattr(self.env[modelo], metodo)
 
     def _etiqueta(self, Model, campo, valor):
-        if not valor or campo not in Model._fields:
+        # Solo los campos de selección tienen etiqueta; el resto (p. ej. un Char) se muestra tal cual.
+        if not valor or campo not in Model._fields or Model._fields[campo].type != 'selection':
             return valor or ''
         return dict(Model._fields[campo]._description_selection(self.env)).get(valor, valor)
 
@@ -282,12 +298,14 @@ class AdtFlota360(models.AbstractModel):
     # Cada _lote_* devuelve {vehicle_id: info} o None si el módulo no aplica.
 
     def _lote_clientes(self, filas, cuentas):
-        """Cliente = conductor del vehículo; si no tiene, el socio de su cuenta."""
+        """Cliente = conductor del vehículo; si no tiene, el socio de su cuenta abierta.
+        Una cuenta anulada o recuperada no deja cliente: solo queda en el historial."""
         pid_por_vehiculo = {}
         for f in filas:
             pid = self._id(f.get('driver_id'))
-            if not pid and cuentas and cuentas.get(f['id']):
-                pid = cuentas[f['id']]['partner_id']
+            cuenta = cuentas and cuentas.get(f['id'])
+            if not pid and cuenta and cuenta['state'] in ('borrador', 'aprobado', 'en_curso'):
+                pid = cuenta['partner_id']
             if pid:
                 pid_por_vehiculo[f['id']] = pid
         if not pid_por_vehiculo:
@@ -559,8 +577,10 @@ class AdtFlota360(models.AbstractModel):
         hoy = fields.Date.context_today(self)
         resumen = self._resumenes(vehiculo)[0]
 
-        secciones = [self._seccion_vehiculo(vehiculo), self._seccion_cliente(vehiculo, resumen['cliente'])]
-        for metodo in (self._seccion_cuentas, self._seccion_papeletas, self._seccion_gps,
+        secciones = [self._seccion_vehiculo(vehiculo), self._seccion_documentos(vehiculo),
+                     self._seccion_cliente(vehiculo, resumen['cliente'])]
+        for metodo in (self._seccion_cuentas, self._seccion_rentabilidad, self._seccion_financiera,
+                       self._seccion_papeletas, self._seccion_gps,
                        self._seccion_placa, self._seccion_capturas, self._seccion_taller,
                        self._seccion_expediente):
             try:
@@ -571,27 +591,8 @@ class AdtFlota360(models.AbstractModel):
                 secciones.append(seccion)
 
         resumen['secciones'] = secciones
-        resumen['acciones'] = self._acciones_rapidas(vehiculo, resumen['cliente'])
         resumen['recorrido'] = self._recorrido(vehiculo, resumen, {s['key']: s for s in secciones})
         return resumen
-
-    def _acciones_rapidas(self, v, cliente):
-        acciones = []
-        cuentas = self._lote_cuentas([v.id], fields.Date.context_today(self)) or {}
-        cuenta = cuentas.get(v.id)
-        if 'adt.comercial.cuentas' in self.env and not (cuenta and cuenta['state'] in ('borrador', 'aprobado', 'en_curso')):
-            acciones.append(accion_credito('Nueva cuenta y cronograma', 'fa-credit-card'))
-        if cliente and self._modelo('adt.expediente', 'cliente_id') is not None:
-            acciones.append(accion_form('expediente', 'Nuevo expediente', 'fa-folder-open-o',
-                                        params={'cliente_id': cliente['id']}))
-        if self._modelo('adt.papeleta', 'vehicle_id') is not None:
-            acciones.append(accion_form('papeleta', 'Registrar papeleta', 'fa-file-text-o'))
-        if cuenta and cuenta['state'] in ('en_curso', 'aprobado') and self._modelo('adt.captura.record', 'cuenta_id') is not None:
-            acciones.append(accion_form('captura', 'Registrar captura', 'fa-lock'))
-        if self._modelo('maintenance.work.order', 'vehicle_id') is not None:
-            acciones.append(accion_form('orden_taller', 'Orden de taller', 'fa-wrench',
-                                        params={'cliente_id': cliente and cliente['id']}))
-        return acciones
 
     # --- Recorrido del vehículo -------------------------------------------
     # Las etapas por las que pasa un vehículo financiado, en orden. Cada una
@@ -610,8 +611,8 @@ class AdtFlota360(models.AbstractModel):
         if cliente:
             paso('cliente', 'Cliente', 'ok', cliente['nombre'], 'cliente', detalle=cliente.get('documento') or '')
         else:
-            paso('cliente', 'Cliente', 'pendiente', 'Sin cliente asignado', 'vehiculo',
-                 accion_form('vehiculo', 'Asignar cliente', 'fa-user-plus'))
+            paso('cliente', 'Cliente', 'pendiente', 'Se asigna al crear el crédito', 'cuentas',
+                 accion_credito('Crear crédito', 'fa-credit-card'))
 
         # 2. Expediente
         if 'expediente' in secciones:
@@ -626,8 +627,9 @@ class AdtFlota360(models.AbstractModel):
                 e = exp[0]
                 av = e['avance']
                 paso('expediente', 'Expediente', e['nivel'], e['estado'], 'expediente',
-                     detalle='%s de %s documentos' % (av['completos'], av['requeridos']) +
-                             (' · %s rechazados' % av['rechazados'] if av['rechazados'] else ''))
+                     detalle='Documentos en un solo archivo' if av.get('cubierto') else
+                     '%s de %s documentos' % (av['completos'], av['requeridos']) +
+                     (' · %s rechazados' % av['rechazados'] if av['rechazados'] else ''))
 
         # 3. Crédito
         if 'cuentas' in secciones:
@@ -645,14 +647,14 @@ class AdtFlota360(models.AbstractModel):
                      detalle='%s de %s cuotas pagadas' % (vigente['cifras']['pagadas'], vigente['cifras']['total_cuotas']))
 
         # 4. Entrega y documentos del vehículo
-        docs = secciones.get('vehiculo', {}).get('documentos_vehiculo') or []
+        docs = secciones.get('documentos', {}).get('documentos_vehiculo') or []
         req = [d for d in docs if d['obligatorio']]
         listos = [d for d in req if d['estado'] == 'aceptado']
         entregado = bool(v.fecha_entrega) if 'fecha_entrega' in v._fields else False
         if req:
             faltan = [d['label'] for d in req if d['estado'] != 'aceptado']
             paso('documentos', 'Entrega y documentos', 'ok' if not faltan else ('atencion' if cliente else 'pendiente'),
-                 'Completos' if not faltan else '%s de %s cargados' % (len(listos), len(req)), 'vehiculo',
+                 'Completos' if not faltan else '%s de %s cargados' % (len(listos), len(req)), 'documentos',
                  detalle=('Entregado el %s' % v.fecha_entrega.strftime('%d/%m/%Y')) if entregado
                  else ('Falta: %s' % ', '.join(faltan) if faltan else ''))
 
@@ -684,58 +686,152 @@ class AdtFlota360(models.AbstractModel):
     def _seccion_vehiculo(self, v):
         g = lambda c: v[c] if c in v._fields else False
         acciones = [accion_form('vehiculo', 'Editar', 'fa-pencil')]
+        imprimir = []
         if self._metodo('fleet.vehicle', 'action_print_acta_vehicular'):
-            acciones.append(accion_metodo('fleet.vehicle', v.id, 'action_print_acta_vehicular', 'Acta vehicular', 'fa-print'))
+            imprimir.append(accion_metodo('fleet.vehicle', v.id, 'action_print_acta_vehicular', 'Acta de entrega vehicular', 'fa-print'))
         if self._metodo('fleet.vehicle', 'action_print_contrato_tvs'):
-            acciones.append(accion_metodo('fleet.vehicle', v.id, 'action_print_contrato_tvs', 'Contrato', 'fa-print'))
+            imprimir.append(accion_metodo('fleet.vehicle', v.id, 'action_print_contrato_tvs', 'Contrato TVS', 'fa-print'))
+        km = g('traccar_km_actual')
         return {
             'key': 'vehiculo', 'titulo': 'Vehículo', 'icon': 'fa-motorcycle',
-            'campos': self._campos(
-                self._campo('Placa', v.license_plate),
-                self._campo('Marca', v.brand_id.name if 'brand_id' in v._fields else False),
-                self._campo('Modelo', v.model_id.name),
-                self._campo('Año', g('model_year')),
-                self._campo('Color', g('color')),
-                self._campo('Chasis', v.vin_sn),
-                self._campo('Motor', g('x_motor_sn')),
-                self._campo('Estado', v.state_id.name),
-                self._campo('Fecha de entrega', g('fecha_entrega') and fields.Date.to_string(g('fecha_entrega'))),
-                self._campo('Kilometraje (GPS)', g('traccar_km_actual') and '%s km' % '{:,.0f}'.format(g('traccar_km_actual'))),
-            ),
-            'documentos_vehiculo': self._documentos_vehiculo(v),
-            'modelo': 'fleet.vehicle', 'res_id': v.id,
+            'encabezado': {
+                'titulo': ' '.join(filter(None, [v.brand_id.name if 'brand_id' in v._fields else '', v.model_id.name])) or 'Vehículo',
+                'ref': v.license_plate or 'Sin placa',
+                'chips': [x for x in (('fa-calendar', g('model_year') and str(g('model_year'))), ('fa-tint', g('color')),
+                                      ('fa-tag', v.state_id.name)) if x[1]],
+            },
+            'frase': frase('ok', 'Asignado a %s' % v.driver_id.name) if v.driver_id else frase('neutral', 'Sin titular asignado'),
+            'cifras': [
+                cifra('Kilometraje (GPS)', '%s km' % '{:,.0f}'.format(km) if km else '—', 'fa-tachometer', principal=True),
+                cifra('Fecha de entrega', g('fecha_entrega') and g('fecha_entrega').strftime('%d/%m/%Y') or '—', 'fa-handshake-o'),
+                cifra('Estado', v.state_id.name or '—', 'fa-tag'),
+            ],
+            'grupos': [{'titulo': t, 'campos': c} for t, c in (
+                ('Identificación', self._campos(self._campo('Placa', v.license_plate), self._campo('Chasis', v.vin_sn),
+                                                self._campo('Motor', g('x_motor_sn')))),
+                ('Modelo', self._campos(self._campo('Marca', v.brand_id.name if 'brand_id' in v._fields else False),
+                                        self._campo('Modelo', v.model_id.name), self._campo('Año', g('model_year')),
+                                        self._campo('Color', g('color')))),
+            ) if c],
             'acciones': acciones,
+            'menu': [{'titulo': 'Imprimir', 'acciones': imprimir}] if imprimir else [],
         }
 
+    def _seccion_documentos(self, v):
+        docs = self._documentos_vehiculo(v)
+        faltan = [d['label'] for d in docs if d['estado'] != 'aceptado' and d.get('obligatorio')]
+        return {
+            'key': 'documentos', 'titulo': 'Documentos del vehículo', 'icon': 'fa-file-text-o',
+            'frase': frase('atencion', 'Faltan %s' % plural(len(faltan), 'documento', 'documentos'), ', '.join(faltan))
+            if faltan else frase('ok', 'Documentos completos'),
+            'documentos_vehiculo': docs,
+            'modelo': 'fleet.vehicle', 'res_id': v.id,
+        }
+
+    def _historial_titulares(self, v):
+        """Titulares del vehículo (fleet.vehicle.assignation.log), del más reciente al más antiguo."""
+        Log = self._modelo('fleet.vehicle.assignation.log', 'vehicle_id', 'driver_id', 'date_start', 'date_end')
+        if Log is None:
+            return []
+        logs = Log.search([('vehicle_id', '=', v.id)])
+        logs = logs.sorted(lambda l: (l.date_start or fields.Date.to_date('1900-01-01'), l.id), reverse=True)
+        # Créditos de cada titular con esta moto y cómo están (en curso, anulada, recuperada…).
+        creditos = {}
+        Cuenta = self._modelo('adt.comercial.cuentas', 'vehiculo_id', 'partner_id', 'state')
+        if Cuenta is not None:
+            for c in Cuenta.search([('vehiculo_id', '=', v.id)], order='id desc'):
+                texto, nivel, _detalle = self._situacion_cuenta(c)
+                creditos.setdefault(c.partner_id.id, []).append(
+                    {'referencia': c.reference_no or c.display_name, 'texto': texto, 'nivel': nivel})
+        historial = [{
+            'id': l.driver_id.id,
+            'nombre': l.driver_id.display_name or '',
+            'documento': l.driver_id.vat or '',
+            'desde': l.date_start and fields.Date.to_string(l.date_start),
+            'hasta': l.date_end and fields.Date.to_string(l.date_end),
+            'actual': l.driver_id == v.driver_id and not l.date_end,
+            'creditos': creditos.get(l.driver_id.id, []),
+        } for l in logs]
+        # Vehículos cargados antes del historial: el titular actual aparece aunque no tenga registro.
+        if v.driver_id and not any(h['actual'] for h in historial):
+            historial.insert(0, {'id': v.driver_id.id, 'nombre': v.driver_id.display_name, 'documento': v.driver_id.vat or '',
+                                 'desde': False, 'hasta': False, 'actual': True,
+                                 'creditos': creditos.get(v.driver_id.id, [])})
+        return historial
+
     def _seccion_cliente(self, v, cliente):
+        # Acciones agrupadas por propósito: contactar y datos del cliente. El titular del
+        # vehículo no se cambia aquí: se asigna al crear su crédito (Crédito y cuotas).
+        historial = self._historial_titulares(v)
         if not cliente:
+            # Sin crédito vigente no hay cliente: solo el historial. El cliente se asigna en Crédito y cuotas.
             return {'key': 'cliente', 'titulo': 'Cliente', 'icon': 'fa-user',
-                    'vacio': 'Este vehículo no tiene cliente asignado.',
-                    'acciones': [accion_form('vehiculo', 'Asignar cliente', 'fa-user-plus', primaria=True)]}
+                    'vacio': 'Este vehículo no tiene cliente: se asigna al crear un crédito en Crédito y cuotas.',
+                    'historial': historial}
         partner = self.env['res.partner'].browse(cliente['id'])
-        acciones = [accion_form('cliente', 'Editar', 'fa-pencil', res_id=partner.id)]
+        contacto = []
         digitos = re.sub(r'\D', '', cliente['telefono'] or '')
         if len(digitos) == 9:
             digitos = '51' + digitos
         if len(digitos) >= 11:
-            acciones.append(accion_url('https://wa.me/%s' % digitos, 'WhatsApp', 'fa-whatsapp'))
+            contacto.append(accion_url('https://wa.me/%s' % digitos, 'WhatsApp', 'fa-whatsapp'))
         if cliente['telefono']:
-            acciones.append(accion_url('tel:%s' % cliente['telefono'], 'Llamar', 'fa-phone'))
+            contacto.append(accion_url('tel:%s' % cliente['telefono'], 'Llamar', 'fa-phone'))
+        if cliente.get('email'):
+            contacto.append(accion_url('mailto:%s' % cliente['email'], 'Correo', 'fa-envelope-o'))
+        actual = next((h for h in historial if h['actual']), None)
         return {
             'key': 'cliente', 'titulo': 'Cliente', 'icon': 'fa-user',
-            'campos': self._campos(
-                self._campo('Nombre', partner.name),
-                self._campo('Documento', partner.vat),
-                self._campo('Teléfono', cliente['telefono']),
-                self._campo('Correo', partner.email),
-                self._campo('Nacionalidad', self._etiqueta(partner, 'nationality', partner.nationality)
-                            if 'nationality' in partner._fields else False),
-                self._campo('Ocupación', self._etiqueta(partner, 'occupation', partner.occupation)
-                            if 'occupation' in partner._fields else False),
-                self._campo('Dirección', partner.contact_address and partner.contact_address.replace('\n', ', ').strip(', ')),
-            ),
-            'acciones': acciones,
+            'perfil': {
+                'nombre': partner.display_name,
+                'empresa': partner.is_company,
+                'documento': cliente['documento'],
+                'tipo_documento': partner.l10n_latam_identification_type_id.name
+                if 'l10n_latam_identification_type_id' in partner._fields else '',
+                'telefono': cliente['telefono'],
+                'email': cliente.get('email') or '',
+                'titular': bool(v.driver_id == partner),
+                'desde': actual and actual['desde'],
+            },
+            'grupos': [{'titulo': t, 'campos': c} for t, c in self._grupos_cliente(partner) if c],
+            'historial': historial,
+            'contacto': contacto,
+            'editar': accion_form('cliente', 'Editar datos', 'fa-pencil', res_id=partner.id),
         }
+
+    # Campos del contacto (res.partner) por grupo, en el orden del formulario de Contactos.
+    # Los que no existen en la base (módulo no instalado) se omiten.
+    CLIENTE_GRUPOS = [
+        ('Identificación', ['name', 'company_type', 'l10n_latam_identification_type_id', 'vat', 'document_number']),
+        ('Datos personales', ['nationality', 'marital_status', 'children_count', 'occupation']),
+        ('Contacto', ['mobile', 'phone', 'email']),
+        # De lo general a lo particular: cada lista se filtra por la anterior.
+        ('Dirección', ['country_id', 'state_id', 'city_id', 'city', 'l10n_pe_district', 'street', 'street2', 'zip']),
+    ]
+    CLIENTE_ETIQUETAS = {'name': 'Nombre', 'vat': 'N° de documento', 'mobile': 'Celular', 'phone': 'Teléfono',
+                         'email': 'Correo', 'street': 'Dirección', 'street2': 'Referencia',
+                         'l10n_latam_identification_type_id': 'Tipo de documento', 'country_id': 'País',
+                         'state_id': 'Departamento', 'city_id': 'Provincia', 'l10n_pe_district': 'Distrito'}
+
+    def _texto_campo(self, rec, nombre):
+        campo = rec._fields[nombre]
+        valor = rec[nombre]
+        if campo.type == 'many2one':
+            return valor.display_name or ''
+        if campo.type == 'selection':
+            return self._etiqueta(rec, nombre, valor)
+        return valor or ''
+
+    def _grupos_cliente(self, partner):
+        grupos = []
+        for titulo, nombres in self.CLIENTE_GRUPOS:
+            # city (texto) solo si no hay ciudad de la localización peruana.
+            if 'city_id' in partner._fields and partner.city_id:
+                nombres = [n for n in nombres if n != 'city']
+            campos = [self._campo(self.CLIENTE_ETIQUETAS.get(n) or partner._fields[n].string, self._texto_campo(partner, n))
+                      for n in nombres if n in partner._fields]
+            grupos.append((titulo, self._campos(*campos)))
+        return grupos
 
     # --- Deuda (adt_comercial) --------------------------------------------
     # Las operaciones replican las condiciones de visibilidad de los botones
@@ -800,47 +896,181 @@ class AdtFlota360(models.AbstractModel):
         return principal, mas
 
     def _acciones_cuenta(self, c):
+        """(principal, grupos del menú, documentos). A la vista solo lo diario; el resto en grupos con
+        título y lo que no se deshace al final ("Cerrar la cuenta"). Los documentos van en la
+        pestaña «Detalle del crédito», no en el menú."""
         M = 'adt.comercial.cuentas'
         user = self.env.user
-        principal, mas = [], []
+        principal = []
+        cobranza, cronograma, documentos, cierre = [], [], [], []
         if c.state == 'borrador':
             principal.append(accion_credito('Revisar cronograma', 'fa-calendar', c.id))
         if c.state == 'borrador' and self._metodo(M, 'aprobar_cuenta'):
             principal.append(accion_metodo(M, c.id, 'aprobar_cuenta', 'Aprobar cuenta', 'fa-check', primaria=True,
                                            confirmar='¿Aprobar la cuenta? Se generará el cronograma de cuotas.'))
-        if c.state == 'en_curso' and self._metodo(M, 'action_cancelar_credito'):
-            principal.append(accion_metodo(M, c.id, 'action_cancelar_credito', 'Pago en cascada / cancelar',
-                                           'fa-money', primaria=True))
-        if c.state == 'en_curso' and self._metodo(M, 'refinanciar_cuotas'):
-            principal.append(accion_metodo(M, c.id, 'refinanciar_cuotas', 'Refinanciar', 'fa-refresh'))
+        imprimir = self.env.ref('adt_comercial.reporte_cronograma', raise_if_not_found=False) and \
+            accion_metodo('adt.flota360', c.id, 'imprimir_cronograma', 'Cronograma', 'fa-print', args=[c.id])
+        if imprimir and c.state != 'borrador':
+            principal.append(imprimir)
 
-        if self.env.ref('adt_comercial.reporte_cronograma', raise_if_not_found=False):
-            mas.append(accion_metodo('adt.flota360', c.id, 'imprimir_cronograma', 'Imprimir cronograma', 'fa-print',
-                                     args=[c.id]))
-        if self._metodo(M, 'action_ver_contrato'):
-            mas.append(accion_metodo(M, c.id, 'action_ver_contrato', 'Contrato', 'fa-file-pdf-o'))
         if c.state not in ('borrador', 'cancelado') and self._metodo(M, 'agregar_mora'):
-            mas.append(accion_metodo(M, c.id, 'agregar_mora', 'Agregar cuota / cargo', 'fa-plus'))
+            cobranza.append(accion_metodo(M, c.id, 'agregar_mora', 'Agregar cuota o cargo', 'fa-plus'))
+        if c.state == 'en_curso' and self._metodo(M, 'refinanciar_cuotas'):
+            cronograma.append(accion_metodo(M, c.id, 'refinanciar_cuotas', 'Refinanciar', 'fa-refresh'))
         if c.state != 'cancelado' and self._metodo(M, 'action_cronograma_tramos'):
-            mas.append(accion_metodo(M, c.id, 'action_cronograma_tramos', 'Cronograma por tramos', 'fa-calendar'))
-        mas.append(accion_abrir(M, c.id, 'Abrir cuenta'))
+            cronograma.append(accion_metodo(M, c.id, 'action_cronograma_tramos', 'Cronograma por tramos', 'fa-calendar'))
+        if imprimir and c.state == 'borrador':
+            cronograma.append(imprimir)
+        if self._metodo(M, 'action_ver_contrato'):
+            documentos.append(dict(accion_metodo(M, c.id, 'action_ver_contrato', 'Contrato', 'fa-file-pdf-o'),
+                                   descripcion='Contrato del crédito firmado con el cliente.'))
+        if imprimir:
+            documentos.append(dict(imprimir, label='Cronograma de pagos',
+                                   descripcion='PDF con las cuotas que paga el cliente a ADT.'))
+        documentos.append(dict(accion_abrir(M, c.id, 'Ver en Odoo', 'fa-external-link'),
+                               descripcion='Abre la cuenta en el formulario de Odoo.'))
         if c.state == 'en_curso' and user.has_group('adt_comercial.group_access_adt_comercial_recuperar'):
-            mas.append(accion_metodo(M, c.id, 'recuperar_vehiculo', 'Recuperar vehículo', 'fa-undo', peligro=True,
-                                     confirmar='¿Recuperar el vehículo? La cuenta pasará a Cancelado.'))
+            cierre.append(accion_metodo(M, c.id, 'recuperar_vehiculo', 'Recuperar vehículo', 'fa-undo', peligro=True,
+                                        confirmar='¿Recuperar el vehículo? La cuenta pasará a Cancelado y el cliente dejará de ser el titular.'))
         if c.state == 'cancelado' and user.has_group('adt_comercial.group_access_adt_comercial_restablecer'):
-            mas.append(accion_metodo(M, c.id, 'restablecer_vehiculo', 'Restablecer cuenta', 'fa-repeat',
-                                     confirmar='¿Restablecer la cuenta a En curso?'))
+            cierre.append(accion_metodo(M, c.id, 'restablecer_vehiculo', 'Restablecer cuenta', 'fa-repeat',
+                                        confirmar='¿Restablecer la cuenta a En curso? El cliente volverá a ser el titular.'))
         if c.state not in ('borrador', 'cancelado') and self._metodo(M, 'cancelar_cuenta'):
-            mas.append(accion_metodo(M, c.id, 'cancelar_cuenta', 'Anular cuenta', 'fa-ban', peligro=True,
-                                     confirmar='¿Anular la cuenta? Se marcará como Cancelada y el vehículo quedará disponible.'))
-        return principal, mas
+            cierre.append(accion_metodo(M, c.id, 'cancelar_cuenta', 'Anular cuenta', 'fa-ban', peligro=True,
+                                        confirmar='¿Anular la cuenta? Se marcará como Cancelada, el vehículo quedará disponible y el cliente dejará de ser el titular.'))
+        grupos = [{'titulo': t, 'acciones': a} for t, a in (
+            ('Cobranza', cobranza), ('Cronograma', cronograma), ('Cerrar la cuenta', cierre)) if a]
+        return principal, grupos, documentos
+
+    def _opciones_cobro(self, c, filas):
+        """Lo que se puede cobrar en la cuenta, para el botón único "Cobrar"."""
+        if c.state != 'en_curso':
+            return []
+        M = 'adt.comercial.cuotas'
+        opciones = []
+        abierta = next((f for f in filas if f['grupo'] in ('vencida', 'a_cuenta', 'por_vencer') and f['saldo'] > 0), None)
+        if abierta and self._metodo(M, 'action_register_payment'):
+            vencida = abierta['grupo'] == 'vencida'
+            opciones.append(dict(
+                accion_metodo(M, abierta['id'], 'action_register_payment',
+                              'Pagar %s' % abierta['nombre'], 'fa-money'),
+                descripcion='%s · %s %s' % (
+                    self._soles(abierta['saldo']), 'venció el' if vencida else 'vence el',
+                    fields.Date.to_date(abierta['fecha']).strftime('%d/%m/%Y') if abierta['fecha'] else '—'),
+                sugerida=True))
+        if self._metodo('adt.comercial.cuentas', 'action_cancelar_credito'):
+            opciones.append(dict(
+                accion_metodo('adt.comercial.cuentas', c.id, 'action_cancelar_credito',
+                              'Varias cuotas o cancelar el crédito', 'fa-sort-amount-asc'),
+                descripcion='Pago en cascada desde la cuota más antigua, o todo el saldo de una vez.'))
+        mora = next((f for f in filas if f['mora_registrada'] > 0), None)
+        if mora and self._metodo(M, 'action_pagar_mora'):
+            opciones.append(dict(
+                accion_metodo(M, mora['id'], 'action_pagar_mora', 'Pagar mora de %s' % mora['nombre'], 'fa-money'),
+                descripcion='%s de mora registrada pendiente.' % self._soles(mora['mora_registrada'])))
+        return opciones
+
+    # --- Financiera del vehículo -------------------------------------------
+    # El plan de pagos de la financiera es de la moto (se financia una vez): se sube aquí y
+    # todas sus cuentas lo muestran. En los reportes lo lleva una sola cuenta (la vigente).
+
+    def _seccion_financiera(self, v, hoy):
+        if 'cf_pdf' not in v._fields:
+            return None
+        d = lambda x: fields.Date.to_string(x) if x else ''
+        adjunto = self.env['ir.attachment'].sudo().search([
+            ('res_model', '=', v._name), ('res_id', '=', v.id), ('res_field', '=', 'cf_pdf')], limit=1)
+        base = '/web/content/%s/%s/cf_pdf' % (v._name, v.id)
+        unico = (adjunto.checksum or '')[:8]
+        cuentas = v.cuenta_ids if 'cuenta_ids' in v._fields else self.env['adt.comercial.cuentas']
+        lleva = cuentas.filtered('fin_desde_vehiculo')[:1] if 'fin_desde_vehiculo' in cuentas._fields else cuentas[:1]
+        nombre = (lleva or cuentas.sorted('id', reverse=True))[:1].tipo_financiera_id.display_name \
+            if cuentas and 'tipo_financiera_id' in cuentas._fields else ''
+        cuotas = v.cf_cuota_ids.sorted(lambda q: (q.nro_cuota, q.id))
+        anteriores = max((v.cf_primera_cuota or 1) - 1, 0) if cuotas else 0
+        return {
+            'key': 'financiera', 'titulo': 'Financiera', 'icon': 'fa-university',
+            'vehicle_id': v.id,
+            'nombre': nombre or '',
+            'cuenta': lleva and (lleva.reference_no or lleva.display_name) or '',
+            'pdf': {
+                'cargado': bool(adjunto),
+                'nombre': v.cf_pdf_nombre or 'Plan de pagos.pdf',
+                'url': '%s?unique=%s' % (base, unico),
+                'descarga': '%s?download=true&unique=%s' % (base, unico),
+                'fecha': fields.Datetime.to_string(adjunto.write_date or adjunto.create_date) if adjunto else '',
+            },
+            'lectura': {
+                'estado': v.cf_estado or '',
+                'texto': self._etiqueta(v, 'cf_estado', v.cf_estado) if v.cf_estado else '',
+                'confianza': v.cf_confianza or 0.0,
+            },
+            'total_plan': v.cf_total_plan() if cuotas else 0.0,
+            'anteriores': anteriores,
+            'datos': self._campos(
+                self._campo('N° de solicitud', v.cf_nro_solicitud),
+                self._campo('Socio en el PDF', ' · '.join(filter(None, [v.cf_socio, v.cf_dni]))),
+                self._campo('Monto del crédito', v.cf_monto_credito and self._soles(v.cf_monto_credito)),
+                self._campo('Cuota', v.cf_monto_cuota and self._soles(v.cf_monto_cuota)),
+                self._campo('Frecuencia', v.cf_frecuencia_cuota),
+                self._campo('Desembolso', v.cf_fecha_desembolso and v.cf_fecha_desembolso.strftime('%d/%m/%Y')),
+                self._campo('Próximo vencimiento', v.cf_proximo_vencimiento and v.cf_proximo_vencimiento.strftime('%d/%m/%Y')),
+                self._campo('Capital pendiente', v.cf_capital_pendiente and self._soles(v.cf_capital_pendiente)),
+                self._campo('Total en el PDF', v.cf_total_pdf and self._soles(v.cf_total_pdf)),
+            ),
+            'cuotas': [{'nro': q.nro_cuota, 'fecha': d(q.fecha_vencimiento), 'capital': q.capital,
+                        'interes': q.interes, 'otros': (q.seguro_desgravamen + q.comision_operativa + q.interes_vencido +
+                                                       q.interes_moratorio + q.interes_compensatorio + q.aporte + q.otros),
+                        'total': q.total, 'estado': q.estado or ''} for q in cuotas],
+            'leer': accion_metodo(v._name, v.id, 'cf_leer_pdf', 'Volver a leer', 'fa-refresh') if adjunto else None,
+        }
+
+    def _fecha_cierre(self, c):
+        """Fecha en que la cuenta pasó a Cancelado/Pagado, según el seguimiento del estado en el chatter."""
+        for m in c.message_ids:  # del más reciente al más antiguo
+            try:
+                m.check_field_access_rights('read', ['tracking_value_ids'])
+                tracking = m.tracking_value_ids
+                tracking.check_access_rights('read')
+                tracking.check_access_rule('read')
+            except AccessError:
+                # El historial técnico puede estar restringido; no debe ocultar el crédito completo.
+                tracking = self.env['mail.tracking.value']
+            for t in tracking:
+                if t.field.name == 'state' and t.new_value_char in (
+                        self._etiqueta(c, 'state', 'cancelado'), self._etiqueta(c, 'state', 'pagado')):
+                    return fields.Date.to_string(m.date.date())
+        return False
+
+    def _situacion_cuenta(self, c):
+        """(texto, nivel, explicación) de cómo está o cómo terminó la cuenta, para la lista de cuentas."""
+        if c.state == 'cancelado' and c.recuperado:
+            return 'Recuperada', 'critico', 'Se retiró la moto al cliente'
+        if c.state == 'cancelado':
+            return 'Anulada', 'neutral', 'Cuenta anulada'
+        if c.state == 'pagado':
+            return 'Pagada', 'ok', 'Terminó de pagar'
+        if c.state == 'en_curso':
+            return 'En curso', 'info', ''
+        return self._etiqueta(c, 'state', c.state), 'neutral', ''
+
+    def _soles(self, monto):
+        return 'S/ {:,.2f}'.format(monto or 0.0)
 
     def _historial(self, record, limite=25):
         eventos = []
         for m in record.message_ids[:limite]:
             texto = html2plaintext(m.body or '').strip()
             cambios = []
-            for t in m.tracking_value_ids:
+            try:
+                m.check_field_access_rights('read', ['tracking_value_ids'])
+                tracking = m.tracking_value_ids
+                tracking.check_access_rights('read')
+                tracking.check_access_rule('read')
+            except AccessError:
+                # El historial técnico puede estar restringido; no debe ocultar el crédito completo.
+                tracking = self.env['mail.tracking.value']
+            for t in tracking:
                 antes = (t.get_old_display_value() or [''])[0]
                 despues = (t.get_new_display_value() or [''])[0]
                 cambios.append('%s: %s → %s' % (t.field_desc, antes or '—', despues or '—'))
@@ -944,10 +1174,79 @@ class AdtFlota360(models.AbstractModel):
             vencidas_n = sum(1 for f in filas if f['grupo'] == 'vencida')
             nivel = 'critico' if vencidas_n >= CUOTAS_CRITICAS else ('atencion' if vencidas_n or mora_total else (
                 'ok' if c.state in ('en_curso', 'aprobado', 'pagado') else 'neutral'))
-            principal, mas = self._acciones_cuenta(c)
+            principal, grupos_menu, documentos = self._acciones_cuenta(c)
+            vigente = c.state in ('borrador', 'aprobado', 'en_curso')
+            vencidas = [f for f in filas if f['grupo'] == 'vencida']
+
+            # Una frase con el estado de cobranza (reemplaza leer las cinco cifras).
+            if c.state == 'borrador':
+                frase = ('info', 'Borrador por aprobar', 'Revisa el cronograma y apruébalo para empezar a cobrar.')
+            elif vencidas:
+                mas_antigua = fields.Date.to_date(vencidas[0]['fecha'])
+                frase = ('critico' if vencidas_n >= CUOTAS_CRITICAS else 'atencion',
+                         'Atrasado %s' % plural(dias_atraso, 'día', 'días'),
+                         '%s, la más antigua del %s' % (plural(vencidas_n, 'cuota vencida', 'cuotas vencidas'),
+                                                        mas_antigua.strftime('%d/%m/%Y') if mas_antigua else '—'))
+            elif c.state == 'en_curso':
+                frase = ('ok', 'Al día', proxima and 'Próxima cuota el %s' % proxima.fecha_cronograma.strftime('%d/%m/%Y') or '')
+            elif c.state == 'pagado':
+                frase = ('ok', 'Crédito pagado', '')
+            elif c.state == 'cancelado':
+                frase = ('neutral', 'Vehículo recuperado' if c.recuperado else 'Cuenta cerrada',
+                         'Quedaron %s sin cobrar' % self._soles(capital) if capital > 0 else '')
+            else:
+                frase = ('neutral', self._etiqueta(c, 'state', c.state), '')
+
+            # Pendientes accionables, de lo más urgente a lo menos.
+            pendientes = []
+            if vigente:
+                for f in filas:
+                    if f['grupo'] == 'vencida':
+                        detalle = 'Venció el %s · %s' % (fields.Date.to_date(f['fecha']).strftime('%d/%m/%Y'),
+                                                          plural((hoy - fields.Date.to_date(f['fecha'])).days, 'día', 'días'))
+                        if f['mora']:
+                            detalle += ' · mora %s' % self._soles(f['mora'])
+                        pendientes.append({'tipo': 'vencida', 'nivel': 'critico', 'icon': 'fa-exclamation-triangle',
+                                           'titulo': '%s vencida · %s' % (f['nombre'], self._soles(f['saldo'])),
+                                           'detalle': detalle, 'cuota': f['id'],
+                                           'accion': f['acciones'][0] if f['acciones'] else None})
+                    elif f['grupo'] == 'a_cuenta':
+                        pendientes.append({'tipo': 'a_cuenta', 'nivel': 'atencion', 'icon': 'fa-adjust',
+                                           'titulo': '%s a cuenta · faltan %s' % (f['nombre'], self._soles(f['saldo'])),
+                                           'detalle': 'Pagó %s' % self._soles(f['pagado']), 'cuota': f['id'],
+                                           'accion': dict(f['acciones'][0], label='Completar') if f['acciones'] else None})
+
+            # Datos clave de la cuenta, cada uno con su etiqueta (cabecera de la cuenta).
+            condiciones = [{'icon': i, 'label': l, 'valor': val} for i, l, val in (
+                ('fa-university', 'Tipo de Financiera', 'tipo_financiera_id' in c._fields and c.tipo_financiera_id.display_name or ''),
+                ('fa-refresh', 'Periodo', self._etiqueta(c, 'periodicidad', c.periodicidad) if c.periodicidad else ''),
+                ('fa-calendar-check-o', 'Monto de cuota', c.monto_cuota and self._soles(c.monto_cuota) or ''),
+                ('fa-money', 'Fecha de desembolso', c.fecha_desembolso and c.fecha_desembolso.strftime('%d/%m/%Y') or ''),
+                ('fa-user-o', 'Vendedor', 'user_id' in c._fields and c.user_id.name or ''),
+            ) if val]
+            ultimo = pagos_cuenta[0]['fecha'] if pagos_cuenta else False
+            ficha = self._ficha_cuenta(c, cuotas_capital, filas, capital)
+            ficha['documentos'] = documentos
+            ficha['adjuntos'] = self._evidencias(c.attachment_ids) if 'attachment_ids' in c._fields else []
 
             resultado.append({
                 'id': c.id,
+                'vigente': vigente,
+                'titular': {
+                    'nombre': c.partner_id.name or '',
+                    'documento': c.partner_id.vat or '',
+                    'actual': bool(c.partner_id) and c.partner_id == v.driver_id,
+                },
+                'periodo': {
+                    'desde': fields.Date.to_string(c.fecha_desembolso) if c.fecha_desembolso else '',
+                    'hasta': '' if vigente else (self._fecha_cierre(c) or ultimo or ''),
+                },
+                'situacion': dict(zip(('texto', 'nivel', 'detalle'), self._situacion_cuenta(c))),
+                'frase': {'nivel': frase[0], 'texto': frase[1], 'detalle': frase[2]},
+                'condiciones': condiciones,
+                'ficha': ficha,
+                'pendientes': pendientes,
+                'cobrar': self._opciones_cobro(c, filas),
                 'referencia': c.reference_no or c.display_name,
                 'estado': self._etiqueta(c, 'state', c.state),
                 'state': c.state,
@@ -985,18 +1284,155 @@ class AdtFlota360(models.AbstractModel):
                 'reportes': [r for f in filas for r in f['reportes']],
                 'historial': self._historial(c),
                 'acciones': principal,
-                'mas': mas,
+                'menu': grupos_menu,
                 'recuperado': bool(c.recuperado),
                 'captura_prioridad': self._etiqueta(c, 'captura_prioridad', c.captura_prioridad)
                 if 'captura_prioridad' in c._fields else '',
             })
-        vigente = any(c['state'] in ('borrador', 'aprobado', 'en_curso') for c in resultado)
+        vigente = any(c['vigente'] for c in resultado)
+        avisos = []
+        for c in resultado:
+            if c['vigente'] and v.driver_id and not c['titular']['actual']:
+                avisos.append('La cuenta %s sigue a nombre de %s, que ya no es el titular del vehículo. '
+                              'Revisa si corresponde recuperarla o cancelarla.' % (c['referencia'], c['titular']['nombre']))
+        sin_cobrar = sum(c['cifras']['capital'] for c in resultado if c['state'] == 'cancelado')
         return {
             'key': 'cuentas', 'titulo': 'Crédito y cuotas', 'icon': 'fa-credit-card',
             'deuda': resultado,
+            'avisos': avisos,
+            'sin_cobrar_anteriores': sin_cobrar,
             'vacio': 'El vehículo no tiene cuentas registradas.',
-            'acciones': [] if vigente else [accion_credito('Nueva cuenta y cronograma', 'fa-plus', primaria=True)],
+            'acciones': [] if vigente else [accion_credito('Nuevo crédito', 'fa-plus', primaria=True)],
         }
+
+    def _ficha_cuenta(self, c, cuotas_capital, filas, capital):
+        """Pestaña «Detalle del crédito»: condiciones pactadas, montos, fechas y responsables."""
+        g = lambda n: c[n] if n in c._fields else False
+        d = lambda f: f.strftime('%d/%m/%Y') if f else ''
+        s = lambda m: self._soles(m) if m else ''
+        validas = cuotas_capital.filtered(lambda q: q.state != 'anulada' and q.fecha_cronograma)
+        fechas = sorted(validas.mapped('fecha_cronograma'))
+        numeradas = validas.filtered(lambda q: q.monto and (q.name or '') != 'Cuota 0')
+        pagado = sum(f['pagado'] for f in filas)
+        total = sum(validas.mapped('monto'))
+        # Mismos nombres y grupos que la pestaña «Crédito» de la cuenta en Comercial.
+        cierre = g('fecha_cierre')
+        grupos = [
+            ('Fechas', 'fa-calendar', [
+                self._campo('Fecha de desembolso', d(g('fecha_desembolso'))),
+                self._campo('Fecha de cierre', 'Día %s' % cierre if cierre else ''),
+                self._campo('Fecha de entrega', d(g('fecha_entrega'))),
+            ]),
+            ('Montos y cuotas', 'fa-money', [
+                self._campo('Valor total del vehículo', s(g('monto_total'))),
+                self._campo('Inicial', s(g('monto_inicial'))),
+                self._campo('Monto fraccionado', s(g('monto_fraccionado'))),
+                self._campo('Cuota de gracia', s(g('cuota_gracia'))),
+                self._campo('Fecha de gracia', d(g('fecha_gracia'))),
+                self._campo('Periodo', self._etiqueta(c, 'periodicidad', c.periodicidad) if c.periodicidad else ''),
+                self._campo('Total de cuotas', str(g('qty_cuotas') or len(numeradas) or '')),
+                self._campo('Monto de cuota', s(g('monto_cuota') or (numeradas[:1] and numeradas[0].monto))),
+            ]),
+            ('Cuenta', 'fa-id-card-o', [
+                self._campo('Referencia', c.reference_no or ''),
+                self._campo('Estado', self._etiqueta(c, 'state', c.state)),
+                self._campo('Socio', c.partner_id.display_name),
+                self._campo('Documento', c.partner_id.vat or ''),
+                self._campo('Tipo de Financiera', g('tipo_financiera_id') and c.tipo_financiera_id.display_name),
+                self._campo('Vendedor', g('user_id') and c.user_id.name),
+                self._campo('Asesor', self._etiqueta(c, 'asesor', c.asesor) if g('asesor') else ''),
+                self._campo('¿Paga Mora?', 'Sí' if g('is_available_pay_mora') else 'No'),
+            ]),
+            ('Cronograma generado', 'fa-list-ol', [
+                self._campo('Primera cuota', d(fechas and fechas[0])),
+                self._campo('Última cuota', d(fechas and fechas[-1])),
+                self._campo('Total del cronograma', s(total)),
+                self._campo('Pagado', self._soles(pagado)),
+                self._campo('Saldo por cobrar', self._soles(capital)),
+                self._campo('Registrada el', d(c.create_date)),
+            ]),
+        ]
+        return {
+            'grupos': [{'titulo': t, 'icon': i, 'campos': [x for x in campos if x]} for t, i, campos in grupos],
+            'avance': {'pagado': pagado, 'total': total,
+                       'pct': round(pagado * 100.0 / total) if total else 0},
+        }
+
+    # --- Rentabilidad del vehículo -----------------------------------------
+    # Una moto puede financiarse varias veces: cada crédito anulado o recuperado deja lo que su
+    # cliente pagó (inicial + cuotas + cargos + mora). Se suma todo lo recaudado y lo que falta
+    # cobrar al cliente actual (proyección), y se le resta lo que ADT paga a la financiera. El plan
+    # de la financiera es del vehículo (un préstamo por moto), aunque el PDF se cargue en una
+    # cuenta: cada préstamo (N° de solicitud) se cuenta una sola vez.
+
+    def _seccion_rentabilidad(self, v, hoy):
+        Cuenta = self._modelo('adt.comercial.cuentas', 'vehiculo_id')
+        if Cuenta is None:
+            return None
+        cuentas = Cuenta.search([('vehiculo_id', '=', v.id)])
+        if not cuentas:
+            return None
+        cuentas = cuentas.sorted(lambda c: (c.fecha_desembolso or c.create_date.date(), c.id))
+        filas = []
+        for orden, c in enumerate(cuentas, 1):
+            validas = c.cuota_ids.filtered(lambda q: q.state != 'anulada')
+            cuotas = validas.filtered(lambda q: q.type == 'cuota')
+            cargos = validas.filtered(lambda q: q.type != 'cuota')
+            cobrado = lambda qs: sum(max((q.monto or 0.0) - (q.saldo or 0.0), 0.0) for q in qs)
+            mora = sum((p.mora or 0.0) if p.mora_state == 'paid' else (p.mora_pagado or 0.0)
+                       for p in validas.mapped('payment_ids'))
+            # La inicial se paga al entregar la moto: cuenta como cobrada desde que la cuenta se aprueba.
+            iniciada = c.state != 'borrador'
+            inicial = c.monto_inicial or 0.0
+            cronograma = sum(cuotas.mapped('monto')) if cuotas else (c.monto_fraccionado or 0.0)
+            pactado = inicial + cronograma
+            recaudado = (inicial if iniciada else 0.0) + cobrado(cuotas) + cobrado(cargos) + mora
+            vigente = c.state in ('borrador', 'aprobado', 'en_curso')
+            por_cobrar = (pactado if not iniciada else sum(cuotas.mapped('saldo'))) if vigente else 0.0
+            texto, nivel, _detalle = self._situacion_cuenta(c)
+            filas.append({
+                'id': c.id,
+                'orden': orden,
+                'referencia': c.reference_no or c.display_name,
+                'titular': c.partner_id.display_name or '',
+                'documento': c.partner_id.vat or '',
+                'desde': fields.Date.to_string(c.fecha_desembolso) if c.fecha_desembolso else '',
+                'hasta': '' if vigente else (self._fecha_cierre(c) or ''),
+                'estado': texto, 'nivel': nivel, 'vigente': vigente,
+                'inicial': inicial, 'inicial_cobrada': inicial if iniciada else 0.0, 'cronograma': cronograma, 'pactado': pactado,
+                'cuotas_cobradas': cobrado(cuotas), 'cargos': cobrado(cargos) + mora,
+                'recaudado': recaudado, 'por_cobrar': por_cobrar, 'proyectado': recaudado + por_cobrar,
+                'pct': round(recaudado * 100.0 / pactado) if pactado else 0,
+            })
+        total = lambda k: sum(f[k] for f in filas)
+        planes = self._planes_financiera(v)
+        financiera = sum(p['total'] for p in planes)
+        return {
+            'key': 'rentabilidad', 'titulo': 'Rentabilidad', 'icon': 'fa-line-chart',
+            'creditos': filas,
+            'planes': planes,
+            'totales': {
+                'recaudado': total('recaudado'), 'por_cobrar': total('por_cobrar'), 'proyectado': total('proyectado'),
+                'pactado': total('pactado'), 'inicial': total('inicial'), 'cargos': total('cargos'),
+                'inicial_cobrada': total('inicial_cobrada'), 'cuotas_cobradas': total('cuotas_cobradas'),
+                'financiera': financiera, 'margen': total('proyectado') - financiera,
+                'clientes': len(set(cuentas.mapped('partner_id').ids)),
+            },
+        }
+
+    def _planes_financiera(self, v):
+        """Préstamo de la financiera por el vehículo (el plan de pagos cargado en la moto), contado
+        una vez. Total = plan completo: cuotas del PDF + las anteriores al PDF, estimadas."""
+        if 'cf_cuota_ids' not in v._fields or not (v.cf_cuota_ids or v.cf_total_pdf):
+            return []
+        cuentas = v.cuenta_ids if 'cuenta_ids' in v._fields else self.env['adt.comercial.cuentas']
+        lleva = cuentas.filtered('fin_desde_vehiculo')[:1] if 'fin_desde_vehiculo' in cuentas._fields else cuentas[:1]
+        return [{
+            'solicitud': v.cf_nro_solicitud or '',
+            'financiera': lleva.tipo_financiera_id.display_name if lleva and 'tipo_financiera_id' in lleva._fields else '',
+            'total': v.cf_total_plan(),
+            'anteriores': max((v.cf_primera_cuota or 1) - 1, 0) if v.cf_cuota_ids else 0,
+        }]
 
     def _reporte_app(self, r, cuota):
         """Pago informado desde la app (adt.comercial.cuotas.pendientes) por validar."""
@@ -1039,42 +1475,174 @@ class AdtFlota360(models.AbstractModel):
                                  default_communication=reporte.numero_operacion_cuota or cuota.name)
         return accion
 
+    def _evidencias(self, adjuntos):
+        """Adjuntos (ir.attachment) para la vista: miniatura si es imagen, enlace si no."""
+        evidencias = []
+        for a in adjuntos.sorted('id'):
+            unico = (a.checksum or '')[:8]
+            es_imagen = (a.mimetype or '').startswith('image/')
+            evidencias.append({
+                'id': a.id,
+                'nombre': a.name or '',
+                'imagen': es_imagen,
+                'mimetype': a.mimetype or '',
+                'fecha': fields.Datetime.to_string(a.create_date),
+                'miniatura': '/web/image/%s/320x240?unique=%s' % (a.id, unico) if es_imagen else '',
+                'url': '/web/content/%s?unique=%s' % (a.id, unico),
+                'descarga': '/web/content/%s?download=true&unique=%s' % (a.id, unico),
+            })
+        return evidencias
+
+    def _detalle_papeleta(self, p, hoy):
+        g = lambda c: p[c] if c in p._fields else False
+        pagada = p.state == 'pagado'
+        vencida = not pagada and p.fecha_vencimiento_final and p.fecha_vencimiento_final < hoy
+        nivel = 'ok' if pagada else ('critico' if vencida else 'atencion')
+        fraccionada = g('payment_method') == 'fraccionado'
+        cuotas = g('cuotas_ids') or p.browse()
+        pendientes = cuotas.filtered(lambda c: c.state == 'pendiente')
+
+        alertas = []
+        if not pagada and g('texto_alerta'):
+            alertas.append({'nivel': nivel, 'texto': p.texto_alerta})
+        if g('capturado') and not g('recolocada'):
+            alertas.append({'nivel': 'atencion', 'texto': 'El vehículo fue marcado como capturado: esta papeleta '
+                                                           'se deriva al área de captura.'})
+        if g('recolocada') and not pagada:
+            alertas.append({'nivel': 'critico', 'texto': 'El vehículo ya fue recolocado, pero la papeleta sigue '
+                                                         'pendiente de pago.'})
+
+        marcas = []
+        if fraccionada:
+            marcas.append({'texto': 'Fraccionada', 'nivel': 'info'})
+        if g('capturado'):
+            marcas.append({'texto': 'Capturado', 'nivel': 'critico'})
+        if g('recolocada'):
+            marcas.append({'texto': 'Recolocada', 'nivel': 'neutral'})
+
+        a_fecha = lambda d: fields.Date.to_string(d) if d else False
+        kpis = [
+            {'label': 'Monto', 'monto': p.monto},
+            {'label': 'Fecha', 'fecha': a_fecha(p.fecha_papeleta)},
+            {'label': 'Fecha de captura', 'fecha': a_fecha(g('fecha_captura'))},
+            {'label': 'Vence', 'fecha': a_fecha(p.fecha_vencimiento_final), 'nivel': False if pagada else nivel},
+        ]
+        if pagada:
+            kpis.append({'label': 'Pagada el', 'fecha': a_fecha(g('fecha_pago')), 'nivel': 'ok'})
+        elif p.fecha_vencimiento_final:
+            dias = (p.fecha_vencimiento_final - hoy).days
+            kpis.append({'label': 'Días para captura', 'texto': str(dias), 'nivel': nivel})
+
+        campos = self._campos(
+            self._campo('Modalidad de pago', self._etiqueta(p, 'payment_method', g('payment_method'))),
+            self._campo('Prórroga', plural(p.dias_prorroga or 0, 'día', 'días') if g('tiene_prorroga') else 'No'),
+            self._campo('Motivo de prórroga', g('tiene_prorroga') and g('motivo_prorroga')),
+            self._campo('Registrada', '%s · %s' % (p.create_uid.name, fields.Datetime.to_string(p.create_date)[:10])
+                        if p.create_uid else False),
+        )
+
+        M = 'adt.papeleta'
+        acciones, mas = [], []
+        if not pagada and not (fraccionada and pendientes) and self._metodo(M, 'action_mark_pagado'):
+            acciones.append(accion_metodo(M, p.id, 'action_mark_pagado', 'Marcar pagada', 'fa-check',
+                                          confirmar='¿Marcar la papeleta %s como pagada?' % p.name, primaria=True))
+        if not pagada:
+            # Una papeleta pagada ya no se puede modificar (adt_papeletas lo impide).
+            acciones.append(accion_form('papeleta', 'Editar', 'fa-pencil', res_id=p.id))
+            if fraccionada and g('cantidad_cuotas'):
+                mas.append(accion_metodo('adt.flota360', p.id, 'generar_cuotas_papeleta',
+                                         'Regenerar cuotas' if cuotas else 'Generar cuotas', 'fa-list-ol', args=[p.id],
+                                         confirmar='Se reemplazarán las %s cuotas actuales.' % len(cuotas) if cuotas else None))
+            if fraccionada and cuotas and self._metodo(M, 'action_eliminar_cuotas'):
+                mas.append(accion_metodo(M, p.id, 'action_eliminar_cuotas', 'Eliminar cuotas', 'fa-trash-o', peligro=True))
+            if not g('capturado') and self._metodo(M, 'action_mark_capturar'):
+                mas.append(accion_metodo(M, p.id, 'action_mark_capturar', 'Mandar a capturar', 'fa-lock', peligro=True,
+                                         confirmar='¿Mandar a capturar el vehículo por la papeleta %s?' % p.name))
+        if g('capturado') and self._metodo(M, 'action_unmark_capturar'):
+            mas.append(accion_metodo(M, p.id, 'action_unmark_capturar', 'Remover captura', 'fa-unlock',
+                                     confirmar='¿Quitar la marca de captura de la papeleta %s?' % p.name))
+        mas.append(accion_abrir(M, p.id, 'Formulario completo'))
+
+        detalle_cuotas = []
+        for c in cuotas.sorted(lambda c: (c.due_date or hoy, c.id)):
+            pagada_c = c.state == 'pagado'
+            vencida_c = not pagada_c and c.due_date and c.due_date < hoy
+            detalle_cuotas.append({
+                'nombre': c.name,
+                'fecha': a_fecha(c.due_date),
+                'monto': c.amount,
+                'estado': self._etiqueta(c, 'state', c.state),
+                'nivel': 'ok' if pagada_c else ('critico' if vencida_c else 'atencion'),
+                'accion': accion_metodo('adt.papeleta.cuota', c.id, 'action_mark_cuota_pagado', 'Pagar', 'fa-check',
+                                        confirmar='¿Marcar la %s de la papeleta %s como pagada?' % (c.name, p.name))
+                if not pagada_c and not pagada else None,
+            })
+
+        return {
+            'id': p.id,
+            'titulo': 'Papeleta %s' % p.name,
+            'badge': {'texto': 'Vencida' if vencida else self._etiqueta(p, 'state', p.state), 'nivel': nivel},
+            'marcas': marcas,
+            'alertas': alertas,
+            'kpis': kpis,
+            'campos': campos,
+            'detalle': (p.detalle or '').strip(),
+            'evidencias': self._evidencias(g('attachment_ids') or self.env['ir.attachment']),
+            'fraccionada': fraccionada,
+            'fraccionamiento': {
+                'cantidad': g('cantidad_cuotas') or 0,
+                'inicio': a_fecha(g('fecha_inicio_cuotas')),
+                'pagadas': len(cuotas) - len(pendientes),
+                'total': len(cuotas),
+                'saldo': sum(pendientes.mapped('amount')),
+                'cuotas': detalle_cuotas,
+                'evidencias': self._evidencias(g('attachment_cuotas_ids') or self.env['ir.attachment']),
+            } if fraccionada else None,
+            'historial': self._historial(p),
+            'editable': not pagada,
+            'acciones': acciones,
+            'mas': mas,
+        }
+
+    @api.model
+    def generar_cuotas_papeleta(self, papeleta_id):
+        """Genera las cuotas de una papeleta fraccionada sin abrir su formulario
+        (action_generar_cuotas devuelve una acción que reemplazaría la vista)."""
+        papeleta = self.env['adt.papeleta'].browse(papeleta_id).exists()
+        papeleta.action_generar_cuotas()
+        return True
+
     def _seccion_papeletas(self, v, hoy):
         Papeleta = self._modelo('adt.papeleta', 'vehicle_id')
         if Papeleta is None:
             return None
         papeletas = Papeleta.search([('vehicle_id', '=', v.id)])
         papeletas = papeletas.sorted(lambda p: (p.state == 'pagado', p.fecha_vencimiento_final or hoy))
-        items = []
-        for p in papeletas:
-            vencida = p.state != 'pagado' and p.fecha_vencimiento_final and p.fecha_vencimiento_final < hoy
-            if p.state == 'pagado':
-                nivel = 'ok'
-            elif vencida:
-                nivel = 'critico'
-            else:
-                nivel = 'atencion'
-            acciones = []
-            if p.state != 'pagado' and self._metodo('adt.papeleta', 'action_mark_pagado'):
-                acciones.append(accion_metodo('adt.papeleta', p.id, 'action_mark_pagado', 'Marcar pagada', 'fa-check',
-                                              confirmar='¿Marcar la papeleta %s como pagada?' % p.name, primaria=True))
-            acciones.append(accion_form('papeleta', 'Editar', 'fa-pencil', res_id=p.id))
-            items.append({
-                'titulo': 'Papeleta %s' % p.name,
-                'subtitulo': (p.detalle or '').strip()[:120],
-                'badge': {'texto': 'Vencida' if vencida else self._etiqueta(p, 'state', p.state), 'nivel': nivel},
-                'kpis': [
-                    {'label': 'Monto', 'monto': p.monto},
-                    {'label': 'Fecha', 'texto': fields.Date.to_string(p.fecha_papeleta) if p.fecha_papeleta else '—'},
-                    {'label': 'Vence', 'texto': fields.Date.to_string(p.fecha_vencimiento_final) if p.fecha_vencimiento_final else '—',
-                     'nivel': nivel if p.state != 'pagado' else False},
-                ],
-                'nota': p.texto_alerta if p.state != 'pagado' and 'texto_alerta' in p._fields else False,
-                'acciones': acciones,
-            })
+        pendientes = papeletas.filtered(lambda p: p.state != 'pagado')
+        vencidas = pendientes.filtered(lambda p: p.fecha_vencimiento_final and p.fecha_vencimiento_final < hoy)
+        proxima = pendientes.filtered('fecha_vencimiento_final').sorted('fecha_vencimiento_final')[:1]
+        if vencidas:
+            estado_pap = frase('critico', plural(len(vencidas), 'papeleta vencida', 'papeletas vencidas'), 'Riesgo de captura del vehículo')
+        elif pendientes:
+            estado_pap = frase('atencion', plural(len(pendientes), 'papeleta pendiente', 'papeletas pendientes'),
+                               proxima and 'La próxima vence el %s' % proxima.fecha_vencimiento_final.strftime('%d/%m/%Y') or '')
+        else:
+            estado_pap = frase('ok', 'Sin papeletas pendientes')
         return {
             'key': 'papeletas', 'titulo': 'Papeletas', 'icon': 'fa-file-text-o',
-            'items': items,
+            'frase': estado_pap,
+            'cifras': [
+                cifra('Por pagar', self._soles(sum(pendientes.mapped('monto'))), 'fa-money',
+                      plural(len(pendientes), 'pendiente', 'pendientes'), 'critico' if vencidas else '', principal=True),
+                cifra('Vencidas', str(len(vencidas)), 'fa-exclamation-triangle', nivel='critico' if vencidas else ''),
+                cifra('Pagadas', str(len(papeletas) - len(pendientes)), 'fa-check-circle'),
+            ] if papeletas else [],
+            'papeletas': [self._detalle_papeleta(p, hoy) for p in papeletas],
+            'kpis': [
+                {'label': 'Pendientes', 'texto': str(len(pendientes)), 'nivel': 'atencion' if pendientes else 'ok'},
+                {'label': 'Por pagar', 'monto': sum(pendientes.mapped('monto'))},
+                {'label': 'Pagadas', 'texto': str(len(papeletas) - len(pendientes))},
+            ] if papeletas else [],
             'vacio': 'Sin papeletas registradas.',
             'acciones': [accion_form('papeleta', 'Registrar papeleta', 'fa-plus', primaria=True)],
         }
@@ -1096,8 +1664,18 @@ class AdtFlota360(models.AbstractModel):
             acciones.append(accion_url(cred.gps_maps_url, 'Ver en mapa', 'fa-map'))
         acciones.append(accion_abrir('adt.traccar.device.credential', cred.id, 'Credencial', 'fa-key'))
         status = cred.gps_status or 'unknown'
+        ultimo = cred.gps_last_update
+        horas = (fields.Datetime.now() - ultimo).total_seconds() / 3600 if ultimo else None
+        if status == 'online':
+            estado_gps = frase('ok', 'En línea', cred.gps_address or '')
+        elif horas is not None and horas > GPS_HORAS_SIN_SENAL:
+            estado_gps = frase('critico', 'Sin señal hace %s' % plural(int(horas // 24) or 1, 'día', 'días')
+                               if horas >= 24 else 'Sin señal hace %s h' % int(horas), cred.gps_address or '')
+        else:
+            estado_gps = frase('atencion', self._etiqueta(cred, 'gps_status', status) or 'Sin señal', cred.gps_address or '')
         return {
             'key': 'gps', 'titulo': 'GPS / Traccar', 'icon': 'fa-map-marker',
+            'frase': estado_gps,
             'gps': {
                 'status': status,
                 'estado': self._etiqueta(cred, 'gps_status', status),
@@ -1127,6 +1705,7 @@ class AdtFlota360(models.AbstractModel):
                                                   'fa-play', confirmar='¿Iniciar el trámite de placa?', primaria=True))
                 acciones.append(accion_abrir('adt.tramite.placa', t.id, 'Abrir trámite'))
                 items.append({
+                    'clave': 'tramite',
                     'titulo': 'Trámite %s' % t.name,
                     'subtitulo': t.motivo_observacion if t.state == 'observado' and 'motivo_observacion' in t._fields else '',
                     'badge': {'texto': self._etiqueta(t, 'state', t.state),
@@ -1143,6 +1722,7 @@ class AdtFlota360(models.AbstractModel):
             tr = Tracking.search([('vehicle_id', '=', v.id)], limit=1)
             if tr:
                 items.append({
+                    'clave': 'entrega',
                     'titulo': 'Entrega %s' % tr.name,
                     'subtitulo': 'Etapa: %s' % tr.etapa_id.display_name if tr.etapa_id else '',
                     'badge': {'texto': self._etiqueta(tr, 'estado_global', tr.estado_global),
@@ -1156,35 +1736,284 @@ class AdtFlota360(models.AbstractModel):
                 })
         if Tramite is None and Tracking is None:
             return None
+        tramite = next((i for i in items if i['clave'] == 'tramite'), None)
+        entrega = next((i for i in items if i['clave'] == 'entrega'), None)
+        if placa_valida(v.license_plate):
+            estado_placa = frase('ok', 'Placa %s' % v.license_plate, entrega and 'Entrega: %s' % entrega['badge']['texto'] or '')
+        elif tramite:
+            estado_placa = frase(tramite['badge']['nivel'] if tramite['badge']['nivel'] != 'neutral' else 'info',
+                                 'Placa en trámite · %s' % tramite['badge']['texto'], tramite['subtitulo'])
+        else:
+            estado_placa = frase('atencion', 'Sin placa', 'No hay un trámite de placa registrado.')
         return {'key': 'placa', 'titulo': 'Placa y entrega', 'icon': 'fa-id-card-o', 'items': items,
+                'frase': estado_placa,
                 'vacio': 'Sin trámite de placa ni seguimiento de entrega.'}
+
+    def _archivo_campo(self, record, campo, nombre):
+        """Archivo de un campo binario con el mismo formato que _evidencias."""
+        if campo not in record._fields or not record[campo]:
+            return None
+        adjunto = self.env['ir.attachment'].search([('res_model', '=', record._name), ('res_id', '=', record.id),
+                                                    ('res_field', '=', campo)], limit=1)
+        if adjunto:
+            archivo = self._evidencias(adjunto)[0]
+            archivo['nombre'] = nombre or archivo['nombre']
+            return archivo
+        # Campo guardado en la base (sin ir.attachment): se sirve por modelo/id/campo.
+        try:
+            mimetype = guess_mimetype(base64.b64decode(record[campo][:1024]))
+        except Exception:
+            mimetype = 'application/octet-stream'
+        es_imagen = mimetype.startswith('image/')
+        base = 'model=%s&id=%s&field=%s' % (record._name, record.id, campo)
+        return {
+            'id': '%s-%s' % (record.id, campo),
+            'nombre': nombre,
+            'imagen': es_imagen,
+            'mimetype': mimetype,
+            'fecha': fields.Datetime.to_string(record.write_date),
+            'miniatura': '/web/image/%s/%s/%s/320x240' % (record._name, record.id, campo) if es_imagen else '',
+            'url': '/web/content?%s' % base,
+            'descarga': '/web/content?%s&download=true' % base,
+        }
+
+    @api.model
+    def accion_captura(self, captura_id, metodo):
+        """Ejecuta un botón del formulario de la captura. El asistente de liberación
+        toma la captura de active_id (el formulario lo pone; la vista no)."""
+        if metodo not in CAPTURA_BOTONES:
+            raise AccessError(_('Operación no permitida.'))
+        captura = self.env['adt.captura.record'].browse(captura_id).exists()
+        if not captura:
+            return False
+        res = getattr(captura.with_context(active_id=captura.id, active_ids=captura.ids,
+                                           active_model=captura._name), metodo)()
+        if isinstance(res, dict) and res.get('type') == 'ir.actions.act_window':
+            res['context'] = dict(res.get('context') or {}, active_id=captura.id, active_ids=captura.ids,
+                                  active_model=captura._name)
+        return res
+
+    def _cuotas_captura(self, c, hoy):
+        """Pestaña "Cuotas pendientes" del formulario de la captura."""
+        if 'cuotas_pendientes_ids' not in c._fields:
+            return []
+        filas = []
+        for q in c.cuotas_pendientes_ids.sorted(lambda q: (q.fecha_cronograma or hoy, q.id)):
+            g = lambda f: q[f] if f in q._fields else False
+            vencida = q.fecha_cronograma and q.fecha_cronograma < hoy
+            filas.append({
+                'nombre': q.name or '',
+                'monto': g('monto') or 0.0,
+                'fecha': fields.Date.to_string(q.fecha_cronograma) if q.fecha_cronograma else False,
+                'pago': fields.Date.to_string(g('real_date')) if g('real_date') else False,
+                'estado': self._etiqueta(q, 'state', q.state),
+                'nivel': 'critico' if vencida else 'atencion',
+                'saldo': g('saldo') or 0.0,
+                'mora_total': g('mora_total') or 0.0,
+                'mora_dias': g('mora_dias') or 0,
+                'mora_estado': g('mora_estado_texto') or '',
+                'mora_operacion': g('mora_operacion') or '',
+                'periodicidad': self._etiqueta(q, 'periodicidad', g('periodicidad')) if g('periodicidad') else '',
+                'asesora': self._m2o_texto(g('x_asesora')),
+            })
+        return filas
+
+    def _m2o_texto(self, valor):
+        if isinstance(valor, models.BaseModel):
+            return valor.display_name or ''
+        return valor or ''
+
+    def _detalle_captura(self, c, hoy, supervisor):
+        g = lambda f: c[f] if f in c._fields else False
+        si_no = lambda b: 'Sí' if b else 'No'
+        a_fecha = lambda d: fields.Date.to_string(d) if d else False
+        activa = c.state in CAPTURA_ACTIVA
+        pendiente = c.payment_state == 'pendiente'
+        nivel = 'critico' if activa else ('ok' if c.state in ('liberado', 'recolocada') else 'neutral')
+        compromiso = c.capture_type == 'compromiso'
+        retraso = g('commitment_delay_days') or 0
+
+        alertas = []
+        if g('maintenance_taller_message'):
+            alertas.append({'nivel': 'atencion', 'texto': c.maintenance_taller_message})
+        if g('tiene_deuda_anterior'):
+            anteriores = c.capturas_anteriores_ids
+            alertas.append({'nivel': 'critico', 'texto': 'Deuda anterior: %s sin pagar en esta cuenta (%s) por S/ %.2f.' % (
+                plural(len(anteriores), 'captura', 'capturas'), ', '.join(anteriores.mapped('name')),
+                c.monto_deuda_anterior)})
+        if compromiso and retraso and activa:
+            alertas.append({'nivel': 'critico', 'texto': 'El compromiso de pago venció hace %s.' % plural(retraso, 'día', 'días')})
+        if activa and pendiente:
+            alertas.append({'nivel': 'atencion', 'texto': 'La deuda de intervención está pendiente de pago.'})
+
+        marcas = [{'texto': self._etiqueta(c, 'capture_type', c.capture_type), 'nivel': 'info'}]
+        if g('source_type') and c.source_type != 'none':
+            marcas.append({'texto': 'Origen: %s' % self._etiqueta(c, 'source_type', c.source_type), 'nivel': 'neutral'})
+        if 'moto_recogida' in c._fields:
+            marcas.append({'texto': 'Moto recogida' if c.moto_recogida else 'Moto no recogida',
+                           'nivel': 'ok' if c.moto_recogida else 'atencion'})
+
+        kpis = [
+            {'label': 'Intervención', 'monto': c.intervention_fee,
+             'nivel': 'atencion' if activa and pendiente else False},
+            {'label': 'Pago', 'texto': self._etiqueta(c, 'payment_state', c.payment_state),
+             'nivel': ('atencion' if activa else False) if pendiente else 'ok'},
+            {'label': 'Días de mora', 'texto': str(c.dias_mora or 0), 'nivel': 'critico' if c.dias_mora else False},
+            {'label': 'Cuotas vencidas', 'texto': str(g('numero_cuotas_vencidas') or 0),
+             'nivel': 'critico' if g('numero_cuotas_vencidas') else False},
+            {'label': 'Fecha de captura', 'fecha': fields.Datetime.to_string(c.create_date)[:10]},
+        ]
+        if compromiso:
+            kpis.append({'label': 'Compromiso de pago', 'fecha': a_fecha(g('commitment_date')),
+                         'nivel': 'critico' if retraso else False,
+                         'sub': ('%s de retraso' % plural(retraso, 'día', 'días')) if retraso else ''})
+        if g('papeleta_id'):
+            kpis.append({'label': 'Monto papeleta', 'monto': g('papeleta_monto') or 0.0})
+
+        cuenta = c.cuenta_id
+        grupos = [{
+            'titulo': 'Información principal',
+            'campos': self._campos(
+                self._campo('Cliente', c.partner_id.display_name or False),
+                self._campo('Cuenta', cuenta.display_name if cuenta else False),
+                self._campo('Vehículo', c.vehicle_id.display_name or False),
+                self._campo('Origen', self._etiqueta(c, 'source_type', g('source_type'))),
+                self._campo('Papeleta', c.papeleta_id.display_name if g('papeleta_id') else False),
+                self._campo('Tipo de cartera', self._etiqueta(c, 'tipo_cartera', g('tipo_cartera'))),
+                self._campo('Capturador', c.capturador_id.name if g('capturador_id') else False),
+                self._campo('Supervisor', c.supervisor_id.name if g('supervisor_id') else False),
+                self._campo('Registrada', '%s · %s' % (c.create_uid.name, fields.Datetime.to_string(c.create_date)[:10])
+                            if c.create_uid else False),
+            ),
+            'textos': [],
+        }, {
+            'titulo': 'Tipo de captura',
+            'campos': self._campos(
+                self._campo('Tipo', self._etiqueta(c, 'capture_type', c.capture_type)),
+                self._campo('Fecha de compromiso', compromiso and a_fecha(g('commitment_date'))),
+                self._campo('Días de retraso (compromiso)', retraso and plural(retraso, 'día', 'días')),
+            ),
+            'textos': self._campos(self._campo('Comentarios de captura', g('comentarios_captura'))),
+        }, {
+            'titulo': 'Deuda de intervención',
+            'campos': self._campos(
+                self._campo('Monto intervención', 'S/ %.2f' % (c.intervention_fee or 0.0)),
+                self._campo('Estado de pago', self._etiqueta(c, 'payment_state', c.payment_state)),
+                self._campo('Fecha de pago', a_fecha(g('payment_date'))),
+                self._campo('N° de voucher', g('voucher_number')),
+                self._campo('¿Pagó el monto?', si_no(g('pagar_monto')) if not pendiente else False),
+            ),
+            'textos': self._campos(self._campo('Motivo de no pago', g('motivo_no_pago'))),
+        }, {
+            'titulo': 'Recogida del vehículo',
+            'campos': self._campos(self._campo('¿Moto recogida?', si_no(g('moto_recogida')))),
+            'textos': self._campos(self._campo('Motivo si no se recogió', not g('moto_recogida') and g('motivo_no_recogida'))),
+        }]
+        if c.state == 'liberado' or g('liberacion_tipo'):
+            grupos.append({
+                'titulo': 'Liberación del vehículo',
+                'campos': self._campos(self._campo('Tipo de liberación', self._etiqueta(c, 'liberacion_tipo', g('liberacion_tipo')))),
+                'textos': self._campos(self._campo('Observaciones', g('observaciones'))),
+            })
+        if c.state in ('disolucion_contrato', 'recolocada') or g('retention_reason'):
+            grupos.append({
+                'titulo': 'Disolución de contrato',
+                'campos': self._campos(
+                    self._campo('Motivo', self._etiqueta(c, 'retention_reason', g('retention_reason'))),
+                    self._campo('Fecha de inicio', a_fecha(g('retention_date'))),
+                ),
+                'textos': self._campos(self._campo('Observaciones adicionales', g('notes'))),
+            })
+        grupos = [gr for gr in grupos if gr['campos'] or gr['textos']]
+
+        documentos = [d for d in (
+            self._archivo_campo(c, 'voucher_file', g('voucher_filename') or 'Voucher %s' % (g('voucher_number') or '')),
+            self._archivo_campo(c, 'documento_desafiliacion', 'Documento de desafiliación'),
+            self._archivo_campo(c, 'evidencia_entrega', 'Evidencia de la entrega'),
+        ) if d]
+        apelaciones = []
+        try:
+            for ap in (g('appeal_ids') or []):
+                apelaciones.append({'motivo': ap.appeal_reason or '',
+                                    'archivo': self._archivo_campo(ap, 'appeal_evidence', 'Evidencia de apelación')})
+        except AccessError:
+            apelaciones = []
+
+        M = 'adt.captura.record'
+        boton = lambda metodo, label, icono, **kw: accion_metodo('adt.flota360', c.id, 'accion_captura', label, icono,
+                                                                 args=[c.id, metodo], **kw)
+        acciones, mas = [], []
+        if activa and pendiente and self._metodo(M, 'action_registrar_pago'):
+            acciones.append(boton('action_registrar_pago', 'Registrar pago', 'fa-money', primaria=True))
+        if supervisor:
+            if c.state in CAPTURA_ACTIVA and self._metodo(M, 'action_liberar'):
+                acciones.append(boton('action_liberar', 'Liberar vehículo', 'fa-unlock',
+                                      confirmar='¿Está seguro de liberar este vehículo?'))
+            if c.state == 'capturado' and self._metodo(M, 'action_retener'):
+                mas.append(boton('action_retener', 'Disolución de contrato', 'fa-ban'))
+            if c.state == 'disolucion_contrato' and self._metodo(M, 'action_recolocar'):
+                mas.append(boton('action_recolocar', 'Recolocar vehículo', 'fa-exchange',
+                                 confirmar='¿Está seguro de recolocar este vehículo?'))
+            if not g('es_estado_final') and c.state != 'recolocada' and self._metodo(M, 'action_cancelar'):
+                mas.append(boton('action_cancelar', 'Cancelar captura', 'fa-times', peligro=True,
+                                 confirmar='¿Está seguro de cancelar esta captura?'))
+        if c.vehicle_id and 'adt.tvs.mantenimiento' in self.env and self._metodo(M, 'action_ver_mantenimientos'):
+            mas.append(boton('action_ver_mantenimientos', 'Ver mantenimientos', 'fa-wrench'))
+        if cuenta:
+            mas.append(accion_tab('cuentas', 'Ver cuenta', 'fa-book'))
+        mas.append(accion_abrir(M, c.id, 'Formulario completo'))
+
+        return {
+            'id': c.id,
+            'activa': activa,
+            'titulo': 'Captura %s' % c.name,
+            'badge': {'texto': self._etiqueta(c, 'state', c.state), 'nivel': nivel},
+            'marcas': marcas,
+            'alertas': alertas,
+            'kpis': kpis,
+            'grupos': grupos,
+            'evidencias': self._evidencias(g('evidencia_archivos') or self.env['ir.attachment']),
+            'documentos': documentos,
+            'apelaciones': apelaciones,
+            'cuotas': self._cuotas_captura(c, hoy),
+            'historial': self._historial(c),
+            'acciones': acciones,
+            'mas': mas,
+        }
 
     def _seccion_capturas(self, v, hoy):
         Captura = self._modelo('adt.captura.record', 'vehicle_id')
         if Captura is None:
             return None
-        items = []
-        for c in Captura.search([('vehicle_id', '=', v.id)], order='id desc', limit=10):
-            activa = c.state in CAPTURA_ACTIVA
-            acciones = []
-            if activa and c.payment_state == 'pendiente' and self._metodo('adt.captura.record', 'action_registrar_pago'):
-                acciones.append(accion_metodo('adt.captura.record', c.id, 'action_registrar_pago', 'Registrar pago',
-                                              'fa-money', primaria=True))
-            acciones.append(accion_abrir('adt.captura.record', c.id))
-            items.append({
-                'titulo': c.name,
-                'subtitulo': self._etiqueta(c, 'capture_type', c.capture_type),
-                'badge': {'texto': self._etiqueta(c, 'state', c.state), 'nivel': 'critico' if activa else 'neutral'},
-                'kpis': [
-                    {'label': 'Intervención', 'monto': c.intervention_fee},
-                    {'label': 'Pago', 'texto': self._etiqueta(c, 'payment_state', c.payment_state),
-                     'nivel': 'atencion' if activa and c.payment_state == 'pendiente' else False},
-                    {'label': 'Días de mora', 'texto': str(c.dias_mora or 0)},
-                ],
-                'acciones': acciones,
-            })
+        capturas = Captura.search([('vehicle_id', '=', v.id)], order='id desc')
+        capturas = capturas.sorted(lambda c: (c.state not in CAPTURA_ACTIVA, -c.id))
+        activas = capturas.filtered(lambda c: c.state in CAPTURA_ACTIVA)
+        por_pagar = capturas.filtered(lambda c: c.state in CAPTURA_ACTIVA and c.payment_state == 'pendiente')
+        supervisor = self.env.user.has_group('adt_captura.group_captura_supervisor')
+        if activas:
+            a = activas[0]
+            estado_cap = frase('critico', 'Vehículo capturado · %s' % self._etiqueta(a, 'state', a.state),
+                               'Intervención por pagar %s' % self._soles(sum(por_pagar.mapped('intervention_fee'))) if por_pagar else '')
+        elif capturas:
+            estado_cap = frase('ok', 'Sin capturas activas', plural(len(capturas), 'captura anterior', 'capturas anteriores'))
+        else:
+            estado_cap = frase('ok', 'Nunca fue capturado')
         return {
-            'key': 'capturas', 'titulo': 'Capturas', 'icon': 'fa-lock', 'items': items,
+            'key': 'capturas', 'titulo': 'Capturas', 'icon': 'fa-lock',
+            'frase': estado_cap,
+            'cifras': [
+                cifra('Intervención por pagar', self._soles(sum(por_pagar.mapped('intervention_fee'))), 'fa-money',
+                      nivel='atencion' if por_pagar else '', principal=True),
+                cifra('Activas', str(len(activas)), 'fa-lock', nivel='critico' if activas else ''),
+                cifra('Total de capturas', str(len(capturas)), 'fa-history'),
+            ] if capturas else [],
+            'capturas': [self._detalle_captura(c, hoy, supervisor) for c in capturas],
+            'kpis': [
+                {'label': 'Activas', 'texto': str(len(activas)), 'nivel': 'critico' if activas else 'ok'},
+                {'label': 'Intervención por pagar', 'monto': sum(por_pagar.mapped('intervention_fee')),
+                 'nivel': 'atencion' if por_pagar else False},
+                {'label': 'Total de capturas', 'texto': str(len(capturas))},
+            ] if capturas else [],
             'vacio': 'Sin capturas registradas.',
             'acciones': [accion_form('captura', 'Registrar captura', 'fa-plus')]
             if self.env['adt.comercial.cuentas'].search_count(
@@ -1210,7 +2039,11 @@ class AdtFlota360(models.AbstractModel):
     def _acciones_expediente(self, e):
         M = 'adt.expediente'
         principal = [accion_form('expediente_datos', 'Editar datos', 'fa-pencil', res_id=e.id)]
-        if self._metodo(M, 'action_print_expediente_pdf'):
+        if 'requisitos_cubiertos' in e._fields and e.requisitos_cubiertos:
+            # Expediente en un solo archivo: no se genera PDF, se descarga el archivo cargado.
+            principal.append(accion_url('/web/content/%s/%s/archivo_consolidado?download=true' % (M, e.id),
+                                        'Descargar archivo', 'fa-download'))
+        elif self._metodo(M, 'action_print_expediente_pdf'):
             principal.append(accion_metodo(M, e.id, 'action_print_expediente_pdf', 'PDF', 'fa-file-pdf-o'))
         mas = []
         for metodo, estado, label, icono in EXPEDIENTE_ESTADOS:
@@ -1258,8 +2091,8 @@ class AdtFlota360(models.AbstractModel):
         pids = self._clientes_de_turno(v, hoy)
         base = {'key': 'expediente', 'titulo': 'Expediente', 'icon': 'fa-folder-open-o', 'expedientes': []}
         if not pids:
-            return dict(base, vacio='El vehículo no tiene cliente; asígnale uno para registrar su expediente.',
-                        acciones=[accion_form('vehiculo', 'Asignar cliente', 'fa-user-plus')])
+            return dict(base, vacio='El vehículo no tiene cliente: elígelo al crear el crédito y luego registra su expediente.',
+                        acciones=[accion_credito('Crear crédito', 'fa-credit-card')])
         expedientes = []
         for i, e in enumerate(Expediente.search([('cliente_id', 'in', pids)], order='fecha desc, id desc')):
             grupos, avance = self._documentos_expediente_grupos(e)
@@ -1268,9 +2101,31 @@ class AdtFlota360(models.AbstractModel):
             # Un documento rechazado requiere acción aunque el estado general diga otra cosa.
             if avance['rechazados'] and e.state != 'rechazado':
                 nivel = 'atencion'
+            faltan = avance['requeridos'] - avance['completos']
+            if e.state == 'rechazado':
+                estado_exp = frase('critico', 'Expediente rechazado', e.motivo_rechazo or '')
+            elif avance.get('cubierto'):
+                estado_exp = frase('ok', 'Documentos completos', 'Cargados en un solo archivo')
+            elif avance['rechazados']:
+                estado_exp = frase('atencion', plural(avance['rechazados'], 'documento rechazado', 'documentos rechazados'),
+                                   'El asesor debe corregirlos')
+            elif faltan > 0:
+                estado_exp = frase('atencion', 'Faltan %s' % plural(faltan, 'documento', 'documentos'),
+                                   '%s de %s obligatorios cargados' % (avance['completos'], avance['requeridos']))
+            else:
+                estado_exp = frase('ok', 'Documentos completos', 'Listo para la revisión')
             expedientes.append({
                 'id': e.id,
                 'vigente': i == 0,
+                'frase': estado_exp,
+                'cifras': [
+                    cifra('Documentos obligatorios', 'Completos' if avance.get('cubierto') else
+                          '%s de %s' % (avance['completos'], avance['requeridos']), 'fa-files-o',
+                          nivel='ok' if not faltan or avance.get('cubierto') else 'atencion', principal=True),
+                    cifra('Rechazados', str(avance['rechazados']), 'fa-times-circle', nivel='critico' if avance['rechazados'] else ''),
+                    cifra('Registrado', e.fecha.strftime('%d/%m/%Y') if e.fecha else '—', 'fa-calendar',
+                          e.asesora_id.name and 'por %s' % e.asesora_id.name or ''),
+                ],
                 'titulo': 'Expediente del %s' % (e.fecha.strftime('%d/%m/%Y') if e.fecha else '—'),
                 'cliente': e.cliente_id.name if len(pids) > 1 else '',
                 'estado': self._etiqueta(e, 'state', e.state) or 'Por revisar',
@@ -1279,6 +2134,7 @@ class AdtFlota360(models.AbstractModel):
                 'fecha_rechazo': e.fecha_rechazo.strftime('%d/%m/%Y') if e.state == 'rechazado' and e.fecha_rechazo else '',
                 'avance': avance,
                 'grupos': grupos,
+                'consolidado': self._documento_consolidado(e),
                 'datos': self._datos_expediente(e),
                 'acciones': principal,
                 'mas': mas,
@@ -1294,10 +2150,13 @@ class AdtFlota360(models.AbstractModel):
         if Orden is None and Regla is None:
             return None
         items = []
+        gastado = 0.0
         if Orden is not None:
-            ordenes = Orden.search([('vehicle_id', '=', v.id)], order='id desc', limit=8)
+            ordenes = Orden.search([('vehicle_id', '=', v.id)], order='id desc', limit=30)
+            gastado = sum(ordenes.filtered(lambda o: o.state == 'done').mapped('total_amount'))
             for o in ordenes.sorted(lambda o: o.state == 'done'):
                 items.append({
+                    'grupo': 'abiertas' if o.state in TALLER_ABIERTO else 'historial',
                     'titulo': o.name,
                     'subtitulo': (o.entry_reason or '').strip()[:120],
                     'badge': {'texto': self._etiqueta(o, 'state', o.state),
@@ -1312,12 +2171,32 @@ class AdtFlota360(models.AbstractModel):
         if Regla is not None:
             for r in Regla.search([('vehicle_id', '=', v.id), ('estado', '=', 'campana_activa')]):
                 items.append({
+                    'grupo': 'preventivo',
                     'titulo': 'Mantenimiento preventivo: %s' % r.regla_id.display_name,
                     'badge': {'texto': self._etiqueta(r, 'estado', r.estado), 'nivel': 'atencion'},
                     'acciones': [accion_abrir(r._name, r.id)],
                 })
+        abiertas = [i for i in items if i['grupo'] == 'abiertas']
+        bloqueadas = [i for i in abiertas if i['badge']['nivel'] == 'atencion']
+        preventivos = [i for i in items if i['grupo'] == 'preventivo']
+        if bloqueadas:
+            estado_taller = frase('atencion', '%s en taller' % plural(len(abiertas), 'orden abierta', 'órdenes abiertas'),
+                                  plural(len(bloqueadas), 'bloqueada', 'bloqueadas'))
+        elif abiertas:
+            estado_taller = frase('info', 'En taller', plural(len(abiertas), 'orden abierta', 'órdenes abiertas'))
+        elif preventivos:
+            estado_taller = frase('atencion', 'Mantenimiento preventivo pendiente',
+                                  plural(len(preventivos), 'campaña activa', 'campañas activas'))
+        else:
+            estado_taller = frase('ok', 'Sin trabajos pendientes')
         return {
             'key': 'taller', 'titulo': 'Taller y mantenimiento', 'icon': 'fa-wrench', 'items': items,
+            'frase': estado_taller,
+            'cifras': [
+                cifra('Órdenes abiertas', str(len(abiertas)), 'fa-wrench', nivel='atencion' if bloqueadas else '', principal=True),
+                cifra('Preventivos activos', str(len(preventivos)), 'fa-calendar-check-o'),
+                cifra('Gastado en taller', self._soles(gastado), 'fa-money', 'órdenes terminadas'),
+            ],
             'vacio': 'Sin órdenes de taller ni mantenimientos pendientes.',
             'acciones': [accion_form('orden_taller', 'Nueva orden', 'fa-plus', primaria=True,
                                      params={'cliente_id': v.driver_id.id})],

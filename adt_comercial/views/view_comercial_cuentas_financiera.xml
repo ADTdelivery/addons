@@ -66,10 +66,17 @@
                     </group>
                 </page>
                 <page string="Cronograma de financiera" name="cronograma_financiera">
+                    <!-- El plan de la financiera es del vehículo: aquí solo se muestra. -->
+                    <div class="alert alert-info" role="alert">
+                        El plan de pagos de la financiera pertenece al vehículo: se carga una sola vez en la ficha
+                        del vehículo (pestaña «Financiera») o en Flota 360 › Financiera, y todas sus cuentas lo muestran.
+                    </div>
                     <group>
                         <group>
+                            <field name="vehiculo_id" readonly="1"/>
                             <field name="cf_pdf" filename="cf_pdf_nombre"/>
                             <field name="cf_pdf_nombre" invisible="1"/>
+                            <field name="fin_desde_vehiculo"/>
                         </group>
                         <group>
                             <button name="cf_leer_pdf" type="object" string="Volver a leer PDF"

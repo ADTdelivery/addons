@@ -1,4 +1,5 @@
 from . import expediente
+from . import expediente_report
 from . import res_partner
 from . import mobile_token
 from . import mobile_access_log

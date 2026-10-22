@@ -1,6 +1,6 @@
 {
     'name': 'ADT Comercial',
-    'version': '15.0.1.0.0',
+    'version': '15.0.1.2.0',
     'author': 'Bigodoo',
     'maintainer': 'Bigodoo',
     'depends': [
@@ -71,6 +71,8 @@
             'adt_comercial/static/src/js/cartera_reporte.js',
             'adt_comercial/static/src/scss/flota_clientes.scss',
             'adt_comercial/static/src/js/flota_clientes.js',
+            'adt_comercial/static/src/js/candidato_detalle.js',
+            'adt_comercial/static/src/scss/candidato_detalle.scss',
         ],
         'web.assets_qweb': [
             'adt_comercial/static/src/xml/image_carousel.xml',

@@ -990,6 +990,10 @@ class AdtExpedientesMobileAPI(http.Controller):
         if not rec.exists():
             return {'success': False, 'error': 'expediente not found'}
 
+        # Expediente entregado en un solo archivo (PDF/Word) aceptado: no falta nada.
+        if rec.requisitos_cubiertos:
+            return {'success': True, 'data': {'missing': [], 'requisitos_cubiertos': True}}
+
         # Build a checklist of required fields and which are missing
         missing = []
         nat = getattr(rec.cliente_id, 'nationality', False)

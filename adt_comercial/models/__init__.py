@@ -27,3 +27,5 @@ from . import mobile_home_preview
 from . import cliente_seguimiento
 from . import clientes_dashboard
 from . import traspaso_notarial
+
+from . import candidato_detalle

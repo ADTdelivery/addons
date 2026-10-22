@@ -1,0 +1,7 @@
+.adt_f360__pay-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--f3-line); background: var(--f3-subtle); padding: 14px 20px; gap: 16px;
+    span { display: block; color: var(--f3-muted); font-size: 11px; margin-bottom: 4px; }
+    strong { font-size: 18px; font-weight: 600; color: var(--f3-ink); }
+    > div:last-child strong { color: var(--f3-primary); }
+}
+.adt_f360__pay-help { margin-bottom: 16px !important; color: var(--f3-muted); font-size: 12px; line-height: 1.5; }
+@media (max-width: 600px) { .adt_f360__pay-summary { padding: 12px; gap: 8px; strong { font-size: 14px; } } }

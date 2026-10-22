@@ -14,6 +14,8 @@
     --f3-primary: #1d3557;        // azul pizarra institucional
     --f3-primary-hover: #152843;
     --f3-focus: rgba(29, 53, 87, 0.28);
+    --f3-accent: #c2410c;         // naranja: operaciones que deben encontrarse rápido
+    --f3-accent-hover: #9a3412;
     // Estado
     --f3-crit: #b42318;    --f3-crit-bg: #fef3f2;    --f3-crit-line: #f4c7c3;
     --f3-warn: #a15c07;    --f3-warn-bg: #fffaeb;    --f3-warn-line: #f5d9a8;
@@ -33,8 +35,10 @@
     font-feature-settings: "tnum" 1;
 
     *, *::before, *::after { box-sizing: border-box; }
-    h1, h2, h3, p, dl, dd, ul, ol { margin: 0; padding: 0; }
-    ul, ol { list-style: none; }
+    // :where() deja el reset sin especificidad: los estilos de cada componente (p. ej. el padding
+    // de una lista) no quedan anulados por él.
+    :where(h1, h2, h3, p, dl, dd, ul, ol) { margin: 0; padding: 0; }
+    :where(ul, ol) { list-style: none; }
     mark { background: #fde68a; color: inherit; padding: 0; }
     button { font-family: inherit; }
 }
@@ -413,6 +417,15 @@
         > .fa { color: rgba(255, 255, 255, 0.8); }
         &:hover { background: var(--f3-primary-hover); }
     }
+    &.is-accent {
+        border-color: var(--f3-accent);
+        background: var(--f3-accent);
+        color: #fff;
+        font-weight: 600;
+        > .fa { color: #fff; }
+        &:hover { background: var(--f3-accent-hover); border-color: var(--f3-accent-hover); }
+        &:focus-visible { box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.3); }
+    }
     &.is-danger { color: var(--f3-crit); > .fa { color: var(--f3-crit); } }
     &.is-small { height: 26px; padding: 0 8px; font-size: 12px; }
     &.is-icon { padding: 0 7px; }
@@ -489,28 +502,140 @@
     .is-drawer-open & { display: flex; }
 }
 
-.adt_f360__back { flex: none; }
 
 .adt_f360__drawer-loading { padding: 16px 24px; color: var(--f3-muted); p { margin-top: 24px; } }
 
-.adt_f360__dh {
-    flex: none;
-    padding: 16px 24px 0;
-    background: var(--f3-surface);
-    border-bottom: 1px solid var(--f3-line);
+// Cabecera del Resumen: vehículo | cliente | distintivo de estado (color + ícono + texto).
+.adt_f360__sumhead {
+    --f3-s: var(--f3-neutral); --f3-s-bg: var(--f3-subtle); --f3-s-line: var(--f3-line);
+    &.is-critico { --f3-s: var(--f3-crit); --f3-s-bg: var(--f3-crit-bg); --f3-s-line: var(--f3-crit-line); }
+    &.is-atencion { --f3-s: var(--f3-warn); --f3-s-bg: var(--f3-warn-bg); --f3-s-line: var(--f3-warn-line); }
+    &.is-ok { --f3-s: var(--f3-ok); --f3-s-bg: var(--f3-ok-bg); --f3-s-line: var(--f3-ok-line); }
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(240px, .9fr);
+    margin-bottom: 16px;
+    overflow: hidden;
+    border-top: 4px solid var(--f3-s);
 }
-
-.adt_f360__dh-main {
+.adt_f360__sumhead-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    padding: 18px 20px;
+    & + & { border-left: 1px solid var(--f3-line); }
+}
+.adt_f360__sumhead-label {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 6px;
+    margin-bottom: 2px;
+    color: var(--f3-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+.adt_f360__sumhead-main {
+    color: var(--f3-ink);
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    &.is-empty { color: var(--f3-muted); font-weight: 600; }
+}
+.adt_f360__sumhead-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    > span, > a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border: 1px solid var(--f3-line);
+        border-radius: 999px;
+        background: var(--f3-subtle);
+        color: var(--f3-ink-2);
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: none;
+        > .fa { color: var(--f3-primary); }
+    }
+    > a:hover { border-color: var(--f3-primary); color: var(--f3-primary); }
+}
+// Distintivo de estado: bloque de color del nivel, con ícono, texto y motivos.
+.adt_f360__sumhead-flag {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px;
+    border-left: 1px solid var(--f3-s-line);
+    background: var(--f3-s-bg);
+    color: var(--f3-s);
+    ul { display: flex; flex-direction: column; gap: 4px; margin: 0; padding-left: 18px; list-style: disc; }
+    li { color: var(--f3-ink-2); font-size: 12.5px; }
+    li.is-more { color: var(--f3-muted); list-style: none; margin-left: -18px; }
+    p { margin: 0; color: var(--f3-ink-2); font-size: 12.5px; }
+}
+.adt_f360__sumhead-flag-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    > .fa {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--f3-s);
+        color: #fff;
+        font-size: 20px;
+    }
+    > span { display: flex; flex-direction: column; line-height: 1.1; }
+    small { color: var(--f3-muted); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    b { font-size: 22px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+}
+@media (max-width: 1000px) {
+    .adt_f360__sumhead { grid-template-columns: 1fr 1fr; }
+    .adt_f360__sumhead-flag { grid-column: 1 / -1; grid-row: 1; border-left: 0; border-bottom: 1px solid var(--f3-s-line); }
+}
+@media (max-width: 640px) {
+    .adt_f360__sumhead { grid-template-columns: 1fr; }
+    .adt_f360__sumhead-col + .adt_f360__sumhead-col { border-left: 0; border-top: 1px solid var(--f3-line); }
 }
 
-.adt_f360__dh-text { flex: 1; min-width: 0; }
-.adt_f360__dh-title { font-size: 16px; font-weight: 600; }
-.adt_f360__dh-sub { margin-top: 2px; color: var(--f3-ink-2); }
-.adt_f360__dh-status { flex: none; }
-.adt_f360__dh-tools { flex: none; display: flex; align-items: center; gap: 4px; }
+// Identidad del vehículo arriba del menú lateral (reemplaza la cabecera de la ficha).
+.adt_f360__nav-id {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 14px;
+    padding: 0 6px 14px;
+    border-bottom: 1px solid var(--f3-line);
+}
+.adt_f360__nav-id-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    > .adt_f360__icon-btn { margin-left: -6px; }
+}
+
+// Título de la sección; a su lado, los controles propios de la sección (p. ej. «Todas las cuentas»).
+.adt_f360__page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 16px;
+    .adt_f360__page-title { margin: 0 8px 0 0 !important; }
+    > .adt_f360__muted { font-size: 12.5px; }
+}
 
 .adt_f360__tab-dot {
     flex: none;
@@ -520,8 +645,6 @@
     &.is-critico { background: var(--f3-crit); }
     &.is-atencion { background: #e6a23c; }
 }
-
-.adt_f360__dh { padding-bottom: 14px; }
 
 // Ficha: menú lateral de secciones + contenido con su propio desplazamiento.
 .adt_f360__layout {
@@ -740,7 +863,7 @@
 // ── Tablas de detalle ─────────────────────────────────────────────────
 
 // Sin overflow propio: el cuerpo de la ficha ya desplaza y así los menús no se recortan.
-.adt_f360__scroll-x { min-width: 0; }
+.adt_f360__scroll-x { min-width: 0; overflow-x: auto; }
 
 .adt_f360__dtable {
     width: 100%;
@@ -778,16 +901,6 @@
 
 // ── Deuda ─────────────────────────────────────────────────────────────
 
-.adt_f360__account {
-    &.is-historic { opacity: .85; }
-    .adt_f360__acc-figures {
-        margin: 0;
-        border: 0;
-        border-bottom: 1px solid var(--f3-line);
-        border-radius: 0;
-    }
-}
-
 .adt_f360__acc-head {
     display: flex;
     align-items: flex-start;
@@ -817,16 +930,15 @@
     font-size: 12px;
 }
 
-.adt_f360__acc-progress-head,
-.adt_f360__acc-progress-foot {
+.adt_f360__acc-progress-head {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 4px 24px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--f3-ink);
 }
-
-.adt_f360__acc-progress-head { margin-bottom: 6px; font-size: 13px; color: var(--f3-ink); }
-.adt_f360__acc-progress-foot { margin-top: 8px; }
 
 .adt_f360__progress {
     width: 100%;
@@ -837,40 +949,731 @@
     > span { display: block; height: 100%; background: var(--f3-ok); transition: width .3s; }
 }
 
-.adt_f360__notice {
-    margin: 12px 16px 0;
-    border: 1px solid var(--f3-info-line);
-    border-radius: 4px;
-    background: var(--f3-info-bg);
-    .adt_f360__dtable th { background: transparent; }
-    .adt_f360__dtable td { background: var(--f3-surface); }
-    .adt_f360__dtable tr:last-child td { border-bottom: 0; }
+// Lista de todas las cuentas de la moto (una por titular), como tabla de filas clicables.
+.adt_f360__accounts > .adt_f360__panel-head h3 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    .fa { color: var(--f3-primary); }
+    .adt_f360__muted { font-size: 12px; font-weight: 400; }
 }
-
-.adt_f360__notice-title {
-    padding: 8px 10px;
-    color: var(--f3-info);
+.adt_f360__accrow-head,
+.adt_f360__accrow {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.6fr) minmax(150px, 1.25fr) minmax(110px, .9fr) minmax(120px, 1fr) minmax(130px, 1fr) 14px;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+}
+.adt_f360__accrow-head {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+    color: var(--f3-muted);
+    font-size: 11px;
     font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
 }
+.adt_f360__accrow {
+    width: 100%;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    border: 0;
+    border-top: 1px solid var(--f3-line);
+    background: var(--f3-surface);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: inset 3px 0 0 transparent;
+    .adt_f360__accrow-head + & { border-top: 0; }
+    &.is-info { box-shadow: inset 3px 0 0 var(--f3-info); }
+    &.is-critico { box-shadow: inset 3px 0 0 var(--f3-crit); }
+    &.is-ok { box-shadow: inset 3px 0 0 var(--f3-ok); }
+    &.is-closed { background: var(--f3-subtle); }
+    &:hover { background: var(--f3-info-bg); .adt_f360__accrow-go { color: var(--f3-primary); transform: translateX(2px); } }
+    &:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--f3-focus); }
+}
+.adt_f360__accrow-who { display: flex; align-items: center; gap: 10px; min-width: 0; .adt_f360__avatar { width: 36px; height: 36px; font-size: 13px; } }
+.adt_f360__accrow-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.adt_f360__accrow-name { color: var(--f3-ink); font-weight: 600; overflow-wrap: anywhere; }
+.adt_f360__accrow-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--f3-muted); font-size: 12px; }
+.adt_f360__accrow-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    > small { display: inline-flex; align-items: center; gap: 5px; color: var(--f3-muted); font-size: 11.5px; }
+    > .adt_f360__badge { align-self: flex-start; }
+}
+.adt_f360__accrow-money {
+    b { font-size: 14.5px; color: var(--f3-ink); }
+    &.is-critico b { color: var(--f3-crit); }
+    &.is-ok b { color: var(--f3-ok); }
+}
+.adt_f360__minibar {
+    display: block;
+    width: 100%;
+    max-width: 120px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--f3-line);
+    overflow: hidden;
+    > span { display: block; height: 100%; background: var(--f3-ok); }
+}
+.adt_f360__accrow-go { color: var(--f3-muted); font-size: 16px; transition: transform .15s, color .15s; }
 
-.adt_f360__subtabs {
+// Pantallas angostas: cada cuenta como tarjeta, con la etiqueta de cada dato.
+@media (max-width: 900px) {
+    .adt_f360__accrow-head { display: none; }
+    .adt_f360__accrow { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; padding: 14px 16px; }
+    .adt_f360__accrow-who { grid-column: 1 / -1; }
+    .adt_f360__accrow-go { display: none; }
+    .adt_f360__accrow-col::before {
+        content: attr(data-label);
+        color: var(--f3-muted);
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+    }
+}
+.adt_f360__avatar.is-past { background: var(--f3-line-strong); color: var(--f3-ink-2); }
+.adt_f360__acc-warn { margin: 0 0 12px; }
+
+// ── Patrón común de las secciones ─────────────────────────────────────
+// Tarjeta: cabecera (identidad + acciones), frase de estado y cifras. Debajo, pestañas.
+.adt_f360__hcard {
+    &.is-historic { background: var(--f3-subtle); }
+    // Sin cifras, la frase cierra la tarjeta.
+    > .adt_f360__status-row:last-child { padding-bottom: 14px; }
+}
+.adt_f360__hcard-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--f3-info-bg);
+    color: var(--f3-primary);
+    font-size: 22px;
+}
+.adt_f360__status-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    padding: 0 18px 16px;
+    .adt_f360__hcard-facts + & { padding-top: 16px; }
+    .adt_f360__hcard.is-plain > &:first-child { padding-top: 14px; }
+    > .adt_f360__status { flex: 1; min-width: 240px; margin: 0; }
+}
+.adt_f360__hcard-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    padding: 18px;
+    h3 { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; .adt_f360__mono { font-size: 12.5px; font-weight: 500; } }
+}
+// El nombre conserva al menos 260px; si no caben, las acciones bajan a su propia línea.
+.adt_f360__hcard-who { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+// Datos clave con etiqueta (financiera, periodicidad, cuota…), en celdas separadas.
+.adt_f360__hcard-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin: 0;
+    border-top: 1px solid var(--f3-line);
+    border-bottom: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        padding: 12px 18px;
+        border-left: 1px solid var(--f3-line);
+        &:first-child { border-left: 0; }
+    }
+    dt {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--f3-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        > .fa { width: 12px; text-align: center; }
+    }
+    dd { margin: 0; overflow: hidden; color: var(--f3-ink); font-size: 13.5px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+}
+.adt_f360__hcard-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 9px;
+        border: 1px solid var(--f3-line);
+        border-radius: 999px;
+        background: var(--f3-subtle);
+        color: var(--f3-ink-2);
+        font-size: 12px;
+        > .fa { color: var(--f3-primary); }
+    }
+}
+.adt_f360__hcard-actions { flex: none; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }
+.adt_f360__status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--f3-subtle);
+    color: var(--f3-ink-2);
+    > .fa { font-size: 17px; }
+    > b { font-size: 14px; }
+    > span { color: var(--f3-ink-2); }
+    &.is-critico { background: var(--f3-crit-bg); color: var(--f3-crit); }
+    &.is-atencion { background: var(--f3-warn-bg); color: var(--f3-warn); }
+    &.is-ok { background: var(--f3-ok-bg); color: var(--f3-ok); }
+    &.is-info { background: var(--f3-info-bg); color: var(--f3-info); }
+}
+.adt_f360__kpis {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr 1fr;
+    gap: 12px;
+    padding: 16px;
+    border-top: 1px solid var(--f3-line);
+    &.is-1 { grid-template-columns: minmax(0, 320px); }
+    &.is-2 { grid-template-columns: 1fr 1fr; }
+    &.is-4 { grid-template-columns: 1.3fr 1fr 1fr 1fr; }
+}
+// Cada cifra en su propia tarjeta; la principal con el color de su estado.
+.adt_f360__kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 16px 18px;
+    border: 1px solid var(--f3-line);
+    border-radius: 8px;
+    background: var(--f3-surface);
+    &.is-hero.is-critico { border-color: var(--f3-crit-line); background: var(--f3-crit-bg); .adt_f360__kpi-value { color: var(--f3-crit); } }
+    &.is-hero.is-ok { border-color: var(--f3-ok-line); background: var(--f3-ok-bg); .adt_f360__kpi-value { color: var(--f3-ok); } }
+    &.is-hero.is-neutral { background: var(--f3-subtle); }
+    &.is-hero .adt_f360__kpi-value { font-size: 26px; }
+}
+.adt_f360__kpi-label {
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 8px 16px 0;
-    border-bottom: 1px solid var(--f3-line);
+    gap: 8px;
+    color: var(--f3-muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    > .fa { width: 14px; text-align: center; }
+}
+.adt_f360__kpi-value {
+    margin-top: 2px;
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    color: var(--f3-ink);
+    font-variant-numeric: tabular-nums;
+}
+.adt_f360__kpi-sub { color: var(--f3-muted); font-size: 12.5px; line-height: 1.4; }
+.adt_f360__kpi-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    margin-top: auto;
+    padding: 8px 0 0;
+    border: 0;
+    background: none;
+    color: var(--f3-primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+}
+// Desglose: fila a todo el ancho bajo las cifras.
+.adt_f360__kpi-detail { grid-column: 1 / -1; }
+.adt_f360__kpi-breakdown {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    border: 1px solid var(--f3-line);
+    border-radius: 8px;
+    background: var(--f3-subtle);
+    > div {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+        padding: 14px 18px;
+        & + div { border-left: 1px solid var(--f3-line); }
+    }
+    dt {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--f3-ink-2);
+        font-size: 12.5px;
+        font-weight: 400;
+        > .fa { width: 14px; color: var(--f3-muted); text-align: center; }
+    }
+    dd { margin: 0; color: var(--f3-ink); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
 }
 
-.adt_f360__subtab {
-    padding: 7px 10px 8px;
+// Detalle del crédito: avance y tarjetas de condiciones, montos, fechas y cuenta.
+.adt_f360__cdetail { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+.adt_f360__cdetail-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 18px;
+    border: 1px solid var(--f3-line);
+    border-radius: 8px;
+    background: var(--f3-subtle);
+    .adt_f360__minibar.is-large { max-width: none; height: 8px; border-radius: 4px; }
+}
+.adt_f360__cdetail-progress-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    .adt_f360__label { margin: 0; }
+    b { font-size: 15px; font-variant-numeric: tabular-nums; }
+}
+.adt_f360__cdetail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.adt_f360__cdetail-card {
+    min-width: 0;
+    padding: 16px 18px;
+    border: 1px solid var(--f3-line);
+    border-radius: 8px;
+    background: var(--f3-surface);
+    .adt_f360__cgroup-title { margin: 0 0 10px; }
+}
+.adt_f360__cdetail-list {
+    margin: 0;
+    > div {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 9px 0;
+        & + div { border-top: 1px dashed var(--f3-line); }
+    }
+    dt { color: var(--f3-muted); font-size: 12.5px; font-weight: 400; }
+    dd { margin: 0; color: var(--f3-ink); font-size: 13px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+}
+@media (max-width: 900px) {
+    .adt_f360__cdetail-grid { grid-template-columns: 1fr; }
+}
+
+// Pestaña «Contrato y documentos» de la cuenta.
+.adt_f360__cdocs-body { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; }
+.adt_f360__docrows {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+}
+.adt_f360__docrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--f3-line);
+    border-radius: 8px;
+    background: var(--f3-surface);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+    &:hover { border-color: var(--f3-primary); box-shadow: 0 2px 10px rgba(16, 24, 40, 0.08); .adt_f360__docrow-go { color: var(--f3-primary); } }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--f3-focus); }
+}
+.adt_f360__docrow-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--f3-info-bg);
+    color: var(--f3-primary);
+    font-size: 16px;
+}
+.adt_f360__docrow-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.adt_f360__docrow-go { flex: none; color: var(--f3-muted); font-size: 18px; }
+
+// Rentabilidad del vehículo: barras con una sola escala (riel = pactado, sólido = recaudado,
+// claro = por cobrar; misma tonalidad validada: monotonía, salto y contraste del tono claro).
+.adt_f360__rent { --f3-rent-paid: #1d3557; --f3-rent-due: #7f9cc2; }
+.adt_f360__rent-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding: 12px 18px 0;
+    color: var(--f3-ink-2);
+    font-size: 12.5px;
+    > span { display: inline-flex; align-items: center; gap: 6px; }
+}
+.adt_f360__rent-key {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+    &.is-paid { background: var(--f3-rent-paid); }
+    &.is-due { background: var(--f3-rent-due); }
+    &.is-track { background: var(--f3-subtle); box-shadow: inset 0 0 0 1px var(--f3-line-strong); }
+}
+.adt_f360__rent-list { padding: 6px 18px 12px; }
+.adt_f360__rent-row {
+    display: grid;
+    // Columnas fijas: todas las barras empiezan en el mismo punto y comparten la escala.
+    grid-template-columns: 360px minmax(160px, 1fr) 260px;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 0;
+    & + & { border-top: 1px solid var(--f3-line); }
+}
+.adt_f360__rent-who {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+}
+.adt_f360__rent-n {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--f3-subtle);
+    color: var(--f3-ink-2);
+    font-size: 12px;
+    font-weight: 700;
+    .is-current & { background: var(--f3-rent-paid); color: #fff; }
+}
+.adt_f360__rent-bar { position: relative; height: 16px; }
+.adt_f360__rent-bar > span { position: absolute; top: 0; bottom: 0; left: 0; }
+.adt_f360__rent-track { border-radius: 4px; background: var(--f3-subtle); box-shadow: inset 0 0 0 1px var(--f3-line-strong); }
+.adt_f360__rent-paid { top: 3px !important; bottom: 3px !important; border-radius: 0 4px 4px 0; background: var(--f3-rent-paid); }
+.adt_f360__rent-due {
+    top: 3px !important;
+    bottom: 3px !important;
+    border-left: 2px solid var(--f3-surface);
+    border-radius: 0 4px 4px 0;
+    background: var(--f3-rent-due);
+}
+.adt_f360__rent-num {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+    b { font-size: 15px; }
+}
+// «¿Cómo se calcula?»: una operación por fila (signo · qué es y de dónde sale · monto).
+.adt_f360__rent-steps { padding: 6px 18px 14px; }
+.adt_f360__rent-step {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    padding: 12px 0;
+    & + & { border-top: 1px solid var(--f3-line); }
+    &.is-subtotal { border-top: 1px solid var(--f3-line-strong); }
+    &.is-total {
+        margin-top: 4px;
+        padding: 14px 12px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--f3-ok-bg);
+        .adt_f360__rent-amount { color: var(--f3-ok); font-size: 20px; }
+        &.is-neg { background: var(--f3-crit-bg); .adt_f360__rent-amount { color: var(--f3-crit); } }
+    }
+}
+.adt_f360__rent-op {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--f3-subtle);
+    color: var(--f3-ink-2);
+    font-size: 16px;
+    font-weight: 700;
+    &:empty { visibility: hidden; }
+}
+.adt_f360__rent-what {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    b { color: var(--f3-ink); font-size: 13.5px; }
+    small { color: var(--f3-muted); font-size: 12.5px; line-height: 1.45; }
+}
+.adt_f360__rent-amount { padding-top: 4px; color: var(--f3-ink); font-size: 15px; font-weight: 700; white-space: nowrap; }
+.adt_f360__rent-warn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 18px 16px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--f3-warn-bg);
+    color: var(--f3-warn);
+    font-size: 12.5px;
+    font-weight: 500;
+    > .fa { margin-top: 2px; }
+}
+.adt_f360__rent-table {
+    tbody td:first-child { min-width: 220px; }
+    .is-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    tfoot td { border-top: 2px solid var(--f3-line-strong); font-weight: 700; }
+}
+.adt_f360__rent-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 4px 2px 0;
+    padding-left: 18px;
+    color: var(--f3-muted);
+    font-size: 12px;
+    list-style: disc;
+}
+@media (max-width: 900px) {
+    .adt_f360__rent-row { grid-template-columns: 1fr; gap: 10px; }
+    .adt_f360__rent-num { align-items: flex-start; text-align: left; }
+}
+
+// Financiera: PDF del plan de pagos y su cronograma.
+.adt_f360__fin .adt_f360__panel-head h3 .fa { color: var(--f3-primary); }
+.adt_f360__fin-drop {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1px dashed var(--f3-line-strong);
+    border-radius: 8px;
+    background: var(--f3-subtle);
+    > .fa { color: var(--f3-crit); font-size: 26px; }
+    > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+    &.is-drop { border-color: var(--f3-primary); background: var(--f3-info-bg); }
+    &.is-loading { opacity: .5; pointer-events: none; }
+}
+.adt_f360__fin-file {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--f3-line);
+    border-radius: 8px;
+    background: var(--f3-subtle);
+    > .fa { color: var(--f3-crit); font-size: 22px; }
+    > div { flex: 1; min-width: 160px; display: flex; flex-direction: column; b { overflow-wrap: anywhere; } }
+}
+.adt_f360__fin-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.adt_f360__fin-title { margin: 16px 0 8px; }
+.adt_f360__fin-table { border: 1px solid var(--f3-line); border-radius: var(--f3-radius); }
+.adt_f360__fin-empty { margin-top: 12px; }
+
+// Pestañas del detalle de la cuenta.
+.adt_f360__ptabpanel { overflow: hidden; }
+.adt_f360__ptabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+    overflow-x: auto;
+}
+.adt_f360__ptab {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 12px 10px;
     border: 0;
     border-bottom: 2px solid transparent;
     background: none;
     color: var(--f3-ink-2);
+    font-size: 13px;
     font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
-    &.is-active { border-bottom-color: var(--f3-primary); color: var(--f3-primary); font-weight: 600; }
+    > .fa { color: var(--f3-muted); }
+    &:hover { color: var(--f3-ink); }
+    &.is-active { border-bottom-color: var(--f3-primary); color: var(--f3-primary); font-weight: 600; > .fa { color: var(--f3-primary); } }
+    &:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--f3-focus); }
 }
+.adt_f360__ptab-n {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--f3-bg);
+    color: var(--f3-muted);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    &.is-alert { background: var(--f3-crit); color: #fff; }
+}
+.adt_f360__ptab-tools { display: flex; justify-content: flex-end; padding: 10px 16px 4px; .adt_f360__seg { margin: 0; } }
+.adt_f360__ptab-body {
+    min-height: 120px;
+    > .adt_f360__cgroups { padding: 0; }
+    > .adt_f360__paps.is-flush { margin: 0; border: 0; border-radius: 0; }
+}
+.adt_f360__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px 16px;
+    color: var(--f3-muted);
+    text-align: center;
+    > .fa { font-size: 26px; color: var(--f3-line-strong); }
+}
+
+// Requiere atención: un pendiente por fila, con un solo botón.
+// Requiere atención: filas amplias, ícono, qué pasa y un solo botón alineado a la derecha.
+.adt_f360__todo { padding: 4px 0; }
+.adt_f360__todo-item {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--f3-line);
+    &:first-child { border-top: 0; }
+    &:hover { background: var(--f3-subtle); }
+    .adt_f360__btn { min-width: 112px; justify-content: center; }
+}
+.adt_f360__todo-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 16px;
+    &.is-critico { background: var(--f3-crit-bg); color: var(--f3-crit); }
+    &.is-atencion { background: var(--f3-warn-bg); color: var(--f3-warn); }
+    &.is-info { background: var(--f3-info-bg); color: var(--f3-info); }
+}
+.adt_f360__todo-what {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+    gap: 3px;
+    b { font-size: 14px; color: var(--f3-ink); }
+    small { color: var(--f3-muted); font-size: 12.5px; }
+}
+button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primary); text-decoration: underline; } }
+.adt_f360__ptab-body > .adt_f360__pad > .adt_f360__allgood { margin: 8px 8px; }
+.adt_f360__allgood {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border: 1px solid var(--f3-ok-line);
+    border-radius: var(--f3-radius);
+    background: var(--f3-ok-bg);
+    color: var(--f3-ok);
+    span { color: var(--f3-ink-2); }
+}
+
+// Cronograma compacto: la fila entera abre la cuota.
+.adt_f360__crono2 {
+    tbody tr { cursor: pointer; }
+    tbody tr:hover td { background: var(--f3-subtle); }
+    tbody tr:focus-visible { outline: none; td { background: var(--f3-info-bg); } }
+    tr.is-vencida td:nth-child(2) { color: var(--f3-crit); font-weight: 600; }
+    tr.is-pagada td, tr.is-anulada td { color: var(--f3-muted); }
+    tr.is-anulada .adt_f360__strong { text-decoration: line-through; color: var(--f3-muted); }
+    tr.is-sub td:first-child { padding-left: 28px; }
+}
+.adt_f360__marks {
+    margin-left: 6px;
+    color: var(--f3-muted);
+    > .fa { margin-left: 4px; }
+    > .is-info { color: var(--f3-info); }
+}
+
+// Panel lateral de la cuota.
+.adt_f360__qfacts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 14px;
+    dt { color: var(--f3-muted); font-size: 12px; }
+    dd { font-weight: 600; small { color: var(--f3-muted); font-weight: 400; } }
+    .is-strong dd { font-size: 16px; }
+    .is-critico dd { color: var(--f3-crit); }
+}
+.adt_f360__qblock { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--f3-line); }
+.adt_f360__qreport {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--f3-info-line);
+    border-radius: 8px;
+    background: var(--f3-info-bg);
+    & + & { margin-top: 8px; }
+    > .fa { color: var(--f3-info); font-size: 18px; }
+    > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+}
+.adt_f360__qreport-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+// Menú con grupos titulados.
+.adt_f360__menu.is-grouped { min-width: 240px; }
+.adt_f360__menu-group {
+    padding: 8px 10px 3px;
+    color: var(--f3-muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    & + .adt_f360__menu-item.is-danger::before { display: none; }
+    .adt_f360__menu-item + & { margin-top: 4px; border-top: 1px solid var(--f3-line); padding-top: 9px; }
+}
+.adt_f360__optcards.is-stack { grid-template-columns: 1fr; margin-top: 12px; }
 
 // Control segmentado (filtro del cronograma).
 .adt_f360__seg {
@@ -894,42 +1697,6 @@
     }
 }
 
-.adt_f360__crono {
-    td:first-child, th:first-child { width: 28px; padding-right: 0; }
-    tr.is-vencida td:nth-child(3) { color: var(--f3-crit); font-weight: 600; }
-    tr.is-pagada td, tr.is-anulada td { color: var(--f3-muted); }
-    tr.is-anulada td:nth-child(2) .adt_f360__strong { text-decoration: line-through; color: var(--f3-muted); }
-    tr.is-open td { background: var(--f3-subtle); border-bottom-color: transparent; }
-    tr.is-detail > td { padding-top: 0; background: var(--f3-subtle); }
-}
-
-.adt_f360__marks {
-    margin-left: 6px;
-    color: var(--f3-muted);
-    > .fa { margin-left: 4px; }
-    > .is-info { color: var(--f3-info); }
-}
-
-.adt_f360__toggle {
-    width: 22px;
-    height: 22px;
-    border: 0;
-    border-radius: 4px;
-    background: none;
-    color: var(--f3-muted);
-    cursor: pointer;
-    &:hover { background: var(--f3-bg); color: var(--f3-ink); }
-}
-
-.adt_f360__qdetail {
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    gap: 16px;
-    padding: 6px 0 12px;
-    > div:nth-child(3) { grid-column: 1 / -1; }
-    .adt_f360__dtable { border: 1px solid var(--f3-line); background: var(--f3-surface); }
-    .adt_f360__notice { margin: 0; }
-}
 
 .adt_f360__obs li {
     padding: 4px 0;
@@ -937,128 +1704,67 @@
     &:last-child { border-bottom: 0; }
 }
 
+// Historial: línea de tiempo con aire entre eventos; autor y fecha arriba, mensaje y cambios debajo.
 .adt_f360__timeline {
-    padding: 8px 16px 16px;
-    li {
+    padding: 20px 24px 12px;
+    > li {
         position: relative;
-        padding: 10px 0 10px 18px;
-        border-left: 1px solid var(--f3-line-strong);
-        margin-left: 4px;
+        margin-left: 6px;
+        padding: 0 0 22px 24px;
+        border-left: 2px solid var(--f3-line);
+        &:last-child { padding-bottom: 8px; border-left-color: transparent; }
         &::before {
             content: "";
             position: absolute;
-            left: -4px;
-            top: 15px;
-            width: 7px;
-            height: 7px;
+            left: -7px;
+            top: 2px;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--f3-surface);
             border-radius: 50%;
             background: var(--f3-line-strong);
+            box-shadow: 0 0 0 1px var(--f3-line-strong);
         }
+        &:first-child::before { background: var(--f3-primary); box-shadow: 0 0 0 1px var(--f3-primary); }
     }
 }
+// Dentro de un panel lateral ya hay margen: la línea de tiempo no suma el suyo.
+.adt_f360__sheet .adt_f360__timeline { padding: 12px 0 0; }
 
+.adt_f360__timeline-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+    line-height: 1.3;
+    > b { color: var(--f3-ink); font-size: 13px; }
+    > span { color: var(--f3-muted); font-size: 12px; }
+}
+.adt_f360__timeline-text { margin-top: 6px; color: var(--f3-ink-2); line-height: 1.55; white-space: pre-line; }
 .adt_f360__changes {
-    margin-top: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
     background: var(--f3-subtle);
     color: var(--f3-ink-2);
-    font-size: 12px;
+    font-size: 12.5px;
+    line-height: 1.45;
 }
 
 .adt_f360__footer-actions { display: flex; justify-content: flex-end; gap: 6px; }
 
-// ── Recorrido del vehículo ────────────────────────────────────────────
-
-.adt_f360__journey { margin-bottom: 16px; }
-
-.adt_f360__steps {
-    display: grid;
-    // Una columna por etapa: cada etapa queda centrada en su tramo del panel.
-    grid-template-columns: repeat(var(--f3-pasos, 5), minmax(0, 1fr));
-    padding: 20px 12px 18px;
-}
-
-.adt_f360__step {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 0 8px;
-    text-align: center;
-
-    // Conector del centro de esta etapa al centro de la siguiente.
-    &:not(:last-child)::after {
-        content: "";
-        position: absolute;
-        top: 13px;
-        left: calc(50% + 20px);
-        right: calc(-50% + 20px);
-        height: 2px;
-        border-radius: 1px;
-        background: var(--f3-line);
-    }
-    &.is-ok:not(:last-child)::after { background: var(--f3-ok-line); }
-}
-
-.adt_f360__step-main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    max-width: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    text-align: center;
-    cursor: pointer;
-    &:hover .adt_f360__step-title { text-decoration: underline; }
-    &:focus-visible { outline: none; .adt_f360__step-dot { box-shadow: 0 0 0 3px var(--f3-focus); } }
-}
-
-.adt_f360__step-dot {
-    position: relative;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    margin-bottom: 6px;
-    border: 2px solid var(--f3-line-strong);
-    border-radius: 50%;
-    background: var(--f3-surface);
-    color: var(--f3-muted);
-    font-size: 12px;
-    font-weight: 600;
-
-    .is-ok & { border-color: var(--f3-ok); background: var(--f3-ok); color: #fff; }
-    .is-atencion & { border-color: #e6a23c; background: var(--f3-warn-bg); color: var(--f3-warn); }
-    .is-critico & { border-color: var(--f3-crit); background: var(--f3-crit-bg); color: var(--f3-crit); }
-    .is-info & { border-color: var(--f3-info); color: var(--f3-info); }
-}
-
-.adt_f360__step-title { font-weight: 600; color: var(--f3-ink); }
-.adt_f360__step-text {
-    font-size: 12px;
-    color: var(--f3-ink-2);
-    .is-atencion & { color: var(--f3-warn); font-weight: 600; }
-    .is-critico & { color: var(--f3-crit); font-weight: 600; }
-}
-.adt_f360__step-sub { font-size: 11.5px; color: var(--f3-muted); }
-.adt_f360__step-cta { margin-top: 2px; }
-
 // ── Indicadores del resumen ───────────────────────────────────────────
 
-.adt_f360__kpis {
+.adt_f360__tiles {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: 16px;
 }
 
-.adt_f360__kpi {
+.adt_f360__tile {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -1078,11 +1784,11 @@
 
     &.is-ok { border-top-color: var(--f3-ok); }
     &.is-info { border-top-color: var(--f3-info); }
-    &.is-atencion { border-top-color: #e6a23c; .adt_f360__kpi-value { color: var(--f3-warn); } }
-    &.is-critico { border-top-color: var(--f3-crit); .adt_f360__kpi-value { color: var(--f3-crit); } }
+    &.is-atencion { border-top-color: #e6a23c; .adt_f360__tile-value { color: var(--f3-warn); } }
+    &.is-critico { border-top-color: var(--f3-crit); .adt_f360__tile-value { color: var(--f3-crit); } }
 }
 
-.adt_f360__kpi-head {
+.adt_f360__tile-head {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1096,12 +1802,12 @@
     .adt_f360__st { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
 }
 
-.adt_f360__kpi-value { margin-top: 8px; font-size: 24px; font-weight: 600; line-height: 1.2; word-break: break-word; }
-.adt_f360__kpi-sub { color: var(--f3-muted); font-size: 12.5px; }
+.adt_f360__tile-value { margin-top: 8px; font-size: 24px; font-weight: 600; line-height: 1.2; word-break: break-word; }
+.adt_f360__tile-sub { color: var(--f3-muted); font-size: 12.5px; }
 
-.adt_f360__kpi-progress { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 10px; }
+.adt_f360__tile-progress { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 10px; }
 
-.adt_f360__kpi-bar {
+.adt_f360__tile-bar {
     height: 6px;
     border-radius: 3px;
     background: #e8ebef;
@@ -1109,7 +1815,7 @@
     > span { display: block; height: 100%; background: var(--f3-ok); }
 }
 
-.adt_f360__kpi-alert {
+.adt_f360__tile-alert {
     display: flex;
     align-items: flex-start;
     gap: 6px;
@@ -1136,7 +1842,6 @@
     background: var(--f3-warn-bg);
     > div:nth-child(2) { flex: 1; }
     p { color: var(--f3-ink-2); }
-    &.is-compact { margin: 0; padding: 12px; border-style: solid; .adt_f360__flag-icon { font-size: 22px; } }
 }
 
 .adt_f360__flag-icon { font-size: 30px; color: var(--f3-warn); }
@@ -1163,7 +1868,152 @@
     &.is-active { border-color: var(--f3-primary); background: var(--f3-primary); color: #fff; }
 }
 
-.adt_f360__exp-mini { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+// Historial de titulares: línea de tiempo, el actual arriba.
+.adt_f360__owner {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    padding-bottom: 14px;
+    &:last-child { padding-bottom: 0; }
+    &:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        top: 14px;
+        bottom: 0;
+        left: 4px;
+        width: 2px;
+        background: var(--f3-line);
+    }
+}
+.adt_f360__owner-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    margin-top: 4px;
+    border: 2px solid var(--f3-line-strong);
+    border-radius: 50%;
+    background: var(--f3-surface);
+    .adt_f360__owner.is-current & { border-color: var(--f3-ok); background: var(--f3-ok); }
+}
+.adt_f360__owner-body { min-width: 0; }
+.adt_f360__owner-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+// ── Cliente ───────────────────────────────────────────────────────────
+
+// Perfil: avatar, nombre con su condición, datos de contacto y acciones directas.
+.adt_f360__sep { width: 1px; height: 24px; margin: 0 4px; background: var(--f3-line); }
+
+// Contacto rápido: botones redondos con el color de cada canal.
+.adt_f360__icon-btn.is-contact {
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--f3-line);
+    border-radius: 50%;
+    background: var(--f3-surface);
+    font-size: 15px;
+    &.is-whatsapp { color: #128c4b; &:hover { border-color: #128c4b; background: #effaf3; } }
+    &.is-phone { color: var(--f3-primary); &:hover { border-color: var(--f3-primary); background: var(--f3-info-bg); } }
+    &.is-envelope-o { color: var(--f3-ink-2); &:hover { border-color: var(--f3-line-strong); } }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--f3-focus); }
+}
+
+// Datos ocupan más que la titularidad.
+
+.adt_f360__cgroups { display: flex; flex-direction: column; gap: 0; padding: 0; }
+.adt_f360__cgroup {
+    padding: 14px 16px;
+    & + & { border-top: 1px solid var(--f3-line); }
+    .adt_f360__fields { margin-left: 34px; }
+}
+.adt_f360__cgroup-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    color: var(--f3-ink);
+    font-size: 13px;
+    font-weight: 600;
+    > .fa {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--f3-info-bg);
+        color: var(--f3-primary);
+        font-size: 13px;
+    }
+}
+
+// Vehículo sin titular: dos caminos claros para asignarlo.
+.adt_f360__cempty { padding: 20px; }
+// Historial de titulares: créditos de cada titular con esta moto y cómo terminaron.
+.adt_f360__owner-credits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.adt_f360__owner-credit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px 3px 9px;
+    border: 1px solid var(--f3-line);
+    border-radius: 999px;
+    background: var(--f3-subtle);
+    font-size: 12px;
+    > .fa { color: var(--f3-muted); }
+}
+.adt_f360__cempty-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    h3 { font-size: 16px; font-weight: 600; }
+}
+.adt_f360__optcards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+.adt_f360__optcard {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: 8px;
+    background: var(--f3-surface);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    &:hover { border-color: var(--f3-primary); box-shadow: 0 2px 10px rgba(16, 24, 40, 0.08); .adt_f360__optcard-go { color: var(--f3-primary); transform: translateX(2px); } }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--f3-focus); }
+    &.is-main { border-color: var(--f3-accent); background: #fff7ed; .adt_f360__optcard-icon { background: var(--f3-accent); color: #fff; } }
+}
+.adt_f360__optcard-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--f3-info-bg);
+    color: var(--f3-primary);
+    font-size: 16px;
+}
+.adt_f360__optcard-go { flex: none; color: var(--f3-muted); font-size: 18px; transition: transform .15s, color .15s; }
+
+@media (max-width: 900px) {
+    .adt_f360__hcard-head { flex-wrap: wrap; }
+    .adt_f360__hcard-actions { width: 100%; justify-content: flex-start; }
+    .adt_f360__kpis.is-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .adt_f360__kpi-breakdown { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .adt_f360__kpi-breakdown > div:nth-child(3) { border-left: 0; }
+    .adt_f360__kpi-breakdown > div:nth-child(n+3) { border-top: 1px solid var(--f3-line); }
+    .adt_f360__optcards { grid-template-columns: 1fr; }
+    .adt_f360__cgroup .adt_f360__fields { margin-left: 0; grid-template-columns: 1fr; }
+}
 
 .adt_f360__exp-grid {
     display: grid;
@@ -1173,6 +2023,43 @@
 }
 
 .adt_f360__docgroup + .adt_f360__docgroup { margin-top: 18px; }
+
+// Expediente en un solo archivo (PDF / Word): va antes de los grupos de documentos.
+.adt_f360__single {
+    margin-bottom: 20px;
+    padding: 14px;
+    border: 1px dashed var(--f3-line-strong);
+    border-radius: 10px;
+    background: var(--f3-subtle);
+    &.is-covered { border-style: solid; border-color: var(--f3-info-line); background: var(--f3-info-bg); }
+    &.is-rejected { border-style: solid; border-color: var(--f3-crit-line); background: var(--f3-crit-bg); }
+    .adt_f360__doccards { grid-template-columns: minmax(0, 340px); }
+}
+.adt_f360__single-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+    h4 { margin: 0 0 2px; color: var(--f3-ink); font-size: 13.5px; font-weight: 600; }
+    p { color: var(--f3-ink-2); font-size: 12.5px; }
+}
+.adt_f360__single-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--f3-surface);
+    color: var(--f3-primary);
+    font-size: 15px;
+    .is-covered & { background: var(--f3-info); color: #fff; }
+    .is-rejected & { background: var(--f3-crit); color: #fff; }
+}
+.adt_f360__thumb.is-word .adt_f360__thumb-page > .fa { color: #2b579a; }
+.adt_f360__docs-toggle { margin-bottom: 12px; }
+.adt_f360__ok-icon { color: var(--f3-ok); }
 .adt_f360__docgroup h4 {
     margin: 0 0 8px;
     color: var(--f3-ink-2);
@@ -1193,34 +2080,98 @@
 
 .adt_f360__doccards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
 }
 
+// Tarjeta de documento: encabezado (nombre, obligatoriedad, estado), vista previa y barra de acciones.
+// El color del estado va en una franja superior y en la etiqueta, nunca solo en el fondo.
 .adt_f360__doc {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
     border: 1px solid var(--f3-line);
-    border-radius: var(--f3-radius);
+    border-radius: 10px;
     background: var(--f3-surface);
-    &.is-rechazado { border-color: var(--f3-crit-line); background: var(--f3-crit-bg); }
-    &.is-incompleto { border-color: var(--f3-warn-line); }
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+    overflow: hidden;
+    transition: box-shadow .15s ease, border-color .15s ease;
+    &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--f3-line-strong);
+    }
+    &:hover { border-color: var(--f3-line-strong); box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08); }
+    &.is-aceptado::before { background: var(--f3-ok); }
+    &.is-incompleto::before { background: #e6a23c; }
+    &.is-rechazado { border-color: var(--f3-crit-line); &::before { background: var(--f3-crit); } }
+    // Falta, pero lo cubre el expediente en un solo archivo.
+    &.is-cubierto { border-style: dashed; &::before { background: var(--f3-info); } }
+    &.is-cubierto .adt_f360__thumb.is-empty { opacity: .7; }
+
+    .adt_f360__doc-files { padding: 0 14px 14px; }
+
+    .adt_f360__thumb {
+        position: relative;
+        height: auto;
+        aspect-ratio: 4 / 3;
+        border-radius: 8px;
+        gap: 2px;
+        img { transition: transform .25s ease; }
+        &:hover img { transform: scale(1.03); }
+    }
 }
 
 .adt_f360__doc-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 8px;
-    .adt_f360__st { flex: none; font-size: 12px; }
+    gap: 10px;
+    padding: 16px 14px 12px;
+    .adt_f360__badge { flex: none; margin-top: 1px; }
+}
+.adt_f360__doc-title { min-width: 0; }
+.adt_f360__doc-name {
+    margin: 0;
+    color: var(--f3-ink);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+.adt_f360__doc-req { display: block; margin-top: 2px; color: var(--f3-muted); font-size: 12px; }
+
+.adt_f360__doc-files {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    &.is-multi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-.adt_f360__doc-name { font-weight: 600; }
-.adt_f360__doc-files { display: flex; gap: 10px; }
-.adt_f360__doc-obs { color: var(--f3-crit); font-size: 12px; }
-.adt_f360__doc-review { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid var(--f3-line); }
+.adt_f360__doc-obs {
+    display: flex;
+    gap: 8px;
+    margin: 0 14px 14px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--f3-crit-bg);
+    color: var(--f3-crit);
+    font-size: 12px;
+    .fa { flex: none; margin-top: 2px; }
+}
+
+.adt_f360__doc-review {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: auto;
+    padding: 10px 14px;
+    border-top: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+}
 
 .adt_f360__file {
     flex: 1;
@@ -1228,7 +2179,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    border-radius: 4px;
+    border-radius: 6px;
     &.is-drop .adt_f360__thumb { border-color: var(--f3-primary); background: #e9eef5; }
     &.is-loading { opacity: .5; pointer-events: none; }
 }
@@ -1243,7 +2194,7 @@
     height: 110px;
     padding: 0;
     border: 1px solid var(--f3-line);
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--f3-subtle);
     color: var(--f3-muted);
     font-size: 12px;
@@ -1253,20 +2204,307 @@
     img { width: 100%; height: 100%; object-fit: cover; }
     > .fa { font-size: 22px; }
     > span { max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    &.is-empty { border-style: dashed; border-color: var(--f3-line-strong); }
-    &.is-empty:hover { border-color: var(--f3-primary); color: var(--f3-primary); background: #f3f6fa; }
     &.is-file > .fa-file-pdf-o { color: var(--f3-crit); }
+    &:hover { border-color: var(--f3-line-strong); }
     &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--f3-focus); }
+
+    // Zona para subir: invita a la acción sin parecer un error.
+    &.is-empty {
+        border: 1.5px dashed var(--f3-line-strong);
+        background: var(--f3-surface);
+        transition: border-color .15s ease, background .15s ease;
+        &:hover { border-color: var(--f3-primary); background: #f3f6fa; }
+        &:hover .adt_f360__thumb-icon { background: var(--f3-primary); color: #fff; }
+    }
+    &.is-file { background: linear-gradient(180deg, var(--f3-subtle), #eef1f4); }
+    &.is-file:hover { border-color: var(--f3-primary); }
+
+    // Capa "Ver" al pasar el cursor por imágenes y PDF.
+    > .adt_f360__thumb-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        max-width: none;
+        background: rgba(16, 24, 40, 0.4);
+        backdrop-filter: blur(2px);
+        opacity: 0;
+        transition: opacity .15s ease;
+    }
+    &:hover > .adt_f360__thumb-overlay, &:focus-visible > .adt_f360__thumb-overlay { opacity: 1; }
 }
 
+.adt_f360__thumb-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(16, 24, 40, 0.25);
+    color: var(--f3-ink);
+    font-size: 13px;
+    font-weight: 600;
+    .fa { color: var(--f3-primary); }
+}
+
+.adt_f360__thumb-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 6px;
+    border-radius: 50%;
+    background: #e9eef5;
+    color: var(--f3-primary);
+    font-size: 18px;
+    transition: background .15s ease, color .15s ease;
+}
+.adt_f360__thumb-cta { color: var(--f3-primary); font-size: 13px; font-weight: 600; }
+.adt_f360__thumb-note { color: var(--f3-muted); font-size: 11.5px; }
+
+// Hoja con la marca del tipo de archivo, como miniatura de PDF u otros documentos.
+.adt_f360__thumb-page {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 46px;
+    height: 58px;
+    margin-bottom: 8px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(16, 24, 40, 0.1);
+    color: var(--f3-neutral);
+    font-size: 20px;
+    b { font-size: 9px; letter-spacing: .06em; }
+    .adt_f360__thumb.is-pdf & { color: var(--f3-crit); }
+}
+.adt_f360__thumb-name {
+    color: var(--f3-ink-2);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.adt_f360__file-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 28px;
+    margin-top: 6px;
+}
+
+// Lado (Anverso, Reverso…) y fecha, cada uno en su línea.
 .adt_f360__file-meta {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    color: var(--f3-muted);
     font-size: 11.5px;
-    > span:first-child { font-weight: 500; }
+    line-height: 1.35;
+    > b, > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    > b { color: var(--f3-ink-2); font-weight: 600; }
 }
 
-.adt_f360__file-actions { display: flex; gap: 2px; }
+// Con dos archivos lado a lado no caben datos y acciones en una fila: van uno debajo del otro.
+.adt_f360__doc-files.is-multi .adt_f360__file-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    .adt_f360__file-actions { margin-left: -4px; }
+}
+
+.adt_f360__file-actions {
+    flex: none;
+    display: flex;
+    gap: 2px;
+    .adt_f360__icon-btn { width: 28px; height: 28px; border-radius: 6px; }
+}
+
+// ── Papeletas ─────────────────────────────────────────────────────────
+
+// Borde izquierdo con el estado de la papeleta (vencida, pendiente, pagada).
+.adt_f360__pap {
+    border-left-width: 3px;
+    &.is-critico { border-left-color: var(--f3-crit); }
+    &.is-atencion { border-left-color: #e6a23c; }
+    &.is-ok { border-left-color: var(--f3-ok); }
+    .adt_f360__panel-head h3 { font-size: 14px; }
+    .adt_f360__note:first-child { margin-top: 0; }
+    .adt_f360__fields { margin-top: 14px; }
+}
+.adt_f360__pap-title { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.adt_f360__pap-block {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--f3-line);
+}
+.adt_f360__pap-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    .adt_f360__label { margin: 0; }
+}
+.adt_f360__pap-text { white-space: pre-line; color: var(--f3-ink-2); }
+// Grupos del formulario de la captura (campos + textos largos).
+.adt_f360__sheet .adt_f360__pap-block > .adt_f360__fields { margin-top: 6px; }
+.adt_f360__cap-text {
+    margin-top: 10px;
+    .adt_f360__pap-text { margin: 2px 0 0; }
+}
+.adt_f360__pap-resumen { margin-bottom: 8px; }
+.adt_f360__pap-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--f3-ink-2);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    .fa { width: 10px; }
+    &:hover { color: var(--f3-primary); }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--f3-focus); border-radius: 3px; }
+}
+.adt_f360__evid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+.adt_f360__evid-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    font-size: 11.5px;
+}
+
+// Lista compacta de papeletas: cada fila abre el panel lateral con el detalle.
+.adt_f360__paps {
+    margin-top: 12px;
+    border: 1px solid var(--f3-line);
+    border-radius: var(--f3-radius);
+    overflow: hidden;
+}
+.adt_f360__papf {
+    border-top: 1px solid var(--f3-line);
+    border-left: 3px solid transparent;
+    &:first-child { border-top: 0; }
+    &.is-critico { border-left-color: var(--f3-crit); }
+    &.is-atencion { border-left-color: #e6a23c; }
+    &.is-ok { border-left-color: var(--f3-ok); }
+    &.is-selected .adt_f360__papf-btn { background: var(--f3-subtle); }
+}
+.adt_f360__papf-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 10px 14px;
+    border: 0;
+    background: var(--f3-surface);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    &:hover { background: var(--f3-subtle); .adt_f360__papf-go { color: var(--f3-primary); } }
+    &:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--f3-focus); }
+}
+.adt_f360__papf-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.adt_f360__papf-det { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adt_f360__papf-alert {
+    font-size: 12px;
+    color: var(--f3-warn);
+    &.is-critico { color: var(--f3-crit); }
+}
+.adt_f360__papf-fig { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
+.adt_f360__papf-evid {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--f3-ink-2);
+    font-size: 12px;
+    &.is-empty { color: var(--f3-muted); opacity: .6; }
+}
+.adt_f360__papf-go {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--f3-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+// Panel lateral (detalle de una papeleta). Queda debajo del modal de la vista,
+// así formularios y visor de evidencias se abren encima sin cerrarlo.
+.adt_f360__sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(16, 24, 40, 0.32);
+    &.is-entering { animation: adt_f360_fade .15s ease-out; }
+}
+.adt_f360__sheet {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 31;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 720px;
+    border-left: 4px solid var(--f3-line-strong);
+    background: var(--f3-surface);
+    box-shadow: -16px 0 48px rgba(16, 24, 40, 0.18);
+    &.is-entering { animation: adt_f360_slide .18s ease-out; }
+    // Capturas: la tabla de cuotas pendientes necesita más ancho.
+    &.is-wide { max-width: 960px; }
+    &.is-critico { border-left-color: var(--f3-crit); }
+    &.is-atencion { border-left-color: #e6a23c; }
+    &.is-ok { border-left-color: var(--f3-ok); }
+    .adt_f360__note:first-child { margin-top: 0; }
+    .adt_f360__fields { margin-top: 14px; }
+}
+.adt_f360__sheet-head {
+    flex: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--f3-line);
+    h2 { margin-bottom: 6px; font-size: 17px; font-weight: 700; }
+}
+.adt_f360__sheet-actions {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+}
+.adt_f360__sheet-body { flex: 1; overflow-y: auto; padding: 16px 20px 24px; }
+
+@keyframes adt_f360_slide { from { transform: translateX(32px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes adt_f360_fade { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .adt_f360__sheet, .adt_f360__sheet-backdrop { animation: none; }
+}
 
 .adt_f360__icon-btn {
     display: inline-flex;
@@ -1321,6 +2559,30 @@
 
 .adt_f360__modal-body { padding: 4px 20px 16px; }
 
+// Panel lateral: formularios largos (p. ej. editar cliente) se abren a la derecha,
+// con cabecera y pie fijos y el contenido desplazable.
+.adt_f360__modal-root.is-side {
+    justify-content: flex-end;
+    padding: 0;
+    overflow: hidden;
+}
+.adt_f360__modal.is-side {
+    height: 100%;
+    max-width: 560px;
+    border-radius: 0;
+    box-shadow: -16px 0 48px rgba(16, 24, 40, 0.2);
+    animation: adt_f360_slide .18s ease-out;
+    .adt_f360__modal-head { flex: none; }
+    .adt_f360__modal-body { flex: 1; min-height: 0; overflow-y: auto; }
+    .adt_f360__modal-foot { flex: none; border-radius: 0; }
+}
+
+// Grupos de campos dentro de un panel (Identificación, Contacto, Dirección…).
+.adt_f360__fgroup {
+    & + & { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--f3-line); }
+    > .adt_f360__label { margin: 0 0 10px; }
+}
+
 .adt_f360__modal-foot {
     display: flex;
     align-items: center;
@@ -1334,30 +2596,110 @@
 
 .adt_f360__modal-error { flex: 1; color: var(--f3-crit); font-size: 12.5px; }
 
+// Pie del asistente de crédito: error arriba; abajo volver/cancelar a la izquierda y las
+// acciones que avanzan a la derecha (la principal al final), cada una con lo que hace.
+.adt_f360__modal-foot.is-wizard {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px 20px;
+    .adt_f360__modal-error:empty { display: none; }
+}
+.adt_f360__wfoot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+}
+.adt_f360__wfoot-start, .adt_f360__wfoot-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.adt_f360__wfoot-end { margin-left: auto; }
+.adt_f360__wfoot-hint { color: var(--f3-muted); font-size: 12.5px; }
+.adt_f360__btn.is-ghost {
+    border-color: transparent;
+    background: none;
+    color: var(--f3-ink-2);
+    &:hover { background: var(--f3-bg); }
+}
+// Botón de acción con título y una línea que explica lo que hace.
+.adt_f360__actbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px 14px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: var(--f3-radius);
+    background: var(--f3-surface);
+    color: var(--f3-ink);
+    text-align: left;
+    cursor: pointer;
+    > .fa { color: var(--f3-muted); font-size: 16px; }
+    > span { display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+    b { font-size: 13px; font-weight: 600; }
+    small { color: var(--f3-muted); font-size: 11.5px; }
+    &:hover { background: var(--f3-subtle); border-color: #b9c0c9; }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--f3-focus); }
+    &:disabled, &.is-loading { opacity: .6; cursor: default; }
+    &.is-primary {
+        border-color: var(--f3-primary);
+        background: var(--f3-primary);
+        color: #fff;
+        > .fa, small { color: rgba(255, 255, 255, 0.82); }
+        &:hover { background: var(--f3-primary-hover); }
+    }
+}
+@media (max-width: 640px) {
+    .adt_f360__wfoot-end { width: 100%; margin-left: 0; }
+    .adt_f360__actbtn { flex: 1 1 100%; }
+}
+
 .adt_f360__viewer {
     display: flex;
     justify-content: center;
     padding: 16px;
     background: #1f2430;
     img { max-width: 100%; max-height: 70vh; object-fit: contain; }
+    &.is-pdf {
+        padding: 0;
+        iframe { display: block; width: 100%; height: 75vh; border: 0; background: #fff; }
+    }
 }
 
 // ── Formularios ───────────────────────────────────────────────────────
 
 .adt_f360__fieldset {
-    margin: 0;
-    padding: 14px 0 4px;
-    border: 0;
-    & + & { border-top: 1px solid var(--f3-line); }
+    margin: 12px 0 0;
+    padding: 14px 16px 16px;
+    border: 1px solid var(--f3-line);
+    border-radius: 8px;
+    background: var(--f3-surface);
+    scroll-margin-top: 12px;
+    transition: border-color .15s, box-shadow .15s;
+    &:focus-within { border-color: var(--f3-line-strong); box-shadow: 0 2px 10px rgba(16, 24, 40, 0.06); }
     .adt_f360__legend {
-        margin: 0 0 10px;
-        color: var(--f3-ink-2);
-        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 14px;
+        color: var(--f3-ink);
+        font-size: 13px;
         font-weight: 600;
-        letter-spacing: .04em;
-        text-transform: uppercase;
+        > .fa {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--f3-info-bg);
+            color: var(--f3-primary);
+            font-size: 13px;
+        }
     }
 }
+// Fondo gris tras las tarjetas de sección.
+.adt_f360__modal form.adt_f360__modal-body { padding-top: 0; background: var(--f3-bg); }
 
 .adt_f360__form-grid {
     display: grid;
@@ -1372,6 +2714,20 @@
     min-width: 0;
     > label { margin: 0; color: var(--f3-ink-2); font-size: 12.5px; font-weight: 500; }
     &.is-full { grid-column: 1 / -1; }
+    &:focus-within > label { color: var(--f3-primary); }
+    &.is-invalid {
+        > label { color: var(--f3-crit); }
+        .adt_f360__input { border-color: var(--f3-crit); background: var(--f3-crit-bg); }
+        .adt_f360__input:focus { box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.18); }
+    }
+}
+
+.adt_f360__ferr {
+    display: none;
+    color: var(--f3-crit);
+    font-size: 11.5px;
+    .is-invalid > & { display: flex; align-items: center; gap: 4px; }
+    .is-invalid > &::before { content: "\f06a"; font-family: FontAwesome; }
 }
 
 .adt_f360__req { color: var(--f3-crit); }
@@ -1386,7 +2742,11 @@
     background: var(--f3-surface);
     color: var(--f3-ink);
     font: inherit;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    &::placeholder { color: #9aa1ac; }
+    &:hover:not(:disabled):not(:focus) { border-color: #b9c0c9; }
     &:focus { outline: none; border-color: var(--f3-primary); box-shadow: 0 0 0 3px var(--f3-focus); }
+    &:disabled { background: var(--f3-subtle); color: var(--f3-muted); cursor: not-allowed; border-style: dashed; }
     &.is-num { text-align: right; font-feature-settings: "tnum" 1; }
     &[type="file"] { padding: 5px; }
 }
@@ -1405,7 +2765,34 @@ textarea.adt_f360__input { resize: vertical; }
     &.is-full { grid-column: 1 / -1; padding-top: 0; }
 }
 
-.adt_f360__m2o { position: relative; }
+.adt_f360__m2o {
+    position: relative;
+    > .adt_f360__input { padding-left: 30px; padding-right: 30px; }
+}
+.adt_f360__m2o-icon {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: var(--f3-muted);
+    font-size: 12px;
+    pointer-events: none;
+}
+.adt_f360__m2o-clear {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: none;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--f3-muted);
+    cursor: pointer;
+    &:hover { background: var(--f3-bg); color: var(--f3-ink); }
+}
+// La ✕ solo aparece con un valor elegido y el campo habilitado.
+.adt_f360__m2o > .adt_f360__input:not(:placeholder-shown):not(:disabled) ~ .adt_f360__m2o-clear { display: block; }
 
 .adt_f360__m2o-list {
     position: absolute;
@@ -1422,13 +2809,153 @@ textarea.adt_f360__input { resize: vertical; }
     background: var(--f3-surface);
     box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
     &.is-open { display: block; }
-    li { padding: 6px 8px; border-radius: 4px; cursor: pointer; &:hover { background: var(--f3-bg); } }
+    li { padding: 7px 8px; border-radius: 4px; cursor: pointer; &:hover, &.is-active { background: var(--f3-bg); } }
+    li.is-active { box-shadow: inset 2px 0 0 var(--f3-primary); }
     li.is-empty { color: var(--f3-muted); cursor: default; }
+    li.is-create {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+        border-top: 1px solid var(--f3-line);
+        border-radius: 0 0 4px 4px;
+        color: var(--f3-primary);
+        font-weight: 600;
+    }
+    mark { background: none; color: var(--f3-primary); font-weight: 600; }
 }
 
 .adt_f360__seg.is-block { display: flex; margin: 0; button { flex: 1; padding: 6px 10px; } }
+.adt_f360__field .adt_f360__seg.is-block button { min-height: 32px; font-size: 13px; }
+
+// Vista previa del cliente mientras se completa el formulario.
+.adt_f360__fpreview {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+}
+.adt_f360__fpreview-text { display: flex; flex-direction: column; min-width: 0; .adt_f360__strong { font-size: 15px; } }
+.adt_f360__avatar {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--f3-primary);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    &.is-company { border-radius: 10px; background: var(--f3-info); }
+    &.is-large { width: 56px; height: 56px; font-size: 20px; }
+    &.is-empty { width: 48px; height: 48px; background: var(--f3-bg); color: var(--f3-muted); font-size: 20px; }
+}
+
+.adt_f360__check {
+    padding: 8px 10px;
+    border: 1px solid var(--f3-line);
+    border-radius: var(--f3-radius);
+    transition: border-color .15s, background .15s;
+    &:hover { border-color: var(--f3-line-strong); }
+    &:has(input:checked) { border-color: var(--f3-info-line); background: var(--f3-info-bg); }
+    input { accent-color: var(--f3-primary); }
+    &:not(.is-full) { align-self: end; }
+}
+
+// Guardando…
+.adt_f360__btn.is-loading {
+    pointer-events: none;
+    > .fa::before { content: "\f110"; }
+    > .fa { animation: fa-spin 1s infinite linear; }
+}
 
 // ── Asistente de crédito ──────────────────────────────────────────────
+
+// Drawer ancho: formulario y vista previa del cronograma lado a lado.
+.adt_f360__modal.is-side.is-wide { max-width: 1080px; }
+
+// Pasos del asistente: 1 Cliente · 2 Crédito y cronograma.
+.adt_f360__wsteps {
+    flex: none;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+    list-style: none;
+    li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--f3-muted);
+        font-size: 12.5px;
+        & + li::before { content: ""; width: 28px; height: 1px; margin-right: 4px; background: var(--f3-line-strong); }
+        &.is-active { color: var(--f3-ink); font-weight: 600; }
+        &.is-done { color: var(--f3-ok); }
+    }
+}
+.adt_f360__wsteps-n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: 50%;
+    background: var(--f3-surface);
+    font-size: 11.5px;
+    .is-active > & { border-color: var(--f3-primary); background: var(--f3-primary); color: #fff; }
+    .is-done > & { border-color: var(--f3-ok); background: var(--f3-ok-bg); }
+}
+
+// Paso 1: buscar o registrar al cliente.
+.adt_f360__wclient {
+    max-width: 640px;
+    margin: 0 auto;
+    padding-bottom: 8px;
+    .adt_f360__note { margin: 10px 0 0; }
+}
+.adt_f360__wclient-or {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 14px 0 0;
+    color: var(--f3-muted);
+    font-size: 12px;
+    &::before, &::after { content: ""; flex: 1; height: 1px; background: var(--f3-line); }
+}
+.adt_f360__wclient-card {
+    margin-top: 16px;
+    padding: 16px;
+    .adt_f360__hcard-head { padding: 0; border: 0; }
+}
+.adt_f360__wclient-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--f3-line);
+    font-size: 12.5px;
+}
+// Paso 2: el cliente elegido, con acceso a cambiarlo.
+.adt_f360__wclient-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border: 1px solid var(--f3-line);
+    border-radius: var(--f3-radius);
+    background: var(--f3-subtle);
+    .adt_f360__strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
 
 .adt_f360__credit {
     display: grid;
@@ -1476,9 +3003,6 @@ textarea.adt_f360__input { resize: vertical; }
     .adt_f360__figure:nth-child(4) { border-left: 0; }
     .adt_f360__figure:nth-child(n+4) { border-top: 1px solid var(--f3-line); }
     .adt_f360__cols, .adt_f360__exp-grid, .adt_f360__credit { grid-template-columns: 1fr; }
-    // Recorrido en pantallas medianas: etapas en filas, sin conectores horizontales.
-    .adt_f360__steps { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); row-gap: 20px; }
-    .adt_f360__step::after { display: none; }
     .adt_f360__nav { width: 200px; }
 }
 
@@ -1488,8 +3012,6 @@ textarea.adt_f360__input { resize: vertical; }
     .adt_f360__subtitle, .adt_f360__kbd { display: none; }
     .adt_f360__search-clear { right: 8px; }
     .adt_f360__figures, .adt_f360__acc-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .adt_f360__dh { padding: 12px; }
-    .adt_f360__dh-main { flex-wrap: wrap; }
     .adt_f360__db { padding: 12px 12px 32px; }
     // El menú lateral pasa a ser una franja horizontal desplazable.
     .adt_f360__layout { flex-direction: column; }
@@ -1498,6 +3020,9 @@ textarea.adt_f360__input { resize: vertical; }
     .adt_f360__nav-group + .adt_f360__nav-group { margin-top: 0; }
     .adt_f360__nav-title { display: none; }
     .adt_f360__nav-item { width: auto; white-space: nowrap; }
+    // En la franja horizontal, volver y la placa van al inicio.
+    .adt_f360__nav-id { flex: none; flex-direction: row; align-items: center; margin: 0 8px 0 0; padding: 0 12px 0 0; border-bottom: 0; border-right: 1px solid var(--f3-line); }
+    .adt_f360__nav-id-top { flex-wrap: nowrap; margin: 0; }
     .adt_f360__form-grid { grid-template-columns: 1fr; }
     .adt_f360__modal-root { padding: 0; }
     .adt_f360__modal { min-height: 100%; border-radius: 0; }
@@ -1509,3 +3034,18 @@ textarea.adt_f360__input { resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
     .adt_f360 *, .adt_f360 *::before { animation: none !important; transition: none !important; }
 }
+
+// Teléfono: las cifras se apilan.
+@media (max-width: 640px) {
+    .adt_f360__kpis, .adt_f360__kpis.is-2, .adt_f360__kpis.is-4 { grid-template-columns: 1fr; padding: 12px; gap: 10px; }
+    .adt_f360__kpi-breakdown { grid-template-columns: 1fr; }
+    .adt_f360__kpi-breakdown > div + div { border-left: 0; border-top: 1px solid var(--f3-line); }
+}
+
+@media (max-width: 640px) {
+    .adt_f360__todo-item { padding: 14px 16px; }
+    .adt_f360__todo-item { grid-template-columns: 38px minmax(0, 1fr); .adt_f360__btn { grid-column: 2; justify-self: start; } }
+    .adt_f360__timeline { padding: 16px 16px 8px; }
+}
+
+.adt_f360__summary-print { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
