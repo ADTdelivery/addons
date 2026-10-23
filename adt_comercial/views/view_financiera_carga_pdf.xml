@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Resultado de cada PDF ── -->
+    <record id="adt_financiera_carga_pdf_linea_tree" model="ir.ui.view">
+        <field name="name">adt.financiera.carga.pdf.linea.tree</field>
+        <field name="model">adt.financiera.carga.pdf.linea</field>
+        <field name="arch" type="xml">
+            <tree string="PDFs" create="0" delete="0"
+                  decoration-success="state == 'cargado'"
+                  decoration-danger="state == 'error'"
+                  decoration-warning="state in ('sin_cliente', 'revisar')"
+                  decoration-muted="state in ('omitido', 'pendiente')">
+                <field name="nombre_archivo"/>
+                <field name="dni"/>
+                <field name="socio_pdf" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="situacion_deuda" widget="badge"
+                       decoration-warning="situacion_deuda == 'activa'"
+                       decoration-success="situacion_deuda == 'cancelada'"
+                       decoration-muted="situacion_deuda in ('anulada', 'sin_deuda')"/>
+                <field name="cuenta_id" optional="show"/>
+                <field name="cuenta_state" optional="hide"/>
+                <field name="vehiculo_id" optional="show"/>
+                <field name="monto_credito" optional="hide"/>
+                <field name="cuotas_pdf" optional="hide"/>
+                <field name="cf_estado" widget="badge" optional="show"
+                       decoration-success="cf_estado == 'valido'"
+                       decoration-warning="cf_estado == 'observado'"/>
+                <field name="confianza" optional="hide"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'cargado'"
+                       decoration-danger="state == 'error'"
+                       decoration-warning="state in ('sin_cliente', 'revisar')"/>
+                <field name="mensaje" optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_financiera_carga_pdf_linea_form" model="ir.ui.view">
+        <field name="name">adt.financiera.carga.pdf.linea.form</field>
+        <field name="model">adt.financiera.carga.pdf.linea</field>
+        <field name="arch" type="xml">
+            <form string="PDF" create="0" delete="0">
+                <header>
+                    <button name="action_abrir_moto" type="object" string="Abrir moto" class="btn-primary"
+                            attrs="{'invisible': [('vehiculo_id', '=', False)]}"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="PDF">
+                            <field name="carga_id" readonly="1"/>
+                            <field name="nombre_archivo" readonly="1"/>
+                            <field name="attachment_id" readonly="1"/>
+                            <field name="dni" readonly="1"/>
+                            <field name="socio_pdf" readonly="1"/>
+                            <field name="monto_credito" readonly="1"/>
+                            <field name="cuotas_pdf" readonly="1"/>
+                            <field name="cf_estado" readonly="1"/>
+                            <field name="confianza" readonly="1"/>
+                        </group>
+                        <group string="Cliente en ADT">
+                            <field name="partner_id" readonly="1"/>
+                            <field name="situacion_deuda" readonly="1"/>
+                            <field name="cuenta_id" readonly="1"/>
+                            <field name="cuenta_state" readonly="1"/>
+                            <field name="vehiculo_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="mensaje" nolabel="1" readonly="1"/>
+                    <!-- El cliente encontrado por DNI no es el correcto (o no se encontró): se elige a mano. -->
+                    <group string="Cargar en otro cliente (reemplaza el plan de su moto)"
+                           attrs="{'invisible': [('state', '=', 'pendiente')]}">
+                        <group>
+                            <field name="partner_manual_id" options="{'no_create': True}"/>
+                            <field name="cuenta_manual_id" options="{'no_create': True}"
+                                   attrs="{'invisible': [('partner_manual_id', '=', False)]}"/>
+                        </group>
+                        <group>
+                            <button name="action_cargar_otro_cliente" type="object" class="btn-primary"
+                                    string="Cargar y reemplazar"
+                                    attrs="{'invisible': [('partner_manual_id', '=', False)]}"
+                                    confirm="Se cargará este plan en la moto de la cuenta elegida y reemplazará el plan que tenga. ¿Continuar?"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="adt_financiera_carga_pdf_linea_search" model="ir.ui.view">
+        <field name="name">adt.financiera.carga.pdf.linea.search</field>
+        <field name="model">adt.financiera.carga.pdf.linea</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="nombre_archivo"/>
+                <field name="dni"/>
+                <field name="partner_id"/>
+                <field name="vehiculo_id"/>
+                <filter name="cargado" string="Cargados" domain="[('state', '=', 'cargado')]"/>
+                <filter name="problemas" string="Con problemas"
+                        domain="[('state', 'in', ('sin_cliente', 'revisar', 'error'))]"/>
+                <separator/>
+                <filter name="activa" string="Deuda activa" domain="[('situacion_deuda', '=', 'activa')]"/>
+                <filter name="cancelada" string="Deuda cancelada" domain="[('situacion_deuda', '=', 'cancelada')]"/>
+                <filter name="anulada" string="Deuda anulada" domain="[('situacion_deuda', '=', 'anulada')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Resultado" context="{'group_by': 'state'}"/>
+                    <filter name="group_deuda" string="Deuda" context="{'group_by': 'situacion_deuda'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Lote ── -->
+    <record id="adt_financiera_carga_pdf_tree" model="ir.ui.view">
+        <field name="name">adt.financiera.carga.pdf.tree</field>
+        <field name="model">adt.financiera.carga.pdf</field>
+        <field name="arch" type="xml">
+            <tree string="Cargas masivas de PDF">
+                <field name="name"/>
+                <field name="create_uid"/>
+                <field name="create_date"/>
+                <field name="total"/>
+                <field name="total_cargado"/>
+                <field name="total_sin_cliente"/>
+                <field name="total_revisar"/>
+                <field name="total_error"/>
+                <field name="progreso" widget="progressbar"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'procesando'"
+                       decoration-success="state == 'terminado'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="adt_financiera_carga_pdf_form" model="ir.ui.view">
+        <field name="name">adt.financiera.carga.pdf.form</field>
+        <field name="model">adt.financiera.carga.pdf</field>
+        <field name="arch" type="xml">
+            <form string="Carga masiva de planes de pago">
+                <header>
+                    <button name="action_procesar" type="object" string="Procesar" class="btn-primary"
+                            states="borrador"/>
+                    <button name="action_procesar_ahora" type="object" string="Procesar ahora"
+                            states="borrador,procesando"
+                            help="Procesa una tanda de inmediato, sin esperar al proceso en segundo plano."/>
+                    <button name="action_procesar" type="object" string="Agregar PDFs nuevos"
+                            states="procesando,terminado"/>
+                    <button name="action_reintentar" type="object" string="Reintentar con problemas"
+                            states="procesando,terminado"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_lineas" type="object" class="oe_stat_button" icon="fa-check"
+                                context="{'estado_linea': 'cargado'}">
+                            <field name="total_cargado" widget="statinfo" string="Cargados"/>
+                        </button>
+                        <button name="action_ver_lineas" type="object" class="oe_stat_button" icon="fa-user-times"
+                                context="{'estado_linea': 'sin_cliente'}">
+                            <field name="total_sin_cliente" widget="statinfo" string="Sin cliente"/>
+                        </button>
+                        <button name="action_ver_lineas" type="object" class="oe_stat_button" icon="fa-eye"
+                                context="{'estado_linea': 'revisar'}">
+                            <field name="total_revisar" widget="statinfo" string="A revisar"/>
+                        </button>
+                        <button name="action_ver_lineas" type="object" class="oe_stat_button" icon="fa-exclamation-triangle"
+                                context="{'estado_linea': 'error'}">
+                            <field name="total_error" widget="statinfo" string="Con error"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <div class="alert alert-info" role="alert" attrs="{'invisible': [('state', '!=', 'borrador')]}">
+                        Sube los PDF «Plan de Pagos» de la financiera (puedes seleccionar cientos a la vez).
+                        Al procesar, cada PDF se lee, se busca al cliente por el DNI del PDF, se identifica si su
+                        deuda está <b>activa</b>, <b>cancelada</b> o <b>anulada</b> y el plan se guarda en la moto
+                        de esa cuenta (pestaña «Financiera» del vehículo).
+                    </div>
+                    <div class="alert alert-warning" role="alert" attrs="{'invisible': [('state', '!=', 'procesando')]}">
+                        Procesando en segundo plano por tandas. Recarga la página para ver el avance.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="reemplazar"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="total"/>
+                            <field name="total_pendiente"/>
+                            <field name="progreso" widget="progressbar"/>
+                            <field name="total_activa"/>
+                            <field name="total_cancelada"/>
+                            <field name="total_anulada"/>
+                            <field name="total_omitido"/>
+                        </group>
+                    </group>
+                    <!-- Lista de PDFs con el total que se sube y el % que falta (subida y procesamiento). -->
+                    <field name="attachment_ids" widget="adt_carga_pdf" nolabel="1"/>
+                    <notebook>
+                        <page string="Resultado por PDF" name="lineas">
+                            <field name="linea_ids"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_financiera_carga_pdf" model="ir.actions.act_window">
+        <field name="name">Carga masiva de PDF</field>
+        <field name="res_model">adt.financiera.carga.pdf</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sube en un solo paso los planes de pago de la financiera</p>
+        </field>
+    </record>
+
+    <menuitem id="adt_comercial_menu_financiera_carga_pdf"
+              name="Carga masiva de PDF"
+              action="action_financiera_carga_pdf"
+              parent="adt_comercial_menu_reporte_financiera"
+              sequence="20"
+              groups="adt_comercial.group_access_adt_comercial_gerencia"/>
+</odoo>

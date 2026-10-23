@@ -1,0 +1,83 @@
+// Carga masiva de PDFs del plan de pagos (widget adt_carga_pdf).
+
+.o_adt_cpdf {
+    display: block;
+    width: 100%;
+
+    .o_adt_cpdf_drop {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        border: 2px dashed #c5ceff;
+        border-radius: 10px;
+        background: #f0f4ff;
+        color: #2c3e50;
+
+        > .fa {
+            font-size: 28px;
+            color: #2a78d6;
+        }
+
+        &.is-over {
+            border-color: #2a78d6;
+            background: #e8f1fc;
+        }
+    }
+
+    .o_adt_cpdf_avance {
+        margin-bottom: 12px;
+
+        .o_adt_cpdf_avance_txt {
+            margin-bottom: 4px;
+        }
+    }
+
+    .o_adt_cpdf_bar {
+        height: 10px;
+        border-radius: 5px;
+        background: #e7e7e3;
+        overflow: hidden;
+
+        > div {
+            height: 100%;
+            background: #2a78d6;
+            transition: width 0.25s ease;
+        }
+
+        &.is-proceso > div {
+            background: #fab219;
+        }
+
+        &.is-ok > div {
+            background: #0ca30c;
+        }
+    }
+
+    .o_adt_cpdf_cab {
+        margin-bottom: 6px;
+    }
+
+    .o_adt_cpdf_tabla {
+        max-height: 420px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 1;
+        }
+
+        .o_adt_cpdf_nombre {
+            word-break: break-all;
+        }
+
+        tr.o_adt_cpdf_error td {
+            background: #fdf2f2;
+        }
+    }
+}

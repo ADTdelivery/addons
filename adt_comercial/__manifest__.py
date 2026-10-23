@@ -1,6 +1,6 @@
 {
     'name': 'ADT Comercial',
-    'version': '15.0.1.2.0',
+    'version': '15.0.1.3.0',
     'author': 'Bigodoo',
     'maintainer': 'Bigodoo',
     'depends': [
@@ -54,6 +54,8 @@
         'views/cobranza_dashboard.xml',
         'views/clientes_dashboard.xml',
         'views/cartera_reporte.xml',
+        'data/cron_financiera_carga_pdf.xml',
+        'views/view_financiera_carga_pdf.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -73,6 +75,8 @@
             'adt_comercial/static/src/js/flota_clientes.js',
             'adt_comercial/static/src/js/candidato_detalle.js',
             'adt_comercial/static/src/scss/candidato_detalle.scss',
+            'adt_comercial/static/src/scss/carga_pdf.scss',
+            'adt_comercial/static/src/js/carga_pdf_widget.js',
         ],
         'web.assets_qweb': [
             'adt_comercial/static/src/xml/image_carousel.xml',

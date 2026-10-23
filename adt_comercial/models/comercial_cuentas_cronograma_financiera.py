@@ -112,7 +112,8 @@ class ADTFleetVehicleCronogramaFinanciera(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        if 'cf_pdf' in vals:
+        # cf_sin_leer: quien escribe ya leyó el PDF y aplica los datos (carga masiva).
+        if 'cf_pdf' in vals and not self.env.context.get('cf_sin_leer'):
             con_pdf = self.filtered('cf_pdf')
             con_pdf.cf_leer_pdf()
             (self - con_pdf)._cf_limpiar()

@@ -29,3 +29,4 @@ from . import clientes_dashboard
 from . import traspaso_notarial
 
 from . import candidato_detalle
+from . import financiera_carga_pdf
