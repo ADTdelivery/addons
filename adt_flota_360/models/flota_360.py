@@ -28,6 +28,7 @@ FILTROS = [
     ('papeletas', 'Papeletas pendientes'),
     ('capturas', 'Capturados'),
     ('sin_expediente', 'Sin expediente'),
+    ('sin_doc_financiera', 'Falta documento financiera'),
     ('gps_off', 'GPS sin señal'),
     ('sin_placa', 'Sin placa'),
     ('taller', 'En taller'),
@@ -38,6 +39,7 @@ MAX_ANALISIS = 5000          # vehículos evaluados por búsqueda
 CUOTAS_CRITICAS = 3          # desde cuántas cuotas vencidas es crítico
 GPS_HORAS_SIN_SENAL = 24     # sin reporte del equipo por más de N horas
 CUOTAS_ABIERTAS = ('pendiente', 'a_cuenta', 'retrasado')
+CUENTA_VIGENTE = ('borrador', 'aprobado', 'en_curso')
 CAPTURA_ACTIVA = ('capturado', 'disolucion_contrato')
 # Botones del formulario de la captura que la ficha puede ejecutar.
 CAPTURA_BOTONES = ('action_registrar_pago', 'action_liberar', 'action_retener', 'action_recolocar',
@@ -244,6 +246,7 @@ class AdtFlota360(models.AbstractModel):
         capturas = self._lote_capturas(ids)
         taller = self._lote_taller(ids)
         expedientes = self._lote_expedientes(clientes)
+        con_plan = self._lote_plan_financiera(ids)
 
         resultado = []
         for f in filas:
@@ -265,6 +268,8 @@ class AdtFlota360(models.AbstractModel):
                 self._resumen_taller(taller.get(vid), modulos, alertas, filtros)
             if expedientes is not None and cliente:
                 self._resumen_expediente(expedientes.get(cliente['id']), modulos, alertas, filtros)
+            if con_plan is not None and cuentas:
+                self._resumen_financiera(cuentas.get(vid), vid in con_plan, modulos, alertas, filtros)
 
             criticos = sum(1 for a in alertas if a['nivel'] == 'critico')
             atencion = sum(1 for a in alertas if a['nivel'] == 'atencion')
@@ -325,8 +330,8 @@ class AdtFlota360(models.AbstractModel):
         Cuenta = self._modelo('adt.comercial.cuentas', 'vehiculo_id', 'state', 'partner_id')
         if Cuenta is None:
             return None
-        campos = [c for c in ('vehiculo_id', 'partner_id', 'state', 'reference_no', 'mora_pendiente')
-                  if c in Cuenta._fields]
+        campos = [c for c in ('vehiculo_id', 'partner_id', 'state', 'reference_no', 'mora_pendiente',
+                              'tipo_financiera_id') if c in Cuenta._fields]
         filas = Cuenta.search_read([('vehiculo_id', 'in', ids)], campos, order='id desc')
         # Prioridad: la cuenta vigente; si no hay, la más reciente.
         elegida = {}
@@ -366,6 +371,7 @@ class AdtFlota360(models.AbstractModel):
                 'monto_vencido': monto,
                 'dias_atraso': dias,
                 'mora': (c.get('mora_pendiente') or 0.0) if c['state'] == 'en_curso' else 0.0,
+                'financiera': self._m2o(c.get('tipo_financiera_id')),
             }
         return res
 
@@ -429,6 +435,14 @@ class AdtFlota360(models.AbstractModel):
                                             order='fecha desc, id desc'):
                 res.setdefault(self._id(e['cliente_id']), e)
         return res
+
+    def _lote_plan_financiera(self, ids):
+        """Vehículos que ya tienen cargado el PDF del plan de pagos de la financiera."""
+        if 'cf_pdf' not in self.env['fleet.vehicle']._fields:
+            return None
+        adjuntos = self.env['ir.attachment'].sudo().search_read([
+            ('res_model', '=', 'fleet.vehicle'), ('res_id', 'in', ids), ('res_field', '=', 'cf_pdf')], ['res_id'])
+        return {a['res_id'] for a in adjuntos}
 
     def _lote_taller(self, ids):
         Orden = self._modelo('maintenance.work.order', 'vehicle_id', 'state')
@@ -553,6 +567,15 @@ class AdtFlota360(models.AbstractModel):
         if nivel == 'atencion':
             alertas.append(self._alerta('expediente', nivel, 'Expediente %s' % texto.lower()))
         modulos.append(self._chip('expediente', 'fa-folder-open-o', 'Expediente', texto, nivel))
+
+    def _resumen_financiera(self, c, tiene_plan, modulos, alertas, filtros):
+        # Solo aplica a la cuenta vigente financiada por una financiera.
+        if not c or not c.get('financiera') or c['state'] not in CUENTA_VIGENTE or tiene_plan:
+            return
+        filtros.add('sin_doc_financiera')
+        alertas.append(self._alerta('financiera', 'atencion',
+                                    _('Falta el plan de pagos de %s') % c['financiera']))
+        modulos.append(self._chip('financiera', 'fa-university', 'Financiera', 'Falta documento', 'atencion'))
 
     def _resumen_taller(self, t, modulos, alertas, filtros):
         if not t:
