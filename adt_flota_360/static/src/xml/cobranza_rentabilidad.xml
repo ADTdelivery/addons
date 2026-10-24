@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Misma barra superior que "Cartera y financieras" (adt_comercial.CarteraReporte), cuyos estilos reutiliza. -->
+    <t t-name="adt_flota_360.CobranzaRentabilidad">
+        <div class="o_action adt_cart adt_cobr">
+            <div class="adt_cart__scroll">
+                <header class="adt_cart__header">
+                    <div class="adt_cart__titlebar">
+                        <h1 class="adt_cart__title">Cobranza y rentabilidad</h1>
+                        <p class="adt_cart__subtitle" data-ref="subtitle"/>
+                        <p class="adt_cart__print-meta" data-ref="print-meta"/>
+                    </div>
+                    <div class="adt_cart__toolbar">
+                        <div class="adt_cart__searchbox">
+                            <i class="fa fa-search adt_cart__search-icon" aria-hidden="true"/>
+                            <input type="search" class="adt_cart__search" data-ref="buscar" autocomplete="off"
+                                   aria-label="Buscar un cliente o una moto"
+                                   placeholder="Buscar cliente, DNI o placa… (vacío = todos)"/>
+                        </div>
+                        <div class="adt_cart__actions">
+                            <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="imprimir">
+                                <i class="fa fa-print" aria-hidden="true"/>Imprimir / PDF</button>
+                            <button type="button" class="adt_cart__btn" data-action="refresh">
+                                <i class="fa fa-refresh" aria-hidden="true"/>Actualizar</button>
+                        </div>
+                    </div>
+                    <div class="adt_cart__chips" data-ref="chips"/>
+                </header>
+                <div class="adt_cart__body" data-ref="body">
+                    <div class="adt_cart__empty">Calculando cobranza y rentabilidad…</div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

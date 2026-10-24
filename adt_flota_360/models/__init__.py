@@ -6,3 +6,4 @@ from . import comercial_cuentas
 from . import cobranza_cartera
 
 from . import pagos
+from . import cobranza_rentabilidad
