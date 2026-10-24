@@ -190,9 +190,15 @@ class AdtFlota360(models.AbstractModel):
         return expression.OR(dominios)
 
     @api.model
-    def buscar(self, termino='', filtro='todos', offset=0, limit=24):
+    def buscar(self, termino='', filtro='todos', offset=0, limit=24, financiera=None):
+        """financiera: id de la financiera de la cuenta activa (en curso o aprobada) del vehículo,
+        0 = cuenta activa sin financiera, None = todos los vehículos (con o sin cuenta activa).
+        Se combina con la búsqueda y con el filtro rápido."""
         vehiculos = self.env['fleet.vehicle'].search(self._dominio_busqueda(termino), limit=MAX_ANALISIS)
         resumenes = self._resumenes(vehiculos)
+        financieras = self._contar_financieras(resumenes)
+        if financiera is not None:
+            resumenes = [r for r in resumenes if r['financiera_id'] == financiera]
 
         contadores = {k: 0 for k, _l in FILTROS}
         cartera = {'vencido': 0.0, 'mora': 0.0, 'papeletas': 0.0}
@@ -220,8 +226,29 @@ class AdtFlota360(models.AbstractModel):
             'items': filtrados[offset:offset + limit],
             'contadores': contadores,
             'cartera': cartera,
+            'financieras': financieras,
             'truncado': len(vehiculos) >= MAX_ANALISIS,
         }
+
+    def _contar_financieras(self, resumenes):
+        """Vehículos con cuenta activa de la búsqueda, por financiera."""
+        conteo = defaultdict(int)
+        nombres = {}
+        for r in resumenes:
+            if r['financiera_id'] is None:
+                continue
+            conteo[r['financiera_id']] += 1
+            nombres[r['financiera_id']] = r['financiera'] or _('Sin financiera')
+        Financiera = self._modelo('adt.comercial.financiera', 'name')
+        if Financiera is not None:
+            # También las financieras sin vehículos en la búsqueda, para que el filtro no cambie de forma.
+            for f in Financiera.search_read([], ['name'], order='name'):
+                nombres.setdefault(f['id'], f['name'])
+        lista = sorted(({'id': k, 'name': v, 'n': conteo.get(k, 0)} for k, v in nombres.items() if k),
+                       key=lambda f: f['name'].casefold())
+        if conteo.get(0):
+            lista.append({'id': 0, 'name': nombres[0], 'n': conteo[0]})
+        return lista
 
     # ------------------------------------------------------------------
     # Resumen por vehículo (tarjetas)
@@ -271,6 +298,10 @@ class AdtFlota360(models.AbstractModel):
             if con_plan is not None and cuentas:
                 self._resumen_financiera(cuentas.get(vid), vid in con_plan, modulos, alertas, filtros)
 
+            cuenta_activa = (cuentas or {}).get(vid)
+            if cuenta_activa and cuenta_activa['state'] not in ('en_curso', 'aprobado'):
+                cuenta_activa = None
+
             criticos = sum(1 for a in alertas if a['nivel'] == 'critico')
             atencion = sum(1 for a in alertas if a['nivel'] == 'atencion')
             nivel = 'critico' if criticos else ('atencion' if atencion else 'ok')
@@ -291,6 +322,9 @@ class AdtFlota360(models.AbstractModel):
                 'modulos': modulos,
                 'alertas': sorted(alertas, key=lambda a: NIVEL_ORDEN.get(a['nivel'], 3)),
                 'filtros': sorted(filtros),
+                # Solo cuenta la financiera de una cuenta activa; None = sin cuenta activa.
+                'financiera_id': (cuenta_activa.get('financiera_id') or 0) if cuenta_activa else None,
+                'financiera': (cuenta_activa.get('financiera') or '') if cuenta_activa else '',
                 'salud': {
                     'nivel': nivel,
                     'puntaje': criticos * 10 + atencion * 3,
@@ -372,6 +406,7 @@ class AdtFlota360(models.AbstractModel):
                 'dias_atraso': dias,
                 'mora': (c.get('mora_pendiente') or 0.0) if c['state'] == 'en_curso' else 0.0,
                 'financiera': self._m2o(c.get('tipo_financiera_id')),
+                'financiera_id': self._id(c.get('tipo_financiera_id')),
             }
         return res
 

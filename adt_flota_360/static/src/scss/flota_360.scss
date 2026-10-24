@@ -186,6 +186,49 @@
     &.is-alert { background: var(--f3-crit-bg); color: var(--f3-crit); }
 }
 
+// Filtro por financiera: segunda fila, opciones compactas.
+.adt_f360__fins {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 0 10px;
+    border-top: 1px solid var(--f3-line);
+    &:empty { display: none; }
+}
+
+.adt_f360__fins-label {
+    margin-right: 4px;
+    color: var(--f3-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.adt_f360__fin {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: 14px;
+    background: var(--f3-surface);
+    color: var(--f3-ink-2);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    span { color: var(--f3-muted); font-size: 11px; font-weight: 600; }
+    &:hover { border-color: var(--f3-ink-2); color: var(--f3-ink); }
+    &.is-active {
+        border-color: var(--f3-primary);
+        background: var(--f3-primary);
+        color: #fff;
+        span { color: rgba(255, 255, 255, .8); }
+    }
+}
+
 // ── Cifras ────────────────────────────────────────────────────────────
 
 .adt_f360__figures,

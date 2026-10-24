@@ -20,6 +20,7 @@
                         <kbd class="adt_f360__kbd" title="Atajo de teclado">/</kbd>
                     </div>
                     <nav class="adt_f360__filters" data-ref="filtros" aria-label="Filtros"/>
+                    <nav class="adt_f360__fins" data-ref="financieras" aria-label="Filtrar por financiera"/>
                 </header>
                 <section class="adt_f360__figures" data-ref="cartera" aria-label="Resumen de la selección"/>
                 <section class="adt_f360__table-wrap" data-ref="grid" aria-live="polite"/>

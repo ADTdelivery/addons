@@ -176,6 +176,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             'keydown [data-ref="q"]': '_onSearchKey',
             'click [data-action="clear"]': '_onClear',
             'click [data-filtro]': '_onFiltro',
+            'click [data-financiera]': '_onFinanciera',
             'click [data-row]': '_onRow',
             'keydown [data-row]': '_onRowKey',
             'click [data-action="more"]': '_onMore',
@@ -229,6 +230,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this.termino = '';
             this.filtro = 'todos';
             this.filtros = [];
+            this.financiera = null;  // id de la financiera de la cuenta activa; 0 = cuenta activa sin financiera; null = todas
+            this.financieras = [];
             this.items = [];
             this.total = 0;
             this.contadores = {};
@@ -303,6 +306,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 kwargs: {
                     termino: this.termino,
                     filtro: this.filtro,
+                    financiera: this.financiera,
                     offset: agregar ? this.items.length : 0,
                     limit: PAGINA,
                 },
@@ -314,6 +318,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 self.total = res.total;
                 self.contadores = res.contadores;
                 self.cartera = res.cartera || {};
+                self.financieras = res.financieras || [];
                 self.truncado = res.truncado;
                 self._renderFiltros();
                 self._renderCartera();
@@ -348,6 +353,24 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     '</button>';
             }).join(''));
             this.$el.toggleClass('has-query', !!this.termino);
+            this._renderFinancieras();
+        },
+
+        // Segunda fila: una opción por financiera con sus vehículos en la búsqueda actual.
+        _renderFinancieras: function () {
+            var self = this;
+            if (!this.financieras.length) {
+                this._ref('financieras').empty();
+                return;
+            }
+            var chip = function (valor, nombre, n) {
+                var activo = valor === self.financiera;
+                return '<button type="button" class="adt_f360__fin' + (activo ? ' is-active' : '') + '" data-financiera="' +
+                    (valor === null ? 'todas' : valor) + '" aria-pressed="' + activo + '">' + esc(nombre) +
+                    (n === undefined ? '' : ' <span>' + entero(n) + '</span>') + '</button>';
+            };
+            this._ref('financieras').html('<span class="adt_f360__fins-label"><i class="fa fa-university" aria-hidden="true"></i> Financiera</span>' +
+                chip(null, 'Todas') + this.financieras.map(function (f) { return chip(f.id, f.name, f.n); }).join(''));
         },
 
         _renderCartera: function () {
@@ -3379,6 +3402,14 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             var key = ev.currentTarget.getAttribute('data-filtro');
             this.filtro = key === this.filtro && key !== 'todos' ? 'todos' : key;
             this._renderFiltros();
+            this._buscar(false);
+        },
+
+        _onFinanciera: function (ev) {
+            var valor = ev.currentTarget.getAttribute('data-financiera');
+            var id = valor === 'todas' ? null : parseInt(valor, 10);
+            this.financiera = id === this.financiera ? null : id;
+            this._renderFinancieras();
             this._buscar(false);
         },
 
