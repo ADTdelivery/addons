@@ -1,7 +1,6 @@
 odoo.define('adt_flota_360.Carteras', function (require) {
     'use strict';
     var AbstractAction = require('web.AbstractAction');
-    var Flota360 = require('adt_flota_360.Flota360');
     var core = require('web.core');
     var Dialog = require('web.Dialog');
     var esc = _.escape;
@@ -207,16 +206,6 @@ odoo.define('adt_flota_360.Carteras', function (require) {
             dialog.opened(function () { showStep(1); $body.find('[name="user"]').trigger('focus'); });
             dialog.on('closed', this, function () { request++; });
         }
-    });
-    Flota360.include({
-        events: _.extend({}, Flota360.prototype.events, {'click [data-open-carteras]': '_openCarteras'}),
-        start: function () {
-            var self = this;
-            return this._super.apply(this, arguments).then(function () {
-                self.$('.adt_f360__top').prepend('<nav class="adt_f360__filters f360c-tabs"><button class="adt_f360__filter is-active active">Consulta 360</button><button class="adt_f360__filter" data-open-carteras>Carteras de cobranza</button></nav>');
-            });
-        },
-        _openCarteras: function () { return this.do_action('adt_flota_360.action_carteras'); }
     });
     core.action_registry.add('adt_flota_360_carteras', Cartera);
     return Cartera;

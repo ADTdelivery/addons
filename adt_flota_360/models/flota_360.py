@@ -40,6 +40,7 @@ CUOTAS_CRITICAS = 3          # desde cuántas cuotas vencidas es crítico
 GPS_HORAS_SIN_SENAL = 24     # sin reporte del equipo por más de N horas
 CUOTAS_ABIERTAS = ('pendiente', 'a_cuenta', 'retrasado')
 CUENTA_VIGENTE = ('borrador', 'aprobado', 'en_curso')
+SIN_CUENTA = 'sin_cuenta'  # estado de cronograma de un vehículo sin cuenta
 CAPTURA_ACTIVA = ('capturado', 'disolucion_contrato')
 # Botones del formulario de la captura que la ficha puede ejecutar.
 CAPTURA_BOTONES = ('action_registrar_pago', 'action_liberar', 'action_retener', 'action_recolocar',
@@ -190,15 +191,20 @@ class AdtFlota360(models.AbstractModel):
         return expression.OR(dominios)
 
     @api.model
-    def buscar(self, termino='', filtro='todos', offset=0, limit=24, financiera=None):
-        """financiera: id de la financiera de la cuenta activa (en curso o aprobada) del vehículo,
-        0 = cuenta activa sin financiera, None = todos los vehículos (con o sin cuenta activa).
-        Se combina con la búsqueda y con el filtro rápido."""
+    def buscar(self, termino='', filtro='todos', offset=0, limit=24, financiera=None, estado=None):
+        """financiera: id de la financiera de la cuenta del vehículo (en cualquier estado),
+        0 = sin financiera, None = todas.
+        estado: estado del cronograma de pagos de esa cuenta (borrador, aprobado, en_curso,
+        cancelado, pagado o SIN_CUENTA), None = todos.
+        Ambos se combinan con la búsqueda y con el filtro rápido."""
         vehiculos = self.env['fleet.vehicle'].search(self._dominio_busqueda(termino), limit=MAX_ANALISIS)
         resumenes = self._resumenes(vehiculos)
-        financieras = self._contar_financieras(resumenes)
-        if financiera is not None:
-            resumenes = [r for r in resumenes if r['financiera_id'] == financiera]
+        por_financiera = [r for r in resumenes if financiera is None or r['financiera_id'] == financiera]
+        por_estado = [r for r in resumenes if estado is None or r['cuenta_estado'] == estado]
+        # Cada filtro cuenta con el otro aplicado, para que los números cuadren con la lista.
+        financieras = self._contar_financieras(por_estado)
+        estados = self._contar_estados(por_financiera)
+        resumenes = [r for r in por_financiera if estado is None or r['cuenta_estado'] == estado]
 
         contadores = {k: 0 for k, _l in FILTROS}
         cartera = {'vencido': 0.0, 'mora': 0.0, 'papeletas': 0.0}
@@ -227,16 +233,15 @@ class AdtFlota360(models.AbstractModel):
             'contadores': contadores,
             'cartera': cartera,
             'financieras': financieras,
+            'estados': estados,
             'truncado': len(vehiculos) >= MAX_ANALISIS,
         }
 
     def _contar_financieras(self, resumenes):
-        """Vehículos con cuenta activa de la búsqueda, por financiera."""
+        """Vehículos de la búsqueda por financiera de su cuenta (en cualquier estado)."""
         conteo = defaultdict(int)
         nombres = {}
         for r in resumenes:
-            if r['financiera_id'] is None:
-                continue
             conteo[r['financiera_id']] += 1
             nombres[r['financiera_id']] = r['financiera'] or _('Sin financiera')
         Financiera = self._modelo('adt.comercial.financiera', 'name')
@@ -248,6 +253,20 @@ class AdtFlota360(models.AbstractModel):
                        key=lambda f: f['name'].casefold())
         if conteo.get(0):
             lista.append({'id': 0, 'name': nombres[0], 'n': conteo[0]})
+        return lista
+
+    def _contar_estados(self, resumenes):
+        """Vehículos de la búsqueda por estado del cronograma de pagos de su cuenta."""
+        Cuenta = self._modelo('adt.comercial.cuentas', 'state')
+        if Cuenta is None:
+            return []
+        conteo = defaultdict(int)
+        for r in resumenes:
+            conteo[r['cuenta_estado']] += 1
+        lista = [{'id': k, 'name': v, 'n': conteo.get(k, 0)}
+                 for k, v in Cuenta._fields['state']._description_selection(self.env)]
+        if conteo.get(SIN_CUENTA):
+            lista.append({'id': SIN_CUENTA, 'name': _('Sin cronograma'), 'n': conteo[SIN_CUENTA]})
         return lista
 
     # ------------------------------------------------------------------
@@ -298,10 +317,6 @@ class AdtFlota360(models.AbstractModel):
             if con_plan is not None and cuentas:
                 self._resumen_financiera(cuentas.get(vid), vid in con_plan, modulos, alertas, filtros)
 
-            cuenta_activa = (cuentas or {}).get(vid)
-            if cuenta_activa and cuenta_activa['state'] not in ('en_curso', 'aprobado'):
-                cuenta_activa = None
-
             criticos = sum(1 for a in alertas if a['nivel'] == 'critico')
             atencion = sum(1 for a in alertas if a['nivel'] == 'atencion')
             nivel = 'critico' if criticos else ('atencion' if atencion else 'ok')
@@ -322,9 +337,11 @@ class AdtFlota360(models.AbstractModel):
                 'modulos': modulos,
                 'alertas': sorted(alertas, key=lambda a: NIVEL_ORDEN.get(a['nivel'], 3)),
                 'filtros': sorted(filtros),
-                # Solo cuenta la financiera de una cuenta activa; None = sin cuenta activa.
-                'financiera_id': (cuenta_activa.get('financiera_id') or 0) if cuenta_activa else None,
-                'financiera': (cuenta_activa.get('financiera') or '') if cuenta_activa else '',
+                # Financiera y estado del cronograma de la cuenta del vehículo (la vigente o la más
+                # reciente), en cualquier estado; sin cuenta: financiera 0 y estado SIN_CUENTA.
+                'financiera_id': (cuentas or {}).get(vid, {}).get('financiera_id') or 0,
+                'financiera': (cuentas or {}).get(vid, {}).get('financiera') or '',
+                'cuenta_estado': (cuentas or {}).get(vid, {}).get('state') or SIN_CUENTA,
                 'salud': {
                     'nivel': nivel,
                     'puntaje': criticos * 10 + atencion * 3,

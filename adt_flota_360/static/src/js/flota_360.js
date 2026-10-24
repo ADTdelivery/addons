@@ -177,6 +177,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             'click [data-action="clear"]': '_onClear',
             'click [data-filtro]': '_onFiltro',
             'click [data-financiera]': '_onFinanciera',
+            'click [data-estado]': '_onEstado',
+            'click [data-action="clear-facetas"]': '_onClearFacetas',
             'click [data-row]': '_onRow',
             'keydown [data-row]': '_onRowKey',
             'click [data-action="more"]': '_onMore',
@@ -232,6 +234,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this.filtros = [];
             this.financiera = null;  // id de la financiera de la cuenta activa; 0 = cuenta activa sin financiera; null = todas
             this.financieras = [];
+            this.estado = null;  // estado del cronograma de la cuenta; 'sin_cuenta' = sin cronograma; null = todos
+            this.estados = [];
             this.items = [];
             this.total = 0;
             this.contadores = {};
@@ -307,6 +311,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     termino: this.termino,
                     filtro: this.filtro,
                     financiera: this.financiera,
+                    estado: this.estado,
                     offset: agregar ? this.items.length : 0,
                     limit: PAGINA,
                 },
@@ -319,6 +324,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 self.contadores = res.contadores;
                 self.cartera = res.cartera || {};
                 self.financieras = res.financieras || [];
+                self.estados = res.estados || [];
                 self.truncado = res.truncado;
                 self._renderFiltros();
                 self._renderCartera();
@@ -353,24 +359,39 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     '</button>';
             }).join(''));
             this.$el.toggleClass('has-query', !!this.termino);
-            this._renderFinancieras();
+            this._renderFacetas();
         },
 
-        // Segunda fila: una opción por financiera con sus vehículos en la búsqueda actual.
-        _renderFinancieras: function () {
-            var self = this;
-            if (!this.financieras.length) {
-                this._ref('financieras').empty();
+        // Filas bajo los filtros: financiera y estado del cronograma de pagos, con sus vehículos
+        // en la búsqueda actual.
+        _renderFacetas: function () {
+            this._renderFaceta('financieras', 'financiera', 'fa-university', 'Financiera', 'Todas', this.financieras, this.financiera);
+            this._renderFaceta('estados', 'estado', 'fa-calendar-check-o', 'Cronograma', 'Todos', this.estados, this.estado, true);
+            this._ref('facetas')
+                .toggleClass('is-empty', !this.financieras.length && !this.estados.length)
+                .toggleClass('is-filtered', this.financiera !== null || this.estado !== null);
+        },
+
+        // Una fila: etiqueta fija a la izquierda y opciones en una franja desplazable.
+        // Las opciones sin vehículos se atenúan; con punto, cada estado lleva su color.
+        _renderFaceta: function (ref, atributo, icono, titulo, todos, opciones, actual, punto) {
+            if (!opciones.length) {
+                this._ref(ref).empty();
                 return;
             }
+            var total = opciones.reduce(function (s, o) { return s + (o.n || 0); }, 0);
             var chip = function (valor, nombre, n) {
-                var activo = valor === self.financiera;
-                return '<button type="button" class="adt_f360__fin' + (activo ? ' is-active' : '') + '" data-financiera="' +
-                    (valor === null ? 'todas' : valor) + '" aria-pressed="' + activo + '">' + esc(nombre) +
-                    (n === undefined ? '' : ' <span>' + entero(n) + '</span>') + '</button>';
+                var activo = valor === actual;
+                var clases = 'adt_f360__fchip' + (activo ? ' is-active' : '') + (!n && !activo ? ' is-zero' : '');
+                return '<button type="button" class="' + clases + '" data-' + atributo + '="' +
+                    (valor === null ? 'todas' : esc(String(valor))) + '" aria-pressed="' + activo + '">' +
+                    (punto && valor !== null ? '<i class="adt_f360__fchip-dot is-' + esc(String(valor)) + '" aria-hidden="true"></i>' : '') +
+                    esc(nombre) + '<span class="adt_f360__fchip-n">' + entero(n || 0) + '</span></button>';
             };
-            this._ref('financieras').html('<span class="adt_f360__fins-label"><i class="fa fa-university" aria-hidden="true"></i> Financiera</span>' +
-                chip(null, 'Todas') + this.financieras.map(function (f) { return chip(f.id, f.name, f.n); }).join(''));
+            this._ref(ref).html(
+                '<span class="adt_f360__facet-label"><i class="fa ' + icono + '" aria-hidden="true"></i>' + titulo + '</span>' +
+                '<div class="adt_f360__facet-chips">' + chip(null, todos, total) +
+                opciones.map(function (o) { return chip(o.id, o.name, o.n); }).join('') + '</div>');
         },
 
         _renderCartera: function () {
@@ -3409,7 +3430,22 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             var valor = ev.currentTarget.getAttribute('data-financiera');
             var id = valor === 'todas' ? null : parseInt(valor, 10);
             this.financiera = id === this.financiera ? null : id;
-            this._renderFinancieras();
+            this._renderFacetas();
+            this._buscar(false);
+        },
+
+        _onClearFacetas: function () {
+            this.financiera = null;
+            this.estado = null;
+            this._renderFacetas();
+            this._buscar(false);
+        },
+
+        _onEstado: function (ev) {
+            var valor = ev.currentTarget.getAttribute('data-estado');
+            var estado = valor === 'todas' ? null : valor;
+            this.estado = estado === this.estado ? null : estado;
+            this._renderFacetas();
             this._buscar(false);
         },
 

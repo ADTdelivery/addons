@@ -5,22 +5,27 @@
         <div class="o_action adt_f360">
             <div class="adt_f360__scroll" data-ref="scroll">
                 <header class="adt_f360__top">
-                    <div class="adt_f360__titlebar">
+                    <div class="adt_f360__headline">
                         <h1 class="adt_f360__title">Flota 360</h1>
-                        <span class="adt_f360__subtitle">Consulta unificada de vehículos, clientes y deuda</span>
-                    </div>
-                    <div class="adt_f360__search">
-                        <i class="fa fa-search adt_f360__search-icon" aria-hidden="true"/>
-                        <input type="search" class="adt_f360__search-input" data-ref="q" autocomplete="off"
-                               aria-label="Buscar vehículo"
-                               placeholder="Placa, DNI/RUC, nombre, chasis, motor, teléfono o N° de cuenta"/>
-                        <button type="button" class="adt_f360__search-clear" data-action="clear" title="Limpiar" aria-label="Limpiar búsqueda">
-                            <i class="fa fa-times"/>
-                        </button>
-                        <kbd class="adt_f360__kbd" title="Atajo de teclado">/</kbd>
+                        <div class="adt_f360__search is-hero">
+                            <i class="fa fa-search adt_f360__search-icon" aria-hidden="true"/>
+                            <input type="search" class="adt_f360__search-input" data-ref="q" autocomplete="off"
+                                   aria-label="Buscar vehículo"
+                                   placeholder="Buscar por placa, DNI/RUC, nombre, chasis, motor, teléfono o N° de cuenta"/>
+                            <button type="button" class="adt_f360__search-clear" data-action="clear" title="Limpiar" aria-label="Limpiar búsqueda">
+                                <i class="fa fa-times"/>
+                            </button>
+                            <kbd class="adt_f360__kbd" title="Atajo de teclado: pulsa / para buscar">/</kbd>
+                        </div>
                     </div>
                     <nav class="adt_f360__filters" data-ref="filtros" aria-label="Filtros"/>
-                    <nav class="adt_f360__fins" data-ref="financieras" aria-label="Filtrar por financiera"/>
+                    <div class="adt_f360__facets" data-ref="facetas">
+                        <nav class="adt_f360__facet" data-ref="financieras" aria-label="Filtrar por financiera"/>
+                        <nav class="adt_f360__facet" data-ref="estados" aria-label="Filtrar por estado del cronograma de pagos"/>
+                        <button type="button" class="adt_f360__facets-clear" data-action="clear-facetas" title="Quitar filtros de financiera y cronograma">
+                            <i class="fa fa-times" aria-hidden="true"/> Quitar filtros
+                        </button>
+                    </div>
                 </header>
                 <section class="adt_f360__figures" data-ref="cartera" aria-label="Resumen de la selección"/>
                 <section class="adt_f360__table-wrap" data-ref="grid" aria-live="polite"/>
