@@ -178,6 +178,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             'click [data-filtro]': '_onFiltro',
             'click [data-financiera]': '_onFinanciera',
             'click [data-estado]': '_onEstado',
+            'click [data-grupo]': '_onGrupo',
             'click [data-action="clear-facetas"]': '_onClearFacetas',
             'click [data-row]': '_onRow',
             'keydown [data-row]': '_onRowKey',
@@ -236,6 +237,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this.financieras = [];
             this.estado = null;  // estado del cronograma de la cuenta; 'sin_cuenta' = sin cronograma; null = todos
             this.estados = [];
+            this.grupo = null;  // 'clientes' (con dueño), 'stock' (sin dueño) o null = todos
+            this.grupos = {};
             this.items = [];
             this.total = 0;
             this.contadores = {};
@@ -312,6 +315,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     filtro: this.filtro,
                     financiera: this.financiera,
                     estado: this.estado,
+                    grupo: this.grupo,
                     offset: agregar ? this.items.length : 0,
                     limit: PAGINA,
                 },
@@ -325,6 +329,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 self.cartera = res.cartera || {};
                 self.financieras = res.financieras || [];
                 self.estados = res.estados || [];
+                self.grupos = res.grupos || {};
                 self.truncado = res.truncado;
                 self._renderFiltros();
                 self._renderCartera();
@@ -364,7 +369,30 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         // Filas bajo los filtros: financiera y estado del cronograma de pagos, con sus vehículos
         // en la búsqueda actual.
+        // Selector junto al buscador: separa las motos con cliente de las que están en stock.
+        _renderGrupos: function () {
+            var self = this;
+            var g = this.grupos;
+            if (g.clientes === undefined) {
+                this._ref('grupos').empty();
+                return;
+            }
+            var opciones = [
+                [null, 'Todos', g.clientes + g.stock, 'fa-th-large'],
+                ['clientes', 'Con cliente', g.clientes, 'fa-user'],
+                ['stock', 'En stock', g.stock, 'fa-cubes'],
+            ];
+            this._ref('grupos').html(opciones.map(function (o) {
+                var activo = o[0] === self.grupo;
+                return '<button type="button" class="adt_f360__group' + (activo ? ' is-active' : '') + (o[0] ? ' is-' + o[0] : '') +
+                    '" data-grupo="' + (o[0] || 'todos') + '" aria-pressed="' + activo + '">' +
+                    '<i class="fa ' + o[3] + '" aria-hidden="true"></i>' + o[1] +
+                    '<span class="adt_f360__group-n">' + entero(o[2]) + '</span></button>';
+            }).join(''));
+        },
+
         _renderFacetas: function () {
+            this._renderGrupos();
             this._renderFaceta('financieras', 'financiera', 'fa-university', 'Financiera', 'Todas', this.financieras, this.financiera);
             this._renderFaceta('estados', 'estado', 'fa-calendar-check-o', 'Cronograma', 'Todos', this.estados, this.estado, true);
             this._ref('facetas')
@@ -398,7 +426,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             var c = this.cartera;
             var n = this.contadores;
             var celdas = [
-                ['Vehículos', entero(n.todos), this.termino ? 'Coinciden con la búsqueda' : 'Total de la flota'],
+                this._celdaVehiculos(n.todos),
                 ['Cartera vencida', soles(c.vencido), plural(n.mora || 0, 'vehículo con atraso', 'vehículos con atraso'), c.vencido > 0 ? 'critico' : ''],
                 ['Mora por cobrar', soles(c.mora), 'Registrada en las cuentas', c.mora > 0 ? 'atencion' : ''],
                 ['Papeletas pendientes', soles(c.papeletas), plural(n.papeletas || 0, 'vehículo', 'vehículos'), c.papeletas > 0 ? 'atencion' : ''],
@@ -410,6 +438,21 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     '<span class="adt_f360__figure-value">' + esc(x[1]) + '</span>' +
                     '<span class="adt_f360__figure-sub">' + esc(x[2]) + '</span></div>';
             }).join(''));
+        },
+
+        // Total de vehículos con el desglose clientes / stock, para no presentar el stock como flota colocada.
+        _celdaVehiculos: function (total) {
+            var g = this.grupos;
+            if (this.grupo === 'stock') {
+                return ['Vehículos en stock', entero(total), 'Sin dueño, disponibles para venta'];
+            }
+            if (this.grupo === 'clientes') {
+                return ['Vehículos con cliente', entero(total), this.termino ? 'Coinciden con la búsqueda' : 'Flota colocada, sin stock'];
+            }
+            if (g.clientes === undefined) {
+                return ['Vehículos', entero(total), this.termino ? 'Coinciden con la búsqueda' : 'Total de la flota'];
+            }
+            return ['Vehículos', entero(total), entero(g.clientes) + ' con cliente · ' + entero(g.stock) + ' en stock'];
         },
 
         _cabeceraTabla: function () {
@@ -488,7 +531,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 ? '<div class="adt_f360__alert-text is-' + it.alertas[0].nivel + '">' + esc(it.alertas[0].texto) +
                   (it.alertas.length > 1 ? ' <span class="adt_f360__muted">+' + (it.alertas.length - 1) + '</span>' : '') + '</div>'
                 : '';
-            return '<tr data-row="' + it.id + '" tabindex="0" class="is-' + it.salud.nivel +
+            return '<tr data-row="' + it.id + '" tabindex="0" class="is-' + it.salud.nivel + (it.stock ? ' is-stock' : '') +
                 (this.detalle && this.detalle.id === it.id ? ' is-selected' : '') + '">' +
                 '<td class="is-status">' + estado(it.salud.nivel, it.salud.texto) + '</td>' +
                 '<td>' + this._htmlPlaca(it) + '</td>' +
@@ -497,7 +540,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 '<td>' + (c.nombre
                     ? '<div class="adt_f360__strong">' + marcar(c.nombre, q) + '</div><div class="adt_f360__sub">' +
                       [c.documento ? marcar(c.documento, q) : '', c.telefono ? marcar(c.telefono, q) : ''].filter(Boolean).join(' · ') + '</div>'
-                    : '<span class="adt_f360__muted">Sin cliente</span>') + '</td>' +
+                    : it.stock
+                        ? '<span class="adt_f360__stock-tag"><i class="fa fa-cubes" aria-hidden="true"></i> En stock</span>'
+                        : '<span class="adt_f360__muted">Sin cliente</span>') + '</td>' +
                 COLUMNAS.map(function (col) { return self._celdaModulo(mods[col.key]); }).join('') +
                 '<td class="is-alerts">' + etiquetas + alerta + '</td>' +
                 '</tr>';
@@ -3431,6 +3476,13 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             var id = valor === 'todas' ? null : parseInt(valor, 10);
             this.financiera = id === this.financiera ? null : id;
             this._renderFacetas();
+            this._buscar(false);
+        },
+
+        _onGrupo: function (ev) {
+            var valor = ev.currentTarget.getAttribute('data-grupo');
+            this.grupo = valor === 'todos' ? null : valor;
+            this._renderGrupos();
             this._buscar(false);
         },
 

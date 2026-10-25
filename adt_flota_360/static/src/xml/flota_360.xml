@@ -17,6 +17,7 @@
                             </button>
                             <kbd class="adt_f360__kbd" title="Atajo de teclado: pulsa / para buscar">/</kbd>
                         </div>
+                        <div class="adt_f360__groups" data-ref="grupos" role="group" aria-label="Clientes o stock"/>
                     </div>
                     <nav class="adt_f360__filters" data-ref="filtros" aria-label="Filtros"/>
                     <div class="adt_f360__facets" data-ref="facetas">

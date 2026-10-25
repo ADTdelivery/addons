@@ -41,6 +41,9 @@ GPS_HORAS_SIN_SENAL = 24     # sin reporte del equipo por más de N horas
 CUOTAS_ABIERTAS = ('pendiente', 'a_cuenta', 'retrasado')
 CUENTA_VIGENTE = ('borrador', 'aprobado', 'en_curso')
 SIN_CUENTA = 'sin_cuenta'  # estado de cronograma de un vehículo sin cuenta
+# Grupos de la flota. Stock = moto sin dueño (driver_id vacío), el mismo criterio que el
+# Dashboard de Flota (adt_dashboard_flota), para que las cifras coincidan.
+GRUPOS = ('clientes', 'stock')
 CAPTURA_ACTIVA = ('capturado', 'disolucion_contrato')
 # Botones del formulario de la captura que la ficha puede ejecutar.
 CAPTURA_BOTONES = ('action_registrar_pago', 'action_liberar', 'action_retener', 'action_recolocar',
@@ -191,14 +194,20 @@ class AdtFlota360(models.AbstractModel):
         return expression.OR(dominios)
 
     @api.model
-    def buscar(self, termino='', filtro='todos', offset=0, limit=24, financiera=None, estado=None):
-        """financiera: id de la financiera de la cuenta del vehículo (en cualquier estado),
+    def buscar(self, termino='', filtro='todos', offset=0, limit=24, financiera=None, estado=None, grupo=None):
+        """grupo: 'clientes' (motos con dueño), 'stock' (sin dueño) o None = todas.
+        financiera: id de la financiera de la cuenta del vehículo (en cualquier estado),
         0 = sin financiera, None = todas.
         estado: estado del cronograma de pagos de esa cuenta (borrador, aprobado, en_curso,
         cancelado, pagado o SIN_CUENTA), None = todos.
         Ambos se combinan con la búsqueda y con el filtro rápido."""
         vehiculos = self.env['fleet.vehicle'].search(self._dominio_busqueda(termino), limit=MAX_ANALISIS)
         resumenes = self._resumenes(vehiculos)
+        grupos = {g: 0 for g in GRUPOS}
+        for r in resumenes:
+            grupos['stock' if r['stock'] else 'clientes'] += 1
+        if grupo in GRUPOS:
+            resumenes = [r for r in resumenes if r['stock'] == (grupo == 'stock')]
         por_financiera = [r for r in resumenes if financiera is None or r['financiera_id'] == financiera]
         por_estado = [r for r in resumenes if estado is None or r['cuenta_estado'] == estado]
         # Cada filtro cuenta con el otro aplicado, para que los números cuadren con la lista.
@@ -234,6 +243,7 @@ class AdtFlota360(models.AbstractModel):
             'cartera': cartera,
             'financieras': financieras,
             'estados': estados,
+            'grupos': grupos,
             'truncado': len(vehiculos) >= MAX_ANALISIS,
         }
 
@@ -334,6 +344,7 @@ class AdtFlota360(models.AbstractModel):
                 'chasis': f.get('vin_sn') or '',
                 'estado': self._m2o(f.get('state_id')),
                 'cliente': cliente,
+                'stock': not f.get('driver_id'),
                 'modulos': modulos,
                 'alertas': sorted(alertas, key=lambda a: NIVEL_ORDEN.get(a['nivel'], 3)),
                 'filtros': sorted(filtros),

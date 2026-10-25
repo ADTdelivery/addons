@@ -135,24 +135,126 @@
 }
 
 // Filtros como pestañas (igual que los filtros de Flota 360).
-.adt_cart__chips { display: flex; flex-direction: column; margin-top: 6px; }
+// Filtros: total contado + una fila por criterio (financiera, cronograma, ver), con la
+// cantidad de créditos de cada opción. Mismo diseño que los filtros de Flota 360.
+.adt_cart__chips {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 10px 0 12px;
+    border-top: 1px solid var(--cart-border);
+}
 
-.adt_cart__chipgroup {
+.adt_cart__count {
     display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 2px;
+    color: var(--cart-ink-2);
+    font-size: 13px;
+    b { color: var(--cart-ink); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    span { color: var(--cart-muted); }
+}
+
+.adt_cart__count-clear {
+    margin-left: auto;
+    display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--cart-radius);
+    background: none;
+    color: var(--cart-accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { background: var(--cart-page); }
+}
+
+.adt_cart__facet {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: center;
+}
+
+.adt_cart__facet-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--cart-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    .fa { width: 14px; text-align: center; font-size: 12px; }
+}
+
+.adt_cart__facet-chips {
+    display: flex;
+    gap: 6px;
+    padding: 2px 24px 2px 0;
     overflow-x: auto;
-    scrollbar-width: none;
-    & + & { border-top: 1px solid var(--cart-border); }
-    > span {
-        flex: none;
-        width: 84px;
-        color: var(--cart-muted);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: .05em;
-        text-transform: uppercase;
+    scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+
+.adt_cart__fchip {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 4px 0 11px;
+    border: 1px solid var(--cart-border);
+    border-radius: 14px;
+    background: var(--cart-subtle);
+    color: var(--cart-ink-2);
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .12s, border-color .12s, color .12s;
+
+    &:hover { border-color: var(--cart-border-strong); background: var(--cart-surface); color: var(--cart-ink); }
+    &:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--cart-focus); }
+    &.is-zero { color: var(--cart-muted); opacity: .6; }
+    &.is-zero:hover { opacity: 1; }
+    &.is-active {
+        border-color: var(--cart-accent);
+        background: var(--cart-accent);
+        color: #fff;
+        .adt_cart__fchip-n { background: rgba(255, 255, 255, .18); color: #fff; }
+        .adt_cart__fchip-dot { box-shadow: 0 0 0 2px rgba(255, 255, 255, .85); }
     }
+}
+
+.adt_cart__fchip-n {
+    min-width: 22px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--cart-surface);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+// Mismos colores por estado que Flota 360.
+.adt_cart__fchip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cart-muted);
+    &.is-borrador { background: #98a2b3; }
+    &.is-aprobado { background: var(--cart-info); }
+    &.is-en_curso { background: var(--cart-warn); }
+    &.is-pagado { background: var(--cart-pos); }
+    &.is-cancelado { background: var(--cart-neg); }
 }
 
 .adt_cart__chip {
@@ -474,7 +576,7 @@
     .adt_cart__scroll { padding: 0 12px 32px; }
     .adt_cart__header { margin: 0 -12px 12px; padding: 12px 12px 0; }
     .adt_cart__subtitle { display: none; }
-    .adt_cart__chipgroup > span { width: 70px; }
+    .adt_cart__facet { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
 
 // ------------------------------------------------------------------ impresión / PDF

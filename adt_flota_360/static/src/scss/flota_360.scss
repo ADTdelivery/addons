@@ -179,6 +179,74 @@
     .adt_f360__kbd { right: 14px; border-color: rgba(29, 53, 87, .3); background: var(--f3-surface); color: var(--f3-primary); }
 }
 
+// Selector Todos / Con cliente / En stock, junto al buscador.
+.adt_f360__groups {
+    flex: none;
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--f3-line);
+    border-radius: 10px;
+    background: var(--f3-bg);
+    &:empty { display: none; }
+}
+
+.adt_f360__group {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--f3-ink-2);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    .fa { color: var(--f3-muted); }
+    &:hover { color: var(--f3-ink); }
+    &:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--f3-focus); }
+    &.is-active {
+        background: var(--f3-surface);
+        color: var(--f3-primary);
+        box-shadow: 0 1px 3px rgba(16, 24, 40, .12);
+        .fa { color: var(--f3-primary); }
+    }
+    &.is-stock.is-active { color: var(--f3-accent); .fa { color: var(--f3-accent); } }
+}
+
+.adt_f360__group-n {
+    min-width: 24px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--f3-line);
+    color: var(--f3-ink-2);
+    font-size: 11px;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    .is-active > & { background: var(--f3-primary); color: #fff; }
+    .is-stock.is-active > & { background: var(--f3-accent); }
+}
+
+// Moto en stock en la lista: etiqueta en la columna de cliente y franja a la izquierda.
+.adt_f360__stock-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border: 1px solid #fed7aa;
+    border-radius: 4px;
+    background: #fff7ed;
+    color: var(--f3-accent);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.adt_f360__table tr.is-stock > td:first-child { box-shadow: inset 3px 0 0 #fdba74; }
+
 // Filtros como pestañas con contador.
 .adt_f360__filters {
     display: flex;
@@ -3171,6 +3239,8 @@ textarea.adt_f360__input { resize: vertical; }
     .adt_f360__search-clear { right: 8px; }
     .adt_f360__headline { flex-wrap: wrap; gap: 8px; }
     .adt_f360__search.is-hero { flex-basis: 100%; }
+    .adt_f360__groups { flex-basis: 100%; }
+    .adt_f360__group { flex: 1 1 0; justify-content: center; padding: 0 6px; }
     .adt_f360__search.is-hero .adt_f360__search-input { height: 42px; padding-right: 40px; font-size: 14px; }
     .adt_f360__search.is-hero .adt_f360__search-clear { right: 10px; }
     .adt_f360__figures, .adt_f360__acc-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }

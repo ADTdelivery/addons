@@ -13,7 +13,8 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
 
     var esc = _.escape;
     var TRAMOS = {'1_30': 'Atrasadas hasta 1 mes', '31_60': 'Atrasadas de 1 a 2 meses', '61_90': 'Atrasadas de 2 a 3 meses', '91_mas': 'Atrasadas más de 3 meses (difíciles de cobrar)'};
-    var ESTADOS = {aprobado: 'Aprobado', en_curso: 'En curso', cancelado: 'Cancelado', pagado: 'Pagado'};
+    var ESTADOS = {borrador: 'Borrador', aprobado: 'Aprobado', en_curso: 'En curso', cancelado: 'Cancelado', pagado: 'Pagado'};
+    var FILTROS = [['todas', 'Todos'], ['atraso', 'Con atraso'], ['contra', 'Saldo en contra'], ['alertas', 'Con alertas']];
 
     function normalizar(texto) {
         return String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
@@ -80,6 +81,13 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             title: 'Total del cronograma del cliente − total pagado y por pagar a la financiera'},
     ];
 
+    function cumpleFiltro(f, filtro) {
+        if (filtro === 'atraso') { return f.cliente_resumen.vencido > 0; }
+        if (filtro === 'contra') { return saldo(f) < 0; }
+        if (filtro === 'alertas') { return f.alertas.length > 0; }
+        return true;
+    }
+
     // Saldo a favor (+) / en contra (−): contra el monto para liquidar; sin PDF, contra la deuda nominal.
     function saldo(f) {
         return f.posicion.neto_liquidar !== null ? f.posicion.neto_liquidar : f.posicion.neto_nominal;
@@ -95,6 +103,8 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             'click [data-action="imprimir"]': '_onImprimir',
             'click [data-financiera]': '_onFinanciera',
             'click [data-filtro]': '_onFiltro',
+            'click [data-estado]': '_onEstado',
+            'click [data-action="limpiar-filtros"]': '_onLimpiarFiltros',
             'click [data-sort]': '_onSort',
             'click [data-pagina]': '_onPagina',
             'click [data-action="toggle-meses"]': '_onToggleMeses',
@@ -109,6 +119,7 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             this.data = null;
             this.financieraId = null;
             this.filtro = 'todas';
+            this.estado = undefined;  // estado del cronograma; null = todos. Por defecto, la cartera activa.
             this.busqueda = '';
             this.clienteRecuperado = null;  // clave del cliente elegido en el punto 4
             this.textoRecuperado = '';
@@ -135,6 +146,9 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
                 args: [],
             }).then(function (data) {
                 self.data = data;
+                if (self.estado === undefined) {
+                    self.estado = data.estado_activo;
+                }
                 data.cuentas.concat(data.recuperadas).forEach(function (f) {
                     f._buscar = normalizar([f.cliente, f.documento, f.referencia, f.placa].join(' '));
                 });
@@ -162,16 +176,16 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
         },
 
         // ------------------------------------------------------------------ cálculo
-        _filas: function () {
+        // `omitir` deja fuera un criterio ('financiera', 'estado' o 'filtro'): sirve para contar
+        // cuántos créditos tendría cada opción de ese criterio con los demás aplicados.
+        _filas: function (omitir) {
             var self = this;
             var q = normalizar(this.busqueda);
             return this.data.cuentas.filter(function (f) {
-                if (self.financieraId !== null && f.financiera_id !== self.financieraId) { return false; }
+                if (omitir !== 'financiera' && self.financieraId !== null && f.financiera_id !== self.financieraId) { return false; }
+                if (omitir !== 'estado' && self.estado !== null && f.estado !== self.estado) { return false; }
                 if (q && f._buscar.indexOf(q) === -1) { return false; }
-                if (self.filtro === 'atraso') { return f.cliente_resumen.vencido > 0; }
-                if (self.filtro === 'contra') { return saldo(f) < 0; }
-                if (self.filtro === 'alertas') { return f.alertas.length > 0; }
-                return true;
+                return omitir === 'filtro' || cumpleFiltro(f, self.filtro);
             });
         },
 
@@ -246,11 +260,13 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
 
         // ------------------------------------------------------------------ render
         _render: function () {
-            this._ref('subtitle').text('Créditos en curso al ' + fecha(this.data.hoy) + ' · montos exactos al céntimo');
-            this._renderChips();
             var filas = this._filas();
+            var estado = this.estado === null ? 'en todos los estados' : (ESTADOS[this.estado] || this.estado).toLowerCase();
+            this._ref('subtitle').text(filas.length + (filas.length === 1 ? ' crédito ' : ' créditos ') + estado +
+                ' al ' + fecha(this.data.hoy) + ' · montos exactos al céntimo');
+            this._renderChips(filas.length);
             if (!this.data.cuentas.length) {
-                this._ref('body').html('<div class="adt_cart__empty">Aún no hay créditos en curso con cronograma.</div>');
+                this._ref('body').html('<div class="adt_cart__empty">Aún no hay créditos con cronograma.</div>');
                 return;
             }
             var v = this._vista(filas);
@@ -264,21 +280,51 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             );
         },
 
-        _renderChips: function () {
+        // Filtros con la cantidad de créditos de cada opción (con los demás filtros aplicados),
+        // como en Flota 360, y el total de créditos que se están contando.
+        _renderChips: function (total) {
             var self = this;
-            var chip = function (attr, valor, activo, texto) {
-                return '<button type="button" class="adt_cart__chip' + (activo ? ' is-active' : '') + '" ' +
-                    attr + '="' + valor + '">' + esc(texto) + '</button>';
+            var contar = function (omitir, clave) {
+                return _.countBy(self._filas(omitir), clave);
             };
-            var fin = chip('data-financiera', 'all', this.financieraId === null, 'Todas');
-            this.data.financieras.forEach(function (f) {
-                fin += chip('data-financiera', f.id, self.financieraId === f.id, f.name);
-            });
-            var filtros = [['todas', 'Todos'], ['atraso', 'Con atraso'], ['contra', 'Saldo en contra'], ['alertas', 'Con alertas']];
-            var filtro = filtros.map(function (p) { return chip('data-filtro', p[0], self.filtro === p[0], p[1]); }).join('');
+            var chip = function (attr, valor, activo, texto, n, punto) {
+                return '<button type="button" class="adt_cart__fchip' + (activo ? ' is-active' : '') + (!n && !activo ? ' is-zero' : '') +
+                    '" ' + attr + '="' + esc(String(valor)) + '" aria-pressed="' + activo + '">' +
+                    (punto ? '<i class="adt_cart__fchip-dot is-' + esc(punto) + '" aria-hidden="true"></i>' : '') +
+                    esc(texto) + '<span class="adt_cart__fchip-n">' + (n || 0) + '</span></button>';
+            };
+            var fila = function (icono, titulo, chips) {
+                return '<div class="adt_cart__facet"><span class="adt_cart__facet-label"><i class="fa ' + icono + '" aria-hidden="true"></i>' +
+                    titulo + '</span><div class="adt_cart__facet-chips">' + chips + '</div></div>';
+            };
+
+            var porFin = contar('financiera', 'financiera_id');
+            var fin = chip('data-financiera', 'all', this.financieraId === null, 'Todas', _.reduce(porFin, function (a, n) { return a + n; }, 0)) +
+                this.data.financieras.map(function (f) {
+                    return chip('data-financiera', f.id, self.financieraId === f.id, f.name, porFin[f.id]);
+                }).join('');
+
+            var porEstado = contar('estado', 'estado');
+            var est = chip('data-estado', 'all', this.estado === null, 'Todos', _.reduce(porEstado, function (a, n) { return a + n; }, 0)) +
+                this.data.estados.map(function (e) {
+                    return chip('data-estado', e.id, self.estado === e.id, e.name, porEstado[e.id], e.id);
+                }).join('');
+
+            var base = this._filas('filtro');
+            var ver = FILTROS.map(function (p) {
+                var n = base.filter(function (f) { return cumpleFiltro(f, p[0]); }).length;
+                return chip('data-filtro', p[0], self.filtro === p[0], p[1], n);
+            }).join('');
+
+            var filtrado = this.financieraId !== null || this.estado !== this.data.estado_activo || this.filtro !== 'todas';
             this._ref('chips').html(
-                '<div class="adt_cart__chipgroup"><span>Financiera</span>' + fin + '</div>' +
-                '<div class="adt_cart__chipgroup"><span>Ver</span>' + filtro + '</div>');
+                '<div class="adt_cart__count"><b>' + total + '</b> ' + (total === 1 ? 'crédito' : 'créditos') + ' contados' +
+                    (this.data.cuentas.length !== total ? ' <span>de ' + this.data.cuentas.length + '</span>' : '') +
+                    (filtrado ? '<button type="button" class="adt_cart__count-clear" data-action="limpiar-filtros">' +
+                        '<i class="fa fa-times" aria-hidden="true"></i> Quitar filtros</button>' : '') + '</div>' +
+                fila('fa-university', 'Financiera', fin) +
+                fila('fa-calendar-check-o', 'Cronograma', est) +
+                fila('fa-filter', 'Ver', ver));
         },
 
         _seccion: function (titulo, sub, cuerpo) {
@@ -361,8 +407,14 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
                 return creditos(e.cantidad) + ' ' + (ESTADOS[e.estado] || e.estado).toLowerCase() +
                     (e.cantidad === 1 ? '' : 's') + ' con ' + self._money(e.deuda) + ' pendientes con la financiera';
             });
-            var nota = excluidas.length ? '<p class="adt_cart__note adt_cart__note--warn">Solo se cuentan créditos en curso. ' +
-                'Atención: hay ' + excluidas.join(' y ') + ' que no están en estos totales.</p>' : '';
+            var nota = '';
+            if (this.estado !== this.data.estado_activo) {
+                nota = '<p class="adt_cart__note adt_cart__note--warn">Estos totales incluyen créditos que no están en curso: ' +
+                    'no son la cartera activa. Para la cartera activa elige <b>Cronograma: En curso</b>.</p>';
+            } else if (excluidas.length) {
+                nota = '<p class="adt_cart__note adt_cart__note--warn">Solo se cuentan créditos en curso. ' +
+                    'Atención: hay ' + excluidas.join(' y ') + ' que no están en estos totales.</p>';
+            }
 
             return '<div class="adt_cart__answers">' + deben + debemos + queda + this._recuperadasHtml() + '</div>' +
                 resultado + nota;
@@ -590,7 +642,8 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
                 var f = _.findWhere(this.data.financieras, {id: this.financieraId});
                 filtro.push('Financiera: ' + (f ? f.name : ''));
             }
-            if (this.filtro !== 'todas') { filtro.push('Ver: ' + this.$('[data-filtro="' + this.filtro + '"]').text()); }
+            filtro.push('Cronograma: ' + (this.estado === null ? 'todos los estados' : (ESTADOS[this.estado] || this.estado)));
+            if (this.filtro !== 'todas') { filtro.push('Ver: ' + _.object(FILTROS)[this.filtro]); }
             if (this.busqueda) { filtro.push('Búsqueda: "' + this.busqueda + '"'); }
             this._ref('print-meta').text('Impreso el ' + moment().format('DD/MM/YYYY HH:mm') +
                 (filtro.length ? ' · ' + filtro.join(' · ') : ' · todas las financieras'));
@@ -616,6 +669,21 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
         _onFinanciera: function (ev) {
             var v = $(ev.currentTarget).data('financiera');
             this.financieraId = v === 'all' ? null : parseInt(v, 10);
+            this.pagina = 0;
+            this._render();
+        },
+
+        _onEstado: function (ev) {
+            var v = String($(ev.currentTarget).attr('data-estado'));
+            this.estado = v === 'all' ? null : v;
+            this.pagina = 0;
+            this._render();
+        },
+
+        _onLimpiarFiltros: function () {
+            this.financieraId = null;
+            this.estado = this.data.estado_activo;
+            this.filtro = 'todas';
             this.pagina = 0;
             this._render();
         },

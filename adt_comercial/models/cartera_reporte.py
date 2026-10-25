@@ -7,7 +7,8 @@ from .cartera_calculo import (
     resumen_financiera_pdf,
 )
 
-# Solo créditos activos. Los demás se leen únicamente para avisar si aún tienen deuda con la financiera.
+# La cartera activa son los créditos en curso (filtro por defecto del reporte). Los demás estados
+# también se envían para poder filtrarlos por estado del cronograma; sus totales van aparte.
 ESTADO_ACTIVO = 'en_curso'
 
 CAMPOS_CUENTA = [
@@ -33,8 +34,8 @@ class AdtCarteraReporte(models.TransientModel):
     @api.model
     def get_report_data(self):
         hoy = fields.Date.context_today(self)
-        cuentas = self.env['adt.comercial.cuentas'].search_read(
-            [('state', '!=', 'borrador')], CAMPOS_CUENTA, order='id')
+        Cuenta = self.env['adt.comercial.cuentas']
+        cuentas = Cuenta.search_read([], CAMPOS_CUENTA, order='id')
         ids = [c['id'] for c in cuentas]
 
         cuotas_por_cuenta = defaultdict(list)
@@ -93,15 +94,16 @@ class AdtCarteraReporte(models.TransientModel):
             if c['state'] != ESTADO_ACTIVO:
                 # Moto recuperada sin nuevo crédito vigente: el cliente ya no paga, pero ADT sigue
                 # pagando a la financiera. Una fila por moto (la última cuenta recuperada).
+                # Se listan como recuperadas (punto 4), no como crédito, para no contar dos veces su deuda.
                 vehiculo = c['vehiculo_id'] and c['vehiculo_id'][0]
                 if c['state'] == 'cancelado' and c['recuperado']:
                     if fin['pendiente'] > 0 and vehiculo not in vehiculos_vigentes:
                         recuperadas[vehiculo or -c['id']] = self._fila_recuperada(c, fin)
+                        continue
                 elif fin['pendiente'] > 0:
                     e = excluidas.setdefault(c['state'], {'estado': c['state'], 'cantidad': 0, 'deuda': 0})
                     e['cantidad'] += 1
                     e['deuda'] += fin['pendiente']
-                continue
             cli = resumen_cliente(hoy, cuotas)
             pos = posicion(cli, fin)
             filas.append(self._fila(hoy, c, cli, fin, pos, cobros_por_cuenta.get(c['id'], {})))
@@ -119,6 +121,9 @@ class AdtCarteraReporte(models.TransientModel):
             'moneda': {'simbolo': moneda.symbol, 'posicion': moneda.position},
             'financieras': sorted(financieras, key=lambda f: f['name']),
             'tramos': [clave for clave, _d, _h in TRAMOS_ATRASO],
+            # Estados del cronograma de pagos (cuenta), en el orden del campo.
+            'estados': [{'id': k, 'name': v} for k, v in Cuenta._fields['state']._description_selection(self.env)],
+            'estado_activo': ESTADO_ACTIVO,
             'cuentas': filas,
             # Créditos no activos que todavía tienen cuotas pendientes con la financiera (céntimos).
             'excluidas_con_deuda': list(excluidas.values()),
