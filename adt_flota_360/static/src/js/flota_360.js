@@ -23,10 +23,27 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
     // Navegación de la ficha, agrupada por área. Solo se muestran las secciones que
     // el servidor devuelve (módulos instalados y con acceso).
+    // Cronograma de pagos: cuotas que se muestran al inicio (el resto, a pedido).
+    var CUOTAS_INICIO = 6;
+    // Operaciones de una cuota en el panel «Gestionar pago»: grupo y qué hace cada una.
+    var OP_CUOTA = {
+        action_register_payment: ['cobrar', 'Total o parcial; registra la mora a la fecha.'],
+        action_pagar_mora: ['cobrar', 'Cobra la mora registrada pendiente.'],
+        reprogramar: ['cambiar', 'Al final, después de otra cuota o en una fecha.'],
+        trasladar: ['cambiar', 'Su saldo se suma a otra cuota.'],
+        mora: ['cambiar', 'Perdonarla, fijar un monto o cobrarla aparte.'],
+        action_editar_mora: ['cambiar', 'Cambiar la mora calculada.'],
+        registrar_observacion: ['registro', 'Nota con fecha y adjuntos.'],
+        action_open_image_gallery: ['registro', 'Vouchers subidos para esta cuota.'],
+        action_delete_payment: ['quitar', 'Anula los pagos registrados en la cuota.'],
+        eliminar: ['quitar', 'Se quita del cronograma; se puede deshacer.'],
+    };
+    var GRUPOS_CUOTA = [['cobrar', 'Cobrar'], ['cambiar', 'Cambiar la cuota'], ['registro', 'Registro'], ['otros', 'Otros'], ['quitar', 'Quitar o eliminar']];
+
     var NAV = [
         {titulo: 'General', items: [['resumen', 'Resumen', 'fa-th-large']]},
         {titulo: 'Cliente', items: [['cliente', 'Datos del cliente', 'fa-user'], ['expediente', 'Expediente', 'fa-folder-open-o']]},
-        {titulo: 'Crédito y cobranza', items: [['cuentas', 'Crédito y cuotas', 'fa-credit-card'],
+        {titulo: 'Crédito y cobranza', items: [['cronograma', 'Cronograma de pagos', 'fa-sliders'],
             ['rentabilidad', 'Rentabilidad', 'fa-line-chart'], ['financiera', 'Financiera', 'fa-university'],
             ['papeletas', 'Papeletas', 'fa-file-text-o'], ['capturas', 'Capturas', 'fa-lock']]},
         {titulo: 'Vehículo', items: [['vehiculo', 'Vehículo', 'fa-motorcycle'], ['documentos', 'Documentos', 'fa-file-text-o'],
@@ -189,6 +206,18 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             'click [data-menu]': '_onMenu',
             'click [data-ptab]': '_onPestana',
             'click [data-crono]': '_onFiltroCrono',
+            'click [data-crono-sel]': '_onCronoSel',
+            'keydown tr[data-crono-sel]': '_onCronoSelKey',
+            'click [data-crono-ir]': '_onCronoIr',
+            'click [data-crono-ver]': '_onCronoVer',
+            'click [data-cuota-gestionar]': '_onCuotaGestionar',
+            'click [data-detalle-abrir]': '_onDetalleAbrir',
+            'click [data-detalle-cerrar]': '_onDetalleCerrar',
+            'click [data-contrato-subir]': '_onContratoSubir',
+            'click [data-contrato-quitar]': '_onContratoQuitar',
+            'dragover [data-contrato-zona]': '_onDragOver',
+            'dragleave [data-contrato-zona]': '_onDragLeave',
+            'drop [data-contrato-zona]': '_onDrop',
             'click [data-expandir]': '_onExpandir',
             'click [data-subir]': '_onSubir',
             'change [data-ref="archivo"]': '_onArchivo',
@@ -289,6 +318,10 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         destroy: function () {
             document.removeEventListener('keydown', this._onGlobalKey);
+            if (this._obsModal) {
+                this._obsModal.disconnect();
+                window.removeEventListener('resize', this._marcarDesborde);
+            }
             document.removeEventListener('click', this._onGlobalClick, true);
             this._super.apply(this, arguments);
         },
@@ -559,6 +592,19 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 (a.icon ? '<i class="fa ' + esc(a.icon) + '" aria-hidden="true"></i>' : '') + '<span>' + esc(a.label) + '</span></button>';
         },
 
+        // Acceso al centro de control con la cuota ya elegida.
+        _botonGestionar: function (cuentaId, cuotaId) {
+            return '<button type="button" class="adt_f360__btn is-small is-ghost" data-crono-ir="' + (cuotaId || '') + '" data-cuenta="' + cuentaId +
+                '" title="Reprogramar, trasladar, mora, eliminar y más en Cronograma de pagos"><i class="fa fa-sliders" aria-hidden="true"></i><span>Gestionar</span></button>';
+        },
+
+        _accionCorta: function (a) {
+            this._acciones.push(a);
+            return '<button type="button" class="adt_f360__btn is-small is-ghost' + (a.danger ? ' is-danger' : '') +
+                '" data-accion="' + (this._acciones.length - 1) + '" title="' + esc(a.label) + '">' +
+                '<i class="fa ' + esc(a.icon || 'fa-circle-o') + '" aria-hidden="true"></i><span>' + esc(a.corto || a.label) + '</span></button>';
+        },
+
         _acciones_html: function (lista, cls) {
             var self = this;
             return (lista || []).map(function (a) { return self._accion(a, cls); }).join('');
@@ -645,6 +691,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         _renderDrawer: function () {
             var d = this.detalle;
+            if (this.tab === 'cuentas') {
+                this.tab = 'cronograma';
+            }
             var $drawer = this._ref('drawer');
             var scroll = $drawer.find('.adt_f360__db').scrollTop() || 0;
             var scrollPanel = $drawer.find('.adt_f360__sheet-body').scrollTop() || 0;
@@ -653,10 +702,12 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 $drawer.html(this._htmlAviso('El vehículo ya no existe o no tienes acceso.'));
                 return;
             }
-            var seccion = _.findWhere(d.secciones, {key: this.tab});
+            var seccion = _.findWhere(d.secciones, {key: this.tab === 'cronograma' ? 'cuentas' : this.tab});
             var body;
             this._tituloExtra = '';  // la sección puede agregar controles junto al título
-            if (this.tab === 'resumen' || !seccion) {
+            if (this.tab === 'cronograma' && seccion) {
+                body = this._htmlControlCronograma(seccion);
+            } else if (this.tab === 'resumen' || !seccion) {
                 body = this._htmlResumen(d);
             } else if (seccion.deuda) {
                 body = this._htmlDeuda(seccion);
@@ -685,14 +736,15 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             } else {
                 body = this._htmlSeccion(seccion);
             }
-            var titulo = this.tab === 'resumen' || !seccion ? 'Resumen' : seccion.titulo;
+            var titulo = this.tab === 'resumen' || !seccion ? 'Resumen' : (this.tab === 'cronograma' ? 'Cronograma de pagos' : seccion.titulo);
             // Sin cabecera: la identidad del vehículo va arriba del menú lateral para dejar
             // toda la altura al contenido.
             $drawer.html('<div class="adt_f360__layout">' + this._htmlNav(d) +
                 '<div class="adt_f360__db"><div class="adt_f360__db-inner">' +
                 '<div class="adt_f360__page-head"><h2 class="adt_f360__page-title">' + esc(titulo) + '</h2>' + this._tituloExtra + '</div>' +
                 body + '</div></div></div>' +
-                this._htmlPanelPapeleta(seccion) + this._htmlPanelCaptura(seccion) + this._htmlPanelCuota(seccion));
+                this._htmlPanelPapeleta(seccion) + this._htmlPanelCaptura(seccion) + this._htmlPanelCuota(seccion) +
+                this._htmlPanelDetalle(seccion));
             $drawer.find('.adt_f360__db').scrollTop(scroll);
             $drawer.find('.adt_f360__sheet-body').scrollTop(scrollPanel);
         },
@@ -716,14 +768,19 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                         '<i class="fa fa-arrow-left" aria-hidden="true"></i></button>' +
                     this._htmlPlaca(d) + '</div></div>';
             return '<nav class="adt_f360__nav" aria-label="Secciones de la ficha">' + identidad + NAV.map(function (g) {
-                var items = g.items.filter(function (it) { return it[0] === 'resumen' || secciones[it[0]]; });
+                var items = g.items.filter(function (it) {
+                    // «Cronograma de pagos» usa los datos de «Crédito y cuotas».
+                    return it[0] === 'resumen' || secciones[it[0]] || (it[0] === 'cronograma' && secciones.cuentas);
+                });
                 if (!items.length) {
                     return '';
                 }
                 return '<div class="adt_f360__nav-group"><div class="adt_f360__nav-title">' + esc(g.titulo) + '</div>' +
                     items.map(function (it) {
-                        var m = mods[it[0]];
-                        var nivel = m && (m.nivel === 'critico' || m.nivel === 'atencion') ? m.nivel : pasos[it[0]];
+                        // «Cronograma de pagos» reemplaza a «Crédito y cuotas»: usa su indicador.
+                        var clave = it[0] === 'cronograma' ? 'cuentas' : it[0];
+                        var m = mods[clave];
+                        var nivel = m && (m.nivel === 'critico' || m.nivel === 'atencion') ? m.nivel : (pasos[clave] || pasos[it[0]]);
                         var activo = self.tab === it[0];
                         return '<button type="button" class="adt_f360__nav-item' + (activo ? ' is-active' : '') + '" data-tab="' + it[0] +
                             '"' + (activo ? ' aria-current="page"' : '') + '><i class="fa ' + it[2] + '" aria-hidden="true"></i>' +
@@ -1860,9 +1917,11 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 titulo: c.titular.nombre || 'Sin titular', ref: c.referencia, datos: c.condiciones,
                 chips: [['fa-circle', c.situacion.texto]],
                 frase: c.frase, cifras: this._cifrasCuenta(c),
-                extra: c.cobrar.length ? '<button type="button" class="adt_f360__btn is-accent" data-cobrar="' + c.id + '">' +
-                    '<i class="fa fa-money" aria-hidden="true"></i><span>Cobrar</span></button>' : '',
-                acciones: c.acciones, menu: c.menu, clase: c.vigente ? '' : 'is-historic',
+                extra: (c.cobrar.length ? '<button type="button" class="adt_f360__btn is-accent" data-cobrar="' + c.id + '">' +
+                    '<i class="fa fa-money" aria-hidden="true"></i><span>Cobrar</span></button>' : '') +
+                    '<button type="button" class="adt_f360__btn" data-crono-ir="" data-cuenta="' + c.id + '" title="Pagar, refinanciar, agregar o eliminar cuotas y el historial de ajustes">' +
+                    '<i class="fa fa-sliders" aria-hidden="true"></i><span>Gestionar cronograma</span></button>',
+                clase: c.vigente ? '' : 'is-historic',
             }) + this._htmlPestanasCuenta(c);
         },
 
@@ -1915,7 +1974,6 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 {key: 'detalle', label: 'Detalle del crédito', icon: 'fa-file-text-o'},
                 {key: 'documentos', label: 'Contrato y documentos', icon: 'fa-folder-open-o',
                  n: (c.ficha.documentos || []).length + (c.ficha.adjuntos || []).length},
-                {key: 'cuotas', label: 'Cronograma ADT', icon: 'fa-list-ol', n: c.cuotas.length},
                 {key: 'pagos', label: 'Pagos', icon: 'fa-money', n: c.pagos.length},
                 {key: 'historial', label: 'Historial', icon: 'fa-history', n: c.historial.length},
             ].filter(Boolean);
@@ -1925,8 +1983,13 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 if (key === 'detalle') { return self._htmlDetalleCredito(c); }
                 if (key === 'documentos') { return self._htmlDocumentosCuenta(c.ficha); }
                 if (key === 'historial') { return self._htmlHistorial(c.historial); }
-                return '<div class="adt_f360__ptab-tools">' + self._htmlFiltroCrono(c) + '</div>' + self._htmlCronograma(c);
-            }, pendientes && c.pendientes.length ? 'pendientes' : 'cuotas');
+                return self._htmlDetalleCredito(c);
+            }, pendientes && c.pendientes.length ? 'pendientes' : 'detalle');
+        },
+
+        // Pestañas adicionales de la cuenta ({key, label, icon, n, render}); las agregan otros módulos.
+        _pestanasCuentaExtra: function () {
+            return [];
         },
 
         // Detalle del crédito: solo lo pactado con el cliente (ADT). El plan de la financiera
@@ -2051,6 +2114,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
         _htmlPendientes: function (c) {
             var self = this;
             var lista = c.pendientes;
+            var filas = _.indexBy(c.cuotas, 'id');
             if (!lista.length) {
                 return '<div class="adt_f360__pad"><div class="adt_f360__allgood"><i class="fa fa-check-circle" aria-hidden="true"></i><b>Todo al día.</b> ' +
                     '<span>No hay cuotas vencidas ni pagos a cuenta por completar.</span></div></div>';
@@ -2062,7 +2126,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                         ? '<button type="button" class="adt_f360__todo-what" data-cuota="' + p.cuota + '" title="Ver la cuota">'
                         : '<span class="adt_f360__todo-what">') +
                         '<b>' + esc(p.titulo) + '</b><small>' + esc(p.detalle) + '</small>' + (p.cuota ? '</button>' : '</span>') +
-                    (p.accion ? self._accion(p.accion, ' is-small') : '') +
+                    '<div class="adt_f360__qactions">' + (p.accion ? self._accion(p.accion, ' is-small') : '') +
+                        (p.cuota && filas[p.cuota] ? self._botonGestionar(c.id, p.cuota) : '') + '</div>' +
                     '</li>';
             }).join('') + '</ul>';
         },
@@ -2075,7 +2140,70 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             }).join('') + '</div>';
         },
 
-        _htmlCronograma: function (c) {
+        // ------------------------------------------------------------------
+        // Cronograma de pagos: centro de control. Todo lo que se hace sobre el cronograma
+        // en un solo lugar: elegir una cuota y operar sobre ella, operaciones de la cuenta
+        // (cobrar, cancelar el crédito, agregar cuotas, refinanciar, cerrar) e historial.
+        // ------------------------------------------------------------------
+
+        // Cuenta elegida en la lista de cuentas de la moto (como en «Crédito y cuotas»).
+        _cuentaControl: function (s) {
+            return _.findWhere(s.deuda || [], {id: this.cuentaSel}) || null;
+        },
+
+        _htmlControlCronograma: function (s) {
+            if (!(s.deuda || []).length) {
+                return this._panel('Cuentas de la moto', '<p class="adt_f360__muted">' + esc(s.vacio || 'El vehículo no tiene cuentas.') + '</p>',
+                    this._acciones_html(s.acciones, ' is-small'));
+            }
+            var avisos = (s.avisos || []).map(function (t) {
+                return '<div class="adt_f360__note is-critico adt_f360__acc-warn"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> ' + esc(t) + '</div>';
+            }).join('');
+            // Primero la lista de cuentas de la moto; al elegir una, su cronograma.
+            var c = this._cuentaControl(s);
+            if (!c) {
+                this.cuentaSel = null;
+                return avisos + this._htmlListaCuentas(s);
+            }
+            this._tituloExtra = '<button type="button" class="adt_f360__btn is-small" data-cuenta-sel="0">' +
+                    '<i class="fa fa-arrow-left" aria-hidden="true"></i>Todas las cuentas</button>' +
+                (s.deuda.length > 1 ? '<span class="adt_f360__muted">Cuenta ' + (s.deuda.indexOf(c) + 1) + ' de ' + s.deuda.length + '</span>' : '');
+            var q = this.cronoSel ? _.findWhere(c.cuotas, {id: this.cronoSel}) : null;
+            if (!q) {
+                this.cronoSel = null;
+            }
+            var pendientes = c.cuotas.filter(function (x) { return x.saldo > 0; });
+            var vencidas = pendientes.filter(function (x) { return x.grupo === 'vencida'; });
+            var cifra = function (etiqueta, valor, sub, nivel) {
+                return '<div class="adt_f360__cc-kpi' + (nivel ? ' is-' + nivel : '') + '"><span>' + esc(etiqueta) + '</span><b>' + valor + '</b>' +
+                    (sub ? '<small>' + sub + '</small>' : '') + '</div>';
+            };
+            // Encabezado: quién, cifras y, a la vista, todo lo que se puede hacer con la cuenta.
+            var atrasada = vencidas.length > 0;
+            var cabecera = '<section class="adt_f360__panel adt_f360__cc-head' + (atrasada ? ' is-atrasada' : '') + '">' +
+                '<div class="adt_f360__cc-who"><span class="adt_f360__avatar" aria-hidden="true">' + esc(this._iniciales(c.titular.nombre)) + '</span>' +
+                    '<div><b>' + esc(c.titular.nombre || 'Sin titular') + '</b> <span class="adt_f360__mono adt_f360__muted">' + esc(c.referencia) + '</span>' +
+                    '<div class="adt_f360__sub">' + badge(c.nivel, c.estado) + '</div></div>' +
+                    '<button type="button" class="adt_f360__btn is-small" data-detalle-abrir title="Condiciones, contrato, documentos, pagos, notas e historial de la cuenta">' +
+                        '<i class="fa fa-file-text-o" aria-hidden="true"></i><span>Ver detalle del crédito</span></button>' +
+                    this._acciones_html(s.acciones, ' is-small') + '</div>' +
+                // Estado en una frase; en rojo si está atrasada.
+                this._htmlFrase(c.frase) +
+                '<div class="adt_f360__cc-kpis">' +
+                    cifra('Deuda pendiente', soles(c.cifras.capital), plural(pendientes.length, 'cuota', 'cuotas') + ' por cobrar') +
+                    cifra('Vencido', soles(c.cifras.al_dia), plural(vencidas.length, 'cuota vencida', 'cuotas vencidas') + (c.cifras.mora ? ' + mora' : ''), atrasada ? 'critico' : '') +
+                    cifra('Mora', soles(c.cifras.mora), c.cifras.dias_atraso ? c.cifras.dias_atraso + ' días de atraso' : '', atrasada ? 'critico' : (c.cifras.mora ? 'atencion' : '')) +
+                    cifra('Próxima cuota', c.proxima ? soles(c.proxima.monto) : '—', c.proxima ? fecha(c.proxima.fecha) : '') +
+                    cifra('Para cancelar hoy', soles(c.cifras.cancelar_hoy), 'todo el crédito') +
+                '</div>' + this._htmlCcCuenta(c) + '</section>';
+            var tabla = '<section class="adt_f360__panel adt_f360__cc-main"><header class="adt_f360__panel-head"><h3>Cuotas</h3>' +
+                '<div class="adt_f360__panel-actions">' + this._htmlFiltroCrono(c) + '</div></header>' + this._htmlCronogramaSel(c) + '</section>';
+            return '<div class="adt_f360__cc">' + avisos + cabecera + tabla + '</div>';
+        },
+
+        // Tabla del cronograma con selección de cuota. Muestra las primeras cuotas y se amplía a pedido.
+        _htmlCronogramaSel: function (c) {
+            var self = this;
             var filtro = this.filtroCrono[c.id] || 'por_cobrar';
             var filas = c.cuotas.filter(function (q) {
                 if (filtro === 'pagadas') { return q.grupo === 'pagada'; }
@@ -2083,33 +2211,280 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 return true;
             });
             if (!filas.length) {
-                return '<p class="adt_f360__muted adt_f360__pad">' +
-                    (filtro === 'por_cobrar' ? 'No hay cuotas por cobrar en esta cuenta.' : 'Sin cuotas para mostrar.') + '</p>';
+                return '<p class="adt_f360__muted adt_f360__pad">' + (filtro === 'por_cobrar' ? 'No hay cuotas por cobrar en esta cuenta.' : 'Sin cuotas para mostrar.') + '</p>';
             }
-            var total = 0;
-            var cuerpo = filas.map(function (q) {
-                total += q.saldo;
+            this.cronoVer = this.cronoVer || {};
+            var limite = this.cronoVer[c.id] || CUOTAS_INICIO;
+            var elegida = _.findIndex(filas, {id: this.cronoSel});
+            if (elegida >= limite) {
+                limite = elegida + 1;  // la cuota elegida siempre se ve
+            }
+            var visibles = filas.slice(0, limite);
+            var t = {monto: 0, pagado: 0, saldo: 0, mora: 0};
+            filas.forEach(function (q) { _.each(t, function (v, k) { t[k] += q[k] || 0; }); });
+            var cuerpo = visibles.map(function (q) {
+                var sel = q.id === self.cronoSel;
                 var marcas = (q.reportes.length ? '<i class="fa fa-mobile is-info" title="Pago informado desde la app por validar"></i>' : '') +
                     (q.observaciones.length ? '<i class="fa fa-comment-o" title="' + q.observaciones.length + ' observación(es)"></i>' : '') +
-                    (q.mora_manual ? '<i class="fa fa-pencil" title="Mora editada manualmente"></i>' : '');
-                var estadoTxt = q.estado + (q.grupo === 'vencida' && q.mora_dias ? ' · ' + q.mora_dias + ' d' : '');
-                return '<tr class="is-' + q.grupo + (q.subcuota ? ' is-sub' : '') + '" data-cuota="' + q.id + '" tabindex="0" title="Ver la cuota">' +
+                    (q.aviso ? '<i class="fa fa-info-circle is-info" title="' + esc(q.aviso) + '"></i>' : '');
+                return '<tr class="is-' + q.grupo + (q.subcuota ? ' is-sub' : '') + (sel ? ' is-selected' : '') + '" data-crono-sel="' + q.id +
+                    '" tabindex="0" aria-selected="' + sel + '">' +
                     '<td><span class="adt_f360__strong">' + esc(q.nombre) + '</span>' + (q.tipo ? ' ' + badge('info', q.tipo) : '') +
                         (marcas ? '<span class="adt_f360__marks">' + marcas + '</span>' : '') + '</td>' +
                     '<td>' + fecha(q.fecha) + '</td>' +
+                    '<td class="is-num">' + soles(q.monto) + '</td>' +
+                    '<td class="is-num">' + (q.pagado ? soles(q.pagado) : '<span class="adt_f360__muted">—</span>') + '</td>' +
                     '<td class="is-num adt_f360__strong">' + (q.saldo ? soles(q.saldo) : '—') + '</td>' +
-                    '<td>' + badge(q.nivel, estadoTxt) + '</td>' +
-                    '<td class="is-num adt_f360__muted"><i class="fa fa-angle-right" aria-hidden="true"></i></td></tr>';
+                    '<td class="is-num">' + (q.mora ? '<span class="adt_f360__crono-mora">' + soles(q.mora) + '</span>' : '<span class="adt_f360__muted">—</span>') + '</td>' +
+                    '<td>' + badge(q.nivel, q.estado + (q.grupo === 'vencida' && q.mora_dias ? ' · ' + q.mora_dias + ' d' : '')) + '</td>' +
+                    '<td class="adt_f360__crono-pago">' + (q.pago_fecha ? fecha(q.pago_fecha) + (q.pago_ref ? '<small class="adt_f360__mono">' + esc(q.pago_ref) + '</small>' : '')
+                        : '<span class="adt_f360__muted">—</span>') + '</td>' +
+                    '<td class="adt_f360__cc-gcol"><button type="button" class="adt_f360__btn is-small is-primary" data-cuota-gestionar="' + q.id + '">' +
+                        '<i class="fa fa-sliders" aria-hidden="true"></i><span>Gestionar pago</span></button></td></tr>';
             }).join('');
-            return '<div class="adt_f360__scroll-x"><table class="adt_f360__dtable adt_f360__crono2"><thead><tr><th>Cuota</th><th>Vence</th>' +
-                '<th class="is-num">Saldo</th><th>Estado</th><th></th></tr></thead><tbody>' + cuerpo + '</tbody>' +
-                '<tfoot><tr><td colspan="2">' + plural(filas.length, 'cuota', 'cuotas') + '</td><td class="is-num">' + soles(total) +
-                '</td><td colspan="2"></td></tr></tfoot></table></div>';
+            var resto = filas.length - visibles.length;
+            var mas = resto > 0 ? '<div class="adt_f360__cc-more"><span class="adt_f360__muted">Mostrando ' + visibles.length + ' de ' + filas.length + ' cuotas</span>' +
+                '<button type="button" class="adt_f360__btn is-small" data-crono-ver="' + Math.min(visibles.length + CUOTAS_INICIO, filas.length) + '" data-cuenta="' + c.id + '">' +
+                    '<i class="fa fa-angle-down" aria-hidden="true"></i><span>Ver ' + Math.min(CUOTAS_INICIO, resto) + ' más</span></button>' +
+                (resto > CUOTAS_INICIO ? '<button type="button" class="adt_f360__btn is-small is-ghost" data-crono-ver="' + filas.length + '" data-cuenta="' + c.id + '">' +
+                    '<span>Ver todas (' + filas.length + ')</span></button>' : '') + '</div>'
+                : (filas.length > CUOTAS_INICIO ? '<div class="adt_f360__cc-more"><button type="button" class="adt_f360__btn is-small is-ghost" data-crono-ver="' + CUOTAS_INICIO +
+                    '" data-cuenta="' + c.id + '"><i class="fa fa-angle-up" aria-hidden="true"></i><span>Ver menos</span></button></div>' : '');
+            return '<div class="adt_f360__scroll-x"><table class="adt_f360__dtable adt_f360__crono2 adt_f360__cc-table"><thead><tr><th>Cuota</th><th>Vence</th>' +
+                '<th class="is-num">Monto</th><th class="is-num">Pagado</th><th class="is-num">Saldo</th><th class="is-num">Mora</th><th>Estado</th>' +
+                '<th>Último pago</th><th></th></tr></thead><tbody>' + cuerpo + '</tbody>' +
+                '<tfoot><tr><td colspan="2">Total · ' + plural(filas.length, 'cuota', 'cuotas') + '</td><td class="is-num">' + soles(t.monto) +
+                '</td><td class="is-num">' + soles(t.pagado) + '</td><td class="is-num">' + soles(t.saldo) + '</td><td class="is-num">' + soles(t.mora) +
+                '</td><td colspan="3"></td></tr></tfoot></table></div>' + mas;
+        },
+
+        // Detalle del crédito en un panel lateral: condiciones, contrato (ver y subir), documentos, pagos y notas.
+        _htmlPanelDetalle: function (seccion) {
+            if (!this.detAbierto || this.tab !== 'cronograma' || !seccion || !seccion.deuda) {
+                return '';
+            }
+            var self = this, c = this._cuentaControl(seccion);
+            if (!c) {
+                return '';
+            }
+            var entrada = this._detAnimar ? ' is-entering' : '';
+            this._detAnimar = false;
+            var contrato = c.ficha.contrato;
+            var pestanas = [
+                {key: 'detalle', label: 'Detalle', icon: 'fa-file-text-o'},
+                contrato !== null && contrato !== undefined && {key: 'contrato', label: 'Contrato', icon: 'fa-file-pdf-o', n: contrato.length},
+                {key: 'documentos', label: 'Documentos', icon: 'fa-folder-open-o', n: (c.ficha.documentos || []).length + (c.ficha.adjuntos || []).length},
+                {key: 'pagos', label: 'Pagos', icon: 'fa-money', n: c.pagos.length},
+                {key: 'notas', label: 'Notas', icon: 'fa-comments-o', n: c.historial.length},
+            ].filter(Boolean).concat(this._pestanasCuentaExtra(c).map(function (x) {
+                // Historial de ajustes y refinanciamientos (adt_cobranza_ajustes).
+                return _.extend({}, x, {label: 'Historial', icon: 'fa-history'});
+            }));
+            return '<div class="adt_f360__sheet-backdrop' + entrada + '" data-detalle-cerrar></div>' +
+                '<aside class="adt_f360__sheet is-wide' + entrada + '" role="dialog" aria-modal="true" aria-labelledby="adt_f360_det_t">' +
+                    '<header class="adt_f360__sheet-head"><div class="adt_f360__sheet-title"><h2 id="adt_f360_det_t">Detalle del crédito</h2>' +
+                        '<div class="adt_f360__pap-title">' + badge(c.nivel, c.estado) + '<span class="adt_f360__muted">' + esc(c.titular.nombre || '') + '</span>' +
+                        '<span class="adt_f360__muted adt_f360__mono">' + esc(c.referencia) + '</span></div></div>' +
+                        '<button type="button" class="adt_f360__icon-btn" data-detalle-cerrar title="Cerrar (Esc)"><i class="fa fa-times" aria-hidden="true"></i></button>' +
+                    '</header>' +
+                    '<div class="adt_f360__sheet-body adt_f360__det-body">' + this._htmlPestanas('det' + c.id, pestanas, function (key) {
+                        var extra = _.findWhere(pestanas, {key: key});
+                        if (extra && extra.render) { return '<div class="adt_f360__hist-body">' + extra.render() + '</div>'; }
+                        if (key === 'contrato') { return self._htmlContrato(c); }
+                        if (key === 'documentos') { return self._htmlDocumentosCuenta(c.ficha); }
+                        if (key === 'pagos') { return self._htmlPagos(c.pagos); }
+                        if (key === 'notas') { return self._htmlHistorial(c.historial); }
+                        return self._htmlDetalleCredito(c);
+                    }, contrato && !contrato.length ? 'contrato' : 'detalle') + '</div>' +
+                '</aside>';
+        },
+
+        // Contrato firmado: los archivos cargados y la zona para subir otro (PDF o Word).
+        _htmlContrato: function (c) {
+            var archivos = c.ficha.contrato || [];
+            var lista = archivos.length ? '<div class="adt_f360__evid">' + archivos.map(function (a) {
+                var ver = esc(a.url) + '|' + (a.imagen ? '1' : (a.mimetype === 'application/pdf' ? '2' : '0')) + '|' + esc(a.nombre) + '|' + esc(a.descarga);
+                return '<div class="adt_f360__file"><button type="button" class="adt_f360__thumb is-file" data-ver="' + ver + '" title="Abrir ' + esc(a.nombre) + '">' +
+                        '<i class="fa ' + (a.mimetype === 'application/pdf' ? 'fa-file-pdf-o' : 'fa-file-word-o') + '" aria-hidden="true"></i><span>' + esc(a.nombre) + '</span></button>' +
+                    '<div class="adt_f360__evid-meta"><span class="adt_f360__muted">' + fechaHora(a.fecha) + '</span>' +
+                        '<a class="adt_f360__icon-btn is-small" href="' + esc(a.descarga) + '" title="Descargar ' + esc(a.nombre) + '"><i class="fa fa-download" aria-hidden="true"></i></a>' +
+                        '<button type="button" class="adt_f360__icon-btn is-small is-danger" data-contrato-quitar="' + a.id + '" data-cuenta="' + c.id + '" title="Quitar del contrato">' +
+                        '<i class="fa fa-trash-o" aria-hidden="true"></i></button></div></div>';
+            }).join('') + '</div>' : '<p class="adt_f360__contrato-vacio"><i class="fa fa-exclamation-circle" aria-hidden="true"></i>Aún no se ha cargado el contrato firmado por el cliente.</p>';
+            return '<div class="adt_f360__contrato">' + lista +
+                '<div class="adt_f360__contrato-zona" data-contrato-zona="' + c.id + '">' +
+                    '<i class="fa fa-cloud-upload" aria-hidden="true"></i><span>Arrastra aquí el contrato firmado o</span>' +
+                    '<button type="button" class="adt_f360__btn is-primary is-small" data-contrato-subir="' + c.id + '"><i class="fa fa-upload" aria-hidden="true"></i>' +
+                        '<span>' + (archivos.length ? 'Subir otro archivo' : 'Subir contrato') + '</span></button>' +
+                    '<small>PDF o Word (.doc / .docx)</small></div></div>';
+        },
+
+        _onDetalleAbrir: function () {
+            this.detAbierto = true;
+            this._detAnimar = true;
+            this.cuotaSel = null;
+            this._renderDrawer();
+            this._ref('drawer').find('.adt_f360__sheet [data-detalle-cerrar]').last().trigger('focus');
+        },
+
+        _onDetalleCerrar: function () {
+            this.detAbierto = false;
+            this._renderDrawer();
+            this._ref('drawer').find('[data-detalle-abrir]').trigger('focus');
+        },
+
+        _onContratoSubir: function (ev) {
+            ev.stopPropagation();
+            this._subirA = {contrato: parseInt(ev.currentTarget.getAttribute('data-contrato-subir'), 10)};
+            this._ref('archivo').attr('accept', '.pdf,.doc,.docx,application/pdf').val('').trigger('click');
+        },
+
+        _subirContrato: function (cuentaId, archivo) {
+            var self = this;
+            if (!/\.(pdf|docx?)$/i.test(archivo.name)) {
+                this.displayNotification({type: 'danger', title: 'Formato no admitido', message: 'El contrato debe ser PDF o Word (.doc / .docx).'});
+                return Promise.resolve();
+            }
+            var $zona = this.$('[data-contrato-zona="' + cuentaId + '"]').addClass('is-loading');
+            return leerArchivo(archivo).then(function (leido) {
+                return self._llamar('subir_contrato', {vehicle_id: self._drawerId, cuenta_id: cuentaId, nombre: leido.nombre, datos: leido.datos});
+            }).then(function () {
+                self.displayNotification({type: 'success', message: 'Contrato cargado.'});
+                self._recargar();
+            }).catch(function (err) {
+                if (err && err.event) { err.event.preventDefault(); }
+                $zona.removeClass('is-loading');
+                self.displayNotification({type: 'danger', title: 'No se pudo cargar', message: err instanceof Error ? err.message : self._error(err)});
+            });
+        },
+
+        _onContratoQuitar: function (ev) {
+            var self = this, el = ev.currentTarget;
+            var cuenta = parseInt(el.getAttribute('data-cuenta'), 10), adjunto = parseInt(el.getAttribute('data-contrato-quitar'), 10);
+            Dialog.confirm(this, '¿Quitar este archivo del contrato? Queda registrado en las notas de la cuenta.', {
+                title: 'Quitar del contrato',
+                confirm_callback: function () {
+                    return self._llamar('quitar_contrato', {vehicle_id: self._drawerId, cuenta_id: cuenta, adjunto_id: adjunto}).then(function () {
+                        self._recargar();
+                    }).catch(function (err) {
+                        if (err && err.event) { err.event.preventDefault(); }
+                        self.displayNotification({type: 'danger', title: 'No se pudo quitar', message: self._error(err)});
+                    });
+                },
+            });
+        },
+
+        // «Gestionar pago» de una fila (o clic en la fila): abre el panel con todo lo que se puede hacer con la cuota.
+        _onCuotaGestionar: function (ev) {
+            ev.stopPropagation();
+            var id = parseInt(ev.currentTarget.getAttribute('data-cuota-gestionar') || ev.currentTarget.getAttribute('data-crono-sel'), 10);
+            if (!id) {
+                return;
+            }
+            this.cronoSel = id;
+            this.cuotaSel = id;
+            this.detAbierto = false;
+            this._cuotaAnimar = true;
+            this._renderDrawer();
+            this._ref('drawer').find('.adt_f360__sheet [data-cuota-close]').last().trigger('focus');
+        },
+
+        // Operación como tarjeta: icono, nombre y qué hace. Más visible que un botón plano.
+        _accionTarjeta: function (a, desc) {
+            this._acciones.push(a);
+            desc = a.descripcion || desc;
+            return '<button type="button" class="adt_f360__act' + (a.danger ? ' is-danger' : '') + (a.sugerida || a.primary ? ' is-main' : '') +
+                '" data-accion="' + (this._acciones.length - 1) + '"><span class="adt_f360__act-ico"><i class="fa ' + esc(a.icon || 'fa-circle-o') + '" aria-hidden="true"></i></span>' +
+                '<span class="adt_f360__act-txt"><b>' + esc(a.label) + '</b>' + (desc ? '<small>' + esc(desc) + '</small>' : '') + '</span></button>';
+        },
+
+        // Todas las operaciones de una cuota, agrupadas, para el panel «Gestionar pago».
+        _htmlOpsCuota: function (q) {
+            var self = this, grupos = {};
+            q.acciones.concat(q.mas).forEach(function (a) {
+                var clave = a.method || (a.params && a.params.tipo) || '';
+                var info = OP_CUOTA[clave] || [a.danger ? 'quitar' : 'otros', ''];
+                (grupos[info[0]] = grupos[info[0]] || []).push(self._accionTarjeta(a, info[1]));
+            });
+            return GRUPOS_CUOTA.filter(function (g) { return grupos[g[0]]; }).map(function (g) {
+                return '<div class="adt_f360__qops-g' + (g[0] === 'quitar' ? ' is-danger' : '') + '"><div class="adt_f360__label">' + g[1] + '</div>' +
+                    '<div class="adt_f360__qops-b">' + grupos[g[0]].join('') + '</div></div>';
+            }).join('');
+        },
+
+        // Operaciones de la cuenta en el encabezado, agrupadas: cobrar, cronograma, documentos y cierre.
+        _htmlCcCuenta: function (c) {
+            var self = this;
+            var grupos = [];
+            if (c.cobrar.length) {
+                grupos.push({titulo: 'Cobrar', acciones: c.cobrar});
+            }
+            (c.menu || []).forEach(function (g) { grupos.push(g); });
+            if (c.acciones.length) {
+                grupos.push({titulo: c.state === 'borrador' ? 'Cuenta' : 'Documentos', acciones: c.acciones});
+            }
+            // Lo irreversible (cerrar la cuenta) al final.
+            grupos = _.sortBy(grupos.filter(function (g) { return g.acciones.length; }), function (g) {
+                return _.every(g.acciones, function (a) { return a.danger; }) ? 1 : 0;
+            });
+            if (!grupos.length) {
+                return '';
+            }
+            return '<div class="adt_f360__cc-ops-head">' + grupos.map(function (g) {
+                var peligro = _.every(g.acciones, function (a) { return a.danger; });
+                return '<div class="adt_f360__cc-group is-span-' + Math.min(g.acciones.length, 4) + (peligro ? ' is-danger' : '') + '"><div class="adt_f360__cc-group-t">' + esc(g.titulo) + '</div>' +
+                    '<div class="adt_f360__cc-group-b">' + g.acciones.map(function (a) { return self._accionTarjeta(a); }).join('') + '</div></div>';
+            }).join('') + '</div>';
+        },
+
+        _onCronoVer: function (ev) {
+            this.cronoVer = this.cronoVer || {};
+            this.cronoVer[ev.currentTarget.getAttribute('data-cuenta')] = parseInt(ev.currentTarget.getAttribute('data-crono-ver'), 10);
+            this._renderDrawer();
+        },
+
+        _onCronoSel: function (ev) {
+            return this._onCuotaGestionar(ev);
+        },
+
+        _onCronoSelKey: function (ev) {
+            if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) {
+                ev.preventDefault();
+                this._onCronoSel(ev);
+            }
+        },
+
+
+        // Abre el centro de control (con la cuota elegida, si viene).
+        _onCronoIr: function (ev) {
+            ev.stopPropagation();
+            var cuota = parseInt(ev.currentTarget.getAttribute('data-crono-ir'), 10) || null;
+            var cuenta = parseInt(ev.currentTarget.getAttribute('data-cuenta'), 10) || null;
+            this._irA('cronograma');
+            this.cuentaSel = cuenta;
+            this.cronoSel = cuota;
+            this.cuotaSel = cuota;
+            this._cuotaAnimar = !!cuota;
+            if (cuota) {
+                // Que la cuota se vea aunque el filtro «Por cobrar» la ocultara.
+                var s = _.findWhere(this.detalle.secciones, {key: 'cuentas'});
+                var c = s && _.findWhere(s.deuda, {id: cuenta});
+                var q = c && _.findWhere(c.cuotas, {id: cuota});
+                if (q && q.grupo === 'pagada') {
+                    this.filtroCrono[cuenta] = 'todas';
+                }
+            }
+            this._renderDrawer();
+            var $fila = this._ref('drawer').find('tr[data-crono-sel="' + cuota + '"]');
+            if ($fila.length) {
+                $fila[0].scrollIntoView({block: 'center'});
+                $fila.trigger('focus');
+            }
         },
 
         // Panel lateral de una cuota: montos, pagos, observaciones, reportes de la app y sus acciones.
         _htmlPanelCuota: function (seccion) {
-            if (!this.cuotaSel || this.tab !== 'cuentas' || !seccion || !seccion.deuda) {
+            if (!this.cuotaSel || (this.tab !== 'cuentas' && this.tab !== 'cronograma') || !seccion || !seccion.deuda) {
                 return '';
             }
             var q = null;
@@ -2153,11 +2528,15 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                         (o.adjuntos ? ' <span class="adt_f360__muted">· ' + plural(o.adjuntos, 'adjunto', 'adjuntos') + '</span>' : '') + '</li>';
                 }).join('') + '</ul>'
                 : '<p class="adt_f360__muted">Sin observaciones.</p>') + '</div>';
-            var acciones = this._acciones_html(q.acciones, ' is-small') + this._menu(q.mas, '', ' is-small is-icon');
+            // En el cronograma, el panel es «Gestionar pago»: todas las operaciones de la cuota.
+            var gestion = this.tab === 'cronograma';
+            var acciones = gestion ? '' : this._acciones_html(q.acciones, ' is-small') + this._botonGestionar(cuenta.id, q.id);
+            var operaciones = gestion ? '<div class="adt_f360__qblock adt_f360__qops"><div class="adt_f360__qops-t">¿Qué quieres hacer con esta cuota?</div>' +
+                this._htmlOpsCuota(q) + '</div>' : '';
             return '<div class="adt_f360__sheet-backdrop' + entrada + '" data-cuota-close></div>' +
                 '<aside class="adt_f360__sheet is-' + q.nivel + entrada + '" role="dialog" aria-modal="true" aria-labelledby="adt_f360_cuota_t">' +
                     '<header class="adt_f360__sheet-head">' +
-                        '<div class="adt_f360__sheet-title"><h2 id="adt_f360_cuota_t">' + esc(q.nombre) + '</h2>' +
+                        '<div class="adt_f360__sheet-title"><h2 id="adt_f360_cuota_t">' + (gestion ? 'Gestionar pago · ' : '') + esc(q.nombre) + '</h2>' +
                             '<div class="adt_f360__pap-title">' + badge(q.nivel, q.estado) + (q.tipo ? badge('info', q.tipo) : '') +
                             (q.reportes.length ? badge('info', 'Pago informado en la app') : '') +
                             '<span class="adt_f360__muted adt_f360__mono">' + esc(cuenta.referencia) + '</span></div></div>' +
@@ -2165,7 +2544,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                             '<i class="fa fa-times" aria-hidden="true"></i></button>' +
                     '</header>' +
                     (acciones ? '<div class="adt_f360__sheet-actions">' + acciones + '</div>' : '') +
-                    '<div class="adt_f360__sheet-body">' + hechos + reportes + pagos + obs + '</div>' +
+                    '<div class="adt_f360__sheet-body">' + (q.aviso ? '<p class="adt_f360__qaviso"><i class="fa fa-info-circle" aria-hidden="true"></i>' +
+                        esc(q.aviso) + '</p>' : '') + hechos + operaciones + reportes + pagos + obs + '</div>' +
                 '</aside>';
         },
 
@@ -2278,6 +2658,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this.papSel = null;
             this.capSel = null;
             this.cuotaSel = null;
+            this.detAbierto = false;
             this._renderDrawer();
             this._ref('drawer').find('.adt_f360__db').scrollTop(0);
         },
@@ -2299,6 +2680,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         // modal.lateral: se abre como panel a la derecha (formularios largos).
         _mostrarModal: function (modal, html) {
+            this._vigilarDesborde();
             this._modal = modal;
             this._ref('modal').html(
                 '<div class="adt_f360__modal-backdrop" data-modal-close></div>' +
@@ -2309,14 +2691,40 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             ($primero.length ? $primero : this._ref('modal').find('[data-modal-close]').last()).trigger('focus');
         },
 
+        // Marca las zonas desplazables del modal que tienen contenido más abajo (aviso «Hay más abajo»).
+        _vigilarDesborde: function () {
+            if (this._obsModal) {
+                return;
+            }
+            var raiz = this._ref('modal')[0];
+            var marcar = _.throttle(function () {
+                $(raiz).find('.adt_f360__modal-body, .adt_f360__modal-side, .adt_f360__ajlines').each(function () {
+                    var mas = this.scrollHeight - this.scrollTop - this.clientHeight > 8;
+                    var arriba = this.scrollTop > 8;
+                    if (this.classList.contains('has-more') !== mas) {
+                        this.classList.toggle('has-more', mas);
+                    }
+                    if (this.classList.contains('has-above') !== arriba) {
+                        this.classList.toggle('has-above', arriba);
+                    }
+                });
+            }, 100);
+            this._marcarDesborde = marcar;
+            raiz.addEventListener('scroll', marcar, true);
+            window.addEventListener('resize', marcar);
+            this._obsModal = new MutationObserver(marcar);
+            this._obsModal.observe(raiz, {childList: true, subtree: true, attributes: true, attributeFilter: ['class']});
+        },
+
         // forzar === true: cierre tras guardar (sin preguntar por cambios pendientes).
+        // forzar === 'descartar': el usuario ya confirmó descartar; se cierra y se respeta modal.volver.
         // modal.volver: al cancelar se regresa a donde se abrió (p. ej. el asistente de crédito).
         _cerrarModal: function (forzar) {
             var self = this;
             if (!this._modal) {
                 return;
             }
-            if (forzar !== true && this._modal.tipo === 'form' && this._modal.sucio) {
+            if (forzar !== true && forzar !== 'descartar' && this._modal.tipo === 'form' && this._modal.sucio) {
                 Dialog.confirm(this, 'Tienes cambios sin guardar en «' + this._modal.spec.titulo + '». ¿Descartarlos?', {
                     title: 'Descartar cambios',
                     confirm_callback: function () { self._cerrarModal('descartar'); },
@@ -2473,7 +2881,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 sec.campos.forEach(function (c) {
                     if (c.visible) {
                         var v = m.valores[c.visible[0]];
-                        var ok = c.visible.length > 1 ? String(v) === String(c.visible[1]) : !!v;
+                        // visible = [campo], [campo, valor] o [campo, [valores]].
+                        var ok = c.visible.length < 2 ? !!v : (_.isArray(c.visible[1])
+                            ? _.contains(c.visible[1].map(String), String(v)) : String(v) === String(c.visible[1]));
                         $modal.find('[data-campo-wrap="' + c.name + '"]').toggleClass('d-none', !ok);
                     }
                     if (c.type === 'many2one' && c.filtros) {
@@ -2883,7 +3293,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         _onArchivo: function (ev) {
             var archivo = ev.currentTarget.files && ev.currentTarget.files[0];
-            if (archivo && this._subirA) {
+            if (archivo && this._subirA && this._subirA.contrato) {
+                this._subirContrato(this._subirA.contrato, archivo);
+            } else if (archivo && this._subirA) {
                 this._subirArchivo(this._subirA, archivo);
             }
         },
@@ -2902,7 +3314,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             var $zona = $(ev.currentTarget).removeClass('is-drop');
             var dt = ev.originalEvent && ev.originalEvent.dataTransfer;
             var archivo = dt && dt.files && dt.files[0];
-            if (archivo) {
+            if (archivo && $zona.attr('data-contrato-zona')) {
+                this._subirContrato(parseInt($zona.attr('data-contrato-zona'), 10), archivo);
+            } else if (archivo) {
                 this._subirArchivo(this._ref3($zona.attr('data-subir-zona')), archivo);
             }
         },
@@ -2983,6 +3397,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
         _onCuentaSel: function (ev) {
             this.cuentaSel = parseInt(ev.currentTarget.getAttribute('data-cuenta-sel'), 10) || null;
             this.cuotaSel = null;
+            this.cronoSel = null;
+            this.detAbierto = false;
             this._renderDrawer();
             this._ref('drawer').find('.adt_f360__db').scrollTop(0);
         },
@@ -2996,6 +3412,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
         },
 
         _onCuotaKey: function (ev) {
+            if (ev.target !== ev.currentTarget) {
+                return;
+            }
             if (ev.key === 'Enter' || ev.key === ' ') {
                 ev.preventDefault();
                 this._onCuota(ev);
@@ -3528,13 +3947,16 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         _onTab: function (ev) {
             var tab = ev.currentTarget.getAttribute('data-tab');
-            if (!this.detalle || (tab !== 'resumen' && !_.findWhere(this.detalle.secciones, {key: tab}))) {
+            tab = tab === 'cuentas' ? 'cronograma' : tab;
+            var clave = tab === 'cronograma' ? 'cuentas' : tab;
+            if (!this.detalle || (tab !== 'resumen' && !_.findWhere(this.detalle.secciones, {key: clave}))) {
                 return;
             }
             this.tab = tab;
             this.papSel = null;
             this.capSel = null;
             this.cuotaSel = null;
+            this.detAbierto = false;
             this._renderDrawer();
             this._ref('drawer').find('.adt_f360__db').scrollTop(0);
         },
@@ -3547,6 +3969,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         _onFiltroCrono: function (ev) {
             this.filtroCrono[ev.currentTarget.getAttribute('data-cuenta')] = ev.currentTarget.getAttribute('data-crono');
+            if (this.cronoVer) {
+                delete this.cronoVer[ev.currentTarget.getAttribute('data-cuenta')];
+            }
             this._renderDrawer();
         },
 
@@ -3601,6 +4026,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     this._cerrarPapeleta();
                 } else if (this.capSel) {
                     this._cerrarCaptura();
+                } else if (this.detAbierto && this.tab === 'cronograma') {
+                    this._onDetalleCerrar();
                 } else if (this.cuotaSel) {
                     this._cerrarCuota();
                 } else {

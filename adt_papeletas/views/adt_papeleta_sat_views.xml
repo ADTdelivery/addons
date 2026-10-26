@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============ Papeleta SAT ============ -->
+    <record id="view_adt_papeleta_sat_tree" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.tree</field>
+        <field name="model">adt.papeleta.sat</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="not vigente"
+                  decoration-danger="vigente and estado_sat in ('En Coactiva', 'Medida Cautelar')">
+                <field name="name"/>
+                <field name="placa"/>
+                <field name="vehicle_id" optional="show"/>
+                <field name="fecha_infraccion"/>
+                <field name="reglamento" optional="hide"/>
+                <field name="codigo_falta"/>
+                <field name="importe" sum="Total"/>
+                <field name="gastos_costas" optional="show" sum="Total"/>
+                <field name="descuento" optional="hide"/>
+                <field name="deuda" sum="Total"/>
+                <field name="estado_sat" widget="badge"/>
+                <field name="papeleta_id" optional="show"/>
+                <field name="revision" optional="show" widget="badge" decoration-warning="revision == 'pendiente'"/>
+                <field name="ultima_vez_visto" optional="show"/>
+                <field name="vigente" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_form" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.form</field>
+        <field name="model">adt.papeleta.sat</field>
+        <field name="arch" type="xml">
+            <form string="Papeleta SAT" create="false">
+                <header>
+                    <button name="action_crear_papeleta_interna" type="object" string="Crear papeleta interna"
+                            class="oe_highlight"
+                            confirm="Se creará la papeleta en el flujo interno (captura y cobranza). ¿Continuar?"
+                            attrs="{'invisible': ['|', ('papeleta_id', '!=', False), ('vehicle_id', '=', False)]}"/>
+                    <button name="action_vincular_automatico" type="object" string="Buscar vehículo / papeleta"
+                            attrs="{'invisible': [('papeleta_id', '!=', False), ('vehicle_id', '!=', False)]}"/>
+                    <button name="action_abrir_papeleta_interna" type="object" string="Abrir papeleta interna"
+                            attrs="{'invisible': [('papeleta_id', '=', False)]}"/>
+                </header>
+                <div class="alert alert-warning" role="alert" attrs="{'invisible': [('revision', '!=', 'pendiente')]}">
+                    <strong>Ya no figura en el SAT.</strong>
+                    Puede ser un pago, una anulación o un descargo. Revise y registre el resultado en «Revisión».
+                </div>
+                <div class="alert alert-danger" role="alert"
+                     attrs="{'invisible': ['|', ('vigente', '=', False), ('estado_sat', 'not in', ['En Coactiva', 'Medida Cautelar'])]}">
+                    <strong>Estado SAT: <field name="estado_sat" readonly="1" nolabel="1" class="oe_inline"/></strong>
+                </div>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_copias" type="object" class="oe_stat_button" icon="fa-file-image-o">
+                            <field name="copias_count" widget="statinfo" string="Copias"/>
+                        </button>
+                    </div>
+                    <field name="imagen" widget="image" class="oe_avatar" options="{'size': [180, 240]}"
+                           attrs="{'invisible': [('imagen', '=', False)]}"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name"/></h1>
+                        <h3><field name="placa"/></h3>
+                    </div>
+                    <group>
+                        <group string="Infracción">
+                            <field name="fecha_infraccion"/>
+                            <field name="reglamento"/>
+                            <field name="codigo_falta"/>
+                            <field name="estado_sat"/>
+                            <field name="numero_compromiso_pago"/>
+                        </group>
+                        <group string="Montos SAT">
+                            <field name="importe"/>
+                            <field name="gastos_costas"/>
+                            <field name="descuento"/>
+                            <field name="deuda"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Conductor">
+                            <field name="licencia_conducir"/>
+                            <field name="tipo_documento"/>
+                            <field name="numero_documento"/>
+                        </group>
+                        <group string="Vínculo con ADT">
+                            <field name="vehicle_id"/>
+                            <field name="papeleta_id" domain="[('vehicle_id', '=', vehicle_id)]"
+                                   options="{'no_create': True}"/>
+                            <field name="revision"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Seguimiento" name="seguimiento">
+                            <group>
+                                <group>
+                                    <field name="vigente"/>
+                                    <field name="primera_vez_visto"/>
+                                    <field name="ultima_vez_visto"/>
+                                    <field name="resuelta_en"/>
+                                </group>
+                                <group>
+                                    <field name="url_copia" widget="url"/>
+                                    <field name="estado_copia"/>
+                                    <field name="error_copia"/>
+                                    <field name="importacion_id"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Copias" name="copias">
+                            <field name="attachment_ids" widget="many2many_binary" readonly="1"/>
+                        </page>
+                        <page string="Datos originales" name="raw" groups="base.group_system">
+                            <field name="flag_exc"/>
+                            <field name="datos_raw"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_search" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.search</field>
+        <field name="model">adt.papeleta.sat</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="placa"/>
+                <field name="vehicle_id"/>
+                <field name="numero_documento"/>
+                <field name="licencia_conducir"/>
+                <filter name="vigentes" string="Figuran en SAT" domain="[('vigente', '=', True)]"/>
+                <filter name="no_vigentes" string="Ya no figuran" domain="[('vigente', '=', False)]"/>
+                <separator/>
+                <filter name="sin_vincular" string="Sin papeleta interna" domain="[('papeleta_id', '=', False)]"/>
+                <filter name="sin_vehiculo" string="Sin vehículo" domain="[('vehicle_id', '=', False)]"/>
+                <filter name="por_revisar" string="Por revisar" domain="[('revision', '=', 'pendiente')]"/>
+                <separator/>
+                <filter name="coactiva" string="En coactiva" domain="[('estado_sat', 'ilike', 'coactiva')]"/>
+                <filter name="cautelar" string="Medida cautelar" domain="[('estado_sat', 'ilike', 'cautelar')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="g_placa" string="Placa" context="{'group_by': 'placa'}"/>
+                    <filter name="g_estado" string="Estado SAT" context="{'group_by': 'estado_sat'}"/>
+                    <filter name="g_falta" string="Falta" context="{'group_by': 'codigo_falta'}"/>
+                    <filter name="g_licencia" string="Licencia" context="{'group_by': 'licencia_conducir'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_papeleta_sat" model="ir.actions.act_window">
+        <field name="name">Papeletas SAT</field>
+        <field name="res_model">adt.papeleta.sat</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_adt_papeleta_sat_search"/>
+        <field name="context">{'search_default_vigentes': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay consultas del SAT</p>
+            <p>Las papeletas llegan desde el monitor del SAT (EC2) por /api/papeletas/sat/import.</p>
+        </field>
+    </record>
+
+    <record id="action_adt_papeleta_sat_sin_vincular" model="ir.actions.act_window">
+        <field name="name">SAT sin papeleta interna</field>
+        <field name="res_model">adt.papeleta.sat</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_adt_papeleta_sat_search"/>
+        <field name="context">{'search_default_vigentes': 1, 'search_default_sin_vincular': 1}</field>
+    </record>
+
+    <record id="action_adt_papeleta_sat_por_revisar" model="ir.actions.act_window">
+        <field name="name">SAT: ya no figuran (por revisar)</field>
+        <field name="res_model">adt.papeleta.sat</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_adt_papeleta_sat_search"/>
+        <field name="context">{'search_default_por_revisar': 1}</field>
+    </record>
+
+    <!-- ============ Importaciones ============ -->
+    <record id="view_adt_papeleta_sat_import_tree" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.import.tree</field>
+        <field name="model">adt.papeleta.sat.import</field>
+        <field name="arch" type="xml">
+            <tree create="false" decoration-danger="state == 'error'" decoration-muted="state == 'omitido'">
+                <field name="create_date" string="Recibida"/>
+                <field name="corrida_id"/>
+                <field name="placa"/>
+                <field name="vehicle_id"/>
+                <field name="estado_consulta"/>
+                <field name="total_papeletas"/>
+                <field name="total_deuda"/>
+                <field name="nuevas_sat"/>
+                <field name="vinculadas"/>
+                <field name="creadas"/>
+                <field name="resueltas"/>
+                <field name="state" widget="badge" decoration-success="state == 'ok'" decoration-danger="state == 'error'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_import_form" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.import.form</field>
+        <field name="model">adt.papeleta.sat.import</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <header>
+                    <button name="action_reprocesar" type="object" string="Reprocesar" groups="base.group_system"
+                            attrs="{'invisible': [('state', '!=', 'error')]}"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="corrida_id"/>
+                            <field name="placa"/>
+                            <field name="vehicle_id"/>
+                            <field name="consultado_en"/>
+                            <field name="estado_consulta"/>
+                            <field name="mensaje"/>
+                        </group>
+                        <group>
+                            <field name="total_papeletas"/>
+                            <field name="total_deuda"/>
+                            <field name="nuevas_sat"/>
+                            <field name="actualizadas"/>
+                            <field name="vinculadas"/>
+                            <field name="creadas"/>
+                            <field name="resueltas"/>
+                        </group>
+                    </group>
+                    <group string="Error" attrs="{'invisible': [('error', '=', False)]}">
+                        <field name="error" nolabel="1"/>
+                    </group>
+                    <group string="Payload" groups="base.group_system">
+                        <field name="payload" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_import_search" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.import.search</field>
+        <field name="model">adt.papeleta.sat.import</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="placa"/>
+                <field name="corrida_id"/>
+                <filter name="errores" string="Errores" domain="[('state', '=', 'error')]"/>
+                <filter name="omitidas" string="Consultas fallidas" domain="[('state', '=', 'omitido')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="g_corrida" string="Corrida" context="{'group_by': 'corrida_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_papeleta_sat_import" model="ir.actions.act_window">
+        <field name="name">Importaciones SAT</field>
+        <field name="res_model">adt.papeleta.sat.import</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_adt_papeleta_sat_import_search"/>
+    </record>
+
+    <menuitem id="menu_adt_papeletas_sat" name="SAT Lima" parent="menu_adt_papeletas_root" sequence="30"/>
+    <menuitem id="menu_adt_papeletas_sat_todas" name="Papeletas SAT" parent="menu_adt_papeletas_sat"
+              action="action_adt_papeleta_sat" sequence="5"/>
+    <menuitem id="menu_adt_papeletas_sat_sin_vincular" name="Sin papeleta interna" parent="menu_adt_papeletas_sat"
+              action="action_adt_papeleta_sat_sin_vincular" sequence="10"/>
+    <menuitem id="menu_adt_papeletas_sat_por_revisar" name="Ya no figuran (revisar)" parent="menu_adt_papeletas_sat"
+              action="action_adt_papeleta_sat_por_revisar" sequence="15"/>
+    <menuitem id="menu_adt_papeletas_sat_import" name="Importaciones" parent="menu_adt_papeletas_sat"
+              action="action_adt_papeleta_sat_import" sequence="20"/>
+</odoo>

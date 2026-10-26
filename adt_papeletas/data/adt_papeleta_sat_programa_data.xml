@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_adt_papeleta_sat_ejecucion" model="ir.sequence">
+            <field name="name">Ejecución SAT</field>
+            <field name="code">adt.papeleta.sat.ejecucion</field>
+            <field name="prefix">SAT/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Lanza los programas a su hora y cierra las ejecuciones que el monitor no atendió. -->
+        <record id="ir_cron_adt_papeleta_sat_programar" model="ir.cron">
+            <field name="name">Papeletas SAT: lanzar programas y vigilar ejecuciones</field>
+            <field name="model_id" ref="model_adt_papeleta_sat_programa"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_programar_y_vigilar()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False"/>
+        </record>
+    </data>
+
+    <record id="action_server_fleet_consultar_sat" model="ir.actions.server">
+        <field name="name">Consultar papeletas en SAT</field>
+        <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = env['adt.papeleta.sat.ejecucion'].with_context(active_ids=records.ids).action_desde_vehiculos()</field>
+    </record>
+</odoo>

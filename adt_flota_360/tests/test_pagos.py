@@ -1,6 +1,6 @@
 from odoo import fields
 from odoo.tests.common import SavepointCase, tagged
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 @tagged('post_install', '-at_install')
@@ -84,6 +84,33 @@ class TestPagosFlota360(SavepointCase):
         self.assertEqual(sum(payments.mapped('amount')), 40)
         self.assertTrue(all(p.state == 'posted' for p in payments))
         self.assertEqual(sum(self.account.cuota_ids.mapped('saldo')), 60)
+
+    def test_cascade_pays_only_chosen_installments(self):
+        Cuota = self.env['adt.comercial.cuotas']
+        q2, q3 = [Cuota.create({'cuenta_id': self.account.id, 'company_id': self.company.id, 'name': n, 'monto': 50,
+                                'fecha_cronograma': fields.Date.today()}) for n in ('2', '3')]
+        spec = self.service.formulario('pago', self.vehicle.id, params={'tipo': 'cascada', 'id': self.account.id})
+        self.assertEqual({d['id'] for d in spec['pago_resumen']['detalle']}, {self.quota.id, q2.id, q3.id})
+        with self.assertRaises(ValidationError):
+            self.pay(tipo='cascada', modo='elegir', cuota_ids=[], numero_operacion='QA360-ELEGIR0')
+        self.pay(tipo='cascada', modo='elegir', cuota_ids=[q3.id, self.quota.id], cobrar_mora=True, numero_operacion='QA360-ELEGIR')
+        self.assertEqual((self.quota.saldo, q2.saldo, q3.saldo), (0, 50, 0))
+        self.assertEqual(set(self.quota.payment_ids.mapped('ref')), {'QA360-ELEGIR'})
+        self.assertFalse(q2.payment_ids)
+
+    def test_contract_upload_and_remove(self):
+        import base64
+        if 'contrato_ids' not in self.account._fields:
+            self.skipTest('adt_comercial sin contrato_ids')
+        pdf = base64.b64encode(b'%PDF-1.4 contrato de prueba').decode()
+        with self.assertRaises(UserError):
+            self.service.subir_contrato(self.vehicle.id, self.account.id, 'contrato.png', pdf)
+        self.service.subir_contrato(self.vehicle.id, self.account.id, 'contrato firmado.pdf', pdf)
+        self.assertEqual(self.account.contrato_ids.mapped('name'), ['contrato firmado.pdf'])
+        ficha = self.service._seccion_cuentas(self.vehicle, fields.Date.today())['deuda'][0]['ficha']
+        self.assertEqual([a['nombre'] for a in ficha['contrato']], ['contrato firmado.pdf'])
+        self.service.quitar_contrato(self.vehicle.id, self.account.id, self.account.contrato_ids.id)
+        self.assertFalse(self.account.contrato_ids)
 
     def test_vehicle_reports_have_explicit_labels_and_target_current_vehicle(self):
         # adt_fleet is optional; when present both existing report actions must target this vehicle.

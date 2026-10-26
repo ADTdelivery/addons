@@ -6,6 +6,8 @@ El formulario muestra capital pendiente, mora a la fecha e importe a recibir. Pe
 
 Los importes y la mora automática se recalculan en el servidor al guardar. Se validan permisos, vehículo, empresa, estado de la cuenta, diario, operación e importe; se rechazan operaciones duplicadas y se serializan los pagos de una cuenta. La interfaz bloquea envíos repetidos mientras registra el pago. Los errores quedan dentro del popup y la ficha se actualiza al terminar.
 
+El pie del popup muestra un recibo con cada concepto y el total a recibir: la mora marcada como pendiente aparece tachada y fuera del total. Al registrar, el popup confirma el pago con un check animado y, si fue un abono parcial, ofrece **Pagar el resto**. El saldo de un abono parcial (subcuota) se muestra justo debajo de su cuota en el cronograma y en «Requiere atención».
+
 En Resumen, **Imprimir documentos** da acceso directo a **Acta de entrega vehicular** y **Contrato TVS**, usando los reportes existentes de `adt_fleet`. Si ese módulo no está disponible, las opciones no se muestran.
 
 Actualizar `adt_flota_360`, reiniciar Odoo y recargar los recursos del navegador para instalar el cambio. No se modifican las plantillas de los documentos ni las reglas de distribución de pagos.

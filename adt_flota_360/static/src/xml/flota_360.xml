@@ -19,7 +19,6 @@
                         </div>
                         <div class="adt_f360__groups" data-ref="grupos" role="group" aria-label="Clientes o stock"/>
                     </div>
-                    <nav class="adt_f360__filters" data-ref="filtros" aria-label="Filtros"/>
                     <div class="adt_f360__facets" data-ref="facetas">
                         <nav class="adt_f360__facet" data-ref="financieras" aria-label="Filtrar por financiera"/>
                         <nav class="adt_f360__facet" data-ref="estados" aria-label="Filtrar por estado del cronograma de pagos"/>
@@ -27,6 +26,8 @@
                             <i class="fa fa-times" aria-hidden="true"/> Quitar filtros
                         </button>
                     </div>
+                    <!-- Pestañas de estado (Todos, Requiere atención, …) debajo de financiera y cronograma. -->
+                    <nav class="adt_f360__filters" data-ref="filtros" aria-label="Filtros"/>
                 </header>
                 <section class="adt_f360__figures" data-ref="cartera" aria-label="Resumen de la selección"/>
                 <section class="adt_f360__table-wrap" data-ref="grid" aria-live="polite"/>

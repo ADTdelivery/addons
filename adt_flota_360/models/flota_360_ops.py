@@ -584,6 +584,45 @@ class AdtFlota360Ops(models.AbstractModel):
         rec.write(vals)
         return True
 
+    # --- Contrato firmado de la cuenta (adt.comercial.cuentas.contrato_ids: PDF o Word) -------------
+
+    def _cuenta_contrato(self, vehicle_id, cuenta_id):
+        v = self._vehiculo(vehicle_id)
+        cuenta = self.env['adt.comercial.cuentas'].browse(int(cuenta_id or 0)).exists()
+        if not cuenta or 'contrato_ids' not in cuenta._fields:
+            raise UserError(_('La cuenta ya no existe.'))
+        if cuenta.vehiculo_id != v or cuenta.company_id not in self.env.companies:
+            raise AccessError(_('La cuenta no corresponde a este vehículo o empresa.'))
+        cuenta.check_access_rights('write')
+        cuenta.check_access_rule('write')
+        return cuenta
+
+    @api.model
+    def subir_contrato(self, vehicle_id, cuenta_id, nombre, datos):
+        cuenta = self._cuenta_contrato(vehicle_id, cuenta_id)
+        nombre = (nombre or '').strip()[:200]
+        if not nombre.lower().endswith(('.pdf', '.doc', '.docx')):
+            raise UserError(_('El contrato debe ser un PDF o un documento de Word (.doc / .docx).'))
+        adjunto = self.env['ir.attachment'].create({
+            'name': nombre, 'datas': self._decodificar(datos),
+            'res_model': cuenta._name, 'res_id': cuenta.id})
+        cuenta.write({'contrato_ids': [(4, adjunto.id)]})
+        if hasattr(cuenta, 'message_post'):
+            cuenta.message_post(body=_('Contrato cargado: %s') % nombre, subtype_xmlid='mail.mt_note')
+        return True
+
+    @api.model
+    def quitar_contrato(self, vehicle_id, cuenta_id, adjunto_id):
+        cuenta = self._cuenta_contrato(vehicle_id, cuenta_id)
+        adjunto = cuenta.contrato_ids.filtered(lambda a: a.id == int(adjunto_id or 0))
+        if not adjunto:
+            raise UserError(_('El archivo ya no está en el contrato.'))
+        nombre = adjunto.name
+        cuenta.write({'contrato_ids': [(3, adjunto.id)]})
+        if hasattr(cuenta, 'message_post'):
+            cuenta.message_post(body=_('Contrato quitado: %s') % nombre, subtype_xmlid='mail.mt_note')
+        return True
+
     @api.model
     def quitar_documento(self, modelo, res_id, campo):
         rec = self._registro_documento(modelo, res_id, campo)

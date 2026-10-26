@@ -293,9 +293,12 @@
     position: relative;
     display: grid;
     gap: 6px;
-    padding: 10px 0 12px;
+    margin-top: 14px;
+    padding: 10px 0 8px;
     border-top: 1px solid var(--f3-line);
     &.is-empty { display: none; }
+    // Las pestañas van debajo: una línea las separa del panel.
+    + .adt_f360__filters { margin-top: 0; border-top: 1px solid var(--f3-line); }
     &.is-filtered { padding-right: 120px; }
 }
 
@@ -1801,7 +1804,8 @@
     border-top: 1px solid var(--f3-line);
     &:first-child { border-top: 0; }
     &:hover { background: var(--f3-subtle); }
-    .adt_f360__btn { min-width: 112px; justify-content: center; }
+    > .adt_f360__btn { min-width: 112px; justify-content: center; }
+    .adt_f360__qactions .adt_f360__btn:first-child { min-width: 112px; justify-content: center; }
 }
 .adt_f360__todo-icon {
     display: inline-flex;
@@ -1852,7 +1856,67 @@ button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primar
     tr.is-pagada td, tr.is-anulada td { color: var(--f3-muted); }
     tr.is-anulada .adt_f360__strong { text-decoration: line-through; color: var(--f3-muted); }
     tr.is-sub td:first-child { padding-left: 28px; }
+    td { white-space: nowrap; }
+    tr.is-pagada .adt_f360__btn:not(.is-primary), tr.is-anulada .adt_f360__btn:not(.is-primary) { color: var(--f3-ink); }
 }
+.adt_f360__crono-mora { color: var(--f3-crit); font-weight: 600; }
+.adt_f360__crono-pago small { display: block; color: var(--f3-muted); font-size: 11px; }
+.adt_f360__qactions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    .adt_f360__btn.is-small { min-width: 0; }
+}
+.adt_f360__btn.is-ghost {
+    border-color: var(--f3-line);
+    background: var(--f3-surface);
+    color: var(--f3-ink-2, var(--f3-ink));
+    &:hover { border-color: var(--f3-line-strong); background: var(--f3-subtle); color: var(--f3-primary); }
+}
+
+// Cronograma de pagos: centro de control (tabla con selección a la izquierda, operaciones fijas a la derecha).
+.adt_f360__cc { display: flex; flex-direction: column; gap: 16px; }
+.adt_f360__cc-head { padding: 16px 20px; }
+.adt_f360__cc-who {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    > div:nth-child(2) { flex: 1; min-width: 200px; }
+    .adt_f360__sub { margin-top: 2px; }
+}
+.adt_f360__cc-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--f3-line);
+    font-variant-numeric: tabular-nums;
+}
+.adt_f360__cc-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    > span { color: var(--f3-muted); font-size: 11.5px; }
+    > b { color: var(--f3-ink); font-size: 18px; font-weight: 600; }
+    > small { color: var(--f3-muted); font-size: 11.5px; }
+    &.is-critico > b { color: var(--f3-crit); }
+    &.is-atencion > b { color: var(--f3-warn); }
+}
+.adt_f360__cc-main { margin: 0; min-width: 0; }
+.adt_f360__cc-table {
+    th, td { padding-left: 8px; padding-right: 8px; }
+    .adt_f360__marks { margin-left: 4px; }
+    tbody tr.is-selected td { background: var(--f3-info-bg); }
+    tbody tr.is-selected td:first-child { box-shadow: inset 3px 0 0 var(--f3-info); }
+    tbody tr.is-selected td:first-child { box-shadow: inset 3px 0 0 var(--f3-info); }
+    .adt_f360__cc-gcol { width: 1%; text-align: right; }
+}
+.adt_f360__cc-extra { margin: 0; }
+
 .adt_f360__marks {
     margin-left: 6px;
     color: var(--f3-muted);
@@ -1861,6 +1925,19 @@ button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primar
 }
 
 // Panel lateral de la cuota.
+.adt_f360__qaviso {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 8px 12px;
+    border-radius: var(--f3-radius);
+    background: var(--f3-info-bg);
+    color: var(--f3-ink);
+    font-size: 12.5px;
+    line-height: 1.45;
+    i { margin-top: 2px; color: var(--f3-info); }
+}
+
 .adt_f360__qfacts {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2782,6 +2859,56 @@ button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primar
 
 .adt_f360__modal-body { padding: 4px 20px 16px; }
 
+// Los modales caben en la vista: cabecera y pie fijos, el contenido se desplaza.
+.adt_f360__modal-root { padding: 24px 16px; }
+.adt_f360__modal { max-height: 100%; }
+.adt_f360__modal > .adt_f360__modal-head, .adt_f360__modal > .adt_f360__modal-foot { flex: none; }
+.adt_f360__modal > .adt_f360__modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+// Aviso de que hay más contenido abajo (lo marca el JS con .has-more).
+.adt_f360__modal-body.has-more::after, .adt_f360__modal-side.has-more::after {
+    content: 'Hay más abajo  ↓';
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: block;
+    margin: 0 -20px -16px;
+    padding: 32px 0 10px;
+    background: linear-gradient(to bottom, rgba(244, 245, 247, 0), var(--f3-fade, var(--f3-surface)) 70%);
+    color: var(--f3-primary);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+}
+.adt_f360__modal form.adt_f360__modal-body { --f3-fade: var(--f3-bg); }
+.adt_f360__modal-side.has-more::after { margin: 0 -16px -16px; --f3-fade: var(--f3-subtle); }
+
+// Modal en dos columnas: formulario a la izquierda y lo que va a pasar (recibo, vista previa) a la derecha.
+.adt_f360__modal.is-split {
+    display: grid;
+    max-width: 1040px;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    > .adt_f360__modal-head, > .adt_f360__modal-foot { grid-column: 1 / -1; }
+    > .adt_f360__modal-body { grid-column: 1; grid-row: 2; }
+}
+.adt_f360__modal-side {
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px;
+    border-left: 1px solid var(--f3-line);
+    background: var(--f3-subtle);
+    > .adt_f360__receipt, > .adt_f360__ajprev { margin: 0; background: var(--f3-surface); }
+    > .adt_f360__label { margin-bottom: 8px; }
+}
+@media (max-width: 760px) {
+    .adt_f360__modal.is-split { display: flex; }
+    .adt_f360__modal-side { flex: none; max-height: 40%; border-left: 0; border-top: 1px solid var(--f3-line); }
+}
+
 // Panel lateral: formularios largos (p. ej. editar cliente) se abren a la derecha,
 // con cabecera y pie fijos y el contenido desplazable.
 .adt_f360__modal-root.is-side {
@@ -2883,9 +3010,13 @@ button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primar
     padding: 16px;
     background: #1f2430;
     img { max-width: 100%; max-height: 70vh; object-fit: contain; }
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
     &.is-pdf {
+        height: 75vh;
         padding: 0;
-        iframe { display: block; width: 100%; height: 75vh; border: 0; background: #fff; }
+        iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
     }
 }
 
@@ -3276,8 +3407,157 @@ textarea.adt_f360__input { resize: vertical; }
 
 @media (max-width: 640px) {
     .adt_f360__todo-item { padding: 14px 16px; }
-    .adt_f360__todo-item { grid-template-columns: 38px minmax(0, 1fr); .adt_f360__btn { grid-column: 2; justify-self: start; } }
+    .adt_f360__todo-item { grid-template-columns: 38px minmax(0, 1fr); > .adt_f360__btn, > .adt_f360__qactions { grid-column: 2; justify-self: start; justify-content: flex-start; } }
     .adt_f360__timeline { padding: 16px 16px 8px; }
 }
 
 .adt_f360__summary-print { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+// Cronograma de pagos: operaciones de la cuenta en el encabezado y de la cuota en una barra fija.
+.adt_f360__cc-ops-head {
+    // Grilla de 4 columnas iguales: cada grupo ocupa tantas como botones tiene y los grupos se
+    // acomodan (dense) para llenar las filas; así las tarjetas quedan alineadas y sin huecos.
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    gap: 14px 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--f3-line);
+    .adt_f360__cc-group { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; border: 0; }
+    .adt_f360__cc-group-t { margin: 0 0 6px; color: var(--f3-muted); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+    .adt_f360__cc-group-b { flex: 1; display: grid; gap: 10px; }
+    @for $n from 1 through 4 {
+        .is-span-#{$n} { grid-column: span #{$n}; .adt_f360__cc-group-b { grid-template-columns: repeat(#{$n}, minmax(0, 1fr)); } }
+    }
+    .adt_f360__act { max-width: none; height: 100%; }
+}
+.adt_f360__btn.is-small.is-danger:not(.is-primary) { color: var(--f3-crit); border-color: var(--f3-crit-line); &:hover { background: var(--f3-crit-bg); } }
+.adt_f360__cc-more {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 12px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--f3-line);
+    font-size: 12.5px;
+}
+
+// Operación como tarjeta (encabezado del cronograma y panel «Gestionar pago").
+.adt_f360__act {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 8px 14px 8px 8px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: 10px;
+    background: var(--f3-surface);
+    color: var(--f3-ink);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    &:hover { border-color: var(--f3-primary); box-shadow: 0 4px 12px rgba(16, 24, 40, .08); transform: translateY(-1px); }
+    &:focus-visible { outline: 2px solid var(--f3-focus); outline-offset: 2px; }
+    &.is-main { border-color: var(--f3-primary); background: var(--f3-primary); color: #fff;
+        .adt_f360__act-ico { background: rgba(255, 255, 255, .16); color: #fff; }
+        small { color: rgba(255, 255, 255, .8); }
+        &:hover { background: var(--f3-primary-hover); } }
+    &.is-danger { border-color: var(--f3-crit-line); color: var(--f3-crit);
+        .adt_f360__act-ico { background: var(--f3-crit-bg); color: var(--f3-crit); }
+        &:hover { border-color: var(--f3-crit); } }
+}
+.adt_f360__act-ico {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--f3-info-bg);
+    color: var(--f3-primary);
+    font-size: 16px;
+}
+.adt_f360__act-txt {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    b { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+    small { margin-top: 2px; color: var(--f3-muted); font-size: 11.5px; line-height: 1.3; }
+}
+
+// Panel «Gestionar pago»: operaciones agrupadas.
+.adt_f360__qops { padding-bottom: 16px; }
+.adt_f360__qops-t { margin-bottom: 10px; font-size: 14px; font-weight: 600; color: var(--f3-ink); }
+.adt_f360__qops-g + .adt_f360__qops-g { margin-top: 12px; }
+.adt_f360__qops-g .adt_f360__label { margin-bottom: 6px; }
+.adt_f360__qops-b { display: grid; grid-template-columns: 1fr; gap: 6px; .adt_f360__act { width: 100%; } }
+
+@media (max-width: 1100px) {
+    .adt_f360__cc-ops-head { grid-template-columns: repeat(2, minmax(0, 1fr));
+        .is-span-3, .is-span-4 { grid-column: span 2; .adt_f360__cc-group-b { grid-template-columns: repeat(2, minmax(0, 1fr)); } } }
+}
+@media (max-width: 600px) {
+    .adt_f360__cc-ops-head { grid-template-columns: 1fr;
+        .is-span-2, .is-span-3, .is-span-4 { grid-column: span 1; .adt_f360__cc-group-b { grid-template-columns: 1fr; } } }
+}
+
+// Historial de la cuenta en panel lateral.
+.adt_f360__hist-body { padding: 0 0 24px; > section + section { margin-top: 16px; } }
+.adt_f360__hist-t { margin: 0; padding: 16px 20px 0; font-size: 14px; font-weight: 600; }
+.adt_f360__hist-body .adt_f360__ptab-tools { padding: 12px 20px 0; }
+.adt_f360__hist-body .adt_f360__ajlist { padding: 12px 20px; }
+
+// Cronograma de pagos: alarma de atraso.
+.adt_f360__cc-head.is-atrasada { border-left: 4px solid var(--f3-crit); }
+.adt_f360__cc-head .adt_f360__status-row { margin-top: 12px; }
+.adt_f360__cc-who > .adt_f360__btn { flex: none; }
+.adt_f360__cc-kpi.is-critico {
+    margin: -8px;
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--f3-crit-bg);
+    box-shadow: inset 0 0 0 1px var(--f3-crit-line);
+    > span, > small { color: var(--f3-crit); }
+}
+.adt_f360__cc-table tbody tr.is-vencida {
+    td { background: var(--f3-crit-bg); color: var(--f3-crit); }
+    td:first-child { box-shadow: inset 4px 0 0 var(--f3-crit); }
+    .adt_f360__strong { color: var(--f3-crit); }
+    &:hover td { background: #fde4e1; }
+    .adt_f360__btn.is-primary { color: #fff; }
+}
+
+// Detalle del crédito: contrato firmado.
+.adt_f360__det-body { padding: 0 0 24px; }
+.adt_f360__contrato { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px; }
+.adt_f360__contrato-vacio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--f3-warn-bg);
+    color: var(--f3-warn);
+    font-weight: 600;
+}
+.adt_f360__contrato-zona {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 12px;
+    padding: 22px 16px;
+    border: 2px dashed var(--f3-line-strong);
+    border-radius: 10px;
+    background: var(--f3-subtle);
+    color: var(--f3-muted);
+    text-align: center;
+    > .fa { font-size: 22px; color: var(--f3-primary); }
+    > small { flex-basis: 100%; }
+    &.is-drop { border-color: var(--f3-primary); background: var(--f3-info-bg); }
+    &.is-loading { opacity: .6; pointer-events: none; }
+}

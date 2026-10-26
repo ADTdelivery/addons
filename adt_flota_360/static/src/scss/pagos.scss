@@ -1,7 +1,155 @@
-.adt_f360__pay-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--f3-line); background: var(--f3-subtle); padding: 14px 20px; gap: 16px;
-    span { display: block; color: var(--f3-muted); font-size: 11px; margin-bottom: 4px; }
-    strong { font-size: 18px; font-weight: 600; color: var(--f3-ink); }
-    > div:last-child strong { color: var(--f3-primary); }
-}
 .adt_f360__pay-help { margin-bottom: 16px !important; color: var(--f3-muted); font-size: 12px; line-height: 1.5; }
-@media (max-width: 600px) { .adt_f360__pay-summary { padding: 12px; gap: 8px; strong { font-size: 14px; } } }
+
+// Mora pagada / pendiente: el botón activo toma el color de lo que significa.
+.adt_f360__modal.is-pago .adt_f360__seg [data-seg-campo="mora_state"] {
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+    &.is-active[data-seg-valor="paid"] { background: var(--f3-ok-bg); color: var(--f3-ok); box-shadow: inset 0 0 0 1px var(--f3-ok-line); }
+    &.is-active[data-seg-valor="pending"] { background: var(--f3-warn-bg); color: var(--f3-warn); box-shadow: inset 0 0 0 1px var(--f3-warn-line); }
+}
+
+// Recibo del pago, fijo entre el formulario y el pie.
+.adt_f360__receipt {
+    margin: 0 20px 16px;
+    padding: 14px 16px 12px;
+    border: 1px dashed var(--f3-line-strong);
+    border-radius: var(--f3-radius);
+    background: var(--f3-subtle);
+    font-variant-numeric: tabular-nums;
+}
+.adt_f360__receipt-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0;
+    color: var(--f3-ink);
+    font-size: 13px;
+    > span { flex: 1; min-width: 0; }
+    small { margin-left: 4px; color: var(--f3-muted); font-size: 11.5px; }
+    strong { font-weight: 600; transition: color .15s ease; }
+    &.is-ok strong { color: var(--f3-ok); }
+    &.is-excluded strong { color: var(--f3-muted); font-weight: 400; text-decoration: line-through; }
+}
+.adt_f360__receipt-tag {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 600;
+    white-space: nowrap;
+    &.is-ok { background: var(--f3-ok-bg); color: var(--f3-ok); box-shadow: inset 0 0 0 1px var(--f3-ok-line); }
+    &.is-warn { background: var(--f3-warn-bg); color: var(--f3-warn); box-shadow: inset 0 0 0 1px var(--f3-warn-line); }
+}
+.adt_f360__receipt-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--f3-line-strong);
+    span { font-size: 13px; font-weight: 600; color: var(--f3-ink); }
+    strong { display: inline-block; font-size: 22px; font-weight: 700; color: var(--f3-primary); }
+    strong.is-bump { animation: adt_f360_bump .35s ease-out; }
+}
+.adt_f360__receipt-notes {
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    li { display: flex; gap: 6px; color: var(--f3-muted); font-size: 12px; line-height: 1.45; }
+    li + li { margin-top: 4px; }
+    i { margin-top: 2px; color: var(--f3-info); }
+}
+@keyframes adt_f360_bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.08); color: var(--f3-accent); }
+    100% { transform: scale(1); }
+}
+
+// Confirmación del pago: check que se dibuja y el importe cobrado.
+.adt_f360__modal.is-paid { max-width: 440px; animation: adt_f360_fade .2s ease-out; }
+.adt_f360__paid {
+    padding: 32px 24px 20px;
+    text-align: center;
+    h2 { margin-top: 14px; font-size: 18px; font-weight: 600; color: var(--f3-ink); }
+}
+.adt_f360__paid-check {
+    width: 72px;
+    height: 72px;
+    animation: adt_f360_pop .45s cubic-bezier(.3, 1.4, .5, 1) both;
+    circle { fill: var(--f3-ok-bg); stroke: var(--f3-ok); stroke-width: 2.5; stroke-dasharray: 151; stroke-dashoffset: 151; animation: adt_f360_draw .5s ease-out .05s forwards; }
+    path { fill: none; stroke: var(--f3-ok); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 36; stroke-dashoffset: 36; animation: adt_f360_draw .3s ease-out .45s forwards; }
+}
+.adt_f360__paid-amount { margin-top: 6px; font-size: 28px; font-weight: 700; color: var(--f3-ok); font-variant-numeric: tabular-nums; }
+.adt_f360__paid-meta { margin-top: 2px; color: var(--f3-muted); font-size: 12.5px; }
+.adt_f360__paid-note {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding: 8px 12px;
+    border-radius: var(--f3-radius);
+    background: var(--f3-info-bg);
+    color: var(--f3-ink);
+    font-size: 12.5px;
+    i { color: var(--f3-info); }
+    &.is-warn { background: var(--f3-warn-bg); i { color: var(--f3-warn); } }
+    & + & { margin-top: 8px; }
+}
+.adt_f360__modal-foot.is-center { justify-content: center; }
+@keyframes adt_f360_draw { to { stroke-dashoffset: 0; } }
+@keyframes adt_f360_pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .adt_f360__modal.is-paid, .adt_f360__paid-check, .adt_f360__receipt-total strong.is-bump { animation: none; }
+    .adt_f360__paid-check circle, .adt_f360__paid-check path { animation: none; stroke-dashoffset: 0; }
+}
+@media (max-width: 600px) {
+    .adt_f360__receipt { margin: 0 12px 12px; padding: 12px; }
+    .adt_f360__receipt-total strong { font-size: 18px; }
+}
+
+// «Elegir cuotas» en el pago de varias cuotas.
+.adt_f360__paysel { margin-bottom: 14px; }
+.adt_f360__paysel-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 6px;
+    > span { flex: 1; margin: 0; }
+    .adt_f360__btn.is-small { height: 22px; padding: 0 6px; font-size: 11.5px; }
+}
+.adt_f360__paysel-list {
+    max-height: 190px;
+    overflow-y: auto;
+    border: 1px solid var(--f3-line);
+    border-radius: var(--f3-radius);
+    background: var(--f3-surface);
+}
+.adt_f360__paysel-item {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) 76px auto;
+    padding-right: 10px;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 7px 10px;
+    border-top: 1px solid var(--f3-line);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    &:first-child { border-top: 0; }
+    &:hover { background: var(--f3-subtle); }
+    &.is-on { background: var(--f3-info-bg); }
+    input { margin: 0; }
+    small { color: var(--f3-muted); font-size: 11px; font-weight: 400; }
+    &.is-vencida .adt_f360__paysel-date { color: var(--f3-crit); font-weight: 600; }
+}
+.adt_f360__paysel-amt {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-weight: 600;
+    small { color: var(--f3-crit); }
+}

@@ -35,7 +35,23 @@
                 </div>
 
 
+                <!-- SAT: la papeleta dejó de figurar como pendiente en el SAT -->
+                <div class="alert alert-info o_form_warning" role="alert"
+                     attrs="{'invisible': ['|', '|', ('sat_id', '=', False), ('sat_vigente', '=', True), ('state', '=', 'pagado')]}">
+                    <strong>SAT:</strong>
+                    esta papeleta ya no figura como pendiente en el SAT. Verifique el pago antes de marcarla como pagada.
+                </div>
+
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_abrir_sat" type="object" class="oe_stat_button" icon="fa-university"
+                                attrs="{'invisible': [('sat_id', '=', False)]}">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value"><field name="sat_estado" readonly="1"/></span>
+                                <span class="o_stat_text">Estado SAT</span>
+                            </div>
+                        </button>
+                    </div>
                     <group>
                         <group>
                             <field name="name"/>
@@ -53,6 +69,30 @@
 
                     <group>
                         <field name="detalle" colspan="2"/>
+                    </group>
+
+                    <group string="Datos del SAT Lima" attrs="{'invisible': [('sat_id', '=', False)]}">
+                        <group>
+                            <field name="sat_id" readonly="1"/>
+                            <field name="sat_estado"/>
+                            <field name="sat_reglamento"/>
+                            <field name="sat_codigo_falta"/>
+                            <field name="sat_compromiso_pago"/>
+                            <field name="sat_licencia"/>
+                            <field name="sat_documento"/>
+                        </group>
+                        <group>
+                            <field name="sat_importe"/>
+                            <field name="sat_gastos_costas"/>
+                            <field name="sat_descuento"/>
+                            <field name="sat_deuda"/>
+                            <field name="sat_ultima_consulta"/>
+                            <field name="sat_resuelta_en" attrs="{'invisible': [('sat_resuelta_en', '=', False)]}"/>
+                            <field name="sat_vigente" invisible="1"/>
+                            <field name="origen"/>
+                        </group>
+                        <field name="sat_imagen" widget="image" nolabel="1" colspan="2"
+                               options="{'size': [0, 420]}" attrs="{'invisible': [('sat_imagen', '=', False)]}"/>
                     </group>
 
                     <group string="Evidencia de papeleta">
@@ -138,6 +178,8 @@
                 <field name="fecha_papeleta"/>
                 <field name="monto"/>
                 <field name="payment_method"/>
+                <field name="sat_estado" optional="show"/>
+                <field name="origen" optional="hide"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'pagado'"
                        decoration-warning="state == 'fraccionado'"

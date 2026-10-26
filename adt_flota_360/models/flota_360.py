@@ -980,6 +980,11 @@ class AdtFlota360(models.AbstractModel):
             _logger.exception('Flota 360: no se pudo calcular la deuda de cancelación de %s', cuenta.display_name)
             return None
 
+    def _orden_cuota(self, q, hoy):
+        """Clave de orden del cronograma. Las subcuotas (saldo de un abono parcial) van justo debajo
+        de su cuota, aunque venzan el día del abono; por su propia fecha quedaban al final de las vencidas."""
+        return (q.parent_id or q).fecha_cronograma or hoy, q.parent_sort_id, q.id
+
     def _estado_cuota(self, q, hoy):
         if q.state == 'anulada':
             return 'anulada', 'Anulada', 'neutral'
@@ -990,6 +995,10 @@ class AdtFlota360(models.AbstractModel):
         if q.state == 'a_cuenta':
             return 'a_cuenta', 'A cuenta', 'atencion'
         return 'por_vencer', 'Por vencer', 'neutral'
+
+    def _aviso_cuota(self, q):
+        """Texto informativo de la cuota para su panel (lo amplían otros módulos)."""
+        return ''
 
     def _acciones_cuota(self, q, mora_registrada):
         M = 'adt.comercial.cuotas'
@@ -1002,15 +1011,14 @@ class AdtFlota360(models.AbstractModel):
         if abierta and self._metodo(M, 'action_editar_mora'):
             mas.append(accion_metodo(M, q.id, 'action_editar_mora', 'Editar mora', 'fa-pencil'))
         if q.state != 'anulada' and self._metodo(M, 'registrar_observacion'):
-            mas.append(accion_metodo(M, q.id, 'registrar_observacion', 'Agregar observación', 'fa-comment-o'))
+            mas.append(dict(accion_metodo(M, q.id, 'registrar_observacion', 'Agregar observación', 'fa-comment-o'), corto='Observación'))
         if 'voucher_image_urls' in q._fields and q.voucher_image_urls and self._metodo(M, 'action_open_image_gallery'):
-            mas.append(accion_metodo(M, q.id, 'action_open_image_gallery', 'Ver comprobantes', 'fa-picture-o'))
-        mas.append(accion_abrir(M, q.id, 'Abrir cuota'))
+            mas.append(dict(accion_metodo(M, q.id, 'action_open_image_gallery', 'Ver comprobantes', 'fa-picture-o'), corto='Comprobantes'))
         if q.state in ('pagado', 'a_cuenta') and self._metodo(M, 'action_delete_payment'):
-            mas.append(accion_metodo(M, q.id, 'action_delete_payment', 'Eliminar pagos de la cuota', 'fa-trash',
-                                     peligro=True))
+            mas.append(dict(accion_metodo(M, q.id, 'action_delete_payment', 'Eliminar pagos de la cuota', 'fa-eraser',
+                                          peligro=True), corto='Quitar pagos'))
         if self._metodo(M, 'action_eliminar_cuota'):
-            mas.append(accion_metodo(M, q.id, 'action_eliminar_cuota', 'Eliminar cuota', 'fa-trash', peligro=True))
+            mas.append(dict(accion_metodo(M, q.id, 'action_eliminar_cuota', 'Eliminar cuota', 'fa-trash', peligro=True), corto='Eliminar'))
         return principal, mas
 
     def _acciones_cuenta(self, c):
@@ -1048,14 +1056,16 @@ class AdtFlota360(models.AbstractModel):
         documentos.append(dict(accion_abrir(M, c.id, 'Ver en Odoo', 'fa-external-link'),
                                descripcion='Abre la cuenta en el formulario de Odoo.'))
         if c.state == 'en_curso' and user.has_group('adt_comercial.group_access_adt_comercial_recuperar'):
-            cierre.append(accion_metodo(M, c.id, 'recuperar_vehiculo', 'Recuperar vehículo', 'fa-undo', peligro=True,
-                                        confirmar='¿Recuperar el vehículo? La cuenta pasará a Cancelado y el cliente dejará de ser el titular.'))
+            cierre.append(dict(accion_metodo(M, c.id, 'recuperar_vehiculo', 'Recuperar vehículo', 'fa-undo', peligro=True,
+                                             confirmar='¿Recuperar el vehículo? La cuenta pasará a Cancelado y el cliente dejará de ser el titular.'),
+                               descripcion='La cuenta pasa a Cancelado y el cliente deja de ser el titular.'))
         if c.state == 'cancelado' and user.has_group('adt_comercial.group_access_adt_comercial_restablecer'):
             cierre.append(accion_metodo(M, c.id, 'restablecer_vehiculo', 'Restablecer cuenta', 'fa-repeat',
                                         confirmar='¿Restablecer la cuenta a En curso? El cliente volverá a ser el titular.'))
         if c.state not in ('borrador', 'cancelado') and self._metodo(M, 'cancelar_cuenta'):
-            cierre.append(accion_metodo(M, c.id, 'cancelar_cuenta', 'Anular cuenta', 'fa-ban', peligro=True,
-                                        confirmar='¿Anular la cuenta? Se marcará como Cancelada, el vehículo quedará disponible y el cliente dejará de ser el titular.'))
+            cierre.append(dict(accion_metodo(M, c.id, 'cancelar_cuenta', 'Anular cuenta', 'fa-ban', peligro=True,
+                                             confirmar='¿Anular la cuenta? Se marcará como Cancelada, el vehículo quedará disponible y el cliente dejará de ser el titular.'),
+                               descripcion='La cuenta queda Cancelada y el vehículo disponible.'))
         grupos = [{'titulo': t, 'acciones': a} for t, a in (
             ('Cobranza', cobranza), ('Cronograma', cronograma), ('Cerrar la cuenta', cierre)) if a]
         return principal, grupos, documentos
@@ -1079,7 +1089,7 @@ class AdtFlota360(models.AbstractModel):
         if self._metodo('adt.comercial.cuentas', 'action_cancelar_credito'):
             opciones.append(dict(
                 accion_metodo('adt.comercial.cuentas', c.id, 'action_cancelar_credito',
-                              'Varias cuotas o cancelar el crédito', 'fa-sort-amount-asc'),
+                              'Cancelar todo el crédito o pagar varias cuotas', 'fa-sort-amount-asc'),
                 descripcion='Pago en cascada desde la cuota más antigua, o todo el saldo de una vez.'))
         mora = next((f for f in filas if f['mora_registrada'] > 0), None)
         if mora and self._metodo(M, 'action_pagar_mora'):
@@ -1214,7 +1224,7 @@ class AdtFlota360(models.AbstractModel):
 
         resultado = []
         for c in cuentas:
-            todas = c.cuota_ids.sorted(lambda q: (q.fecha_cronograma or hoy, q.parent_sort_id, q.id))
+            todas = c.cuota_ids.sorted(lambda q: self._orden_cuota(q, hoy))
             cuotas_capital = todas.filtered(lambda q: q.type == 'cuota')
 
             filas, vencido, mora_total, mora_registrada_total = [], 0.0, 0.0, 0.0
@@ -1269,6 +1279,7 @@ class AdtFlota360(models.AbstractModel):
                     'mora_dias': q.mora_dias or 0,
                     'mora_registrada': mora_reg,
                     'mora_manual': bool(q.mora_manual),
+                    'aviso': self._aviso_cuota(q),
                     'grupo': grupo, 'estado': estado, 'nivel': nivel,
                     'pago_fecha': q.real_date or (pagos and pagos[0]['fecha']) or '',
                     'pago_ref': q.numero_operacion or (pagos and pagos[0]['ref']) or '',
@@ -1333,6 +1344,13 @@ class AdtFlota360(models.AbstractModel):
                                            'titulo': '%s a cuenta · faltan %s' % (f['nombre'], self._soles(f['saldo'])),
                                            'detalle': 'Pagó %s' % self._soles(f['pagado']), 'cuota': f['id'],
                                            'accion': dict(f['acciones'][0], label='Completar') if f['acciones'] else None})
+                    elif f['subcuota'] and f['saldo'] > 0:
+                        # Saldo de un abono parcial: adt_comercial lo deja en una subcuota «por vencer».
+                        pendientes.append({'tipo': 'a_cuenta', 'nivel': 'atencion', 'icon': 'fa-adjust',
+                                           'titulo': '%s · resto de un abono parcial · %s' % (f['nombre'], self._soles(f['saldo'])),
+                                           'detalle': 'Vence el %s' % fields.Date.to_date(f['fecha']).strftime('%d/%m/%Y')
+                                           if f['fecha'] else 'Saldo pendiente', 'cuota': f['id'],
+                                           'accion': dict(f['acciones'][0], label='Pagar el resto') if f['acciones'] else None})
 
             # Datos clave de la cuenta, cada uno con su etiqueta (cabecera de la cuenta).
             condiciones = [{'icon': i, 'label': l, 'valor': val} for i, l, val in (
@@ -1346,6 +1364,7 @@ class AdtFlota360(models.AbstractModel):
             ficha = self._ficha_cuenta(c, cuotas_capital, filas, capital)
             ficha['documentos'] = documentos
             ficha['adjuntos'] = self._evidencias(c.attachment_ids) if 'attachment_ids' in c._fields else []
+            ficha['contrato'] = self._evidencias(c.contrato_ids) if 'contrato_ids' in c._fields else None
 
             resultado.append({
                 'id': c.id,

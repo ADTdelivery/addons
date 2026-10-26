@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_adt_cobranza_ajuste_tree" model="ir.ui.view">
+        <field name="name">adt.cobranza.ajuste.tree</field>
+        <field name="model">adt.cobranza.ajuste</field>
+        <field name="arch" type="xml">
+            <tree create="false" decoration-muted="estado == 'revertido'">
+                <field name="create_date" string="Fecha"/>
+                <field name="name"/>
+                <field name="cuenta_id"/>
+                <field name="partner_id"/>
+                <field name="tipo"/>
+                <field name="user_id"/>
+                <field name="deuda_antes" sum="Total"/>
+                <field name="deuda_despues" sum="Total"/>
+                <field name="mora_perdonada" sum="Total"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="estado" widget="badge" decoration-success="estado == 'aplicado'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_cobranza_ajuste_form" model="ir.ui.view">
+        <field name="name">adt.cobranza.ajuste.form</field>
+        <field name="model">adt.cobranza.ajuste</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <header>
+                    <button name="action_revertir" type="object" string="Deshacer" attrs="{'invisible': [('estado', '!=', 'aplicado')]}"
+                            confirm="¿Deshacer el ajuste? Las cuotas vuelven a como estaban."/>
+                    <field name="estado" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="tipo"/>
+                            <field name="cuenta_id"/>
+                            <field name="partner_id"/>
+                            <field name="cuota_id" attrs="{'invisible': [('cuota_id', '=', False)]}"/>
+                            <field name="user_id"/>
+                            <field name="create_date" string="Fecha"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="deuda_antes"/>
+                            <field name="deuda_despues"/>
+                            <field name="mora_calculada"/>
+                            <field name="mora_perdonada"/>
+                            <field name="diferencia" attrs="{'invisible': [('diferencia', '=', 0)]}"/>
+                            <field name="revertido_por" attrs="{'invisible': [('revertido_por', '=', False)]}"/>
+                            <field name="revertido_fecha" attrs="{'invisible': [('revertido_por', '=', False)]}"/>
+                        </group>
+                    </group>
+                    <group string="Motivo / acuerdo"><field name="motivo" nolabel="1"/></group>
+                    <group string="Motivo de la diferencia" attrs="{'invisible': [('diferencia', '=', 0)]}">
+                        <field name="diferencia_motivo" nolabel="1"/>
+                    </group>
+                    <group string="Cambios"><field name="resumen" nolabel="1"/></group>
+                    <field name="linea_ids">
+                        <tree>
+                            <field name="cuota_nombre"/>
+                            <field name="accion"/>
+                            <field name="descripcion"/>
+                        </tree>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_adt_cobranza_ajuste_search" model="ir.ui.view">
+        <field name="name">adt.cobranza.ajuste.search</field>
+        <field name="model">adt.cobranza.ajuste</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="cuenta_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <filter name="aplicados" string="Aplicados" domain="[('estado', '=', 'aplicado')]"/>
+                <filter name="con_perdon" string="Con mora perdonada" domain="[('mora_perdonada', '>', 0)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="g_tipo" string="Tipo" context="{'group_by': 'tipo'}"/>
+                    <filter name="g_user" string="Registrado por" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_cobranza_ajuste" model="ir.actions.act_window">
+        <field name="name">Ajustes de cronograma</field>
+        <field name="res_model">adt.cobranza.ajuste</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_aplicados': 1}</field>
+    </record>
+
+    <menuitem id="menu_adt_cobranza_ajuste" name="Ajustes de cronograma" parent="adt_comercial.menu_adt_cobranza"
+              action="action_adt_cobranza_ajuste" sequence="15"/>
+</odoo>

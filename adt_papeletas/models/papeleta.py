@@ -73,6 +73,60 @@ class ADTPapeleta(models.Model):
     capturado = fields.Boolean(string='Capturado', default=False)
     recolocada = fields.Boolean(string='Recolocada', default=False)
 
+    # Datos del SAT Lima (solo lectura). El vínculo vive en adt.papeleta.sat para que
+    # la sincronización nunca escriba sobre esta papeleta (ni sobre las pagadas).
+    origen = fields.Selection([
+        ('manual', 'Manual'),
+        ('sat', 'SAT Lima'),
+    ], string='Origen', default='manual', readonly=True)
+    sat_ids = fields.One2many('adt.papeleta.sat', 'papeleta_id', string='Papeletas SAT')
+    sat_id = fields.Many2one('adt.papeleta.sat', string='Papeleta SAT', compute='_compute_sat')
+    sat_estado = fields.Char(string='Estado SAT', compute='_compute_sat')
+    sat_vigente = fields.Boolean(string='Figura en el SAT', compute='_compute_sat')
+    sat_importe = fields.Monetary(string='Importe SAT', compute='_compute_sat', currency_field='company_currency_id')
+    sat_gastos_costas = fields.Monetary(string='Gastos / Costas SAT', compute='_compute_sat', currency_field='company_currency_id')
+    sat_descuento = fields.Monetary(string='Descuento SAT', compute='_compute_sat', currency_field='company_currency_id')
+    sat_deuda = fields.Monetary(string='Deuda SAT', compute='_compute_sat', currency_field='company_currency_id')
+    sat_codigo_falta = fields.Char(string='Falta', compute='_compute_sat')
+    sat_reglamento = fields.Char(string='Reglamento', compute='_compute_sat')
+    sat_licencia = fields.Char(string='Licencia del conductor', compute='_compute_sat')
+    sat_documento = fields.Char(string='Documento del conductor', compute='_compute_sat')
+    sat_compromiso_pago = fields.Char(string='N° compromiso de pago', compute='_compute_sat')
+    sat_ultima_consulta = fields.Datetime(string='Última consulta SAT', compute='_compute_sat')
+    sat_resuelta_en = fields.Datetime(string='Dejó de figurar en SAT', compute='_compute_sat')
+    sat_imagen = fields.Binary(string='Copia SAT', compute='_compute_sat')
+
+    @api.depends('sat_ids')
+    def _compute_sat(self):
+        for rec in self:
+            sat = rec.sat_ids.sorted(lambda s: (not s.vigente, -(s.id or 0)))[:1]
+            rec.sat_id = sat
+            rec.sat_estado = sat.estado_sat
+            rec.sat_vigente = sat.vigente
+            rec.sat_importe = sat.importe
+            rec.sat_gastos_costas = sat.gastos_costas
+            rec.sat_descuento = sat.descuento
+            rec.sat_deuda = sat.deuda
+            rec.sat_codigo_falta = sat.codigo_falta
+            rec.sat_reglamento = sat.reglamento
+            rec.sat_licencia = sat.licencia_conducir
+            rec.sat_documento = ' '.join(filter(None, [sat.tipo_documento, sat.numero_documento])) or False
+            rec.sat_compromiso_pago = sat.numero_compromiso_pago
+            rec.sat_ultima_consulta = sat.ultima_vez_visto
+            rec.sat_resuelta_en = sat.resuelta_en
+            rec.sat_imagen = sat.imagen if sat else False
+
+    def action_abrir_sat(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Papeleta SAT'),
+            'res_model': 'adt.papeleta.sat',
+            'res_id': self.sat_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
     @api.depends('fecha_papeleta')
     def _compute_fecha_captura(self):
         for rec in self:

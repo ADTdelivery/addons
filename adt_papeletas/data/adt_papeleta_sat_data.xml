@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Genera el token de la API y la fecha de puesta en marcha solo si no existen. -->
+    <function model="adt.papeleta.sat" name="_init_parametros"/>
+</odoo>

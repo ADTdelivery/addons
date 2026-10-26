@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============ Programas ============ -->
+    <record id="view_adt_papeleta_sat_programa_tree" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.programa.tree</field>
+        <field name="model">adt.papeleta.sat.programa</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="alcance"/>
+                <field name="financiera_codigo" optional="show"/>
+                <field name="programado" widget="boolean_toggle"/>
+                <field name="hora" widget="float_time"/>
+                <field name="ultima_ejecucion_id" optional="show"/>
+                <field name="ultimo_estado" widget="badge"
+                       decoration-success="ultimo_estado == 'completada'"
+                       decoration-warning="ultimo_estado == 'con_errores'"
+                       decoration-danger="ultimo_estado == 'fallida'"
+                       decoration-info="ultimo_estado in ('pendiente', 'en_proceso')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_programa_form" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.programa.form</field>
+        <field name="model">adt.papeleta.sat.programa</field>
+        <field name="arch" type="xml">
+            <form string="Programa de consulta SAT">
+                <header>
+                    <button name="action_ejecutar_ahora" type="object" string="Ejecutar ahora" class="oe_highlight"
+                            confirm="Se consultarán en el SAT todas las placas del programa. ¿Continuar?"/>
+                    <button name="action_ver_placas" type="object" string="Ver placas"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_ejecuciones" type="object" class="oe_stat_button" icon="fa-history">
+                            <field name="ejecucion_count" widget="statinfo" string="Ejecuciones"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archivado" bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ej.: Los Andes - nocturno"/></h1>
+                    </div>
+                    <group>
+                        <group string="Placas a consultar">
+                            <field name="alcance" widget="radio"/>
+                            <field name="financiera_codigo"
+                                   attrs="{'invisible': [('alcance', '!=', 'financiera')],
+                                           'required': [('alcance', '=', 'financiera')]}"/>
+                            <field name="solo_cuentas_vigentes" attrs="{'invisible': [('alcance', '!=', 'financiera')]}"/>
+                            <field name="total_placas"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="Ejecución automática">
+                            <field name="programado" widget="boolean_toggle"/>
+                            <field name="hora" widget="float_time" attrs="{'invisible': [('programado', '=', False)]}"/>
+                            <field name="tz" attrs="{'invisible': [('programado', '=', False)]}"/>
+                            <field name="ultima_programada" attrs="{'invisible': [('programado', '=', False)]}"/>
+                        </group>
+                    </group>
+                    <group string="Días" attrs="{'invisible': [('programado', '=', False)]}">
+                        <group>
+                            <field name="lunes"/>
+                            <field name="martes"/>
+                            <field name="miercoles"/>
+                            <field name="jueves"/>
+                        </group>
+                        <group>
+                            <field name="viernes"/>
+                            <field name="sabado"/>
+                            <field name="domingo"/>
+                        </group>
+                    </group>
+                    <group string="Filtro de vehículos" attrs="{'invisible': [('alcance', '!=', 'filtro')]}">
+                        <field name="vehicle_domain" nolabel="1" widget="domain"
+                               options="{'model': 'fleet.vehicle', 'in_dialog': true}"/>
+                    </group>
+                    <group string="Vehículos" attrs="{'invisible': [('alcance', '!=', 'lista')]}">
+                        <field name="vehicle_ids" nolabel="1" widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                    </group>
+                    <notebook>
+                        <page string="Notificaciones" name="notificaciones">
+                            <field name="responsable_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <p class="text-muted">
+                                Reciben el informe de cada ejecución y una actividad cuando hay errores o la ejecución falla.
+                            </p>
+                        </page>
+                        <page string="Últimas ejecuciones" name="ejecuciones">
+                            <field name="ejecucion_ids" readonly="1">
+                                <tree limit="10">
+                                    <field name="name"/>
+                                    <field name="origen"/>
+                                    <field name="fecha_inicio"/>
+                                    <field name="duracion"/>
+                                    <field name="total_placas"/>
+                                    <field name="con_papeletas"/>
+                                    <field name="papeletas_nuevas"/>
+                                    <field name="con_error"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'completada'"
+                                           decoration-warning="state == 'con_errores'"
+                                           decoration-danger="state == 'fallida'"
+                                           decoration-info="state in ('pendiente', 'en_proceso')"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_adt_papeleta_sat_programa" model="ir.actions.act_window">
+        <field name="name">Programas de consulta SAT</field>
+        <field name="res_model">adt.papeleta.sat.programa</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cree un programa de consulta</p>
+            <p>Elija qué placas consultar (por financiera, filtro o lista) y si se ejecuta cada noche.
+               El monitor del SAT en la EC2 toma las ejecuciones y devuelve el informe.</p>
+        </field>
+    </record>
+
+    <!-- ============ Ejecuciones ============ -->
+    <record id="view_adt_papeleta_sat_ejecucion_tree" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.ejecucion.tree</field>
+        <field name="model">adt.papeleta.sat.ejecucion</field>
+        <field name="arch" type="xml">
+            <tree create="false" decoration-danger="state == 'fallida'" decoration-warning="state == 'con_errores'"
+                  decoration-muted="state == 'cancelada'">
+                <field name="name"/>
+                <field name="programa_id"/>
+                <field name="origen"/>
+                <field name="usuario_id" optional="hide"/>
+                <field name="create_date" string="Solicitada" optional="hide"/>
+                <field name="fecha_inicio"/>
+                <field name="duracion"/>
+                <field name="total_placas" sum="Total"/>
+                <field name="avance" widget="progressbar"/>
+                <field name="con_papeletas" sum="Total"/>
+                <field name="papeletas_nuevas" sum="Total"/>
+                <field name="dejaron_de_figurar" optional="show" sum="Total"/>
+                <field name="con_error" sum="Total"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'completada'"
+                       decoration-warning="state == 'con_errores'"
+                       decoration-danger="state == 'fallida'"
+                       decoration-info="state in ('pendiente', 'en_proceso')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_ejecucion_form" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.ejecucion.form</field>
+        <field name="model">adt.papeleta.sat.ejecucion</field>
+        <field name="arch" type="xml">
+            <form string="Ejecución SAT" create="false" edit="false">
+                <header>
+                    <button name="action_cancelar" type="object" string="Cancelar"
+                            confirm="¿Cancelar la ejecución? Lo ya consultado se conserva."
+                            attrs="{'invisible': ['|', ('state', 'not in', ('pendiente', 'en_proceso')),
+                                                       ('cancelar_solicitado', '=', True)]}"/>
+                    <button name="action_reintentar_fallidas" type="object" string="Reintentar placas con error"
+                            class="oe_highlight"
+                            attrs="{'invisible': ['|', ('state', 'in', ('pendiente', 'en_proceso')),
+                                                       ('con_error', '=', 0)]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pendiente,en_proceso,completada"/>
+                </header>
+                <div class="alert alert-info" role="alert" attrs="{'invisible': [('state', '!=', 'pendiente')]}">
+                    Esperando a que el monitor del SAT tome la ejecución (revisa cada minuto).
+                </div>
+                <div class="alert alert-info" role="alert" attrs="{'invisible': [('state', '!=', 'en_proceso')]}">
+                    Consultando <strong><field name="placa_actual" readonly="1" class="oe_inline"/></strong>
+                    · <field name="procesadas" readonly="1" class="oe_inline"/> de
+                    <field name="total_placas" readonly="1" class="oe_inline"/> placas.
+                    <span attrs="{'invisible': [('cancelar_solicitado', '=', False)]}"> Cancelación solicitada.</span>
+                    Recargue la página para ver el avance.
+                </div>
+                <div class="alert alert-danger" role="alert" attrs="{'invisible': [('error', '=', False)]}">
+                    <strong>Problema:</strong> <field name="error" readonly="1" class="oe_inline"/>
+                </div>
+                <div class="alert alert-success" role="alert" attrs="{'invisible': [('state', '!=', 'completada')]}">
+                    Todas las placas se consultaron correctamente.
+                </div>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="programa_id"/>
+                            <field name="origen"/>
+                            <field name="usuario_id"/>
+                            <field name="create_date" string="Solicitada"/>
+                            <field name="fecha_inicio"/>
+                            <field name="fecha_fin"/>
+                            <field name="duracion"/>
+                            <field name="ultimo_latido" attrs="{'invisible': [('state', '!=', 'en_proceso')]}"/>
+                            <field name="cancelar_solicitado" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="avance" widget="progressbar"/>
+                            <field name="con_papeletas"/>
+                            <field name="sin_papeletas"/>
+                            <field name="con_error"/>
+                            <field name="papeletas_nuevas"/>
+                            <field name="dejaron_de_figurar"/>
+                            <field name="total_deuda"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Placas" name="placas">
+                            <field name="linea_ids">
+                                <tree decoration-danger="es_error" decoration-muted="state == 'pendiente'"
+                                      decoration-warning="state == 'con_papeletas' and not es_error">
+                                    <field name="placa"/>
+                                    <field name="vehicle_id"/>
+                                    <field name="conductor" optional="hide"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'sin_papeletas'"
+                                           decoration-warning="state == 'con_papeletas'"
+                                           decoration-danger="state in ('error', 'no_consultada')"/>
+                                    <field name="total_papeletas" sum="Total"/>
+                                    <field name="nuevas" sum="Total"/>
+                                    <field name="resueltas" sum="Total" optional="show"/>
+                                    <field name="total_deuda" sum="Total"/>
+                                    <field name="mensaje"/>
+                                    <field name="consultado_en" optional="hide"/>
+                                    <field name="importacion_id" optional="hide"/>
+                                    <field name="es_error" invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Importaciones" name="importaciones">
+                            <field name="importacion_ids"/>
+                        </page>
+                        <page string="Técnico" name="tecnico" groups="base.group_system">
+                            <group>
+                                <field name="archivo_monitor"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_ejecucion_search" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.ejecucion.search</field>
+        <field name="model">adt.papeleta.sat.ejecucion</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="programa_id"/>
+                <field name="linea_ids" string="Placa" filter_domain="[('linea_ids.placa', 'ilike', self)]"/>
+                <filter name="activas" string="En curso" domain="[('state', 'in', ('pendiente', 'en_proceso'))]"/>
+                <filter name="problemas" string="Con problemas" domain="[('state', 'in', ('con_errores', 'fallida'))]"/>
+                <separator/>
+                <filter name="manuales" string="Manuales" domain="[('origen', '=', 'manual')]"/>
+                <filter name="programadas" string="Programadas" domain="[('origen', '=', 'programado')]"/>
+                <separator/>
+                <filter name="f_inicio" string="Fecha de inicio" date="fecha_inicio"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="g_programa" string="Programa" context="{'group_by': 'programa_id'}"/>
+                    <filter name="g_estado" string="Estado" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_adt_papeleta_sat_ejecucion" model="ir.actions.act_window">
+        <field name="name">Ejecuciones SAT</field>
+        <field name="res_model">adt.papeleta.sat.ejecucion</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_adt_papeleta_sat_ejecucion_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay ejecuciones</p>
+            <p>Use «Ejecutar ahora» en un programa, o seleccione vehículos en Flota y elija
+               Acción → Consultar papeletas en SAT.</p>
+        </field>
+    </record>
+
+    <!-- Importaciones: ver a qué ejecución pertenecen -->
+    <record id="view_adt_papeleta_sat_import_tree_ejecucion" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.import.tree.ejecucion</field>
+        <field name="model">adt.papeleta.sat.import</field>
+        <field name="inherit_id" ref="view_adt_papeleta_sat_import_tree"/>
+        <field name="arch" type="xml">
+            <field name="corrida_id" position="after">
+                <field name="ejecucion_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_adt_papeleta_sat_import_form_ejecucion" model="ir.ui.view">
+        <field name="name">adt.papeleta.sat.import.form.ejecucion</field>
+        <field name="model">adt.papeleta.sat.import</field>
+        <field name="inherit_id" ref="view_adt_papeleta_sat_import_form"/>
+        <field name="arch" type="xml">
+            <field name="corrida_id" position="after">
+                <field name="ejecucion_id"/>
+            </field>
+        </field>
+    </record>
+
+    <menuitem id="menu_adt_papeletas_sat_programa" name="Programas" parent="menu_adt_papeletas_sat"
+              action="action_adt_papeleta_sat_programa" sequence="1"/>
+    <menuitem id="menu_adt_papeletas_sat_ejecucion" name="Ejecuciones" parent="menu_adt_papeletas_sat"
+              action="action_adt_papeleta_sat_ejecucion" sequence="2"/>
+</odoo>
