@@ -30,3 +30,4 @@ from . import traspaso_notarial
 
 from . import candidato_detalle
 from . import financiera_carga_pdf
+from . import papeleta_sat_programa

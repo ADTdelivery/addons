@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 """Espejo de las papeletas del SAT de Lima.
 
-La sincronización (monitor en EC2 -> /api/papeletas/sat/import) solo escribe
-en estos modelos. `adt.papeleta`, que usan captura, flota 360 y la app, nunca
-se modifica: como mucho se crea una papeleta nueva (infracciones posteriores a
-la puesta en marcha) y se avisa por chatter/actividad.
+La sincronización (monitor en EC2 -> /api/papeletas/sat/import) mantiene al día
+la papeleta interna (`adt.papeleta`) vinculada, sin intervención manual:
+
+* papeleta nueva en el SAT -> se vincula por número o se crea la interna;
+* cambian importe o fecha en el SAT -> se actualizan en la interna;
+* deja de figurar en una consulta completa, o el SAT la muestra pagada ->
+  la interna (y sus cuotas pendientes) pasa a pagada;
+* vuelve a figurar después de eso -> actividad para revisarla (una papeleta
+  pagada ya no se puede modificar).
+
+Todo queda en el chatter de la papeleta interna.
 """
 import base64
 import hashlib
@@ -68,6 +75,11 @@ def _fecha_hora(valor):
     return dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
+def _fecha_lima(utc_naive):
+    """Datetime UTC naive (como se guarda) -> fecha en Lima."""
+    return (utc_naive.replace(tzinfo=timezone.utc).astimezone(LIMA)).date()
+
+
 def _numero(valor):
     if valor in (None, ''):
         return None
@@ -129,7 +141,8 @@ class ADTPapeletaSat(models.Model):
         ('anulada', 'Anulada / descargo'),
         ('otro', 'Otro'),
     ], string='Revisión', tracking=True,
-        help='Se marca "Por revisar" cuando la papeleta deja de figurar en el SAT.')
+        help='"Pago confirmado" cuando la papeleta interna se marcó pagada al dejar de figurar en el SAT; '
+             '"Por revisar" si eso no fue posible.')
     importacion_id = fields.Many2one('adt.papeleta.sat.import', string='Última importación', readonly=True)
 
     attachment_ids = fields.One2many('ir.attachment', 'res_id', string='Copias SAT',
@@ -220,7 +233,8 @@ class ADTPapeletaSat(models.Model):
         estado = payload.get('estado')
         consultado_en = _fecha_hora(payload.get('consultado_en'))
         papeletas = payload.get('papeletas') or []
-        res = {'nuevas_sat': 0, 'actualizadas': 0, 'vinculadas': 0, 'creadas': 0, 'resueltas': 0}
+        res = {'nuevas_sat': 0, 'actualizadas': 0, 'vinculadas': 0, 'creadas': 0, 'resueltas': 0,
+               'pagadas': 0, 'internas_actualizadas': 0}
 
         vehiculo = self._buscar_vehiculo(placa)
         meta_vehicle = (payload.get('metadata') or {}).get('vehicle_id')
@@ -243,6 +257,9 @@ class ADTPapeletaSat(models.Model):
             accion = rec._vincular_o_crear()
             if accion:
                 res[accion] += 1
+            accion = rec._sincronizar_interna(consultado_en)
+            if accion:
+                res[accion] += 1
 
         # Solo una consulta completa permite decir que algo dejó de figurar.
         if estado in (CON_PAPELETAS, SIN_PAPELETAS) and placa:
@@ -251,8 +268,9 @@ class ADTPapeletaSat(models.Model):
                 '|', ('ultima_vez_visto', '=', False), ('ultima_vez_visto', '<', consultado_en),
             ])
             for rec in previas:
-                rec._marcar_resuelta(consultado_en)
                 res['resueltas'] += 1
+                if rec._marcar_resuelta(consultado_en):
+                    res['pagadas'] += 1
         return res
 
     @api.model
@@ -293,16 +311,17 @@ class ADTPapeletaSat(models.Model):
             rec = self.create(valores)
         else:
             reaparece = not rec.vigente
-            importe_anterior = rec.importe
+            pagada_por_sat = reaparece and rec.revision == 'pagada'
             if reaparece:
                 valores['revision'] = False
             rec.write(valores)
             if reaparece:
                 rec.message_post(body=_('La papeleta volvió a figurar en el SAT.'))
-            if rec.papeleta_id and abs((importe_anterior or 0.0) - rec.importe) > 0.009:
-                rec.papeleta_id.message_post(body=_(
-                    'SAT: el importe de la papeleta %s cambió de %.2f a %.2f (deuda SAT %.2f). '
-                    'El monto interno no se modificó.') % (rec.name, importe_anterior or 0.0, rec.importe, rec.deuda))
+            if pagada_por_sat and rec.papeleta_id.state == 'pagado':
+                rec._avisar_interna(
+                    _('La papeleta %s volvió a figurar en el SAT (estado: %s, deuda %.2f) después de marcarse pagada '
+                      'automáticamente. Verifique el pago.') % (rec.name, rec.estado_sat or '-', rec.deuda),
+                    _('Papeleta pagada volvió a figurar en el SAT'))
         rec._guardar_archivos(datos.get('archivos') or [])
         return rec, nueva
 
@@ -382,23 +401,95 @@ class ADTPapeletaSat(models.Model):
         self.papeleta_id = papeleta
         return papeleta
 
+    def _sincronizar_interna(self, cuando):
+        """Lleva a la papeleta interna lo que dice el SAT. Devuelve 'pagadas',
+        'internas_actualizadas' o None."""
+        self.ensure_one()
+        papeleta = self.papeleta_id
+        if not papeleta or papeleta.state == 'pagado' or not self.vigente:
+            return None
+        if self.ultima_vez_visto and self.ultima_vez_visto > cuando:
+            return None  # reenvío antiguo
+        consulta = _fecha_lima(cuando).strftime('%d/%m/%Y')
+        if 'pagad' in (self.estado_sat or '').lower():
+            return 'pagadas' if self._pagar_interna(cuando, _(
+                'Marcada como <b>pagada</b> automáticamente: el SAT Lima la muestra como «%s» (consulta del %s).')
+                % (self.estado_sat, consulta)) else None
+        valores, cambios = {}, []
+        if self.importe and abs((papeleta.monto or 0.0) - self.importe) > 0.009:
+            valores['monto'] = self.importe
+            cambios.append(_('monto %.2f → %.2f') % (papeleta.monto or 0.0, self.importe))
+        if self.fecha_infraccion and papeleta.fecha_papeleta != self.fecha_infraccion:
+            valores['fecha_papeleta'] = self.fecha_infraccion
+            cambios.append(_('fecha %s → %s') % (papeleta.fecha_papeleta and papeleta.fecha_papeleta.strftime('%d/%m/%Y') or '-',
+                                                 self.fecha_infraccion.strftime('%d/%m/%Y')))
+        if not valores:
+            return None
+        try:
+            with self.env.cr.savepoint():
+                papeleta.with_context(sat_sync=True).write(valores)
+        except (UserError, ValidationError) as exc:
+            self.message_post(body=_('No se pudo actualizar la papeleta interna: %s') % exc)
+            return None
+        aviso = ''
+        if 'monto' in valores and papeleta.cuotas_ids:
+            if papeleta.cantidad_cuotas and all(c.state == 'pendiente' for c in papeleta.cuotas_ids):
+                papeleta.cuotas_ids.unlink()
+                sincronizada = papeleta.with_context(sat_sync=True)
+                sincronizada._generate_cuotas_for(sincronizada)
+                aviso = _(' Se regeneraron las %s cuotas con el nuevo monto.') % len(papeleta.cuotas_ids)
+            else:
+                aviso = _(' Tiene cuotas pagadas: revise las pendientes para que sumen el nuevo monto.')
+        papeleta.message_post(body=_('Actualizada desde el SAT Lima (consulta del %s): %s.%s')
+                              % (consulta, ', '.join(cambios), aviso))
+        return 'internas_actualizadas'
+
+    def _pagar_interna(self, cuando, motivo):
+        """Marca pagada la papeleta interna y sus cuotas pendientes. True si lo logró."""
+        self.ensure_one()
+        papeleta = self.papeleta_id
+        try:
+            with self.env.cr.savepoint():
+                papeleta.cuotas_ids.filtered(lambda c: c.state == 'pendiente').write({'state': 'pagado'})
+                papeleta.with_context(sat_sync=True).write({'state': 'pagado', 'fecha_pago': _fecha_lima(cuando)})
+        except (UserError, ValidationError) as exc:
+            self.message_post(body=_('No se pudo marcar como pagada la papeleta interna: %s') % exc)
+            return False
+        papeleta.message_post(body=motivo)
+        self.revision = 'pagada'
+        return True
+
     def _marcar_resuelta(self, cuando):
+        """Dejó de figurar en una consulta completa: se toma como pagada. True si
+        se marcó pagada la papeleta interna."""
         self.ensure_one()
         self.write({'vigente': False, 'resuelta_en': cuando, 'revision': 'pendiente'})
         papeleta = self.papeleta_id
         if not papeleta or papeleta.state == 'pagado':
-            return
-        papeleta.message_post(body=_(
-            'La papeleta ya no figura como pendiente en el SAT (consulta del %s). '
-            'Verifique si fue pagada, anulada o descargada; no se marcó como pagada automáticamente.')
-            % fields.Datetime.to_string(cuando))
+            if papeleta:
+                self.revision = 'pagada'
+            return False
+        if self._pagar_interna(cuando, _(
+                'Marcada como <b>pagada</b> automáticamente: ya no figura como pendiente en el SAT Lima '
+                '(consulta del %s).') % _fecha_lima(cuando).strftime('%d/%m/%Y')):
+            return True
+        self._avisar_interna(_('La papeleta %s dejó de figurar en el SAT, pero no se pudo marcar como pagada. '
+                               'Verifique si fue pagada, anulada o descargada.') % papeleta.name,
+                             _('Verificar pago en SAT'))
+        return False
+
+    def _avisar_interna(self, texto, resumen):
+        """Mensaje y actividad en la papeleta interna para quien la registró."""
+        papeleta = self.papeleta_id
+        papeleta.message_post(body=texto)
         usuario = papeleta.create_uid
-        if usuario and usuario.active and not usuario.share and usuario.id != self.env.ref('base.user_root').id:
+        if not usuario or usuario.id == self.env.ref('base.user_root').id:
+            # Creada por la sincronización: se avisa al administrador.
+            usuario = self.env.ref('base.user_admin', raise_if_not_found=False)
+        if usuario and usuario.active and not usuario.share:
             try:
-                papeleta.activity_schedule(
-                    'mail.mail_activity_data_todo', user_id=usuario.id,
-                    summary=_('Verificar pago en SAT'),
-                    note=_('La papeleta %s dejó de figurar en el SAT.') % papeleta.name)
+                papeleta.activity_schedule('mail.mail_activity_data_todo', user_id=usuario.id,
+                                           summary=resumen, note=texto)
             except Exception:
                 _logger.exception('No se pudo programar la actividad para la papeleta %s', papeleta.id)
 
@@ -462,6 +553,9 @@ class ADTPapeletaSatImport(models.Model):
     vinculadas = fields.Integer(string='Vinculadas')
     creadas = fields.Integer(string='Papeletas internas creadas')
     resueltas = fields.Integer(string='Dejaron de figurar')
+    pagadas = fields.Integer(string='Marcadas pagadas', help='Papeletas internas marcadas pagadas por esta consulta.')
+    internas_actualizadas = fields.Integer(string='Internas actualizadas',
+                                           help='Papeletas internas con importe o fecha actualizados desde el SAT.')
     state = fields.Selection([
         ('ok', 'Procesada'),
         ('omitido', 'Omitida (consulta fallida)'),

@@ -184,6 +184,12 @@ odoo.define('adt_flota_360.Flota360', function (require) {
         return '<span class="adt_f360__badge is-' + (nivel || 'neutral') + '">' + esc(texto) + '</span>';
     }
 
+    // Estado de la papeleta en el SAT Lima (coactiva y medida cautelar en rojo).
+    function satBadge(sat) {
+        return sat ? '<span class="adt_f360__badge is-' + sat.nivel + '" title="Estado en el SAT Lima">' +
+            '<i class="fa fa-university" aria-hidden="true"></i> ' + esc(sat.texto) + '</span>' : '';
+    }
+
     var Flota360 = AbstractAction.extend({
         template: 'adt_flota_360.Main',
         hasControlPanel: false,
@@ -195,6 +201,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             'click [data-filtro]': '_onFiltro',
             'click [data-financiera]': '_onFinanciera',
             'click [data-estado]': '_onEstado',
+            'click [data-clientes]': '_onClientes',
             'click [data-grupo]': '_onGrupo',
             'click [data-action="clear-facetas"]': '_onClearFacetas',
             'click [data-row]': '_onRow',
@@ -257,8 +264,10 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             'click [data-credito-nuevo]': '_onNuevoClienteCredito',
         },
 
-        init: function () {
+        init: function (parent, action) {
             this._super.apply(this, arguments);
+            // Al abrirse desde los indicadores: filtro, financiera, cronograma, grupo o un vehículo.
+            var params = (action && action.params) || {};
             this.termino = '';
             this.filtro = 'todos';
             this.filtros = [];
@@ -290,6 +299,19 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this._buscarDiferido = _.debounce(this._buscar.bind(this, false), ESPERA_BUSQUEDA);
             this._onGlobalKey = this._onGlobalKey.bind(this);
             this._onGlobalClick = this._onGlobalClick.bind(this);
+            if (params.filtro) { this.filtro = params.filtro; }
+            // Al recargar la página llegan desde la URL como texto.
+            if (params.financiera !== undefined && params.financiera !== null && params.financiera !== '') {
+                this.financiera = parseInt(params.financiera, 10);
+            }
+            if (params.estado) { this.estado = params.estado; }
+            if (params.grupo) { this.grupo = params.grupo; }
+            // Segmento de cliente (por terminar de pagar / no candidatos); 'todos' muestra el filtro sin aplicarlo.
+            this.clientes = params.clientes || null;
+            this.clientesOpciones = [];
+            // Pestaña con la que se abren las fichas (p. ej. Papeletas, al venir de ese indicador).
+            this._tabInicial = params.tab || null;
+            this._abrirAlIniciar = params.vehicle_id ? parseInt(params.vehicle_id, 10) : null;
         },
 
         willStart: function () {
@@ -309,6 +331,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 document.addEventListener('click', self._onGlobalClick, true);
                 self._renderFiltros();
                 self._buscar(false);
+                if (self._abrirAlIniciar) {
+                    self._abrirDrawer(self._abrirAlIniciar);
+                }
             });
         },
 
@@ -349,6 +374,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     financiera: this.financiera,
                     estado: this.estado,
                     grupo: this.grupo,
+                    clientes: this.clientes,
                     offset: agregar ? this.items.length : 0,
                     limit: PAGINA,
                 },
@@ -362,6 +388,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 self.cartera = res.cartera || {};
                 self.financieras = res.financieras || [];
                 self.estados = res.estados || [];
+                self.clientesOpciones = res.clientes || [];
                 self.grupos = res.grupos || {};
                 self.truncado = res.truncado;
                 self._renderFiltros();
@@ -428,19 +455,23 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this._renderGrupos();
             this._renderFaceta('financieras', 'financiera', 'fa-university', 'Financiera', 'Todas', this.financieras, this.financiera);
             this._renderFaceta('estados', 'estado', 'fa-calendar-check-o', 'Cronograma', 'Todos', this.estados, this.estado, true);
+            var todosClientes = _.findWhere(this.clientesOpciones, {id: null});
+            this._renderFaceta('clientes', 'clientes', 'fa-user-o', 'Clientes', 'Todos', _.reject(this.clientesOpciones, {id: null}),
+                               this.clientes === 'todos' ? null : this.clientes, false, todosClientes && todosClientes.n);
+            var segmento = this.clientes && this.clientes !== 'todos';
             this._ref('facetas')
                 .toggleClass('is-empty', !this.financieras.length && !this.estados.length)
-                .toggleClass('is-filtered', this.financiera !== null || this.estado !== null);
+                .toggleClass('is-filtered', this.financiera !== null || this.estado !== null || segmento);
         },
 
         // Una fila: etiqueta fija a la izquierda y opciones en una franja desplazable.
         // Las opciones sin vehículos se atenúan; con punto, cada estado lleva su color.
-        _renderFaceta: function (ref, atributo, icono, titulo, todos, opciones, actual, punto) {
+        _renderFaceta: function (ref, atributo, icono, titulo, todos, opciones, actual, punto, totalTodos) {
             if (!opciones.length) {
                 this._ref(ref).empty();
                 return;
             }
-            var total = opciones.reduce(function (s, o) { return s + (o.n || 0); }, 0);
+            var total = totalTodos !== undefined ? totalTodos : opciones.reduce(function (s, o) { return s + (o.n || 0); }, 0);
             var chip = function (valor, nombre, n) {
                 var activo = valor === actual;
                 var clases = 'adt_f360__fchip' + (activo ? ' is-active' : '') + (!n && !activo ? ' is-zero' : '');
@@ -651,7 +682,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
 
         _abrirDrawer: function (id) {
             this.detalle = null;
-            this.tab = 'resumen';
+            this.tab = this._tabInicial || 'resumen';
             this.vistas = {};
             this.filtroCrono = {};
             this.expandidas = {};
@@ -1415,24 +1446,53 @@ odoo.define('adt_flota_360.Flota360', function (require) {
         },
 
         _htmlPapeletaFila: function (p) {
-            var monto = _.findWhere(p.kpis, {label: 'Monto'});
-            var vence = _.findWhere(p.kpis, {label: 'Vence'});
+            var kpi = function (label) { return _.findWhere(p.kpis, {label: label}) || {}; };
+            var vence = kpi('Vence');
+            var dias = kpi('Días para captura');
+            var pagada = kpi('Pagada el');
             var n = p.evidencias.length + (p.fraccionamiento ? p.fraccionamiento.evidencias.length : 0);
             var alerta = p.alertas[0];
+            var dato = function (icono, texto, titulo) {
+                return texto ? '<span class="adt_f360__papf-meta-i" title="' + esc(titulo) + '"><i class="fa ' + icono +
+                    '" aria-hidden="true"></i>' + texto + '</span>' : '';
+            };
+            var f = p.fraccionamiento;
+            var meta = [
+                dato('fa-calendar-o', kpi('Fecha').fecha && 'Emitida ' + fecha(kpi('Fecha').fecha), 'Fecha de la papeleta'),
+                dato('fa-lock', !pagada.fecha && kpi('Fecha de captura').fecha && 'Captura ' + fecha(kpi('Fecha de captura').fecha),
+                     'Fecha desde la que se puede capturar el vehículo'),
+                dato('fa-gavel', p.sat && p.sat.falta && 'Falta ' + esc(p.sat.falta), 'Código de la infracción'),
+                dato('fa-university', p.sat && p.sat.deuda && 'Deuda SAT ' + soles(p.sat.deuda), 'Deuda según el SAT Lima'),
+                dato('fa-list-ol', f && f.total && 'Cuotas ' + f.pagadas + '/' + f.total, 'Cuotas pagadas'),
+            ].join('');
+            var plazo = '';
+            if (pagada.fecha) {
+                plazo = '<span class="adt_f360__papf-plazo is-ok">Pagada el ' + fecha(pagada.fecha) + '</span>';
+            } else if (dias.texto !== undefined) {
+                var d = parseInt(dias.texto, 10);
+                plazo = '<span class="adt_f360__papf-plazo is-' + (dias.nivel || 'atencion') + '">' +
+                    (d < 0 ? 'Vencida hace ' + plural(-d, 'día', 'días') : (d === 0 ? 'Vence hoy' : 'Faltan ' + plural(d, 'día', 'días'))) + '</span>';
+            }
             return '<li class="adt_f360__papf is-' + p.badge.nivel + (p.id === this.papSel ? ' is-selected' : '') + '">' +
                 '<button type="button" class="adt_f360__papf-btn" data-pap="' + p.id + '" title="Ver el detalle de la ' + esc(p.titulo.toLowerCase()) + '">' +
                     '<span class="adt_f360__papf-main">' +
-                        '<span class="adt_f360__pap-title"><span class="adt_f360__strong">' + esc(p.titulo) + '</span>' +
-                            badge(p.badge.nivel, p.badge.texto) +
+                        '<span class="adt_f360__pap-title"><span class="adt_f360__papf-num">' + esc(p.titulo) + '</span>' +
+                            badge(p.badge.nivel, p.badge.texto) + satBadge(p.sat) +
                             p.marcas.map(function (m) { return badge(m.nivel, m.texto); }).join('') + '</span>' +
-                        (alerta ? '<span class="adt_f360__papf-alert is-' + alerta.nivel + '">' + esc(alerta.texto) + '</span>'
+                        (meta ? '<span class="adt_f360__papf-meta">' + meta + '</span>' : '') +
+                        (alerta ? '<span class="adt_f360__papf-alert is-' + alerta.nivel + '"><i class="fa fa-exclamation-circle" aria-hidden="true"></i>' +
+                                  esc(alerta.texto) + '</span>'
                                 : (p.detalle ? '<span class="adt_f360__sub adt_f360__papf-det">' + esc(p.detalle) + '</span>' : '')) +
                     '</span>' +
-                    '<span class="adt_f360__papf-fig"><span class="adt_f360__strong">' + soles(monto ? monto.monto : 0) + '</span>' +
-                        '<span class="adt_f360__sub">Vence ' + fecha(vence && vence.fecha) + '</span></span>' +
-                    '<span class="adt_f360__papf-evid' + (n ? '' : ' is-empty') + '" title="' + plural(n, 'evidencia', 'evidencias') + '">' +
-                        '<i class="fa fa-paperclip" aria-hidden="true"></i>' + n + '</span>' +
-                    '<span class="adt_f360__papf-go">Ver detalle<i class="fa fa-angle-right" aria-hidden="true"></i></span>' +
+                    '<span class="adt_f360__papf-fig">' +
+                        '<span class="adt_f360__papf-monto">' + soles(kpi('Monto').monto || 0) + '</span>' +
+                        (vence.fecha ? '<span class="adt_f360__sub">Vence ' + fecha(vence.fecha) + '</span>' : '') + plazo +
+                    '</span>' +
+                    '<span class="adt_f360__papf-side">' +
+                        '<span class="adt_f360__papf-evid' + (n ? '' : ' is-empty') + '" title="' + plural(n, 'evidencia', 'evidencias') + '">' +
+                            '<i class="fa fa-paperclip" aria-hidden="true"></i>' + plural(n, 'evidencia', 'evidencias') + '</span>' +
+                        '<span class="adt_f360__papf-go">Ver detalle<i class="fa fa-angle-right" aria-hidden="true"></i></span>' +
+                    '</span>' +
                 '</button></li>';
         },
 
@@ -1454,6 +1514,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 }).join('') +
                 this._htmlKpis(p.kpis) +
                 this._htmlCampos(p.campos) +
+                (p.sat ? this._htmlPapeletaSat(p.sat) : '') +
                 (p.detalle ? '<div class="adt_f360__pap-block"><div class="adt_f360__label">Detalle</div>' +
                     '<p class="adt_f360__pap-text">' + esc(p.detalle) + '</p></div>' : '') +
                 this._htmlEvidencias('Evidencia de papeleta', p.evidencias, p.editable && p.id) +
@@ -1473,7 +1534,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 '<aside class="adt_f360__sheet is-' + p.badge.nivel + entrada + '" role="dialog" aria-modal="true" aria-labelledby="adt_f360_pap_t">' +
                     '<header class="adt_f360__sheet-head">' +
                         '<div class="adt_f360__sheet-title"><h2 id="adt_f360_pap_t">' + esc(p.titulo) + '</h2>' +
-                            '<div class="adt_f360__pap-title">' + badge(p.badge.nivel, p.badge.texto) +
+                            '<div class="adt_f360__pap-title">' + badge(p.badge.nivel, p.badge.texto) + satBadge(p.sat) +
                             p.marcas.map(function (m) { return badge(m.nivel, m.texto); }).join('') + '</div></div>' +
                         '<button type="button" class="adt_f360__icon-btn" data-pap-close title="Cerrar (Esc)">' +
                             '<i class="fa fa-times" aria-hidden="true"></i></button>' +
@@ -1597,6 +1658,17 @@ odoo.define('adt_flota_360.Flota360', function (require) {
         },
 
         // Galería de adjuntos: las imágenes se abren en el visor; el resto, en otra pestaña.
+        _htmlPapeletaSat: function (sat) {
+            return '<div class="adt_f360__pap-block adt_f360__pap-sat is-' + sat.nivel + '">' +
+                '<div class="adt_f360__pap-block-head"><div class="adt_f360__label">' +
+                    '<i class="fa fa-university" aria-hidden="true"></i> Datos del SAT Lima</div>' + satBadge(sat) + '</div>' +
+                this._htmlKpis(sat.kpis) +
+                this._htmlCampos(sat.campos) +
+                (sat.evidencias.length ? this._htmlEvidencias('Copias del SAT', sat.evidencias, false) : '') +
+                '<div class="adt_f360__pap-sat-actions">' + this._acciones_html(sat.acciones, ' is-small') + '</div>' +
+            '</div>';
+        },
+
         _htmlEvidencias: function (titulo, evidencias, papeletaId) {
             var agregar = papeletaId
                 ? this._accion({tipo: 'form', form: 'papeleta', res_id: papeletaId, params: {},
@@ -3905,9 +3977,17 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this._buscar(false);
         },
 
+        _onClientes: function (ev) {
+            var valor = ev.currentTarget.getAttribute('data-clientes');
+            this.clientes = valor === 'todas' || valor === this.clientes ? 'todos' : valor;
+            this._renderFacetas();
+            this._buscar(false);
+        },
+
         _onClearFacetas: function () {
             this.financiera = null;
             this.estado = null;
+            this.clientes = null;
             this._renderFacetas();
             this._buscar(false);
         },

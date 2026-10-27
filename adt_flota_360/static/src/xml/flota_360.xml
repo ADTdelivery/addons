@@ -22,6 +22,7 @@
                     <div class="adt_f360__facets" data-ref="facetas">
                         <nav class="adt_f360__facet" data-ref="financieras" aria-label="Filtrar por financiera"/>
                         <nav class="adt_f360__facet" data-ref="estados" aria-label="Filtrar por estado del cronograma de pagos"/>
+                        <nav class="adt_f360__facet" data-ref="clientes" aria-label="Filtrar por situación del cliente"/>
                         <button type="button" class="adt_f360__facets-clear" data-action="clear-facetas" title="Quitar filtros de financiera y cronograma">
                             <i class="fa fa-times" aria-hidden="true"/> Quitar filtros
                         </button>

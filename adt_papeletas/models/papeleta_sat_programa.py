@@ -29,7 +29,6 @@ PARAM_MIN_SIN_LATIDO = 'adt_papeletas.sat_minutos_sin_latido'
 # Una programación perdida (Odoo apagado, otra corrida en curso) se lanza tarde
 # solo dentro de esta ventana; pasado ese tiempo se espera al día siguiente.
 VENTANA_PROGRAMACION = timedelta(hours=3)
-CUENTAS_VIGENTES = ('aprobado', 'en_curso')
 ACTIVAS = ('pendiente', 'en_proceso')
 DIAS = ('lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo')
 
@@ -44,6 +43,22 @@ def _placas_de(vehiculos):
         vistas.add(placa)
         placas.append({'placa': placa, 'vehicle_id': v.id, 'conductor': v.driver_id.name or ''})
     return placas
+
+
+class ADTPapeletaSatEstadoCuenta(models.Model):
+    """Estados de adt.comercial.cuentas para filtrar programas (sin depender de adt_comercial)."""
+    _name = 'adt.papeleta.sat.estado.cuenta'
+    _description = 'Estado de cuenta para programas SAT'
+    _order = 'sequence, id'
+
+    name = fields.Char(string='Estado', required=True, translate=True)
+    code = fields.Char(string='Código', required=True)
+    sequence = fields.Integer(default=10)
+    vigente = fields.Boolean(string='Vigente', help='Se marca por defecto en los programas nuevos.')
+
+    _sql_constraints = [
+        ('code_uniq', 'unique(code)', 'El estado ya existe.'),
+    ]
 
 
 class ADTPapeletaSatPrograma(models.Model):
@@ -62,10 +77,11 @@ class ADTPapeletaSatPrograma(models.Model):
         ('filtro', 'Filtro de vehículos'),
         ('lista', 'Lista de vehículos'),
     ], string='Placas a consultar', required=True, default='financiera', tracking=True)
-    financiera_codigo = fields.Selection(selection='_selection_financieras', string='Financiera', tracking=True,
-                                         help='Vehículos con una cuenta comercial de esta financiera.')
-    solo_cuentas_vigentes = fields.Boolean(string='Solo cuentas vigentes', default=True,
-                                           help='Solo cuentas aprobadas o en curso (excluye pagadas y canceladas).')
+    # Las financieras (financiera_ids) las agrega adt_comercial, que depende de este módulo.
+    estado_cuenta_ids = fields.Many2many('adt.papeleta.sat.estado.cuenta', 'adt_papeleta_sat_programa_estado_rel',
+                                         'programa_id', 'estado_id', string='Estados del cronograma',
+                                         default=lambda self: self._estados_vigentes(),
+                                         help='Estados de la cuenta comercial a incluir. Vacío: todos los estados.')
     vehicle_domain = fields.Char(string='Filtro', default='[]')
     vehicle_ids = fields.Many2many('fleet.vehicle', 'adt_papeleta_sat_programa_vehicle_rel',
                                    'programa_id', 'vehicle_id', string='Vehículos')
@@ -94,18 +110,14 @@ class ADTPapeletaSatPrograma(models.Model):
                                      string='Último resultado', compute='_compute_ultima')
 
     @api.model
-    def _selection_financieras(self):
-        # adt_comercial depende de este módulo: se lee el catálogo sin declararlo como dependencia.
-        if 'adt.comercial.financiera' not in self.env:
-            return []
-        financieras = self.env['adt.comercial.financiera'].sudo().with_context(active_test=False).search([])
-        return [(f.code, f.name) for f in financieras if f.code]
+    def _estados_vigentes(self):
+        return self.env['adt.papeleta.sat.estado.cuenta'].search([('vigente', '=', True)])
 
     @api.model
     def _tz_get(self):
         return [(tz, tz) for tz in sorted(pytz.all_timezones, key=lambda tz: tz if not tz.startswith('Etc/') else '_')]
 
-    @api.depends('alcance', 'financiera_codigo', 'solo_cuentas_vigentes', 'vehicle_domain', 'vehicle_ids')
+    @api.depends('alcance', 'estado_cuenta_ids', 'vehicle_domain', 'vehicle_ids')
     def _compute_total_placas(self):
         for rec in self:
             try:
@@ -136,14 +148,19 @@ class ADTPapeletaSatPrograma(models.Model):
                 raise UserError(_('El filtro de vehículos no es válido: %s') % exc)
             return Vehiculo.search(dominio + [('license_plate', '!=', False)])
         # financiera
-        if not self.financiera_codigo:
-            raise UserError(_('Elija la financiera del programa «%s».') % self.name)
         if 'adt.comercial.cuentas' not in self.env:
             raise UserError(_('El módulo comercial (adt_comercial) no está instalado.'))
-        dominio = [('tipo_financiera_id.code', '=', self.financiera_codigo), ('vehiculo_id', '!=', False)]
-        if self.solo_cuentas_vigentes:
-            dominio.append(('state', 'in', CUENTAS_VIGENTES))
+        codigos = self._financiera_codigos()
+        if not codigos:
+            raise UserError(_('Elija al menos una financiera del programa «%s».') % self.name)
+        dominio = [('tipo_financiera_id.code', 'in', codigos), ('vehiculo_id', '!=', False)]
+        if self.estado_cuenta_ids:
+            dominio.append(('state', 'in', self.estado_cuenta_ids.mapped('code')))
         return self.env['adt.comercial.cuentas'].sudo().search(dominio).mapped('vehiculo_id')
+
+    def _financiera_codigos(self):
+        """Códigos de financiera elegidos; adt_comercial lo implementa con financiera_ids."""
+        return []
 
     def _placas(self):
         return _placas_de(self._vehiculos())
@@ -261,11 +278,13 @@ class ADTPapeletaSatEjecucion(models.Model):
     con_error = fields.Integer(string='Con error', compute='_compute_totales', store=True)
     papeletas_nuevas = fields.Integer(string='Papeletas nuevas', compute='_compute_totales', store=True)
     dejaron_de_figurar = fields.Integer(string='Dejaron de figurar', compute='_compute_totales', store=True)
+    papeletas_pagadas = fields.Integer(string='Marcadas pagadas', compute='_compute_totales', store=True)
+    internas_actualizadas = fields.Integer(string='Internas actualizadas', compute='_compute_totales', store=True)
     total_deuda = fields.Float(string='Deuda SAT', compute='_compute_totales', store=True)
     avance = fields.Float(string='Avance (%)', compute='_compute_totales', store=True, group_operator='avg')
 
     @api.depends('linea_ids.state', 'linea_ids.es_error', 'linea_ids.nuevas', 'linea_ids.resueltas',
-                 'linea_ids.total_deuda')
+                 'linea_ids.total_deuda', 'linea_ids.pagadas', 'linea_ids.internas_actualizadas')
     def _compute_totales(self):
         for rec in self:
             lineas = rec.linea_ids
@@ -277,6 +296,8 @@ class ADTPapeletaSatEjecucion(models.Model):
             rec.con_error = len(lineas.filtered('es_error'))
             rec.papeletas_nuevas = sum(lineas.mapped('nuevas'))
             rec.dejaron_de_figurar = sum(lineas.mapped('resueltas'))
+            rec.papeletas_pagadas = sum(lineas.mapped('pagadas'))
+            rec.internas_actualizadas = sum(lineas.mapped('internas_actualizadas'))
             rec.total_deuda = sum(lineas.mapped('total_deuda'))
             rec.avance = 100.0 * rec.procesadas / rec.total_placas if rec.total_placas else 0.0
 
@@ -429,9 +450,11 @@ class ADTPapeletaSatEjecucion(models.Model):
         lineas_error = self.linea_ids.filtered('es_error')
         cuerpo = _(
             '<p><b>%(estado)s</b>: %(proc)s de %(total)s placas · %(con)s con papeletas · '
-            '%(nuevas)s papeletas nuevas · %(resueltas)s dejaron de figurar · %(err)s con error.</p>'
+            '%(nuevas)s papeletas nuevas · %(resueltas)s dejaron de figurar · %(pagadas)s marcadas pagadas · '
+            '%(act)s actualizadas · %(err)s con error.</p>'
         ) % {'estado': etiqueta, 'proc': self.procesadas, 'total': self.total_placas, 'con': self.con_papeletas,
-             'nuevas': self.papeletas_nuevas, 'resueltas': self.dejaron_de_figurar, 'err': len(lineas_error)}
+             'nuevas': self.papeletas_nuevas, 'resueltas': self.dejaron_de_figurar, 'pagadas': self.papeletas_pagadas,
+             'act': self.internas_actualizadas, 'err': len(lineas_error)}
         if self.error:
             cuerpo += '<p><b>%s</b> %s</p>' % (_('Problema:'), self.error)
         if lineas_error:
@@ -492,6 +515,8 @@ class ADTPapeletaSatEjecucionLinea(models.Model):
     total_papeletas = fields.Integer(string='Papeletas')
     nuevas = fields.Integer(string='Nuevas')
     resueltas = fields.Integer(string='Dejaron de figurar')
+    pagadas = fields.Integer(string='Marcadas pagadas')
+    internas_actualizadas = fields.Integer(string='Internas actualizadas')
     total_deuda = fields.Float(string='Deuda SAT')
     consultado_en = fields.Datetime(string='Consultada')
     importacion_id = fields.Many2one('adt.papeleta.sat.import', string='Importación', ondelete='set null')
@@ -515,7 +540,8 @@ class ADTPapeletaSatEjecucionLinea(models.Model):
             'consultado_en': fields.Datetime.now(),
         }
         if importacion:
-            valores['importacion_id'] = importacion.id
+            valores.update(importacion_id=importacion.id, pagadas=importacion.pagadas,
+                           internas_actualizadas=importacion.internas_actualizadas)
             if importacion.state == 'error':
                 valores['mensaje'] = (_('Error al registrar en Odoo: %s') % (importacion.error or ''))[:250]
         self.write(valores)

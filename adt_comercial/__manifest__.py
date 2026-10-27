@@ -1,6 +1,6 @@
 {
     'name': 'ADT Comercial',
-    'version': '15.0.1.3.0',
+    'version': '15.0.1.4.0',
     'author': 'Bigodoo',
     'maintainer': 'Bigodoo',
     'depends': [
@@ -56,6 +56,7 @@
         'views/cartera_reporte.xml',
         'data/cron_financiera_carga_pdf.xml',
         'views/view_financiera_carga_pdf.xml',
+        'views/papeleta_sat_programa_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

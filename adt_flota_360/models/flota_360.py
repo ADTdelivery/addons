@@ -26,6 +26,7 @@ FILTROS = [
     ('atencion', 'Requieren atención'),
     ('mora', 'Cuotas vencidas'),
     ('papeletas', 'Papeletas pendientes'),
+    ('coactiva', 'Papeletas en coactiva'),
     ('capturas', 'Capturados'),
     ('sin_expediente', 'Sin expediente'),
     ('sin_doc_financiera', 'Falta documento financiera'),
@@ -45,6 +46,19 @@ SIN_CUENTA = 'sin_cuenta'  # estado de cronograma de un vehículo sin cuenta
 # Dashboard de Flota (adt_dashboard_flota), para que las cifras coincidan.
 GRUPOS = ('clientes', 'stock')
 CAPTURA_ACTIVA = ('capturado', 'disolucion_contrato')
+# Filtro por cliente, con el mismo criterio que el Dashboard de clientes (adt_comercial):
+# no candidatos = segmento "No prestar"; por terminar = su crédito en curso termina pronto.
+SEGMENTOS_CLIENTE = [('por_terminar', 'Por terminar de pagar'), ('no_candidato', 'No candidatos')]
+# Estado de la papeleta en la consulta del SAT Lima (texto libre del portal), por
+# palabra clave y en este orden: "Pendiente", "En Coactiva", "Medida Cautelar",
+# "Fraccionada", "Impugnada"/"En reclamo", "Pagada", "Prescrita", "Anulada".
+# Lo que no se reconozca queda en atención.
+ESTADOS_SAT = (
+    (('coactiv', 'cautelar', 'captura', 'embargo'), 'critico'),
+    (('pagad', 'cancelad'), 'ok'),
+    (('fraccion', 'convenio', 'reclam', 'impugn', 'apelac', 'recurso', 'descargo'), 'info'),
+    (('anulad', 'prescri', 'extingu', 'quebr'), 'neutral'),
+)
 # Botones del formulario de la captura que la ficha puede ejecutar.
 CAPTURA_BOTONES = ('action_registrar_pago', 'action_liberar', 'action_retener', 'action_recolocar',
                    'action_cancelar', 'action_ver_mantenimientos')
@@ -108,6 +122,11 @@ def accion_form(clave, label, icono, res_id=False, params=None, primaria=False):
 def accion_credito(label, icono, cuenta_id=False, primaria=False):
     """Asistente de crédito: nueva cuenta con su cronograma o edición de un borrador."""
     return {'tipo': 'credito', 'cuenta_id': cuenta_id, 'label': label, 'icon': icono, 'primary': primaria}
+
+
+def nivel_sat(estado):
+    texto = (estado or '').lower()
+    return next((nivel for claves, nivel in ESTADOS_SAT if any(c in texto for c in claves)), 'atencion')
 
 
 def frase(nivel, texto, detalle=''):
@@ -194,26 +213,18 @@ class AdtFlota360(models.AbstractModel):
         return expression.OR(dominios)
 
     @api.model
-    def buscar(self, termino='', filtro='todos', offset=0, limit=24, financiera=None, estado=None, grupo=None):
+    def buscar(self, termino='', filtro='todos', offset=0, limit=24, financiera=None, estado=None, grupo=None,
+               clientes=None):
         """grupo: 'clientes' (motos con dueño), 'stock' (sin dueño) o None = todas.
         financiera: id de la financiera de la cuenta del vehículo (en cualquier estado),
         0 = sin financiera, None = todas.
         estado: estado del cronograma de pagos de esa cuenta (borrador, aprobado, en_curso,
         cancelado, pagado o SIN_CUENTA), None = todos.
-        Ambos se combinan con la búsqueda y con el filtro rápido."""
+        clientes: 'por_terminar' o 'no_candidato' (ver SEGMENTOS_CLIENTE), None = todos.
+        Todos se combinan con la búsqueda y con el filtro rápido."""
         vehiculos = self.env['fleet.vehicle'].search(self._dominio_busqueda(termino), limit=MAX_ANALISIS)
-        resumenes = self._resumenes(vehiculos)
-        grupos = {g: 0 for g in GRUPOS}
-        for r in resumenes:
-            grupos['stock' if r['stock'] else 'clientes'] += 1
-        if grupo in GRUPOS:
-            resumenes = [r for r in resumenes if r['stock'] == (grupo == 'stock')]
-        por_financiera = [r for r in resumenes if financiera is None or r['financiera_id'] == financiera]
-        por_estado = [r for r in resumenes if estado is None or r['cuenta_estado'] == estado]
-        # Cada filtro cuenta con el otro aplicado, para que los números cuadren con la lista.
-        financieras = self._contar_financieras(por_estado)
-        estados = self._contar_estados(por_financiera)
-        resumenes = [r for r in por_financiera if estado is None or r['cuenta_estado'] == estado]
+        f = self._filtrar(self._resumenes(vehiculos), financiera, estado, grupo, clientes)
+        resumenes, financieras, estados, grupos = f['resumenes'], f['financieras'], f['estados'], f['grupos']
 
         contadores = {k: 0 for k, _l in FILTROS}
         cartera = {'vencido': 0.0, 'mora': 0.0, 'papeletas': 0.0}
@@ -244,8 +255,53 @@ class AdtFlota360(models.AbstractModel):
             'financieras': financieras,
             'estados': estados,
             'grupos': grupos,
+            'clientes': f['clientes'],
             'truncado': len(vehiculos) >= MAX_ANALISIS,
         }
+
+    def _filtrar(self, resumenes, financiera=None, estado=None, grupo=None, clientes=None):
+        """Aplica grupo, financiera, cronograma y segmento de cliente. Cada filtro cuenta
+        sus opciones con los demás aplicados, para que los números cuadren con la lista."""
+        grupos = {g: 0 for g in GRUPOS}
+        for r in resumenes:
+            grupos['stock' if r['stock'] else 'clientes'] += 1
+        if grupo in GRUPOS:
+            resumenes = [r for r in resumenes if r['stock'] == (grupo == 'stock')]
+        # clientes='todos': no filtra, pero cuenta cada segmento para mostrar el filtro.
+        segmentos = self._socios_por_segmento() if clientes else None
+        en_segmento = lambda r: (not segmentos or clientes not in segmentos
+                                 or (r['cliente'] or {}).get('id') in segmentos[clientes])
+        cumple_fin = lambda r: financiera is None or r['financiera_id'] == financiera
+        cumple_est = lambda r: estado is None or r['cuenta_estado'] == estado
+        financieras = self._contar_financieras([r for r in resumenes if cumple_est(r) and en_segmento(r)])
+        estados = self._contar_estados([r for r in resumenes if cumple_fin(r) and en_segmento(r)])
+        base = [r for r in resumenes if cumple_fin(r) and cumple_est(r)]
+        conteo = None
+        if segmentos is not None:
+            conteo = [{'id': k, 'name': label, 'n': sum(1 for r in base if (r['cliente'] or {}).get('id') in segmentos[k])}
+                      for k, label in SEGMENTOS_CLIENTE]
+        if conteo is not None:
+            # Los segmentos se superponen: «Todos» lleva su propio total.
+            conteo.insert(0, {'id': None, 'name': _('Todos'), 'n': len(base)})
+        return {'resumenes': [r for r in base if en_segmento(r)], 'financieras': financieras, 'estados': estados,
+                'grupos': grupos, 'clientes': conteo}
+
+    def _socios_por_segmento(self):
+        """{segmento: {partner_id}} según el Dashboard de clientes, o None si no hay acceso."""
+        if 'adt.comercial.clientes.dashboard' not in self.env:
+            return None
+        try:
+            data = self.env['adt.comercial.clientes.dashboard'].get_dashboard_data()
+        except AccessError:
+            return None
+        limite = fields.Date.context_today(self) + timedelta(days=data.get('dias_proximos') or 90)
+        res = {k: set() for k, _l in SEGMENTOS_CLIENTE}
+        for c in data['clientes']:
+            if c['segmento'] == 'no_prestar':
+                res['no_candidato'].add(c['id'])
+            if c['termina'] and fields.Date.to_date(c['termina']) <= limite:
+                res['por_terminar'].add(c['id'])
+        return res
 
     def _contar_financieras(self, resumenes):
         """Vehículos de la búsqueda por financiera de su cuenta (en cualquier estado)."""
@@ -444,8 +500,16 @@ class AdtFlota360(models.AbstractModel):
             return None
         campos = [c for c in ('vehicle_id', 'monto', 'fecha_vencimiento_final', 'proximo_a_vencerse', 'capturado')
                   if c in Papeleta._fields]
-        res = defaultdict(lambda: {'pendientes': 0, 'monto': 0.0, 'vencidas': 0, 'por_vencer': 0})
-        for p in Papeleta.search_read([('vehicle_id', 'in', ids), ('state', '!=', 'pagado')], campos):
+        res = defaultdict(lambda: {'pendientes': 0, 'monto': 0.0, 'vencidas': 0, 'por_vencer': 0, 'coactivas': 0})
+        pendientes = Papeleta.search_read([('vehicle_id', 'in', ids), ('state', '!=', 'pagado')], campos)
+        vehiculo_de = {p['id']: self._id(p['vehicle_id']) for p in pendientes}
+        Sat = self._modelo('adt.papeleta.sat', 'papeleta_id', 'estado_sat', 'vigente')
+        if Sat is not None and vehiculo_de:
+            for s in Sat.search_read([('papeleta_id', 'in', list(vehiculo_de)), ('vigente', '=', True)],
+                                     ['papeleta_id', 'estado_sat']):
+                if nivel_sat(s['estado_sat']) == 'critico':
+                    res[vehiculo_de[self._id(s['papeleta_id'])]]['coactivas'] += 1
+        for p in pendientes:
             r = res[self._id(p['vehicle_id'])]
             r['pendientes'] += 1
             r['monto'] += p['monto'] or 0.0
@@ -555,7 +619,12 @@ class AdtFlota360(models.AbstractModel):
             modulos.append(self._chip('papeletas', 'fa-file-text-o', 'Papeletas', 'Sin pendientes', 'ok'))
             return
         filtros.add('papeletas')
-        if p['vencidas']:
+        if p.get('coactivas'):
+            nivel = 'critico'
+            filtros.add('coactiva')
+            alertas.append(self._alerta('papeletas', nivel, plural(p['coactivas'], 'papeleta en coactiva', 'papeletas en coactiva')
+                                        + ' (SAT): riesgo de captura'))
+        elif p['vencidas']:
             nivel = 'critico'
             alertas.append(self._alerta('papeletas', nivel, plural(p['vencidas'], 'papeleta vencida', 'papeletas vencidas') + ': riesgo de captura'))
         elif p['por_vencer']:
@@ -1630,6 +1699,57 @@ class AdtFlota360(models.AbstractModel):
             })
         return evidencias
 
+    def _sat_papeleta(self, sat, p, pagada):
+        """Lo que dice el SAT Lima de la papeleta (adt.papeleta.sat vinculada), o None."""
+        if not sat:
+            return None
+        a_dt = lambda d: fields.Datetime.to_string(d)[:16] if d else False
+        estado = sat.estado_sat or 'Sin estado'
+        nivel = nivel_sat(sat.estado_sat) if sat.vigente else 'neutral'
+        alertas = []
+        if not pagada and sat.vigente and nivel == 'critico':
+            alertas.append({'nivel': 'critico', 'texto': 'SAT: la papeleta está «%s». Puede derivar en una orden de '
+                                                         'captura del vehículo; priorice su pago.' % estado})
+        elif not pagada and not sat.vigente:
+            alertas.append({'nivel': 'info', 'texto': 'La papeleta ya no figura como pendiente en el SAT. '
+                                                      'Verifique si fue pagada, anulada o descargada.'})
+        if not pagada and sat.vigente and sat.deuda - (p.monto or 0.0) > 0.009:
+            alertas.append({'nivel': 'atencion', 'texto': 'La deuda en el SAT (%s) es mayor que el monto registrado (%s).'
+                                                          % (self._soles(sat.deuda), self._soles(p.monto))})
+        acciones = [accion_abrir('adt.papeleta.sat', sat.id, 'Ver en SAT Lima', 'fa-university')]
+        if sat.url_copia:
+            acciones.append(accion_url(sat.url_copia, 'Copia en el SAT', 'fa-external-link'))
+        return {
+            'estado': estado,
+            'nivel': nivel,
+            'vigente': sat.vigente,
+            'texto': estado if sat.vigente else 'Ya no figura (%s)' % estado,
+            'falta': sat.codigo_falta or '',
+            'deuda': sat.deuda if sat.vigente else 0.0,
+            'alertas': alertas,
+            'kpis': [
+                {'label': 'Importe', 'monto': sat.importe},
+                {'label': 'Gastos / costas', 'monto': sat.gastos_costas},
+                {'label': 'Descuento', 'monto': sat.descuento},
+                {'label': 'Deuda SAT', 'monto': sat.deuda, 'nivel': nivel if sat.vigente and sat.deuda else False},
+            ],
+            'campos': self._campos(
+                self._campo('N° en el SAT', sat.name),
+                self._campo('Falta', sat.codigo_falta),
+                self._campo('Reglamento', sat.reglamento),
+                self._campo('Fecha de infracción', sat.fecha_infraccion and sat.fecha_infraccion.strftime('%d/%m/%Y')),
+                self._campo('Licencia del conductor', sat.licencia_conducir),
+                self._campo('Documento del conductor', ' '.join(filter(None, [sat.tipo_documento, sat.numero_documento]))),
+                self._campo('N° compromiso de pago', sat.numero_compromiso_pago),
+                self._campo('Primera vez vista', a_dt(sat.primera_vez_visto)),
+                self._campo('Última consulta', a_dt(sat.ultima_vez_visto)),
+                self._campo('Dejó de figurar', a_dt(sat.resuelta_en)),
+                self._campo('Revisión', self._etiqueta(sat, 'revision', sat.revision)),
+            ),
+            'evidencias': self._evidencias(sat._imagenes()),
+            'acciones': acciones,
+        }
+
     def _detalle_papeleta(self, p, hoy):
         g = lambda c: p[c] if c in p._fields else False
         pagada = p.state == 'pagado'
@@ -1638,10 +1758,13 @@ class AdtFlota360(models.AbstractModel):
         fraccionada = g('payment_method') == 'fraccionado'
         cuotas = g('cuotas_ids') or p.browse()
         pendientes = cuotas.filtered(lambda c: c.state == 'pendiente')
+        sat = self._sat_papeleta(g('sat_id'), p, pagada)
 
-        alertas = []
+        alertas = list(sat['alertas']) if sat else []
         if not pagada and g('texto_alerta'):
             alertas.append({'nivel': nivel, 'texto': p.texto_alerta})
+        if sat and sat['vigente'] and sat['nivel'] == 'critico' and not pagada:
+            nivel = 'critico'  # en coactiva: la fila y el panel van en rojo
         if g('capturado') and not g('recolocada'):
             alertas.append({'nivel': 'atencion', 'texto': 'El vehículo fue marcado como capturado: esta papeleta '
                                                            'se deriva al área de captura.'})
@@ -1671,6 +1794,7 @@ class AdtFlota360(models.AbstractModel):
             kpis.append({'label': 'Días para captura', 'texto': str(dias), 'nivel': nivel})
 
         campos = self._campos(
+            self._campo('Origen', self._etiqueta(p, 'origen', g('origen'))),
             self._campo('Modalidad de pago', self._etiqueta(p, 'payment_method', g('payment_method'))),
             self._campo('Prórroga', plural(p.dias_prorroga or 0, 'día', 'días') if g('tiene_prorroga') else 'No'),
             self._campo('Motivo de prórroga', g('tiene_prorroga') and g('motivo_prorroga')),
@@ -1724,6 +1848,7 @@ class AdtFlota360(models.AbstractModel):
             'kpis': kpis,
             'campos': campos,
             'detalle': (p.detalle or '').strip(),
+            'sat': sat,
             'evidencias': self._evidencias(g('attachment_ids') or self.env['ir.attachment']),
             'fraccionada': fraccionada,
             'fraccionamiento': {
@@ -1758,7 +1883,12 @@ class AdtFlota360(models.AbstractModel):
         pendientes = papeletas.filtered(lambda p: p.state != 'pagado')
         vencidas = pendientes.filtered(lambda p: p.fecha_vencimiento_final and p.fecha_vencimiento_final < hoy)
         proxima = pendientes.filtered('fecha_vencimiento_final').sorted('fecha_vencimiento_final')[:1]
-        if vencidas:
+        detalles = [self._detalle_papeleta(p, hoy) for p in papeletas]
+        coactivas = [d for d in detalles if d['editable'] and d['sat'] and d['sat']['vigente'] and d['sat']['nivel'] == 'critico']
+        if coactivas:
+            estado_pap = frase('critico', plural(len(coactivas), 'papeleta en coactiva', 'papeletas en coactiva') + ' en el SAT',
+                               'Riesgo de orden de captura del vehículo')
+        elif vencidas:
             estado_pap = frase('critico', plural(len(vencidas), 'papeleta vencida', 'papeletas vencidas'), 'Riesgo de captura del vehículo')
         elif pendientes:
             estado_pap = frase('atencion', plural(len(pendientes), 'papeleta pendiente', 'papeletas pendientes'),
@@ -1772,9 +1902,10 @@ class AdtFlota360(models.AbstractModel):
                 cifra('Por pagar', self._soles(sum(pendientes.mapped('monto'))), 'fa-money',
                       plural(len(pendientes), 'pendiente', 'pendientes'), 'critico' if vencidas else '', principal=True),
                 cifra('Vencidas', str(len(vencidas)), 'fa-exclamation-triangle', nivel='critico' if vencidas else ''),
+                cifra('En coactiva', str(len(coactivas)), 'fa-gavel', 'según el SAT', nivel='critico' if coactivas else ''),
                 cifra('Pagadas', str(len(papeletas) - len(pendientes)), 'fa-check-circle'),
             ] if papeletas else [],
-            'papeletas': [self._detalle_papeleta(p, hoy) for p in papeletas],
+            'papeletas': detalles,
             'kpis': [
                 {'label': 'Pendientes', 'texto': str(len(pendientes)), 'nivel': 'atencion' if pendientes else 'ok'},
                 {'label': 'Por pagar', 'monto': sum(pendientes.mapped('monto'))},

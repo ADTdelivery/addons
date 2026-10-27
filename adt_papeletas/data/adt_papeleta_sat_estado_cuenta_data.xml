@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Mismos códigos que adt.comercial.cuentas.state -->
+    <record id="estado_cuenta_borrador" model="adt.papeleta.sat.estado.cuenta">
+        <field name="name">Borrador</field>
+        <field name="code">borrador</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="estado_cuenta_aprobado" model="adt.papeleta.sat.estado.cuenta">
+        <field name="name">Aprobado</field>
+        <field name="code">aprobado</field>
+        <field name="sequence">20</field>
+        <field name="vigente" eval="True"/>
+    </record>
+    <record id="estado_cuenta_en_curso" model="adt.papeleta.sat.estado.cuenta">
+        <field name="name">En curso</field>
+        <field name="code">en_curso</field>
+        <field name="sequence">30</field>
+        <field name="vigente" eval="True"/>
+    </record>
+    <record id="estado_cuenta_cancelado" model="adt.papeleta.sat.estado.cuenta">
+        <field name="name">Cancelado</field>
+        <field name="code">cancelado</field>
+        <field name="sequence">40</field>
+    </record>
+    <record id="estado_cuenta_pagado" model="adt.papeleta.sat.estado.cuenta">
+        <field name="name">Pagado</field>
+        <field name="code">pagado</field>
+        <field name="sequence">50</field>
+    </record>
+</odoo>

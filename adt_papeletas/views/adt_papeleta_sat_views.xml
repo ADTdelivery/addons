@@ -43,8 +43,8 @@
                             attrs="{'invisible': [('papeleta_id', '=', False)]}"/>
                 </header>
                 <div class="alert alert-warning" role="alert" attrs="{'invisible': [('revision', '!=', 'pendiente')]}">
-                    <strong>Ya no figura en el SAT.</strong>
-                    Puede ser un pago, una anulación o un descargo. Revise y registre el resultado en «Revisión».
+                    <strong>Ya no figura en el SAT</strong> y no se pudo marcar como pagada la papeleta interna
+                    (o no tiene una vinculada). Revise y registre el resultado en «Revisión».
                 </div>
                 <div class="alert alert-danger" role="alert"
                      attrs="{'invisible': ['|', ('vigente', '=', False), ('estado_sat', 'not in', ['En Coactiva', 'Medida Cautelar'])]}">
@@ -207,6 +207,8 @@
                 <field name="vinculadas"/>
                 <field name="creadas"/>
                 <field name="resueltas"/>
+                <field name="pagadas" optional="show"/>
+                <field name="internas_actualizadas" optional="show"/>
                 <field name="state" widget="badge" decoration-success="state == 'ok'" decoration-danger="state == 'error'"/>
             </tree>
         </field>
@@ -241,6 +243,8 @@
                             <field name="vinculadas"/>
                             <field name="creadas"/>
                             <field name="resueltas"/>
+                            <field name="pagadas"/>
+                            <field name="internas_actualizadas"/>
                         </group>
                     </group>
                     <group string="Error" attrs="{'invisible': [('error', '=', False)]}">

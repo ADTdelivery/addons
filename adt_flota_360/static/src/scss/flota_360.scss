@@ -2655,6 +2655,14 @@ button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primar
     .adt_f360__label { margin: 0; }
 }
 .adt_f360__pap-text { white-space: pre-line; color: var(--f3-ink-2); }
+// Datos del SAT Lima en el detalle de la papeleta.
+.adt_f360__pap-sat {
+    .adt_f360__label > i { margin-right: 4px; }
+    > .adt_f360__fields { margin-top: 10px; }
+    &.is-critico { border-top-color: var(--f3-crit-line); }
+}
+.adt_f360__pap-sat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.adt_f360__badge > .fa { font-size: 10px; }
 // Grupos del formulario de la captura (campos + textos largos).
 .adt_f360__sheet .adt_f360__pap-block > .adt_f360__fields { margin-top: 6px; }
 .adt_f360__cap-text {
@@ -2707,44 +2715,96 @@ button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primar
     &.is-selected .adt_f360__papf-btn { background: var(--f3-subtle); }
 }
 .adt_f360__papf-btn {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, auto) auto;
     align-items: center;
-    gap: 16px;
+    gap: 24px;
     width: 100%;
-    padding: 10px 14px;
+    min-height: 84px;
+    padding: 16px 20px;
     border: 0;
     background: var(--f3-surface);
     color: inherit;
     text-align: left;
     cursor: pointer;
-    &:hover { background: var(--f3-subtle); .adt_f360__papf-go { color: var(--f3-primary); } }
+    &:hover { background: var(--f3-subtle); .adt_f360__papf-go { color: var(--f3-primary); border-color: var(--f3-primary); } }
     &:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--f3-focus); }
 }
-.adt_f360__papf-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.adt_f360__papf-det { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.adt_f360__papf-alert {
-    font-size: 12px;
-    color: var(--f3-warn);
-    &.is-critico { color: var(--f3-crit); }
-}
-.adt_f360__papf-fig { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
-.adt_f360__papf-evid {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+.adt_f360__papf-main { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.adt_f360__papf-num { font-size: 14px; font-weight: 700; color: var(--f3-ink); }
+.adt_f360__papf-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
     color: var(--f3-ink-2);
     font-size: 12px;
-    &.is-empty { color: var(--f3-muted); opacity: .6; }
 }
-.adt_f360__papf-go {
-    flex: none;
+.adt_f360__papf-meta-i {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--f3-muted);
+    white-space: nowrap;
+    > .fa { color: var(--f3-muted); }
+}
+.adt_f360__papf-det { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adt_f360__papf-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--f3-warn);
+    > .fa { margin-top: 2px; }
+    &.is-critico { color: var(--f3-crit); }
+    &.is-info { color: var(--f3-info); }
+}
+.adt_f360__papf-fig {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    text-align: right;
+}
+.adt_f360__papf-monto { font-size: 16px; font-weight: 700; color: var(--f3-ink); font-variant-numeric: tabular-nums; }
+.adt_f360__papf-plazo {
     font-size: 12px;
     font-weight: 600;
+    color: var(--f3-warn);
+    &.is-critico { color: var(--f3-crit); }
+    &.is-ok { color: var(--f3-ok); }
+}
+.adt_f360__papf-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+.adt_f360__papf-evid {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--f3-ink-2);
+    font-size: 12px;
+    white-space: nowrap;
+    &.is-empty { color: var(--f3-muted); opacity: .6; }
+}
+.adt_f360__papf-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: 4px;
+    color: var(--f3-ink-2);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+// Pantallas angostas: monto y acciones bajan debajo de los datos.
+@media (max-width: 720px) {
+    .adt_f360__papf-btn { grid-template-columns: 1fr auto; gap: 12px 16px; padding: 14px 16px; }
+    .adt_f360__papf-main { grid-column: 1 / -1; }
+    .adt_f360__papf-fig { align-items: flex-start; text-align: left; }
 }
 
 // Panel lateral (detalle de una papeleta). Queda debajo del modal de la vista,

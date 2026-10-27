@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'ADT Flota 360',
-    'version': '15.0.1.3.0',
+    'version': '15.0.1.4.0',
     'category': 'Human Resources/Fleet',
     'summary': 'Vista unificada del vehículo: buscador por placa, cliente o documento y estado de todos los módulos',
     'description': """
@@ -44,10 +44,13 @@ con las validaciones y el registro contable de ADT Comercial.
             'adt_flota_360/static/src/scss/carteras.scss',
             'adt_flota_360/static/src/js/cobranza_rentabilidad.js',
             'adt_flota_360/static/src/scss/cobranza_rentabilidad.scss',
+            'adt_flota_360/static/src/js/flota_360_indicadores.js',
+            'adt_flota_360/static/src/scss/flota_360_indicadores.scss',
         ],
         'web.assets_qweb': [
             'adt_flota_360/static/src/xml/flota_360.xml',
             'adt_flota_360/static/src/xml/cobranza_rentabilidad.xml',
+            'adt_flota_360/static/src/xml/flota_360_indicadores.xml',
         ],
     },
     'installable': True,

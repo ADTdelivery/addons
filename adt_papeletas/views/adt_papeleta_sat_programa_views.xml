@@ -9,7 +9,6 @@
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="alcance"/>
-                <field name="financiera_codigo" optional="show"/>
                 <field name="programado" widget="boolean_toggle"/>
                 <field name="hora" widget="float_time"/>
                 <field name="ultima_ejecucion_id" optional="show"/>
@@ -47,10 +46,8 @@
                     <group>
                         <group string="Placas a consultar">
                             <field name="alcance" widget="radio"/>
-                            <field name="financiera_codigo"
-                                   attrs="{'invisible': [('alcance', '!=', 'financiera')],
-                                           'required': [('alcance', '=', 'financiera')]}"/>
-                            <field name="solo_cuentas_vigentes" attrs="{'invisible': [('alcance', '!=', 'financiera')]}"/>
+                            <field name="estado_cuenta_ids" widget="many2many_checkboxes"
+                                   attrs="{'invisible': [('alcance', '!=', 'financiera')]}"/>
                             <field name="total_placas"/>
                             <field name="active" invisible="1"/>
                         </group>
@@ -211,6 +208,8 @@
                             <field name="con_error"/>
                             <field name="papeletas_nuevas"/>
                             <field name="dejaron_de_figurar"/>
+                            <field name="papeletas_pagadas"/>
+                            <field name="internas_actualizadas"/>
                             <field name="total_deuda"/>
                         </group>
                     </group>
@@ -229,6 +228,8 @@
                                     <field name="total_papeletas" sum="Total"/>
                                     <field name="nuevas" sum="Total"/>
                                     <field name="resueltas" sum="Total" optional="show"/>
+                                    <field name="pagadas" sum="Total" optional="show"/>
+                                    <field name="internas_actualizadas" sum="Total" optional="show"/>
                                     <field name="total_deuda" sum="Total"/>
                                     <field name="mensaje"/>
                                     <field name="consultado_en" optional="hide"/>

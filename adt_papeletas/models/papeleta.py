@@ -437,7 +437,8 @@ class ADTPapeleta(models.Model):
                  if old_repr != new_repr:
                      changes.append('%s: %s -> %s' % (k, old_repr, new_repr))
 
-             if changes:
+             # La sincronización SAT deja su propio mensaje, más legible.
+             if changes and not self.env.context.get('sat_sync'):
                  try:
                      rec.message_post(body=_('Cambios: <br/>%s') % ('<br/>'.join(changes),))
                  except Exception:

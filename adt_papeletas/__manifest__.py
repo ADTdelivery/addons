@@ -11,7 +11,7 @@
     'author': "Your Company",
     'website': "http://www.yourcompany.com",
     'category': 'Fleet Management',
-    'version': '1.2',
+    'version': '1.4',
     'depends': ['base', 'mail', 'fleet'],
     'data': [
         'security/ir.model.access.csv',
@@ -20,6 +20,7 @@
         'views/adt_papeleta_sat_views.xml',
         'views/adt_papeleta_sat_programa_views.xml',
         'data/adt_papeleta_sat_data.xml',
+        'data/adt_papeleta_sat_estado_cuenta_data.xml',
         'data/adt_papeleta_sat_programa_data.xml',
     ],
     'assets': {
