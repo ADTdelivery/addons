@@ -11,7 +11,7 @@
     'author': "Your Company",
     'website': "http://www.yourcompany.com",
     'category': 'Fleet Management',
-    'version': '1.4',
+    'version': '1.5',
     'depends': ['base', 'mail', 'fleet'],
     'data': [
         'security/ir.model.access.csv',

@@ -2773,6 +2773,23 @@ button.adt_f360__todo-what { cursor: pointer; &:hover b { color: var(--f3-primar
     &.is-critico { color: var(--f3-crit); }
     &.is-ok { color: var(--f3-ok); }
 }
+// Estado de pago de la papeleta SAT: más grande que un badge, es lo primero que se lee.
+.adt_f360__papf-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 10px;
+    border: 1px solid var(--f3-warn-line);
+    border-radius: 999px;
+    background: var(--f3-warn-bg);
+    color: var(--f3-warn);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 18px;
+    white-space: nowrap;
+    &.is-critico { border-color: var(--f3-crit-line); background: var(--f3-crit-bg); color: var(--f3-crit); }
+    &.is-ok { border-color: var(--f3-ok-line); background: var(--f3-ok-bg); color: var(--f3-ok); }
+}
 .adt_f360__papf-side {
     display: flex;
     flex-direction: column;

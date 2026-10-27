@@ -2,15 +2,18 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
     'use strict';
 
     /**
-     * Indicadores de la flota (gerencia): cuatro recuadros filtrables por financiera,
-     * cronograma y situación del cliente. Cada recuadro abre la Consulta de vehículos
-     * con el mismo filtro (mismos cálculos en el servidor) y la ficha en su pestaña.
+     * Indicadores SAT Lima (gerencia): estados de las papeletas, antigüedad, deuda y las
+     * más urgentes, filtrables por financiera, cronograma y situación del cliente.
+     * Cada recuadro y barra abre la lista de esas papeletas SAT; las urgentes y los
+     * vehículos abren su ficha de Flota 360 en la pestaña Papeleta SAT.
      * Usa los filtros de "Cartera y financieras" (.adt_cart, de adt_comercial).
      */
     var AbstractAction = require('web.AbstractAction');
     var core = require('web.core');
 
     var esc = _.escape;
+    var NIVEL_ICONO = {critico: 'fa-exclamation-circle', atencion: 'fa-clock-o', ok: 'fa-check-circle',
+                       info: 'fa-info-circle', neutral: 'fa-minus-circle'};
 
     function soles(n) {
         return 'S/ ' + (n || 0).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -24,6 +27,15 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
         return entero(n) + ' ' + (n === 1 ? uno : varios);
     }
 
+    function fecha(f) {
+        return f ? moment(f).format('DD/MM/YYYY') : '—';
+    }
+
+    function nivelPunto(nivel) {
+        return '<i class="fa ' + (NIVEL_ICONO[nivel] || NIVEL_ICONO.neutral) + ' adt_sat__ico is-' + (nivel || 'neutral') +
+            '" aria-hidden="true"></i>';
+    }
+
     var Indicadores = AbstractAction.extend({
         template: 'adt_flota_360.Indicadores',
         hasControlPanel: false,
@@ -34,7 +46,9 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             'click [data-financiera]': '_onFinanciera',
             'click [data-estado]': '_onEstado',
             'click [data-clientes]': '_onClientes',
-            'click [data-ver]': '_onVer',
+            'click [data-lista]': '_onLista',
+            'click [data-vehiculo]': '_onVehiculo',
+            'keydown tr[data-vehiculo]': '_onVehiculoTecla',
         },
 
         init: function () {
@@ -43,6 +57,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             this.estado = null;
             this.clientes = null;
             this.data = null;
+            this._listas = {};
             this._seq = 0;
         },
 
@@ -81,35 +96,133 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             });
         },
 
+        // Guarda los ids de una lista y devuelve su clave para data-lista.
+        _lista: function (titulo, ids) {
+            var clave = 'l' + _.size(this._listas);
+            this._listas[clave] = {titulo: titulo, ids: ids};
+            return clave;
+        },
+
         _render: function () {
             var d = this.data;
-            this._ref('subtitle').text('Al ' + moment(d.fecha).format('DD/MM/YYYY') + ' · ' + plural(d.total, 'vehículo', 'vehículos'));
+            this._listas = {};
+            if (!d.disponible) {
+                this._ref('subtitle').text('');
+                this._ref('facetas').empty();
+                this._ref('body').html('<div class="adt_cart__empty">El módulo de papeletas SAT (adt_papeletas) no está instalado ' +
+                    'o no tienes acceso.</div>');
+                return;
+            }
+            this._ref('subtitle').text('Al ' + fecha(d.fecha) + ' · ' + plural(d.total, 'papeleta', 'papeletas') + ' en el SAT · ' +
+                plural(d.pendientes, 'pendiente de pago', 'pendientes de pago'));
             this._renderFiltros();
-            var p = d.papeletas;
-            this._ref('body').html('<section class="adt_find__grid">' + [
-                {ver: 'papeletas', tab: 'papeletas', icon: 'fa-file-text-o', label: 'Papeletas pendientes',
-                 valor: soles(p.monto), sub: plural(p.vehiculos, 'vehículo', 'vehículos') +
-                    (p.coactiva ? ' · ' + entero(p.coactiva) + ' en coactiva' : ''),
-                 nivel: p.coactiva ? 'critico' : (p.vehiculos ? 'atencion' : 'ok')},
-                {ver: 'gps_off', tab: 'gps', icon: 'fa-map-marker', label: 'Vehículos sin reportar',
-                 valor: entero(d.gps.vehiculos), sub: 'GPS sin señal', nivel: d.gps.vehiculos ? 'atencion' : 'ok'},
-                {ver: 'mora', tab: 'cronograma', icon: 'fa-money', label: 'Nos deben',
-                 valor: soles(d.deuda.monto), sub: 'Cuotas vencidas · ' + plural(d.deuda.vehiculos, 'vehículo', 'vehículos'),
-                 nivel: d.deuda.monto ? 'critico' : 'ok'},
-                {ver: 'mora', tab: 'cronograma', icon: 'fa-clock-o', label: 'Mora',
-                 valor: soles(d.mora.monto), sub: plural(d.mora.vehiculos, 'vehículo', 'vehículos'),
-                 nivel: d.mora.monto ? 'atencion' : 'ok'},
-            ].map(function (t) {
-                return '<button type="button" class="adt_find__box is-' + t.nivel + '" data-ver="' + t.ver + '" data-tab="' + t.tab + '">' +
+            this._ref('body').html(
+                this._htmlRecuadros(d.recuadros) +
+                '<section class="adt_sat__cols">' +
+                    this._htmlBarras('Estados en el SAT', 'fa-university', d.estados, 'Sin papeletas registradas.') +
+                    this._htmlBarras('Antigüedad de las pendientes', 'fa-hourglass-half', d.antiguedad, 'Sin papeletas pendientes.') +
+                '</section>' +
+                this._htmlUrgentes(d.urgentes) +
+                '<section class="adt_sat__cols">' +
+                    this._htmlVehiculos(d.vehiculos) +
+                    this._htmlFechas(d.fechas) +
+                '</section>' +
+                this._htmlBarras('Faltas más frecuentes (pendientes)', 'fa-gavel', d.faltas, 'Sin papeletas pendientes.'));
+        },
+
+        _htmlRecuadros: function (recuadros) {
+            var self = this;
+            return '<section class="adt_find__grid adt_sat__grid">' + recuadros.map(function (t) {
+                var vacio = !t.ids.length;
+                return '<button type="button" class="adt_find__box is-' + t.nivel + (vacio ? ' is-empty' : '') + '"' +
+                    (vacio ? ' disabled="disabled"' : ' data-lista="' + self._lista(t.label, t.ids) + '"') +
+                    ' title="' + (vacio ? 'Sin papeletas' : 'Ver las papeletas') + '">' +
                     '<span class="adt_find__box-head"><i class="fa ' + t.icon + '" aria-hidden="true"></i>' + esc(t.label) +
-                        '<i class="fa fa-angle-right adt_find__box-go" aria-hidden="true"></i></span>' +
+                        (vacio ? '' : '<i class="fa fa-angle-right adt_find__box-go" aria-hidden="true"></i>') + '</span>' +
                     '<span class="adt_find__box-value">' + esc(t.valor) + '</span>' +
                     '<span class="adt_find__box-sub">' + esc(t.sub) + '</span></button>';
-            }).join('') + '</section>');
+            }).join('') + '</section>';
+        },
+
+        _panel: function (titulo, icono, cuerpo, extra) {
+            return '<section class="adt_sat__panel"><header class="adt_sat__panel-head"><h3><i class="fa ' + icono +
+                '" aria-hidden="true"></i>' + esc(titulo) + '</h3>' + (extra || '') + '</header>' +
+                '<div class="adt_sat__panel-body">' + cuerpo + '</div></section>';
+        },
+
+        // Barras horizontales: una sola medida (cantidad), el monto va en texto al lado.
+        _htmlBarras: function (titulo, icono, filas, vacio) {
+            var self = this;
+            var max = _.max(_.pluck(filas, 'n').concat([1]));
+            var cuerpo = filas.length && _.some(filas, function (f) { return f.n; })
+                ? '<ul class="adt_sat__bars">' + filas.map(function (f) {
+                    var nivel = f.nivel || 'info';
+                    var ancho = f.n ? Math.max(f.n * 100 / max, 2) : 0;
+                    var detalle = plural(f.n, 'papeleta', 'papeletas') + ' · ' + soles(f.monto);
+                    return '<li><button type="button" class="adt_sat__bar' + (f.n ? '' : ' is-zero') + '"' +
+                        (f.n ? ' data-lista="' + self._lista(titulo + ': ' + f.label, f.ids) + '"' : ' disabled="disabled"') +
+                        ' title="' + esc(f.label + ': ' + detalle) + '">' +
+                        '<span class="adt_sat__bar-label">' + (f.nivel ? nivelPunto(nivel) : '') + esc(f.label) + '</span>' +
+                        '<span class="adt_sat__bar-track"><span class="adt_sat__bar-fill is-' + nivel + '" style="width:' + ancho + '%"></span></span>' +
+                        '<span class="adt_sat__bar-n">' + entero(f.n) + '</span>' +
+                        '<span class="adt_sat__bar-monto">' + soles(f.monto) + '</span>' +
+                    '</button></li>';
+                }).join('') + '</ul>'
+                : '<p class="adt_sat__vacio">' + esc(vacio) + '</p>';
+            return this._panel(titulo, icono, cuerpo);
+        },
+
+        _htmlUrgentes: function (urgentes) {
+            var cuerpo = urgentes.length
+                ? '<div class="adt_sat__table-wrap"><table class="adt_sat__table"><thead><tr>' +
+                    '<th>Prioridad</th><th>Papeleta</th><th>Placa / cliente</th><th>Estado SAT</th>' +
+                    '<th>Infracción</th><th class="is-num">Días</th><th class="is-num">Deuda</th><th></th></tr></thead><tbody>' +
+                    urgentes.map(function (u, i) {
+                        return '<tr class="is-' + u.nivel + '"' + (u.vehicle_id ? ' data-vehiculo="' + u.vehicle_id + '" tabindex="0"' : '') + '>' +
+                            '<td><span class="adt_sat__rank">' + (i + 1) + '</span><span class="adt_sat__motivo is-' + u.nivel + '">' +
+                                nivelPunto(u.nivel) + esc(u.motivo) + '</span></td>' +
+                            '<td class="adt_sat__mono">' + esc(u.numero) + '</td>' +
+                            '<td><span class="adt_sat__strong">' + esc(u.placa || '—') + '</span>' +
+                                '<span class="adt_sat__sub">' + esc(u.cliente || (u.vehicle_id ? 'Sin cliente' : 'Sin vehículo')) + '</span></td>' +
+                            '<td>' + esc(u.estado) + '</td>' +
+                            '<td>' + fecha(u.fecha) + '</td>' +
+                            '<td class="is-num adt_sat__dias is-' + u.nivel + '">' + entero(u.dias) + '</td>' +
+                            '<td class="is-num adt_sat__strong">' + soles(u.monto) + '</td>' +
+                            '<td class="is-num">' + (u.vehicle_id ? '<i class="fa fa-angle-right" aria-hidden="true"></i>' : '') + '</td></tr>';
+                    }).join('') + '</tbody></table></div>'
+                : '<p class="adt_sat__vacio"><i class="fa fa-check-circle" aria-hidden="true"></i> Sin papeletas pendientes de pago.</p>';
+            return this._panel('Las más urgentes', 'fa-fire', cuerpo,
+                '<span class="adt_sat__muted">Coactiva, medida cautelar y luego las de más días</span>');
+        },
+
+        _htmlVehiculos: function (vehiculos) {
+            var cuerpo = vehiculos.length
+                ? '<div class="adt_sat__table-wrap"><table class="adt_sat__table"><thead><tr>' +
+                    '<th>Vehículo</th><th class="is-num">Papeletas</th><th class="is-num">Días</th><th class="is-num">Deuda</th></tr></thead><tbody>' +
+                    vehiculos.map(function (v) {
+                        return '<tr class="is-' + v.nivel + '" data-vehiculo="' + v.vehicle_id + '" tabindex="0">' +
+                            '<td><span class="adt_sat__strong">' + esc(v.placa) + '</span>' +
+                                '<span class="adt_sat__sub">' + esc(v.cliente || 'Sin cliente') + '</span></td>' +
+                            '<td class="is-num">' + entero(v.n) + (v.coactivas ? ' <span class="adt_sat__chip is-critico">' +
+                                entero(v.coactivas) + ' coactiva/cautelar</span>' : '') + '</td>' +
+                            '<td class="is-num">' + entero(v.dias) + '</td>' +
+                            '<td class="is-num adt_sat__strong">' + soles(v.monto) + '</td></tr>';
+                    }).join('') + '</tbody></table></div>'
+                : '<p class="adt_sat__vacio">Ningún vehículo con papeletas pendientes.</p>';
+            return this._panel('Vehículos con más deuda SAT', 'fa-motorcycle', cuerpo);
+        },
+
+        _htmlFechas: function (fechas) {
+            return this._panel('Fechas clave', 'fa-calendar', '<dl class="adt_sat__fechas">' + fechas.map(function (f) {
+                var valor = f.fecha !== undefined ? fecha(f.fecha)
+                    : (f.fecha_hora !== undefined ? (f.fecha_hora ? moment.utc(f.fecha_hora).local().format('DD/MM/YYYY HH:mm') : '—') : esc(f.texto));
+                return '<div class="adt_sat__fecha' + (f.nivel ? ' is-' + f.nivel : '') + '"><dt>' + esc(f.label) + '</dt>' +
+                    '<dd><span class="adt_sat__fecha-v">' + valor + '</span>' +
+                    (f.sub ? '<span class="adt_sat__sub">' + esc(f.sub) + '</span>' : '') + '</dd></div>';
+            }).join('') + '</dl>');
         },
 
         _renderFiltros: function () {
-            var self = this;
             var d = this.data;
             var chip = function (attr, valor, activo, texto, n, punto) {
                 return '<button type="button" class="adt_cart__fchip' + (activo ? ' is-active' : '') + (!n && !activo ? ' is-zero' : '') +
@@ -136,13 +249,29 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
                     '<i class="fa fa-times" aria-hidden="true"></i> Quitar filtros</button>' : ''));
         },
 
-        _onVer: function (ev) {
-            var el = ev.currentTarget;
+        // Lista de las papeletas SAT detrás de un recuadro o barra.
+        _onLista: function (ev) {
+            var l = this._listas[ev.currentTarget.getAttribute('data-lista')];
+            if (!l) { return; }
+            this.do_action({
+                type: 'ir.actions.act_window', name: 'Papeletas SAT · ' + l.titulo, res_model: 'adt.papeleta.sat',
+                views: [[false, 'list'], [false, 'form']], domain: [['id', 'in', l.ids]], target: 'current',
+            });
+        },
+
+        // Ficha del vehículo en Flota 360, abierta en la pestaña Papeleta SAT.
+        _onVehiculo: function (ev) {
             this.do_action({
                 type: 'ir.actions.client', tag: 'adt_flota_360', name: 'Flota 360',
-                params: {filtro: el.getAttribute('data-ver'), tab: el.getAttribute('data-tab'),
-                         financiera: this.financiera, estado: this.estado, clientes: this.clientes},
+                params: {vehicle_id: parseInt(ev.currentTarget.getAttribute('data-vehiculo'), 10), tab: 'papeletas'},
             });
+        },
+
+        _onVehiculoTecla: function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                this._onVehiculo(ev);
+            }
         },
 
         _onFinanciera: function (ev) {

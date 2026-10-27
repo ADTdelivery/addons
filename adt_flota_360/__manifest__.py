@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'ADT Flota 360',
-    'version': '15.0.1.4.0',
+    'version': '15.0.1.5.0',
     'category': 'Human Resources/Fleet',
     'summary': 'Vista unificada del vehículo: buscador por placa, cliente o documento y estado de todos los módulos',
     'description': """
@@ -11,7 +11,7 @@ Una sola pantalla para encontrar un vehículo (placa, chasis, motor, nombre,
 DNI/RUC o teléfono del cliente) y ver de un vistazo su estado en cada módulo:
 
 * Cuentas y cuotas (adt_comercial)
-* Papeletas (adt_papeletas)
+* Papeletas del SAT Lima: estado de pago y días (adt_papeletas)
 * GPS / Traccar (adt_traccar_device, adt_mantenimiento_preventivo)
 * Trámite de placa y tracking de entrega (adt_tramite_placa, adt_tracking_moto)
 * Capturas (adt_captura)

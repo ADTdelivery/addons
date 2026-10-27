@@ -1,4 +1,4 @@
-// Indicadores de la flota: cuatro recuadros con los filtros de "Cartera y financieras"
+// Indicadores SAT Lima: recuadros con los filtros de "Cartera y financieras"
 // (.adt_cart, de adt_comercial).
 
 .adt_find {
@@ -72,3 +72,180 @@
 }
 .adt_find__box.is-critico .adt_find__box-value { color: var(--cart-neg); }
 .adt_find__box-sub { margin-top: auto; color: var(--cart-muted); font-size: 12.5px; }
+
+// ------------------------------------------------------------------
+// Indicadores SAT Lima: recuadros de colores, barras, urgentes y fechas.
+// ------------------------------------------------------------------
+
+.adt_sat {
+    --sat-gap: 16px;
+    .adt_find__body { display: flex; flex-direction: column; gap: var(--sat-gap); }
+}
+
+// Recuadros urgentes con fondo de su color, para que se lean primero.
+.adt_sat__grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    @media (max-width: 560px) { grid-template-columns: minmax(0, 1fr); }
+    .adt_find__box { min-height: 128px; }
+    .adt_find__box.is-critico { background: var(--cart-neg-bg); border-color: var(--cart-neg); }
+    .adt_find__box.is-atencion { background: var(--cart-warn-bg); }
+    .adt_find__box.is-atencion .adt_find__box-value { color: var(--cart-warn); }
+    .adt_find__box.is-ok .adt_find__box-value { color: var(--cart-pos); }
+    .adt_find__box.is-empty { cursor: default; &:hover { box-shadow: none; border-color: var(--cart-border); } }
+    .adt_find__box.is-critico.is-empty:hover { border-color: var(--cart-neg); }
+}
+
+.adt_sat__cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sat-gap);
+    @media (max-width: 900px) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.adt_sat__panel {
+    min-width: 0;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+}
+.adt_sat__panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--cart-border);
+    h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        color: var(--cart-ink);
+        font-size: 14px;
+        font-weight: 700;
+        > .fa { color: var(--cart-muted); }
+    }
+}
+.adt_sat__panel-body { padding: 12px 18px 16px; }
+.adt_sat__muted, .adt_sat__vacio { color: var(--cart-muted); font-size: 12.5px; }
+.adt_sat__vacio { margin: 8px 0; }
+.adt_sat__sub { display: block; color: var(--cart-muted); font-size: 12px; }
+.adt_sat__strong { color: var(--cart-ink); font-weight: 600; }
+.adt_sat__mono { font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+
+// Iconos de estado: el color nunca va solo, siempre con icono y texto.
+.adt_sat__ico {
+    margin-right: 6px;
+    color: var(--cart-muted);
+    &.is-critico { color: var(--cart-neg); }
+    &.is-atencion { color: var(--cart-warn); }
+    &.is-ok { color: var(--cart-pos); }
+    &.is-info { color: var(--cart-info); }
+}
+
+// Barras horizontales: etiqueta | barra | cantidad | monto.
+.adt_sat__bars { margin: 0; padding: 0; list-style: none; }
+.adt_sat__bar {
+    display: grid;
+    grid-template-columns: minmax(110px, 1.3fr) minmax(60px, 2fr) 44px minmax(90px, auto);
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--cart-ink-2);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    &:hover:not(:disabled) { background: var(--cart-subtle); }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--cart-focus); }
+    &.is-zero { cursor: default; opacity: .6; }
+    @media (max-width: 560px) { grid-template-columns: minmax(0, 1fr) 40px auto; .adt_sat__bar-track { display: none; } }
+}
+.adt_sat__bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adt_sat__bar-track { height: 10px; border-radius: 4px; background: var(--cart-subtle); overflow: hidden; }
+.adt_sat__bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    background: var(--cart-info);
+    &.is-critico { background: var(--cart-neg); }
+    &.is-atencion { background: var(--cart-warn); }
+    &.is-ok { background: var(--cart-pos); }
+    &.is-neutral { background: var(--cart-muted); }
+}
+.adt_sat__bar-n { color: var(--cart-ink); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.adt_sat__bar-monto { color: var(--cart-muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+// Tablas (urgentes y vehículos): fila clicable que abre la ficha.
+.adt_sat__table-wrap { overflow-x: auto; margin: 0 -18px; }
+.adt_sat__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    th {
+        padding: 6px 18px;
+        color: var(--cart-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .04em;
+        text-align: left;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    td { padding: 9px 18px; border-top: 1px solid var(--cart-border); vertical-align: middle; color: var(--cart-ink-2); }
+    .is-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    tr[data-vehiculo] { cursor: pointer; }
+    tbody tr:hover { background: var(--cart-subtle); }
+    tbody tr:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cart-focus); }
+    tbody tr.is-critico td:first-child { box-shadow: inset 4px 0 0 var(--cart-neg); }
+    tbody tr.is-atencion td:first-child { box-shadow: inset 4px 0 0 var(--cart-warn); }
+}
+.adt_sat__rank {
+    display: inline-block;
+    min-width: 20px;
+    margin-right: 8px;
+    color: var(--cart-muted);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.adt_sat__motivo {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    &.is-critico { background: var(--cart-neg-bg); color: var(--cart-neg); .adt_sat__ico { color: inherit; } }
+    &.is-atencion { background: var(--cart-warn-bg); color: var(--cart-warn); .adt_sat__ico { color: inherit; } }
+}
+.adt_sat__dias { font-weight: 700; &.is-critico { color: var(--cart-neg); } &.is-atencion { color: var(--cart-warn); } }
+.adt_sat__chip {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    &.is-critico { background: var(--cart-neg-bg); color: var(--cart-neg); }
+}
+
+// Fechas clave.
+.adt_sat__fechas { display: flex; flex-direction: column; margin: 0; }
+.adt_sat__fecha {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid var(--cart-border);
+    &:first-child { border-top: 0; }
+    dt { color: var(--cart-ink-2); font-size: 13px; font-weight: 500; }
+    dd { margin: 0; text-align: right; }
+    &.is-critico .adt_sat__fecha-v { color: var(--cart-neg); }
+    &.is-ok .adt_sat__fecha-v { color: var(--cart-pos); }
+}
+.adt_sat__fecha-v { color: var(--cart-ink); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }

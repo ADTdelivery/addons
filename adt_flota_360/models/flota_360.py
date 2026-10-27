@@ -25,7 +25,8 @@ FILTROS = [
     ('todos', 'Todos'),
     ('atencion', 'Requieren atención'),
     ('mora', 'Cuotas vencidas'),
-    ('papeletas', 'Papeletas pendientes'),
+    ('papeletas', 'Papeletas SAT pendientes'),
+    ('papeletas_semana', 'Papeletas con más de una semana'),
     ('coactiva', 'Papeletas en coactiva'),
     ('capturas', 'Capturados'),
     ('sin_expediente', 'Sin expediente'),
@@ -59,6 +60,9 @@ ESTADOS_SAT = (
     (('fraccion', 'convenio', 'reclam', 'impugn', 'apelac', 'recurso', 'descargo'), 'info'),
     (('anulad', 'prescri', 'extingu', 'quebr'), 'neutral'),
 )
+# Papeleta SAT pendiente de pago con más días que estos (desde la infracción): alerta.
+# Mismo valor que DIAS_ALERTA de adt_papeletas.
+PAPELETA_DIAS_ALERTA = 7
 # Botones del formulario de la captura que la ficha puede ejecutar.
 CAPTURA_BOTONES = ('action_registrar_pago', 'action_liberar', 'action_retener', 'action_recolocar',
                    'action_cancelar', 'action_ver_mantenimientos')
@@ -495,29 +499,22 @@ class AdtFlota360(models.AbstractModel):
         return res
 
     def _lote_papeletas(self, ids, hoy):
-        Papeleta = self._modelo('adt.papeleta', 'vehicle_id', 'state', 'monto')
-        if Papeleta is None:
+        """Papeletas del SAT Lima pendientes de pago, por vehículo."""
+        Sat = self._modelo('adt.papeleta.sat', 'vehicle_id', 'estado_pago', 'fecha_infraccion', 'deuda')
+        if Sat is None:
             return None
-        campos = [c for c in ('vehicle_id', 'monto', 'fecha_vencimiento_final', 'proximo_a_vencerse', 'capturado')
-                  if c in Papeleta._fields]
-        res = defaultdict(lambda: {'pendientes': 0, 'monto': 0.0, 'vencidas': 0, 'por_vencer': 0, 'coactivas': 0})
-        pendientes = Papeleta.search_read([('vehicle_id', 'in', ids), ('state', '!=', 'pagado')], campos)
-        vehiculo_de = {p['id']: self._id(p['vehicle_id']) for p in pendientes}
-        Sat = self._modelo('adt.papeleta.sat', 'papeleta_id', 'estado_sat', 'vigente')
-        if Sat is not None and vehiculo_de:
-            for s in Sat.search_read([('papeleta_id', 'in', list(vehiculo_de)), ('vigente', '=', True)],
-                                     ['papeleta_id', 'estado_sat']):
-                if nivel_sat(s['estado_sat']) == 'critico':
-                    res[vehiculo_de[self._id(s['papeleta_id'])]]['coactivas'] += 1
-        for p in pendientes:
-            r = res[self._id(p['vehicle_id'])]
+        res = defaultdict(lambda: {'pendientes': 0, 'monto': 0.0, 'semana': 0, 'coactivas': 0, 'dias': 0})
+        for s in Sat.search_read([('vehicle_id', 'in', ids), ('estado_pago', '=', 'pendiente')],
+                                 ['vehicle_id', 'fecha_infraccion', 'importe', 'deuda', 'estado_sat']):
+            r = res[self._id(s['vehicle_id'])]
             r['pendientes'] += 1
-            r['monto'] += p['monto'] or 0.0
-            venc = p.get('fecha_vencimiento_final')
-            if venc and venc < hoy:
-                r['vencidas'] += 1
-            elif p.get('proximo_a_vencerse'):
-                r['por_vencer'] += 1
+            r['monto'] += s['deuda'] or s['importe'] or 0.0
+            dias = (hoy - s['fecha_infraccion']).days if s['fecha_infraccion'] else 0
+            r['dias'] = max(r['dias'], dias)
+            if dias > PAPELETA_DIAS_ALERTA:
+                r['semana'] += 1
+            if nivel_sat(s['estado_sat']) == 'critico':
+                r['coactivas'] += 1
         return dict(res)
 
     def _lote_gps(self, ids):
@@ -616,25 +613,27 @@ class AdtFlota360(models.AbstractModel):
 
     def _resumen_papeletas(self, p, hoy, modulos, alertas, filtros):
         if not p:
-            modulos.append(self._chip('papeletas', 'fa-file-text-o', 'Papeletas', 'Sin pendientes', 'ok'))
+            modulos.append(self._chip('papeletas', 'fa-university', 'Papeletas SAT', 'Sin pendientes', 'ok'))
             return
         filtros.add('papeletas')
-        if p.get('coactivas'):
+        if p['semana']:
+            filtros.add('papeletas_semana')
+        if p['coactivas']:
             nivel = 'critico'
             filtros.add('coactiva')
             alertas.append(self._alerta('papeletas', nivel, plural(p['coactivas'], 'papeleta en coactiva', 'papeletas en coactiva')
                                         + ' (SAT): riesgo de captura'))
-        elif p['vencidas']:
+        elif p['semana']:
             nivel = 'critico'
-            alertas.append(self._alerta('papeletas', nivel, plural(p['vencidas'], 'papeleta vencida', 'papeletas vencidas') + ': riesgo de captura'))
-        elif p['por_vencer']:
-            nivel = 'atencion'
-            alertas.append(self._alerta('papeletas', nivel, plural(p['por_vencer'], 'papeleta por vencer', 'papeletas por vencer')))
+            alertas.append(self._alerta('papeletas', nivel, plural(p['semana'], 'papeleta', 'papeletas')
+                                        + ' SAT con más de una semana sin pagar'))
         else:
             nivel = 'atencion'
-            alertas.append(self._alerta('papeletas', nivel, plural(p['pendientes'], 'papeleta pendiente', 'papeletas pendientes')))
-        chip = self._chip('papeletas', 'fa-file-text-o', 'Papeletas', plural(p['pendientes'], 'pendiente', 'pendientes'), nivel)
-        chip['monto'] = p['monto']
+            alertas.append(self._alerta('papeletas', nivel, plural(p['pendientes'], 'papeleta SAT pendiente de pago',
+                                                                   'papeletas SAT pendientes de pago')))
+        chip = self._chip('papeletas', 'fa-university', 'Papeletas SAT',
+                          plural(p['pendientes'], 'pendiente de pago', 'pendientes de pago'), nivel)
+        chip.update(monto=p['monto'], dias=p['dias'])
         modulos.append(chip)
 
     def _resumen_gps(self, g, cuenta, modulos, alertas, filtros):
@@ -1699,220 +1698,126 @@ class AdtFlota360(models.AbstractModel):
             })
         return evidencias
 
-    def _sat_papeleta(self, sat, p, pagada):
-        """Lo que dice el SAT Lima de la papeleta (adt.papeleta.sat vinculada), o None."""
-        if not sat:
-            return None
+    def _detalle_papeleta(self, sat, hoy):
+        """Una papeleta del SAT Lima (adt.papeleta.sat) para la pestaña Papeleta SAT."""
+        g = lambda c: sat[c] if c in sat._fields else False
+        a_fecha = lambda d: fields.Date.to_string(d) if d else False
         a_dt = lambda d: fields.Datetime.to_string(d)[:16] if d else False
-        estado = sat.estado_sat or 'Sin estado'
-        nivel = nivel_sat(sat.estado_sat) if sat.vigente else 'neutral'
+        pendiente = sat.estado_pago == 'pendiente'
+        dias = g('dias') or 0
+        semana = pendiente and dias > PAPELETA_DIAS_ALERTA
+        nivel_estado = nivel_sat(sat.estado_sat) if sat.vigente else 'neutral'
+        coactiva = pendiente and nivel_estado == 'critico'
+        nivel = 'ok' if not pendiente else ('critico' if coactiva or semana else 'atencion')
+        monto = sat.deuda or sat.importe
+
         alertas = []
-        if not pagada and sat.vigente and nivel == 'critico':
+        if coactiva:
             alertas.append({'nivel': 'critico', 'texto': 'SAT: la papeleta está «%s». Puede derivar en una orden de '
-                                                         'captura del vehículo; priorice su pago.' % estado})
-        elif not pagada and not sat.vigente:
-            alertas.append({'nivel': 'info', 'texto': 'La papeleta ya no figura como pendiente en el SAT. '
-                                                      'Verifique si fue pagada, anulada o descargada.'})
-        if not pagada and sat.vigente and sat.deuda - (p.monto or 0.0) > 0.009:
-            alertas.append({'nivel': 'atencion', 'texto': 'La deuda en el SAT (%s) es mayor que el monto registrado (%s).'
-                                                          % (self._soles(sat.deuda), self._soles(p.monto))})
+                                                         'captura del vehículo; priorice su pago.' % sat.estado_sat})
+        if semana:
+            alertas.append({'nivel': 'critico', 'texto': 'Pendiente de pago hace %s: ya pasó más de una semana desde '
+                                                         'la infracción.' % plural(dias, 'día', 'días')})
+        if not sat.vigente and g('revision') == 'pendiente':
+            alertas.append({'nivel': 'atencion', 'texto': 'Dejó de figurar en el SAT, pero no se confirmó el pago. '
+                                                          'Verifique si fue pagada, anulada o descargada.'})
+
+        kpis = [
+            {'label': 'Deuda SAT' if pendiente else 'Importe', 'monto': monto if pendiente else sat.importe,
+             'nivel': nivel if pendiente else False},
+            {'label': 'Fecha de infracción', 'fecha': a_fecha(sat.fecha_infraccion)},
+            {'label': 'Días', 'texto': str(dias), 'nivel': nivel if pendiente else False},
+        ]
+        if not pendiente:
+            kpis.append({'label': 'Pagada el', 'fecha': a_fecha(sat.resuelta_en and sat.resuelta_en.date()
+                                                                 or sat.ultima_vez_visto and sat.ultima_vez_visto.date()),
+                         'nivel': 'ok'})
+
+        campos = self._campos(
+            self._campo('Estado de pago', self._etiqueta(sat, 'estado_pago', sat.estado_pago)),
+            self._campo('Estado en el SAT', sat.estado_sat if sat.vigente else 'Ya no figura (%s)' % (sat.estado_sat or '-')),
+            self._campo('Falta', sat.codigo_falta),
+            self._campo('Reglamento', sat.reglamento),
+            self._campo('Importe', self._soles(sat.importe)),
+            self._campo('Gastos / costas', sat.gastos_costas and self._soles(sat.gastos_costas)),
+            self._campo('Descuento', sat.descuento and self._soles(sat.descuento)),
+            self._campo('Licencia del conductor', sat.licencia_conducir),
+            self._campo('Documento del conductor', ' '.join(filter(None, [sat.tipo_documento, sat.numero_documento]))),
+            self._campo('N° compromiso de pago', sat.numero_compromiso_pago),
+            self._campo('Papeleta interna', sat.papeleta_id.display_name if g('papeleta_id') else False),
+            self._campo('Primera vez vista', a_dt(sat.primera_vez_visto)),
+            self._campo('Última consulta', a_dt(sat.ultima_vez_visto)),
+            self._campo('Dejó de figurar', a_dt(sat.resuelta_en)),
+            self._campo('Revisión', self._etiqueta(sat, 'revision', g('revision'))),
+        )
+
         acciones = [accion_abrir('adt.papeleta.sat', sat.id, 'Ver en SAT Lima', 'fa-university')]
         if sat.url_copia:
             acciones.append(accion_url(sat.url_copia, 'Copia en el SAT', 'fa-external-link'))
+        mas = []
+        if g('papeleta_id'):
+            mas.append(accion_abrir('adt.papeleta', sat.papeleta_id.id, 'Papeleta interna', 'fa-file-text-o'))
+
         return {
-            'estado': estado,
-            'nivel': nivel,
-            'vigente': sat.vigente,
-            'texto': estado if sat.vigente else 'Ya no figura (%s)' % estado,
+            'id': sat.id,
+            'titulo': 'Papeleta %s' % sat.name,
+            'badge': {'texto': self._etiqueta(sat, 'estado_pago', sat.estado_pago), 'nivel': nivel},
+            'sat': {'texto': sat.estado_sat or 'Sin estado', 'nivel': nivel_estado} if sat.vigente and sat.estado_sat else None,
+            'pendiente': pendiente,
+            'dias': dias,
+            'semana': semana,
             'falta': sat.codigo_falta or '',
-            'deuda': sat.deuda if sat.vigente else 0.0,
-            'alertas': alertas,
-            'kpis': [
-                {'label': 'Importe', 'monto': sat.importe},
-                {'label': 'Gastos / costas', 'monto': sat.gastos_costas},
-                {'label': 'Descuento', 'monto': sat.descuento},
-                {'label': 'Deuda SAT', 'monto': sat.deuda, 'nivel': nivel if sat.vigente and sat.deuda else False},
-            ],
-            'campos': self._campos(
-                self._campo('N° en el SAT', sat.name),
-                self._campo('Falta', sat.codigo_falta),
-                self._campo('Reglamento', sat.reglamento),
-                self._campo('Fecha de infracción', sat.fecha_infraccion and sat.fecha_infraccion.strftime('%d/%m/%Y')),
-                self._campo('Licencia del conductor', sat.licencia_conducir),
-                self._campo('Documento del conductor', ' '.join(filter(None, [sat.tipo_documento, sat.numero_documento]))),
-                self._campo('N° compromiso de pago', sat.numero_compromiso_pago),
-                self._campo('Primera vez vista', a_dt(sat.primera_vez_visto)),
-                self._campo('Última consulta', a_dt(sat.ultima_vez_visto)),
-                self._campo('Dejó de figurar', a_dt(sat.resuelta_en)),
-                self._campo('Revisión', self._etiqueta(sat, 'revision', sat.revision)),
-            ),
-            'evidencias': self._evidencias(sat._imagenes()),
-            'acciones': acciones,
-        }
-
-    def _detalle_papeleta(self, p, hoy):
-        g = lambda c: p[c] if c in p._fields else False
-        pagada = p.state == 'pagado'
-        vencida = not pagada and p.fecha_vencimiento_final and p.fecha_vencimiento_final < hoy
-        nivel = 'ok' if pagada else ('critico' if vencida else 'atencion')
-        fraccionada = g('payment_method') == 'fraccionado'
-        cuotas = g('cuotas_ids') or p.browse()
-        pendientes = cuotas.filtered(lambda c: c.state == 'pendiente')
-        sat = self._sat_papeleta(g('sat_id'), p, pagada)
-
-        alertas = list(sat['alertas']) if sat else []
-        if not pagada and g('texto_alerta'):
-            alertas.append({'nivel': nivel, 'texto': p.texto_alerta})
-        if sat and sat['vigente'] and sat['nivel'] == 'critico' and not pagada:
-            nivel = 'critico'  # en coactiva: la fila y el panel van en rojo
-        if g('capturado') and not g('recolocada'):
-            alertas.append({'nivel': 'atencion', 'texto': 'El vehículo fue marcado como capturado: esta papeleta '
-                                                           'se deriva al área de captura.'})
-        if g('recolocada') and not pagada:
-            alertas.append({'nivel': 'critico', 'texto': 'El vehículo ya fue recolocado, pero la papeleta sigue '
-                                                         'pendiente de pago.'})
-
-        marcas = []
-        if fraccionada:
-            marcas.append({'texto': 'Fraccionada', 'nivel': 'info'})
-        if g('capturado'):
-            marcas.append({'texto': 'Capturado', 'nivel': 'critico'})
-        if g('recolocada'):
-            marcas.append({'texto': 'Recolocada', 'nivel': 'neutral'})
-
-        a_fecha = lambda d: fields.Date.to_string(d) if d else False
-        kpis = [
-            {'label': 'Monto', 'monto': p.monto},
-            {'label': 'Fecha', 'fecha': a_fecha(p.fecha_papeleta)},
-            {'label': 'Fecha de captura', 'fecha': a_fecha(g('fecha_captura'))},
-            {'label': 'Vence', 'fecha': a_fecha(p.fecha_vencimiento_final), 'nivel': False if pagada else nivel},
-        ]
-        if pagada:
-            kpis.append({'label': 'Pagada el', 'fecha': a_fecha(g('fecha_pago')), 'nivel': 'ok'})
-        elif p.fecha_vencimiento_final:
-            dias = (p.fecha_vencimiento_final - hoy).days
-            kpis.append({'label': 'Días para captura', 'texto': str(dias), 'nivel': nivel})
-
-        campos = self._campos(
-            self._campo('Origen', self._etiqueta(p, 'origen', g('origen'))),
-            self._campo('Modalidad de pago', self._etiqueta(p, 'payment_method', g('payment_method'))),
-            self._campo('Prórroga', plural(p.dias_prorroga or 0, 'día', 'días') if g('tiene_prorroga') else 'No'),
-            self._campo('Motivo de prórroga', g('tiene_prorroga') and g('motivo_prorroga')),
-            self._campo('Registrada', '%s · %s' % (p.create_uid.name, fields.Datetime.to_string(p.create_date)[:10])
-                        if p.create_uid else False),
-        )
-
-        M = 'adt.papeleta'
-        acciones, mas = [], []
-        if not pagada and not (fraccionada and pendientes) and self._metodo(M, 'action_mark_pagado'):
-            acciones.append(accion_metodo(M, p.id, 'action_mark_pagado', 'Marcar pagada', 'fa-check',
-                                          confirmar='¿Marcar la papeleta %s como pagada?' % p.name, primaria=True))
-        if not pagada:
-            # Una papeleta pagada ya no se puede modificar (adt_papeletas lo impide).
-            acciones.append(accion_form('papeleta', 'Editar', 'fa-pencil', res_id=p.id))
-            if fraccionada and g('cantidad_cuotas'):
-                mas.append(accion_metodo('adt.flota360', p.id, 'generar_cuotas_papeleta',
-                                         'Regenerar cuotas' if cuotas else 'Generar cuotas', 'fa-list-ol', args=[p.id],
-                                         confirmar='Se reemplazarán las %s cuotas actuales.' % len(cuotas) if cuotas else None))
-            if fraccionada and cuotas and self._metodo(M, 'action_eliminar_cuotas'):
-                mas.append(accion_metodo(M, p.id, 'action_eliminar_cuotas', 'Eliminar cuotas', 'fa-trash-o', peligro=True))
-            if not g('capturado') and self._metodo(M, 'action_mark_capturar'):
-                mas.append(accion_metodo(M, p.id, 'action_mark_capturar', 'Mandar a capturar', 'fa-lock', peligro=True,
-                                         confirmar='¿Mandar a capturar el vehículo por la papeleta %s?' % p.name))
-        if g('capturado') and self._metodo(M, 'action_unmark_capturar'):
-            mas.append(accion_metodo(M, p.id, 'action_unmark_capturar', 'Remover captura', 'fa-unlock',
-                                     confirmar='¿Quitar la marca de captura de la papeleta %s?' % p.name))
-        mas.append(accion_abrir(M, p.id, 'Formulario completo'))
-
-        detalle_cuotas = []
-        for c in cuotas.sorted(lambda c: (c.due_date or hoy, c.id)):
-            pagada_c = c.state == 'pagado'
-            vencida_c = not pagada_c and c.due_date and c.due_date < hoy
-            detalle_cuotas.append({
-                'nombre': c.name,
-                'fecha': a_fecha(c.due_date),
-                'monto': c.amount,
-                'estado': self._etiqueta(c, 'state', c.state),
-                'nivel': 'ok' if pagada_c else ('critico' if vencida_c else 'atencion'),
-                'accion': accion_metodo('adt.papeleta.cuota', c.id, 'action_mark_cuota_pagado', 'Pagar', 'fa-check',
-                                        confirmar='¿Marcar la %s de la papeleta %s como pagada?' % (c.name, p.name))
-                if not pagada_c and not pagada else None,
-            })
-
-        return {
-            'id': p.id,
-            'titulo': 'Papeleta %s' % p.name,
-            'badge': {'texto': 'Vencida' if vencida else self._etiqueta(p, 'state', p.state), 'nivel': nivel},
-            'marcas': marcas,
+            'monto': monto if pendiente else sat.importe,
             'alertas': alertas,
             'kpis': kpis,
             'campos': campos,
-            'detalle': (p.detalle or '').strip(),
-            'sat': sat,
-            'evidencias': self._evidencias(g('attachment_ids') or self.env['ir.attachment']),
-            'fraccionada': fraccionada,
-            'fraccionamiento': {
-                'cantidad': g('cantidad_cuotas') or 0,
-                'inicio': a_fecha(g('fecha_inicio_cuotas')),
-                'pagadas': len(cuotas) - len(pendientes),
-                'total': len(cuotas),
-                'saldo': sum(pendientes.mapped('amount')),
-                'cuotas': detalle_cuotas,
-                'evidencias': self._evidencias(g('attachment_cuotas_ids') or self.env['ir.attachment']),
-            } if fraccionada else None,
-            'historial': self._historial(p),
-            'editable': not pagada,
+            'evidencias': self._evidencias(sat._imagenes()),
+            'historial': self._historial(sat),
             'acciones': acciones,
             'mas': mas,
         }
 
-    @api.model
-    def generar_cuotas_papeleta(self, papeleta_id):
-        """Genera las cuotas de una papeleta fraccionada sin abrir su formulario
-        (action_generar_cuotas devuelve una acción que reemplazaría la vista)."""
-        papeleta = self.env['adt.papeleta'].browse(papeleta_id).exists()
-        papeleta.action_generar_cuotas()
-        return True
-
     def _seccion_papeletas(self, v, hoy):
-        Papeleta = self._modelo('adt.papeleta', 'vehicle_id')
-        if Papeleta is None:
+        Sat = self._modelo('adt.papeleta.sat', 'vehicle_id', 'estado_pago')
+        if Sat is None:
             return None
-        papeletas = Papeleta.search([('vehicle_id', '=', v.id)])
-        papeletas = papeletas.sorted(lambda p: (p.state == 'pagado', p.fecha_vencimiento_final or hoy))
-        pendientes = papeletas.filtered(lambda p: p.state != 'pagado')
-        vencidas = pendientes.filtered(lambda p: p.fecha_vencimiento_final and p.fecha_vencimiento_final < hoy)
-        proxima = pendientes.filtered('fecha_vencimiento_final').sorted('fecha_vencimiento_final')[:1]
-        detalles = [self._detalle_papeleta(p, hoy) for p in papeletas]
-        coactivas = [d for d in detalles if d['editable'] and d['sat'] and d['sat']['vigente'] and d['sat']['nivel'] == 'critico']
+        detalles = [self._detalle_papeleta(s, hoy) for s in Sat.search([('vehicle_id', '=', v.id)])]
+        # Pendientes primero (la más antigua arriba); luego las pagadas, de la más reciente.
+        detalles.sort(key=lambda d: (not d['pendiente'], -d['dias'] if d['pendiente'] else d['dias']))
+        pendientes = [d for d in detalles if d['pendiente']]
+        semana = [d for d in pendientes if d['semana']]
+        coactivas = [d for d in pendientes if d['sat'] and d['sat']['nivel'] == 'critico']
+        por_pagar = sum(d['monto'] for d in pendientes)
         if coactivas:
             estado_pap = frase('critico', plural(len(coactivas), 'papeleta en coactiva', 'papeletas en coactiva') + ' en el SAT',
                                'Riesgo de orden de captura del vehículo')
-        elif vencidas:
-            estado_pap = frase('critico', plural(len(vencidas), 'papeleta vencida', 'papeletas vencidas'), 'Riesgo de captura del vehículo')
+        elif semana:
+            estado_pap = frase('critico', plural(len(semana), 'papeleta', 'papeletas') + ' con más de una semana sin pagar',
+                               'La más antigua tiene %s' % plural(pendientes[0]['dias'], 'día', 'días'))
         elif pendientes:
-            estado_pap = frase('atencion', plural(len(pendientes), 'papeleta pendiente', 'papeletas pendientes'),
-                               proxima and 'La próxima vence el %s' % proxima.fecha_vencimiento_final.strftime('%d/%m/%Y') or '')
+            estado_pap = frase('atencion', plural(len(pendientes), 'papeleta pendiente de pago', 'papeletas pendientes de pago'),
+                               'La más antigua tiene %s' % plural(pendientes[0]['dias'], 'día', 'días'))
         else:
-            estado_pap = frase('ok', 'Sin papeletas pendientes')
+            estado_pap = frase('ok', 'Sin papeletas pendientes de pago en el SAT')
         return {
-            'key': 'papeletas', 'titulo': 'Papeletas', 'icon': 'fa-file-text-o',
+            'key': 'papeletas', 'titulo': 'Papeleta SAT', 'icon': 'fa-university',
             'frase': estado_pap,
             'cifras': [
-                cifra('Por pagar', self._soles(sum(pendientes.mapped('monto'))), 'fa-money',
-                      plural(len(pendientes), 'pendiente', 'pendientes'), 'critico' if vencidas else '', principal=True),
-                cifra('Vencidas', str(len(vencidas)), 'fa-exclamation-triangle', nivel='critico' if vencidas else ''),
+                cifra('Por pagar', self._soles(por_pagar), 'fa-money', 'Deuda según el SAT',
+                      'critico' if semana or coactivas else ('atencion' if pendientes else ''), principal=True),
+                cifra('Pendientes de pago', str(len(pendientes)), 'fa-clock-o', nivel='atencion' if pendientes else ''),
+                cifra('Más de una semana', str(len(semana)), 'fa-exclamation-triangle', nivel='critico' if semana else ''),
                 cifra('En coactiva', str(len(coactivas)), 'fa-gavel', 'según el SAT', nivel='critico' if coactivas else ''),
-                cifra('Pagadas', str(len(papeletas) - len(pendientes)), 'fa-check-circle'),
-            ] if papeletas else [],
+                cifra('Pagadas', str(len(detalles) - len(pendientes)), 'fa-check-circle', nivel='ok' if len(detalles) > len(pendientes) else ''),
+            ] if detalles else [],
             'papeletas': detalles,
             'kpis': [
-                {'label': 'Pendientes', 'texto': str(len(pendientes)), 'nivel': 'atencion' if pendientes else 'ok'},
-                {'label': 'Por pagar', 'monto': sum(pendientes.mapped('monto'))},
-                {'label': 'Pagadas', 'texto': str(len(papeletas) - len(pendientes))},
-            ] if papeletas else [],
-            'vacio': 'Sin papeletas registradas.',
-            'acciones': [accion_form('papeleta', 'Registrar papeleta', 'fa-plus', primaria=True)],
+                {'label': 'Pendientes de pago', 'texto': str(len(pendientes)), 'nivel': 'atencion' if pendientes else 'ok'},
+                {'label': 'Por pagar', 'monto': por_pagar},
+                {'label': 'Pagadas', 'texto': str(len(detalles) - len(pendientes))},
+            ] if detalles else [],
+            'vacio': 'El SAT Lima no registra papeletas para este vehículo.',
+            'acciones': [],
         }
 
     def _seccion_gps(self, v, hoy):

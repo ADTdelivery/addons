@@ -17,11 +17,15 @@
                 <field name="gastos_costas" optional="show" sum="Total"/>
                 <field name="descuento" optional="hide"/>
                 <field name="deuda" sum="Total"/>
+                <field name="dias" decoration-danger="alerta_dias"/>
+                <field name="estado_pago" widget="badge"
+                       decoration-warning="estado_pago == 'pendiente'" decoration-success="estado_pago == 'pagado'"/>
                 <field name="estado_sat" widget="badge"/>
                 <field name="papeleta_id" optional="show"/>
                 <field name="revision" optional="show" widget="badge" decoration-warning="revision == 'pendiente'"/>
                 <field name="ultima_vez_visto" optional="show"/>
                 <field name="vigente" invisible="1"/>
+                <field name="alerta_dias" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
             </tree>
         </field>
@@ -46,6 +50,10 @@
                     <strong>Ya no figura en el SAT</strong> y no se pudo marcar como pagada la papeleta interna
                     (o no tiene una vinculada). Revise y registre el resultado en «Revisión».
                 </div>
+                <div class="alert alert-danger" role="alert" attrs="{'invisible': [('alerta_dias', '=', False)]}">
+                    <strong>Pendiente de pago hace <field name="dias" readonly="1" nolabel="1" class="oe_inline"/> días</strong>
+                    (más de una semana desde la infracción).
+                </div>
                 <div class="alert alert-danger" role="alert"
                      attrs="{'invisible': ['|', ('vigente', '=', False), ('estado_sat', 'not in', ['En Coactiva', 'Medida Cautelar'])]}">
                     <strong>Estado SAT: <field name="estado_sat" readonly="1" nolabel="1" class="oe_inline"/></strong>
@@ -62,10 +70,14 @@
                         <label for="name"/>
                         <h1><field name="name"/></h1>
                         <h3><field name="placa"/></h3>
+                        <field name="estado_pago" widget="badge"
+                               decoration-warning="estado_pago == 'pendiente'" decoration-success="estado_pago == 'pagado'"/>
+                        <field name="alerta_dias" invisible="1"/>
                     </div>
                     <group>
                         <group string="Infracción">
                             <field name="fecha_infraccion"/>
+                            <field name="dias"/>
                             <field name="reglamento"/>
                             <field name="codigo_falta"/>
                             <field name="estado_sat"/>
@@ -146,6 +158,9 @@
                 <filter name="vigentes" string="Figuran en SAT" domain="[('vigente', '=', True)]"/>
                 <filter name="no_vigentes" string="Ya no figuran" domain="[('vigente', '=', False)]"/>
                 <separator/>
+                <filter name="pendientes_pago" string="Pendientes de pago" domain="[('estado_pago', '=', 'pendiente')]"/>
+                <filter name="pagadas" string="Pagadas" domain="[('estado_pago', '=', 'pagado')]"/>
+                <separator/>
                 <filter name="sin_vincular" string="Sin papeleta interna" domain="[('papeleta_id', '=', False)]"/>
                 <filter name="sin_vehiculo" string="Sin vehículo" domain="[('vehicle_id', '=', False)]"/>
                 <filter name="por_revisar" string="Por revisar" domain="[('revision', '=', 'pendiente')]"/>
@@ -154,6 +169,7 @@
                 <filter name="cautelar" string="Medida cautelar" domain="[('estado_sat', 'ilike', 'cautelar')]"/>
                 <group expand="0" string="Agrupar por">
                     <filter name="g_placa" string="Placa" context="{'group_by': 'placa'}"/>
+                    <filter name="g_estado_pago" string="Estado de pago" context="{'group_by': 'estado_pago'}"/>
                     <filter name="g_estado" string="Estado SAT" context="{'group_by': 'estado_sat'}"/>
                     <filter name="g_falta" string="Falta" context="{'group_by': 'codigo_falta'}"/>
                     <filter name="g_licencia" string="Licencia" context="{'group_by': 'licencia_conducir'}"/>

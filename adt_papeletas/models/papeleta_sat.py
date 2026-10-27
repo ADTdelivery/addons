@@ -43,6 +43,10 @@ MIMETYPES = {
     b'MM\x00*': 'image/tiff',
 }
 MAX_ARCHIVO = 10 * 1024 * 1024
+# Una papeleta pendiente con más días que estos (desde la infracción) pasa a alerta.
+DIAS_ALERTA = 7
+# Estado del SAT que ya cuenta como pagado (texto libre del portal).
+ESTADOS_PAGADOS = ('pagad', 'cancelad')
 LIMA = timezone(timedelta(hours=-5))
 
 
@@ -145,6 +149,17 @@ class ADTPapeletaSat(models.Model):
              '"Por revisar" si eso no fue posible.')
     importacion_id = fields.Many2one('adt.papeleta.sat.import', string='Última importación', readonly=True)
 
+    # Estado de pago: nace pendiente y pasa a pagado cuando el SAT la muestra pagada o
+    # deja de figurar en una consulta completa (mismo criterio que la sincronización).
+    estado_pago = fields.Selection([
+        ('pendiente', 'Pendiente de pago'),
+        ('pagado', 'Pagado'),
+    ], string='Estado de pago', compute='_compute_estado_pago', store=True, index=True, tracking=True)
+    dias = fields.Integer(string='Días', compute='_compute_dias',
+                          help='Días desde la infracción (o desde que se vio en el SAT, si no tiene fecha).')
+    alerta_dias = fields.Boolean(string='Más de una semana', compute='_compute_dias',
+                                 help='Pendiente de pago con más de %s días.' % DIAS_ALERTA)
+
     attachment_ids = fields.One2many('ir.attachment', 'res_id', string='Copias SAT',
                                      domain=[('res_model', '=', 'adt.papeleta.sat')])
     imagen = fields.Binary(string='Copia', compute='_compute_imagen')
@@ -153,6 +168,20 @@ class ADTPapeletaSat(models.Model):
     _sql_constraints = [
         ('name_uniq', 'unique(name)', 'La papeleta SAT ya existe.'),
     ]
+
+    @api.depends('vigente', 'estado_sat')
+    def _compute_estado_pago(self):
+        for rec in self:
+            pagada = any(c in (rec.estado_sat or '').lower() for c in ESTADOS_PAGADOS)
+            rec.estado_pago = 'pagado' if pagada or not rec.vigente else 'pendiente'
+
+    @api.depends('fecha_infraccion', 'primera_vez_visto', 'estado_pago')
+    def _compute_dias(self):
+        hoy = fields.Date.context_today(self)
+        for rec in self:
+            desde = rec.fecha_infraccion or (rec.primera_vez_visto and _fecha_lima(rec.primera_vez_visto))
+            rec.dias = (hoy - desde).days if desde else 0
+            rec.alerta_dias = rec.estado_pago == 'pendiente' and rec.dias > DIAS_ALERTA
 
     def _imagenes(self):
         self.ensure_one()

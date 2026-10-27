@@ -53,11 +53,11 @@
               groups="adt_comercial.group_access_adt_comercial_gerencia"/>
 
     <record id="action_flota_360_indicadores" model="ir.actions.client">
-        <field name="name">Indicadores de la flota</field>
+        <field name="name">Indicadores SAT</field>
         <field name="tag">adt_flota_360_indicadores</field>
     </record>
     <menuitem id="menu_adt_flota_360_indicadores"
-              name="Indicadores"
+              name="Indicadores SAT"
               parent="menu_adt_flota_360_root"
               action="action_flota_360_indicadores"
               sequence="2"
