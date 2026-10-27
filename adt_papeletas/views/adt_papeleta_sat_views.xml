@@ -109,7 +109,14 @@
                             </group>
                         </page>
                         <page string="Copias" name="copias">
-                            <field name="attachment_ids" widget="many2many_binary" readonly="1"/>
+                            <!-- One2many: many2many_binary solo admite Many2many y rompe el formulario -->
+                            <field name="attachment_ids" readonly="1">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="mimetype"/>
+                                    <field name="create_date" string="Recibida"/>
+                                </tree>
+                            </field>
                         </page>
                         <page string="Datos originales" name="raw" groups="base.group_system">
                             <field name="flag_exc"/>
