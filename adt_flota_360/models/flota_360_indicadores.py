@@ -135,7 +135,7 @@ class AdtFlota360Indicadores(models.AbstractModel):
             'total': len(filas),
             'pendientes': len(pendientes),
             'recuadros': recuadros,
-            'estados': self._sat_estados(pendientes, pagadas, ids, monto),
+            'estados_sat': self._sat_estados(pendientes, pagadas, ids, monto),
             'antiguedad': self._sat_antiguedad(pendientes, ids, monto),
             'fechas': self._sat_fechas(filas, pendientes, pagadas_mes, nuevas, antigua),
             'urgentes': self._sat_urgentes(pendientes),

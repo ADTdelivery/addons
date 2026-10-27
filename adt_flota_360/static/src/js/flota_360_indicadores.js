@@ -119,7 +119,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             this._ref('body').html(
                 this._htmlRecuadros(d.recuadros) +
                 '<section class="adt_sat__cols">' +
-                    this._htmlBarras('Estados en el SAT', 'fa-university', d.estados, 'Sin papeletas registradas.') +
+                    this._htmlBarras('Estados en el SAT', 'fa-university', d.estados_sat, 'Sin papeletas registradas.') +
                     this._htmlBarras('Antigüedad de las pendientes', 'fa-hourglass-half', d.antiguedad, 'Sin papeletas pendientes.') +
                 '</section>' +
                 this._htmlUrgentes(d.urgentes) +
