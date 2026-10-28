@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from odoo import SUPERUSER_ID, http
 from odoo.http import content_disposition, request, Response
 
+from . import captura_datos as datos
+
 _logger = logging.getLogger(__name__)
 
 # URL del documento del expediente: firmada y con vencimiento, para que la app la abra
@@ -30,6 +32,14 @@ MORA_ORDENES = {
     'monto': lambda r: (-((r.monto_vencido or 0.0) + (r.deuda_sat or 0.0)), -(r.dias_mora or 0), r.id),
     'dias': lambda r: (-(r.dias_mora or 0), r.fecha_cronograma or datetime.max.date(), r.id),
 }
+# Estado de la deuda (source_type de adt.captura.mora), en el orden en que la app los muestra.
+MORA_ESTADOS_DEUDA = [
+    ('mora', 'Cronograma'),
+    ('papeleta', 'Papeleta SAT'),
+    ('ambos', 'Cronograma y papeleta SAT'),
+]
+# Alias aceptados en source_type.
+MORA_ESTADOS_ALIAS = {'cronograma': 'mora', 'cuotas': 'mora', 'sat': 'papeleta', 'papeleta_sat': 'papeleta'}
 
 
 class CapturaAPI(http.Controller):
@@ -121,29 +131,6 @@ class CapturaAPI(http.Controller):
             return getattr(cuenta, 'tipo_financiera', '') or ''
         except Exception:
             return ''
-
-    @staticmethod
-    def _papeleta_sat_data(p):
-        """Papeleta del SAT Lima (adt.papeleta.sat). Conserva las claves que usaba la
-        app con la papeleta interna (state, monto, fecha_emision...)."""
-        return {
-            'id': p.id,
-            'name': p.name or '',
-            'state': p.estado_pago or '',
-            'estado_sat': p.estado_sat or '',
-            'monto': p.deuda or 0.0,
-            'importe': p.importe or 0.0,
-            'deuda': p.deuda or 0.0,
-            'fecha_emision': p.fecha_infraccion.isoformat() if p.fecha_infraccion else None,
-            'dias': p.dias or 0,
-            'codigo_falta': p.codigo_falta or '',
-            'vigente': p.vigente,
-            'detalle': p.codigo_falta or '',
-            'vehicle_id': {
-                'id': p.vehicle_id.id,
-                'display_name': p.vehicle_id.display_name or '',
-            } if p.vehicle_id else None,
-        }
 
     def _papeletas_sat_vehiculo(self, vehicle):
         return request.env['adt.papeleta.sat'].sudo().search(
@@ -305,6 +292,50 @@ class CapturaAPI(http.Controller):
             return _error('No se pudo obtener el documento.', 500)
 
     @http.route(
+        '/api/adt/adjunto/<int:attachment_id>',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+    )
+    def descargar_adjunto(self, attachment_id, expira=None, firma=None, descargar=None, **kwargs):
+        """
+        Archivo de una papeleta SAT o de una captura (copias SAT, evidencias, voucher...).
+        La URL la arma la API (campo url de cada archivo): va firmada y vence a las
+        ADJUNTO_URL_HORAS horas. descargar=1 fuerza la descarga.
+        """
+        def _error(msg, status):
+            return Response(json.dumps({'error': msg, 'code': status}, ensure_ascii=False),
+                            status=status, mimetype='application/json')
+
+        try:
+            expira_int = int(expira)
+        except (TypeError, ValueError):
+            return _error('Enlace inválido.', 403)
+        if not firma or not hmac.compare_digest(
+                str(firma), datos.firma_adjunto(request.env, attachment_id, expira_int)):
+            return _error('Enlace inválido.', 403)
+        if expira_int < time.time():
+            return _error('El enlace venció. Vuelve a consultar para obtener uno nuevo.', 410)
+        try:
+            att = request.env['ir.attachment'].sudo().browse(attachment_id).exists()
+            if not att or not datos.adjunto_permitido(att):
+                return _error('Archivo no encontrado.', 404)
+            contenido = att.raw or b''
+            disposicion = content_disposition(att.name or 'archivo')
+            if descargar not in ('1', 'true', 'True'):
+                disposicion = disposicion.replace('attachment', 'inline', 1)
+            return request.make_response(contenido, headers=[
+                ('Content-Type', att.mimetype or 'application/octet-stream'),
+                ('Content-Length', str(len(contenido))),
+                ('Content-Disposition', disposicion),
+                ('Cache-Control', 'private, max-age=300'),
+            ])
+        except Exception as e:
+            _logger.exception('Error in /api/adt/adjunto/%s: %s', attachment_id, e)
+            return _error('No se pudo obtener el archivo.', 500)
+
+    @http.route(
         '/api/adt/captura/mora',
         type='http',
         auth='none',
@@ -316,7 +347,10 @@ class CapturaAPI(http.Controller):
         Returns the list of vehicles/accounts that require capture action.
 
         Optional query params:
-            - source_type     : filter by 'mora' | 'papeleta' | 'ambos' | 'none'
+            - source_type     : estado de la deuda: 'mora' (solo cronograma) | 'papeleta' (solo
+                                papeleta SAT) | 'ambos'. Acepta varios separados por coma
+                                (p. ej. 'mora,ambos' = todo lo que tiene cuotas vencidas) y los
+                                alias 'cronograma' y 'sat'.
             - captura_prioridad: filter by 'normal' | 'urgente'
             - captura_existente: filter by '1' (true) | '0' (false)
             - order           : 'monto' (default) = lo que debe cada uno (monto_vencido + deuda_sat),
@@ -327,9 +361,14 @@ class CapturaAPI(http.Controller):
         Response body:
         {
             "count": <int>,
+            "estados_deuda": [            # cantidad por estado de la deuda, con los demás filtros
+                {"key": "todos" | "mora" | "papeleta" | "ambos", "label": <str>, "count": <int>}, ...
+            ],
             "records": [
                 {
-                    "partner_id": {"id": <int>, "name": <str>},
+                    "client": {"id", "name", "documento", "tipo_documento", "telefono", "celular",
+                               "email", "direccion"},
+                    "papeletas": [ ...papeletas SAT pendientes con estado e imagenes (URL firmada)... ],
                     "vehicle_id": {
                         "id": <int>,
                         "display_name": <str>,
@@ -361,10 +400,6 @@ class CapturaAPI(http.Controller):
 
             domain = []
 
-            source_type = kwargs.get('source_type')
-            if source_type:
-                domain.append(('source_type', '=', source_type))
-
             captura_prioridad = kwargs.get('captura_prioridad')
             if captura_prioridad:
                 domain.append(('cuenta_id.captura_prioridad', '=', captura_prioridad))
@@ -379,11 +414,23 @@ class CapturaAPI(http.Controller):
                 # Por defecto excluir cuentas que ya tienen una captura activa
                 domain.append(('captura_existente', '=', False))
 
+            # Cantidad por estado de la deuda, con los demás filtros (antes de filtrar por estado).
+            MoraModel = request.env['adt.captura.mora'].sudo()
+            por_estado = {g['source_type']: g['source_type_count']
+                          for g in MoraModel.read_group(domain, ['source_type'], ['source_type'])}
+            estados_deuda = [{'key': 'todos', 'label': 'Todos', 'count': sum(por_estado.values())}]
+            estados_deuda += [{'key': k, 'label': label, 'count': por_estado.get(k, 0)}
+                              for k, label in MORA_ESTADOS_DEUDA]
+
+            source_type = [MORA_ESTADOS_ALIAS.get(x.strip().lower(), x.strip().lower())
+                           for x in (kwargs.get('source_type') or '').split(',') if x.strip()]
+            if source_type and 'todos' not in source_type:
+                domain.append(('source_type', 'in', source_type))
+
             # ── query ─────────────────────────────────────────────────────────
             # El orden por monto suma dos columnas: se ordena en Python antes de paginar
             # (adt.captura.mora es una vista SQL, una fila por cuenta).
             orden = MORA_ORDENES.get((kwargs.get('order') or 'monto').lower(), MORA_ORDENES['monto'])
-            MoraModel = request.env['adt.captura.mora'].sudo()
             todos = MoraModel.search(domain).sorted(orden)
             total_count = len(todos)
             records = todos[offset:offset + limit]
@@ -454,6 +501,14 @@ class CapturaAPI(http.Controller):
                     if cap.get('cuenta_id'):
                         cap_dates_by_cuenta.setdefault(cap['cuenta_id'][0], []).append(dt)
 
+            # Papeletas SAT pendientes de cada cuenta, con sus copias: dos consultas para toda la página.
+            host = request.httprequest.host_url
+            papeletas_por_cuenta = datos.papeletas_sat_pendientes_por_cuenta(request.env, records.mapped('cuenta_id'))
+            todas_papeletas = request.env['adt.papeleta.sat'].sudo()
+            for pps in papeletas_por_cuenta.values():
+                todas_papeletas |= pps
+            copias = datos.adjuntos_por_registro(request.env, 'adt.papeleta.sat', todas_papeletas.ids)
+
             result = []
             for rec in records:
                 # vehicle
@@ -505,15 +560,15 @@ class CapturaAPI(http.Controller):
                     }
 
                 cap_summary = self._captura_summary(rec, cap_dates_by_vehicle, cap_dates_by_cuenta)
+                papeletas = papeletas_por_cuenta.get(rec.cuenta_id.id) or []
                 result.append({
-                    'client': {
-                        'id': rec.partner_id.id,
-                        'name': rec.partner_id.name or '',
-                    },
+                    'client': datos.contacto_resumen(rec.partner_id),
                     'cuenta_id': cuenta_data,
                     'vehicle_id': vehicle_data,
                     'source_type': rec.source_type or 'none',
+                    'estado_deuda': dict(MORA_ESTADOS_DEUDA).get(rec.source_type, ''),
                     'papeleta_id': papeleta_data,
+                    'papeletas': [datos.papeleta_sat_data(p, host, copias.get(p.id)) for p in papeletas],
                     'papeletas_sat': rec.papeletas_sat or 0,
                     'deuda_sat': rec.deuda_sat or 0.0,
                     'dias_mora': rec.dias_mora or 0,
@@ -532,6 +587,7 @@ class CapturaAPI(http.Controller):
 
             payload = {
                 'count': total_count,
+                'estados_deuda': estados_deuda,
                 'records': result,
             }
 
@@ -759,7 +815,8 @@ class CapturaAPI(http.Controller):
             if err:
                 return err
 
-            papeletas_data = [self._papeleta_sat_data(p) for p in self._papeletas_sat_vehiculo(vehicle)]
+            papeletas_data = datos.papeletas_sat_lista(
+                request.env, self._papeletas_sat_vehiculo(vehicle), request.httprequest.host_url)
 
             return Response(
                 json.dumps({'count': len(papeletas_data), 'records': papeletas_data}, ensure_ascii=False, default=str),
@@ -905,23 +962,42 @@ class CapturaAPI(http.Controller):
         """
         Returns full detail for a single cuenta record.
 
-        Required query param:
-            - cuenta_id : ID of the adt.comercial.cuentas record
+        Query param (one of them):
+            - cuenta_id  : ID of the adt.comercial.cuentas record
+            - vehicle_id : ID of the fleet.vehicle (its latest cuenta)
 
         Response body:
         {
             "count": 1,
             "record": {
+                "deuda": {"estado", "estado_label", "cronograma": {...}, "papeletas_sat": {...}, "total"},
+                "contacto": { ...datos personales, domicilio, referencias, otras cuentas... },
+                "gps": { ...estado del GPS (Traccar)... },
+                "refinanciamientos": {"total", "registros": [...], "capturas_liberadas_por_refinanciamiento": [...]},
+                "capturas": [ ...cada captura con sus pasos, archivos e historial... ],
                 "cuenta_id": { ...full cuenta detail + cuotas list... },
                 "expediente_id": { ...expediente del cliente... } | null,
-                "papeletas": [ ...all papeletas for the vehicle... ],
+                "papeletas": [ ...all SAT papeletas for the vehicle, con imagenes... ],
                 "vehicle_id": { ...fleet.vehicle detail... } | null,
                 "mantenimientos": [ ...adt.tvs.mantenimiento records for vehicle... ]
             }
         }
+        Fechas con hora en ISO con zona (UTC). Las URLs de archivos vencen a las 24 horas.
         """
         try:
+            CuentaModel = request.env['adt.comercial.cuentas'].sudo()
             cuenta_id_raw = kwargs.get('cuenta_id')
+            if not cuenta_id_raw and kwargs.get('vehicle_id'):
+                vehicle, err = self._resolve_vehicle(kwargs.get('vehicle_id'))
+                if err:
+                    return err
+                cuenta_id_raw = CuentaModel.search([('vehiculo_id', '=', vehicle.id)], limit=1, order='id desc').id
+                if not cuenta_id_raw:
+                    return Response(
+                        json.dumps({'error': 'No cuenta found for this vehicle'}),
+                        status=404,
+                        mimetype='application/json',
+                    )
             if not cuenta_id_raw:
                 return Response(
                     json.dumps({'error': 'cuenta_id is required'}),
@@ -937,7 +1013,6 @@ class CapturaAPI(http.Controller):
                     mimetype='application/json',
                 )
 
-            CuentaModel = request.env['adt.comercial.cuentas'].sudo()
             cuenta = CuentaModel.browse(cuenta_id_int)
             if not cuenta.exists():
                 return Response(
@@ -996,9 +1071,11 @@ class CapturaAPI(http.Controller):
             }
 
             # ── expediente: linked through partner_id (un solo documento, ver _expediente_data) ──
+            host = request.httprequest.host_url
             expediente_data = None
+            expediente = request.env['adt.expediente'].sudo()
             if cuenta.partner_id:
-                expediente = request.env['adt.expediente'].sudo().search(
+                expediente = expediente.search(
                     [('cliente_id', '=', cuenta.partner_id.id)], limit=1, order='id desc')
                 if expediente:
                     expediente_data = self._expediente_data(expediente)
@@ -1006,7 +1083,47 @@ class CapturaAPI(http.Controller):
             # ── papeletas SAT: all for this vehicle ───────────────────────────
             papeletas_data = []
             if cuenta.vehiculo_id:
-                papeletas_data = [self._papeleta_sat_data(p) for p in self._papeletas_sat_vehiculo(cuenta.vehiculo_id)]
+                papeletas_data = datos.papeletas_sat_lista(
+                    request.env, self._papeletas_sat_vehiculo(cuenta.vehiculo_id), host)
+
+            # ── deuda: lo que la pone en la lista de capturas ─────────────────
+            mora = request.env['adt.captura.mora'].sudo().search([('cuenta_id', '=', cuenta.id)], limit=1)
+            pendientes = datos.papeletas_sat_pendientes_por_cuenta(request.env, cuenta).get(cuenta.id) or []
+            monto_vencido = mora.monto_vencido or 0.0
+            deuda_sat = sum(p.deuda or 0.0 for p in pendientes)
+            deuda_data = {
+                'estado': mora.source_type or 'none',
+                'estado_label': dict(MORA_ESTADOS_DEUDA).get(mora.source_type, 'Sin deuda vencida'),
+                'en_lista_de_capturas': bool(mora),
+                'cronograma': {
+                    'monto_vencido': monto_vencido,
+                    'cuotas_vencidas': mora.numero_cuotas_vencidas or 0,
+                    'dias_mora': mora.dias_mora or 0,
+                    'cuota_mas_antigua': datos.fecha(mora.fecha_cronograma),
+                },
+                'papeletas_sat': {
+                    'cantidad': len(pendientes),
+                    'deuda': deuda_sat,
+                    'mas_antigua': datos.fecha(min((p.fecha_infraccion for p in pendientes if p.fecha_infraccion), default=None)),
+                    'ids': [p.id for p in pendientes],
+                },
+                'total': round(monto_vencido + deuda_sat, 2),
+                'captura_prioridad': datos.etiqueta(cuenta, 'captura_prioridad'),
+            }
+
+            # ── contacto, GPS, capturas y refinanciamientos ───────────────────
+            cuentas_cliente = CuentaModel.search(
+                [('partner_id', '=', cuenta.partner_id.id)], order='id desc') if cuenta.partner_id else CuentaModel
+            cuentas_vehiculo = CuentaModel.search(
+                [('vehiculo_id', '=', cuenta.vehiculo_id.id)], order='id') if cuenta.vehiculo_id else cuenta
+            Captura = request.env['adt.captura.record'].sudo()
+            capturas = Captura.search(
+                ['|', ('cuenta_id', '=', cuenta.id), ('vehicle_id', '=', cuenta.vehiculo_id.id)]
+                if cuenta.vehiculo_id else [('cuenta_id', '=', cuenta.id)], order='create_date desc, id desc')
+            contacto_data = datos.contacto_detalle(cuenta.partner_id, host, expediente, cuentas_cliente)
+            gps_data = datos.gps_data(cuenta.vehiculo_id)
+            refinanciamientos_data = datos.refinanciamientos_data(cuentas_vehiculo | cuenta, capturas)
+            capturas_data = datos.capturas_lista(capturas, host)
 
             # ── vehicle detail ────────────────────────────────────────────────
             vehicle_data = None
@@ -1070,6 +1187,11 @@ class CapturaAPI(http.Controller):
             payload = {
                 'count': 1,
                 'record': {
+                    'deuda': deuda_data,
+                    'contacto': contacto_data,
+                    'gps': gps_data,
+                    'refinanciamientos': refinanciamientos_data,
+                    'capturas': capturas_data,
                     'cuenta_id': cuenta_data,
                     'expediente_id': expediente_data,
                     'papeletas': papeletas_data,

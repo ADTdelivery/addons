@@ -182,6 +182,46 @@ Desde el front se recomienda:
 
 ---
 
+## 4. Lista y detalle de capturas (`adt_captura`)
+
+Todo es **aditivo**: las claves que la app ya lee siguen igual.
+
+### 4.1 Lista — `GET /api/adt/captura/mora`
+
+- **Orden:** por defecto `order=monto` (cuotas vencidas + deuda SAT, de mayor a menor). `order=dias` sigue disponible.
+- **Filtro por estado de la deuda:** `source_type=mora` (solo cronograma), `papeleta` (solo papeleta SAT),
+  `ambos`, o varios separados por coma (`mora,ambos`). También acepta `cronograma` y `sat`.
+- **Nuevo `estados_deuda`:** cantidad por estado, calculada con los demás filtros, para pintar los chips:
+  `[{key: "todos"|"mora"|"papeleta"|"ambos", label, count}]`.
+- **Por registro:**
+  - `estado_deuda`: texto del estado.
+  - `papeletas`: las papeletas SAT pendientes, cada una con `estado_pago`, `estado_sat`, `deuda`,
+    `fecha_emision`, `codigo_falta`, `url_copia_sat` e `imagenes`.
+  - `client`: ahora también trae `documento`, `telefono`, `celular`, `email` y `direccion`.
+
+### 4.2 Detalle — `GET /api/adt/captura/mora/detail?cuenta_id=` (o `?vehicle_id=`)
+
+Claves nuevas en `record`:
+
+- `deuda`: estado, cronograma (monto, cuotas, días, cuota más antigua), papeletas SAT (cantidad, deuda) y total.
+- `contacto`: datos personales, domicilio (y el del expediente), `referencias`, `imagen_dni` y sus otras `cuentas`.
+- `gps`: `registrado`, `estado`, `sin_senal`, `ultimo_reporte`, `horas_sin_reporte`, ubicación, `mapa_url`, batería, IMEI.
+  Si `registrado` es `false`, el vehículo no tiene equipo.
+- `refinanciamientos`: `total` y `registros`. Cada registro trae fecha, cuotas, monto, pagadas, retrasadas y saldo.
+- `capturas`: todas las capturas del vehículo o la cuenta. Cada una trae los datos de cada paso
+  (`captura`, `cobro`, `decision`, `recolocacion`), con sus archivos e `historial`.
+- `papeletas`: todas las papeletas SAT del vehículo, con `imagenes`. Lo mismo devuelve `/detail/papeletas`.
+
+### 4.3 Archivos (imágenes, voucher, evidencias)
+
+Cada archivo llega como `{nombre, mimetype, es_imagen, es_video, tamano, url, expira}`. La `url`
+(`/api/adt/adjunto/<id>?expira=&firma=`) abre el archivo sin sesión y **vence a las 24 h**. Si responde 410,
+hay que volver a pedir la lista o el detalle. Para forzar la descarga se agrega `&descargar=1`.
+
+Las fechas con hora vienen en ISO con zona UTC (`...+00:00`): convertir a hora de Lima al mostrar.
+
+---
+
 ## Checklist rápido
 
 - [ ] Simulador: precargar cuota inicial desde `/api/simulador/vehiculos` (editable).
@@ -191,3 +231,4 @@ Desde el front se recomienda:
 - [ ] Expediente: quitar Pasaporte; extranjeros solo CE.
 - [ ] Expediente: renombrar faltante `foto_ce_or_pasaporte` → `foto_ce`.
 - [ ] Fotos: conservar orientación al comprimir + guía de encuadre.
+- [ ] Capturas: chips de `estados_deuda`, papeletas con imagen en la lista y detalle (contacto, GPS, refinanciamientos, capturas).
