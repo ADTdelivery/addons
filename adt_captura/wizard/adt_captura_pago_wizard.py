@@ -21,7 +21,7 @@ class ADTCapturaPagoWizard(models.TransientModel):
         ('no_pagado', 'No Pagado')
     ], string='Estado de Pago', default='no_pagado', readonly=True)
 
-    voucher_file = fields.Binary(string='Voucher', required=True, attachment=True)
+    voucher_file = fields.Binary(string='Voucher', required=True, attachment=False)
     voucher_filename = fields.Char(string='Nombre Archivo')
     voucher_number = fields.Char(string='Número de Voucher', required=True)
     payment_date = fields.Date(string='Fecha de Pago', required=True, default=fields.Date.today)
@@ -50,40 +50,10 @@ class ADTCapturaPagoWizard(models.TransientModel):
     def action_registrar(self):
         """Registra el pago en la captura"""
         self.ensure_one()
-
-        if not self.voucher_file:
-            raise ValidationError('Debe adjuntar el voucher de pago.')
-
-        if not self.pagar_monto and not self.motivo_no_pago:
-            raise UserError(_('Debe especificar un motivo para no realizar el pago.'))
-
-        # Actualizar la captura
-        self.captura_id.write({
-            'payment_state': 'pagado',
-            'voucher_file': self.voucher_file,
-            'voucher_filename': self.voucher_filename,
-            'voucher_number': self.voucher_number,
-            'payment_date': self.payment_date,
-            'intervention_fee': self.monto,
-            'motivo_no_pago': self.motivo_no_pago,
-            'pagar_monto': self.pagar_monto,
-        })
-
-        # Agregar nota en el chatter
-        mensaje = f"""
-        <p><strong>Pago Registrado</strong></p>
-        <ul>
-            <li>Monto: S/ {self.monto}</li>
-            <li>N° Voucher: {self.voucher_number}</li>
-            <li>Fecha: {self.payment_date}</li>
-        </ul>
-        """
-
-        self.captura_id.message_post(body=mensaje, subject='Pago Registrado')
-
-        _logger.info(f"Pago registrado para captura {self.captura_id.name} - Monto: S/ {self.monto}")
-
-        # Cerrar el wizard y recargar la vista
+        self.captura_id.registrar_pago_intervencion(
+            self.monto, self.payment_date, voucher_number=self.voucher_number, voucher_file=self.voucher_file,
+            voucher_filename=self.voucher_filename, pagar_monto=self.pagar_monto, motivo_no_pago=self.motivo_no_pago)
+        _logger.info("Pago registrado para captura %s - Monto: S/ %s", self.captura_id.name, self.monto)
         return {
             'type': 'ir.actions.client',
             'tag': 'reload',

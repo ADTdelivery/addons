@@ -10,6 +10,7 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
      */
     var AbstractAction = require('web.AbstractAction');
     var core = require('web.core');
+    var FiltrosPopup = require('adt_comercial.FiltrosPopup');
 
     var esc = _.escape;
     var TRAMOS = {'1_30': 'Atrasadas hasta 1 mes', '31_60': 'Atrasadas de 1 a 2 meses', '61_90': 'Atrasadas de 2 a 3 meses', '91_mas': 'Atrasadas más de 3 meses (difíciles de cobrar)'};
@@ -93,18 +94,14 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
         return f.posicion.neto_liquidar !== null ? f.posicion.neto_liquidar : f.posicion.neto_nominal;
     }
 
-    var CarteraReporte = AbstractAction.extend({
+    var CarteraReporte = AbstractAction.extend(FiltrosPopup.mixin, {
         template: 'adt_comercial.CarteraReporte',
         hasControlPanel: false,
 
-        events: {
+        events: _.extend({}, FiltrosPopup.events, {
             'click [data-action="refresh"]': '_onRefresh',
             'click [data-action="exportar"]': '_onExportar',
             'click [data-action="imprimir"]': '_onImprimir',
-            'click [data-financiera]': '_onFinanciera',
-            'click [data-filtro]': '_onFiltro',
-            'click [data-estado]': '_onEstado',
-            'click [data-action="limpiar-filtros"]': '_onLimpiarFiltros',
             'click [data-sort]': '_onSort',
             'click [data-pagina]': '_onPagina',
             'click [data-action="toggle-meses"]': '_onToggleMeses',
@@ -112,7 +109,7 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             'input [data-ref="buscar"]': '_onBuscar',
             'change [data-ref="cliente-recuperado"]': '_onClienteRecuperado',
             'click [data-action="limpiar-recuperado"]': '_onLimpiarRecuperado',
-        },
+        }),
 
         init: function () {
             this._super.apply(this, arguments);
@@ -280,51 +277,51 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
             );
         },
 
-        // Filtros con la cantidad de créditos de cada opción (con los demás filtros aplicados),
-        // como en Flota 360, y el total de créditos que se están contando.
+        // Total de créditos contados y, en el popup «Filtros», financiera, cronograma y ver, con la
+        // cantidad de créditos de cada opción (con los demás filtros aplicados), como en Flota 360.
         _renderChips: function (total) {
+            this._ref('count').html('<b>' + total + '</b> ' + (total === 1 ? 'crédito' : 'créditos') + ' contados' +
+                (this.data.cuentas.length !== total ? ' <span>de ' + this.data.cuentas.length + '</span>' : ''));
+            this._fpopRender();
+        },
+
+        _fpopValores: function () {
+            return {financiera: this.financieraId, estado: this.estado, filtro: this.filtro};
+        },
+
+        // Sin filtros: todas las financieras, la cartera activa y todos los créditos.
+        _fpopDefecto: function () {
+            return {financiera: null, estado: this.data.estado_activo, filtro: 'todas'};
+        },
+
+        _fpopSecciones: function () {
             var self = this;
             var contar = function (omitir, clave) {
                 return _.countBy(self._filas(omitir), clave);
             };
-            var chip = function (attr, valor, activo, texto, n, punto) {
-                return '<button type="button" class="adt_cart__fchip' + (activo ? ' is-active' : '') + (!n && !activo ? ' is-zero' : '') +
-                    '" ' + attr + '="' + esc(String(valor)) + '" aria-pressed="' + activo + '">' +
-                    (punto ? '<i class="adt_cart__fchip-dot is-' + esc(punto) + '" aria-hidden="true"></i>' : '') +
-                    esc(texto) + '<span class="adt_cart__fchip-n">' + (n || 0) + '</span></button>';
+            var suma = function (conteo) {
+                return _.reduce(conteo, function (a, n) { return a + n; }, 0);
             };
-            var fila = function (icono, titulo, chips) {
-                return '<div class="adt_cart__facet"><span class="adt_cart__facet-label"><i class="fa ' + icono + '" aria-hidden="true"></i>' +
-                    titulo + '</span><div class="adt_cart__facet-chips">' + chips + '</div></div>';
-            };
-
             var porFin = contar('financiera', 'financiera_id');
-            var fin = chip('data-financiera', 'all', this.financieraId === null, 'Todas', _.reduce(porFin, function (a, n) { return a + n; }, 0)) +
-                this.data.financieras.map(function (f) {
-                    return chip('data-financiera', f.id, self.financieraId === f.id, f.name, porFin[f.id]);
-                }).join('');
-
             var porEstado = contar('estado', 'estado');
-            var est = chip('data-estado', 'all', this.estado === null, 'Todos', _.reduce(porEstado, function (a, n) { return a + n; }, 0)) +
-                this.data.estados.map(function (e) {
-                    return chip('data-estado', e.id, self.estado === e.id, e.name, porEstado[e.id], e.id);
-                }).join('');
-
             var base = this._filas('filtro');
-            var ver = FILTROS.map(function (p) {
-                var n = base.filter(function (f) { return cumpleFiltro(f, p[0]); }).length;
-                return chip('data-filtro', p[0], self.filtro === p[0], p[1], n);
-            }).join('');
+            return [
+                {clave: 'financiera', icono: 'fa-university', titulo: 'Financiera', opciones: [{valor: null, name: 'Todas', n: suma(porFin)}]
+                    .concat(this.data.financieras.map(function (f) { return {valor: f.id, name: f.name, n: porFin[f.id]}; }))},
+                {clave: 'estado', icono: 'fa-calendar-check-o', titulo: 'Cronograma', opciones: [{valor: null, name: 'Todos', n: suma(porEstado)}]
+                    .concat(this.data.estados.map(function (e) { return {valor: e.id, name: e.name, n: porEstado[e.id], punto: e.id}; }))},
+                {clave: 'filtro', icono: 'fa-filter', titulo: 'Ver', opciones: FILTROS.map(function (p) {
+                    return {valor: p[0], name: p[1], n: base.filter(function (f) { return cumpleFiltro(f, p[0]); }).length};
+                })},
+            ];
+        },
 
-            var filtrado = this.financieraId !== null || this.estado !== this.data.estado_activo || this.filtro !== 'todas';
-            this._ref('chips').html(
-                '<div class="adt_cart__count"><b>' + total + '</b> ' + (total === 1 ? 'crédito' : 'créditos') + ' contados' +
-                    (this.data.cuentas.length !== total ? ' <span>de ' + this.data.cuentas.length + '</span>' : '') +
-                    (filtrado ? '<button type="button" class="adt_cart__count-clear" data-action="limpiar-filtros">' +
-                        '<i class="fa fa-times" aria-hidden="true"></i> Quitar filtros</button>' : '') + '</div>' +
-                fila('fa-university', 'Financiera', fin) +
-                fila('fa-calendar-check-o', 'Cronograma', est) +
-                fila('fa-filter', 'Ver', ver));
+        _fpopAplicar: function (v) {
+            this.financieraId = v.financiera;
+            this.estado = v.estado;
+            this.filtro = v.filtro;
+            this.pagina = 0;
+            this._render();
         },
 
         _seccion: function (titulo, sub, cuerpo) {
@@ -663,34 +660,6 @@ odoo.define('adt_comercial.CarteraReporte', function (require) {
 
         _onToggleMeses: function () {
             this.mesesAbierto = !this.mesesAbierto;
-            this._render();
-        },
-
-        _onFinanciera: function (ev) {
-            var v = $(ev.currentTarget).data('financiera');
-            this.financieraId = v === 'all' ? null : parseInt(v, 10);
-            this.pagina = 0;
-            this._render();
-        },
-
-        _onEstado: function (ev) {
-            var v = String($(ev.currentTarget).attr('data-estado'));
-            this.estado = v === 'all' ? null : v;
-            this.pagina = 0;
-            this._render();
-        },
-
-        _onLimpiarFiltros: function () {
-            this.financieraId = null;
-            this.estado = this.data.estado_activo;
-            this.filtro = 'todas';
-            this.pagina = 0;
-            this._render();
-        },
-
-        _onFiltro: function (ev) {
-            this.filtro = $(ev.currentTarget).data('filtro');
-            this.pagina = 0;
             this._render();
         },
 

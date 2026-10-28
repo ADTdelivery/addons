@@ -8,3 +8,4 @@ from . import cobranza_cartera
 from . import pagos
 from . import cobranza_rentabilidad
 from . import flota_360_indicadores
+from . import flota_360_capturas

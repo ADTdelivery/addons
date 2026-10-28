@@ -21,6 +21,8 @@ class CandidatoDetalle(models.AbstractModel):
             return dict(field._description_selection(self.env)).get(value, value or '')
         if field.type == 'many2one':
             return value.display_name if value else ''
+        if field.type in ('many2many', 'one2many'):
+            return ', '.join(value.mapped('display_name'))
         if field.type in ('date', 'datetime'):
             return str(value) if value else ''
         if field.type == 'boolean':
@@ -112,7 +114,7 @@ class CandidatoDetalle(models.AbstractModel):
                                     'evidencias': self._riesgo_binarios(appeal, [('appeal_evidence', 'Evidencia de apelación', None, 'application/octet-stream')])})
             items.append({'id': rec.id, 'numero': rec.name, 'cuenta': rec.cuenta_id.reference_no,
                           'placa': rec.vehicle_id.license_plate or '', 'fecha': str(rec.create_date),
-                          'cuenta_id': rec.cuenta_id.id, 'papeleta_id': rec.papeleta_id.id,
+                          'cuenta_id': rec.cuenta_id.id,
                           'estado': self._riesgo_etiqueta(rec, 'state'), 'estado_clave': rec.state,
                           'origen': self._riesgo_etiqueta(rec, 'source_type') or 'Origen no registrado',
                           'motivo': rec.comentarios_captura or rec.observaciones or rec.notes or self._riesgo_etiqueta(rec, 'retention_reason') or '',
@@ -120,7 +122,7 @@ class CandidatoDetalle(models.AbstractModel):
                               'capture_type', 'source_type', 'commitment_date', 'moto_recogida', 'motivo_no_recogida',
                               'retention_reason', 'retention_date', 'liberacion_tipo', 'payment_state',
                               'intervention_fee', 'voucher_number', 'payment_date', 'motivo_no_pago',
-                              'dias_mora', 'numero_cuotas_vencidas', 'papeleta_id',
+                              'dias_mora', 'numero_cuotas_vencidas', 'papeleta_sat_ids',
                               'comentarios_captura', 'observaciones', 'notes', 'capturador_id', 'supervisor_id', 'write_date']),
                           'moneda': rec.company_currency_id.name, 'evidencias': evidence,
                           'apelaciones': appeals, 'historial': self._riesgo_historial(rec)})
@@ -138,7 +140,6 @@ class CandidatoDetalle(models.AbstractModel):
         vehicle_accounts = self.env['adt.comercial.cuentas'].search([
             ('vehiculo_id', 'in', accounts.mapped('vehiculo_id').ids),
             ('company_id', 'in', self.env.companies.ids), ('state', '!=', 'borrador')], order='fecha_desembolso asc, id asc')
-        linked = {c['papeleta_id']: c['cuenta_id'] for c in captures['items'] if c['papeleta_id']}
         items = []
         for p in tickets:
             matched = self.env['adt.comercial.cuentas']
@@ -152,8 +153,6 @@ class CandidatoDetalle(models.AbstractModel):
                     end = min(end, min(later.mapped('fecha_desembolso')) - timedelta(days=1))
                 if p.fecha_papeleta and (not start or p.fecha_papeleta >= start) and p.fecha_papeleta <= end:
                     matched |= account
-            if p.id in linked:
-                matched |= accounts.filtered(lambda a: a.id == linked[p.id])
             if not matched:
                 continue
             installments = p.cuotas_ids

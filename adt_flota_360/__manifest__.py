@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'ADT Flota 360',
-    'version': '15.0.1.5.0',
+    'version': '15.0.1.6.0',
     'category': 'Human Resources/Fleet',
     'summary': 'Vista unificada del vehículo: buscador por placa, cliente o documento y estado de todos los módulos',
     'description': """
@@ -14,7 +14,9 @@ DNI/RUC o teléfono del cliente) y ver de un vistazo su estado en cada módulo:
 * Papeletas del SAT Lima: estado de pago y días (adt_papeletas)
 * GPS / Traccar (adt_traccar_device, adt_mantenimiento_preventivo)
 * Trámite de placa y tracking de entrega (adt_tramite_placa, adt_tracking_moto)
-* Capturas (adt_captura)
+* Capturas (adt_captura), con una vista paso a paso: posibles capturas (cuotas
+  vencidas o papeletas SAT pendientes), captura, cobro de la intervención,
+  liberación o disolución y recolocación
 * Taller (maintenance_workshop)
 * Expediente del cliente y sus documentos (adt_expedientes)
 
@@ -46,11 +48,14 @@ con las validaciones y el registro contable de ADT Comercial.
             'adt_flota_360/static/src/scss/cobranza_rentabilidad.scss',
             'adt_flota_360/static/src/js/flota_360_indicadores.js',
             'adt_flota_360/static/src/scss/flota_360_indicadores.scss',
+            'adt_flota_360/static/src/js/flota_360_capturas.js',
+            'adt_flota_360/static/src/scss/flota_360_capturas.scss',
         ],
         'web.assets_qweb': [
             'adt_flota_360/static/src/xml/flota_360.xml',
             'adt_flota_360/static/src/xml/cobranza_rentabilidad.xml',
             'adt_flota_360/static/src/xml/flota_360_indicadores.xml',
+            'adt_flota_360/static/src/xml/flota_360_capturas.xml',
         ],
     },
     'installable': True,

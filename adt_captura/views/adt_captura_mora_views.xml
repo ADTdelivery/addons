@@ -14,7 +14,8 @@
                 <field name="reference_no"/>
                 <field name="vehicle_id"/>
                 <field name="source_type"/>
-                <field name="papeleta_id"/>
+                <field name="papeletas_sat" string="Papeletas SAT"/>
+                <field name="deuda_sat" optional="show"/>
                 <field name="dias_mora"/>
                 <field name="numero_cuotas_vencidas"/>
                 <field name="monto_vencido"/>
@@ -122,8 +123,10 @@
                     <!-- Nuevo bloque: Origen del problema -->
                     <group string="Origen del Problema">
                         <field name="source_type" readonly="1"/>
-                        <field name="fecha_vencimiento_papeleta" readonly="1"/>
-                        <field name="papeleta_id" readonly="1"/>
+                        <field name="papeletas_sat" readonly="1"/>
+                        <field name="deuda_sat" readonly="1"/>
+                        <field name="fecha_papeleta_sat" readonly="1"/>
+                        <field name="papeleta_sat_id" readonly="1"/>
                     </group>
 
                 </sheet>
@@ -168,8 +171,10 @@
                 <separator/>
                 <filter string="Origen: Mora" name="filter_origen_mora"
                         domain="[('source_type', '=', 'mora')]"/>
-                <filter string="Origen: Papeleta" name="filter_origen_papeleta"
+                <filter string="Origen: Papeleta SAT" name="filter_origen_papeleta"
                         domain="[('source_type', '=', 'papeleta')]"/>
+                <filter string="Con papeletas SAT" name="filter_con_papeletas_sat"
+                        domain="[('papeletas_sat', '&gt;', 0)]"/>
                 <filter string="Origen: Ambos" name="filter_origen_ambos"
                         domain="[('source_type', '=', 'ambos')]"/>
                 <separator/>
@@ -217,7 +222,7 @@
                 <field name="numero_cuotas_vencidas"/>
                 <field name="monto_vencido"/>
                 <field name="captura_existente"/>
-                <field name="papeleta_id"/>
+                <field name="papeletas_sat"/>
                 <field name="source_type"/>
                 <templates>
                     <t t-name="kanban-box">
@@ -232,7 +237,7 @@
                                     </span>
                                 </div>
                                 <div>
-                                    <span t-if="record.source_type.raw_value == 'papeleta'" class="badge badge-primary">Papeleta</span>
+                                    <span t-if="record.source_type.raw_value == 'papeleta'" class="badge badge-primary">Papeleta SAT</span>
                                     <span t-elif="record.source_type.raw_value == 'mora'" class="badge badge-warning">Mora</span>
                                     <span t-elif="record.source_type.raw_value == 'ambos'" class="badge badge-danger">Ambos</span>
                                     <span t-elif="record.dias_mora.raw_value &gt;= 30" class="badge badge-danger">
@@ -250,6 +255,7 @@
                                 <div>Días mora: <strong><field name="dias_mora"/></strong></div>
                                 <div>Cuotas: <strong><field name="numero_cuotas_vencidas"/></strong></div>
                                 <div>Monto: <strong>S/ <field name="monto_vencido"/></strong></div>
+                                <div t-if="record.papeletas_sat.raw_value">Papeletas SAT: <strong><field name="papeletas_sat"/></strong></div>
                             </div>
                             <div class="o_kanban_record_bottom">
                                 <div class="oe_kanban_bottom_left">

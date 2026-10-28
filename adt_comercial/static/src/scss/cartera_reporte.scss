@@ -134,9 +134,190 @@
     }
 }
 
-// Filtros como pestañas (igual que los filtros de Flota 360).
-// Filtros: total contado + una fila por criterio (financiera, cronograma, ver), con la
-// cantidad de créditos de cada opción. Mismo diseño que los filtros de Flota 360.
+// Popup «Filtros» (adt_comercial.FiltrosPopup): mismo diseño que el de Flota 360.
+.adt_cart__fpop-wrap {
+    position: relative;
+    flex: none;
+    margin-right: auto;
+    &:empty { display: none; }
+}
+
+.adt_cart__fpop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--cart-border-strong);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+    color: var(--cart-ink-2);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    .fa { color: var(--cart-muted); }
+    &:hover { border-color: var(--cart-accent); color: var(--cart-ink); }
+    &:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--cart-focus); }
+    &.is-open, &.is-filtered {
+        border-color: var(--cart-accent);
+        color: var(--cart-accent);
+        .fa { color: var(--cart-accent); }
+    }
+}
+
+.adt_cart__fpop-badge {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--cart-accent);
+    color: #fff;
+    font-size: 11px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.adt_cart__fpop {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    // Sin min(): el libsass de Odoo la toma como función de Sass y no compila.
+    width: 520px;
+    max-width: calc(100vw - 32px);
+    max-height: 70vh;
+    border: 1px solid var(--cart-border);
+    border-radius: 10px;
+    background: var(--cart-surface);
+    box-shadow: 0 12px 32px rgba(16, 24, 40, .18);
+    // En el encabezado de Indicadores el botón está a la derecha: el popup abre hacia la izquierda.
+    .adt_find__top & { left: auto; right: 0; }
+}
+
+.adt_cart__fpop-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 10px 16px;
+    border-bottom: 1px solid var(--cart-border);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.adt_cart__fpop-x {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--cart-radius);
+    background: none;
+    color: var(--cart-muted);
+    cursor: pointer;
+    &:hover { background: var(--cart-page); color: var(--cart-ink); }
+}
+
+.adt_cart__fpop-body {
+    display: grid;
+    gap: 16px;
+    padding: 14px 16px;
+    overflow-y: auto;
+}
+
+.adt_cart__fpop-sec {
+    display: grid;
+    gap: 8px;
+}
+
+.adt_cart__fpop-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.adt_cart__fpop-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--cart-border);
+    border-radius: 0 0 10px 10px;
+    background: var(--cart-subtle);
+}
+
+.adt_cart__fpop-reset {
+    margin-right: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cart-accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+}
+
+// Filtros aplicados: chips que se quitan con su ×; solo si hay alguno.
+.adt_cart__applied {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    &:empty { display: none; }
+}
+
+.adt_cart__achip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 4px 0 10px;
+    border: 1px solid #c3d7f5;
+    border-radius: 14px;
+    background: var(--cart-info-bg);
+    color: var(--cart-accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    > .fa { font-size: 12px; }
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+        &:hover { background: rgba(16, 24, 40, .08); }
+        &:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--cart-focus); }
+    }
+}
+
+.adt_cart__achip-k {
+    color: var(--cart-muted);
+    font-weight: 500;
+    &::after { content: ":"; }
+}
+
+.adt_cart__applied-clear {
+    height: 28px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--cart-radius);
+    background: none;
+    color: var(--cart-accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { background: var(--cart-page); }
+}
+
+// Total de créditos contados y los filtros aplicados desde el popup.
 .adt_cart__chips {
     display: grid;
     gap: 6px;

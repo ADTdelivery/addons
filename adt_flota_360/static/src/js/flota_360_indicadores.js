@@ -3,13 +3,15 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
 
     /**
      * Indicadores SAT Lima (gerencia): estados de las papeletas, antigüedad, deuda y las
-     * más urgentes, filtrables por financiera, cronograma y situación del cliente.
+     * más urgentes, filtrables (popup «Filtros») por vehículos con cliente / en stock,
+     * financiera, cronograma y situación del cliente.
      * Cada recuadro y barra abre la lista de esas papeletas SAT; las urgentes y los
      * vehículos abren su ficha de Flota 360 en la pestaña Papeleta SAT.
      * Usa los filtros de "Cartera y financieras" (.adt_cart, de adt_comercial).
      */
     var AbstractAction = require('web.AbstractAction');
     var core = require('web.core');
+    var FiltrosPopup = require('adt_comercial.FiltrosPopup');
 
     var esc = _.escape;
     var NIVEL_ICONO = {critico: 'fa-exclamation-circle', atencion: 'fa-clock-o', ok: 'fa-check-circle',
@@ -36,26 +38,23 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             '" aria-hidden="true"></i>';
     }
 
-    var Indicadores = AbstractAction.extend({
+    var Indicadores = AbstractAction.extend(FiltrosPopup.mixin, {
         template: 'adt_flota_360.Indicadores',
         hasControlPanel: false,
 
-        events: {
+        events: _.extend({}, FiltrosPopup.events, {
             'click [data-action="refresh"]': '_onRefresh',
-            'click [data-action="limpiar"]': '_onLimpiar',
-            'click [data-financiera]': '_onFinanciera',
-            'click [data-estado]': '_onEstado',
-            'click [data-clientes]': '_onClientes',
             'click [data-lista]': '_onLista',
             'click [data-vehiculo]': '_onVehiculo',
             'keydown tr[data-vehiculo]': '_onVehiculoTecla',
-        },
+        }),
 
         init: function () {
             this._super.apply(this, arguments);
             this.financiera = null;
             this.estado = null;
             this.clientes = null;
+            this.grupo = null;  // 'clientes' (con dueño), 'stock' (sin dueño) o null = todos
             this.data = null;
             this._listas = {};
             this._seq = 0;
@@ -79,7 +78,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             var seq = ++this._seq;
             return this._rpc({
                 model: 'adt.flota360', method: 'indicadores', args: [],
-                kwargs: {financiera: this.financiera, estado: this.estado, clientes: this.clientes},
+                kwargs: {financiera: this.financiera, estado: this.estado, clientes: this.clientes, grupo: this.grupo},
             }).then(function (data) {
                 if (seq === self._seq) {
                     self.data = data;
@@ -108,14 +107,15 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             this._listas = {};
             if (!d.disponible) {
                 this._ref('subtitle').text('');
-                this._ref('facetas').empty();
+                this._ref('fpop').empty();
+                this._ref('aplicados').empty();
                 this._ref('body').html('<div class="adt_cart__empty">El módulo de papeletas SAT (adt_papeletas) no está instalado ' +
                     'o no tienes acceso.</div>');
                 return;
             }
             this._ref('subtitle').text('Al ' + fecha(d.fecha) + ' · ' + plural(d.total, 'papeleta', 'papeletas') + ' en el SAT · ' +
                 plural(d.pendientes, 'pendiente de pago', 'pendientes de pago'));
-            this._renderFiltros();
+            this._fpopRender();
             this._ref('body').html(
                 this._htmlRecuadros(d.recuadros) +
                 '<section class="adt_sat__cols">' +
@@ -222,31 +222,45 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             }).join('') + '</dl>');
         },
 
-        _renderFiltros: function () {
+        _fpopValores: function () {
+            return {grupo: this.grupo, financiera: this.financiera, estado: this.estado, clientes: this.clientes};
+        },
+
+        _fpopDefecto: function () {
+            return {grupo: null, financiera: null, estado: null, clientes: null};
+        },
+
+        // Secciones del popup con la cantidad de vehículos de cada opción.
+        _fpopSecciones: function () {
             var d = this.data;
-            var chip = function (attr, valor, activo, texto, n, punto) {
-                return '<button type="button" class="adt_cart__fchip' + (activo ? ' is-active' : '') + (!n && !activo ? ' is-zero' : '') +
-                    '" ' + attr + '="' + esc(String(valor)) + '" aria-pressed="' + activo + '">' +
-                    (punto ? '<i class="adt_cart__fchip-dot is-' + esc(punto) + '" aria-hidden="true"></i>' : '') +
-                    esc(texto) + '<span class="adt_cart__fchip-n">' + entero(n) + '</span></button>';
+            var g = d.grupos || {};
+            var opciones = function (lista, todos, punto) {
+                var propio = _.findWhere(lista, {id: null});  // segmentos de cliente: total propio
+                lista = _.reject(lista || [], {id: null});
+                var total = propio ? propio.n : lista.reduce(function (a, o) { return a + (o.n || 0); }, 0);
+                return [{valor: null, name: todos, n: total}].concat(lista.map(function (o) {
+                    return {valor: o.id, name: o.name, n: o.n, punto: punto && o.id};
+                }));
             };
-            var fila = function (icono, titulo, attr, actual, todos, opciones, punto) {
-                var propio = _.findWhere(opciones, {id: null});  // segmentos de cliente: total propio
-                opciones = _.reject(opciones, {id: null});
-                var total = propio ? propio.n : opciones.reduce(function (a, o) { return a + (o.n || 0); }, 0);
-                return '<div class="adt_cart__facet"><span class="adt_cart__facet-label"><i class="fa ' + icono + '" aria-hidden="true"></i>' +
-                    titulo + '</span><div class="adt_cart__facet-chips">' +
-                    chip(attr, 'todos', actual === null, todos, total) +
-                    opciones.map(function (o) { return chip(attr, o.id, actual === o.id, o.name, o.n, punto && o.id); }).join('') +
-                    '</div></div>';
-            };
-            var filtrado = this.financiera !== null || this.estado !== null || this.clientes !== null;
-            this._ref('facetas').html(
-                fila('fa-university', 'Financiera', 'data-financiera', this.financiera, 'Todas', d.financieras) +
-                fila('fa-calendar-check-o', 'Cronograma', 'data-estado', this.estado, 'Todos', d.estados, true) +
-                (d.clientes ? fila('fa-user-o', 'Clientes', 'data-clientes', this.clientes, 'Todos', d.clientes) : '') +
-                (filtrado ? '<button type="button" class="adt_cart__count-clear adt_find__clear" data-action="limpiar">' +
-                    '<i class="fa fa-times" aria-hidden="true"></i> Quitar filtros</button>' : ''));
+            var secciones = [];
+            if (g.clientes !== undefined) {
+                secciones.push({clave: 'grupo', icono: 'fa-th-large', titulo: 'Vehículos', opciones: [
+                    {valor: null, name: 'Todos', n: g.clientes + g.stock},
+                    {valor: 'clientes', name: 'Con cliente', n: g.clientes},
+                    {valor: 'stock', name: 'En stock', n: g.stock},
+                ]});
+            }
+            secciones.push({clave: 'financiera', icono: 'fa-university', titulo: 'Financiera', opciones: opciones(d.financieras, 'Todas')});
+            secciones.push({clave: 'estado', icono: 'fa-calendar-check-o', titulo: 'Cronograma', opciones: opciones(d.estados, 'Todos', true)});
+            if (d.clientes) {
+                secciones.push({clave: 'clientes', icono: 'fa-user-o', titulo: 'Clientes', opciones: opciones(d.clientes, 'Todos')});
+            }
+            return secciones;
+        },
+
+        _fpopAplicar: function (v) {
+            _.extend(this, v);
+            this._recargar();
         },
 
         // Lista de las papeletas SAT detrás de un recuadro o barra.
@@ -272,29 +286,6 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
                 ev.preventDefault();
                 this._onVehiculo(ev);
             }
-        },
-
-        _onFinanciera: function (ev) {
-            var v = ev.currentTarget.getAttribute('data-financiera');
-            this.financiera = v === 'todos' ? null : parseInt(v, 10);
-            this._recargar();
-        },
-
-        _onEstado: function (ev) {
-            var v = ev.currentTarget.getAttribute('data-estado');
-            this.estado = v === 'todos' ? null : v;
-            this._recargar();
-        },
-
-        _onClientes: function (ev) {
-            var v = ev.currentTarget.getAttribute('data-clientes');
-            this.clientes = v === 'todos' ? null : v;
-            this._recargar();
-        },
-
-        _onLimpiar: function () {
-            this.financiera = this.estado = this.clientes = null;
-            this._recargar();
         },
 
         _onRefresh: function () {

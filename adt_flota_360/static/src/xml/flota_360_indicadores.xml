@@ -8,13 +8,17 @@
                 <header class="adt_cart__header">
                     <div class="adt_find__top">
                         <div class="adt_cart__titlebar">
-                            <h1 class="adt_cart__title">Indicadores SAT Lima</h1>
+                            <h1 class="adt_cart__title">Papeletas SAT</h1>
                             <p class="adt_cart__subtitle" data-ref="subtitle"/>
                         </div>
-                        <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="refresh">
-                            <i class="fa fa-refresh" aria-hidden="true"/>Actualizar</button>
+                        <div class="adt_find__actions">
+                            <!-- Vehículos, financiera, cronograma y clientes: en un popup, como en Flota 360. -->
+                            <div class="adt_cart__fpop-wrap" data-ref="fpop"/>
+                            <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="refresh">
+                                <i class="fa fa-refresh" aria-hidden="true"/>Actualizar</button>
+                        </div>
                     </div>
-                    <div class="adt_find__facetas" data-ref="facetas"/>
+                    <div class="adt_find__facetas adt_cart__applied" data-ref="aplicados" aria-label="Filtros aplicados"/>
                 </header>
                 <div class="adt_cart__body adt_find__body" data-ref="body">
                     <div class="adt_cart__empty">Calculando…</div>

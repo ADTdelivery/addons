@@ -199,10 +199,12 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             'keydown [data-ref="q"]': '_onSearchKey',
             'click [data-action="clear"]': '_onClear',
             'click [data-filtro]': '_onFiltro',
-            'click [data-financiera]': '_onFinanciera',
-            'click [data-estado]': '_onEstado',
-            'click [data-clientes]': '_onClientes',
-            'click [data-grupo]': '_onGrupo',
+            'click [data-action="filtros-abrir"]': '_onFiltrosAbrir',
+            'click [data-action="filtros-cerrar"]': '_cerrarFiltros',
+            'click [data-action="filtros-limpiar"]': '_onFiltrosLimpiar',
+            'click [data-action="filtros-aplicar"]': '_onFiltrosAplicar',
+            'click [data-fsel]': '_onFiltroSel',
+            'click [data-filtro-quitar]': '_onFiltroQuitar',
             'click [data-action="clear-facetas"]': '_onClearFacetas',
             'click [data-row]': '_onRow',
             'keydown [data-row]': '_onRowKey',
@@ -277,6 +279,7 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this.estados = [];
             this.grupo = null;  // 'clientes' (con dueño), 'stock' (sin dueño) o null = todos
             this.grupos = {};
+            this._borrador = null;  // filtros elegidos en el popup y aún sin aplicar; null = popup cerrado
             this.items = [];
             this.total = 0;
             this.contadores = {};
@@ -427,70 +430,100 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this._renderFacetas();
         },
 
-        // Filas bajo los filtros: financiera y estado del cronograma de pagos, con sus vehículos
-        // en la búsqueda actual.
-        // Selector junto al buscador: separa las motos con cliente de las que están en stock.
-        _renderGrupos: function () {
-            var self = this;
-            var g = this.grupos;
-            if (g.clientes === undefined) {
-                this._ref('grupos').empty();
-                return;
-            }
-            var opciones = [
-                [null, 'Todos', g.clientes + g.stock, 'fa-th-large'],
-                ['clientes', 'Con cliente', g.clientes, 'fa-user'],
-                ['stock', 'En stock', g.stock, 'fa-cubes'],
-            ];
-            this._ref('grupos').html(opciones.map(function (o) {
-                var activo = o[0] === self.grupo;
-                return '<button type="button" class="adt_f360__group' + (activo ? ' is-active' : '') + (o[0] ? ' is-' + o[0] : '') +
-                    '" data-grupo="' + (o[0] || 'todos') + '" aria-pressed="' + activo + '">' +
-                    '<i class="fa ' + o[3] + '" aria-hidden="true"></i>' + o[1] +
-                    '<span class="adt_f360__group-n">' + entero(o[2]) + '</span></button>';
-            }).join(''));
-        },
-
+        // Popup de filtros: vehículos (con cliente / en stock), financiera, cronograma y segmento de
+        // clientes. Se eligen sobre un borrador y se aplican con «Aplicar»; los aplicados quedan
+        // como chips bajo el buscador y el botón muestra cuántos hay.
         _renderFacetas: function () {
-            this._renderGrupos();
-            this._renderFaceta('financieras', 'financiera', 'fa-university', 'Financiera', 'Todas', this.financieras, this.financiera);
-            this._renderFaceta('estados', 'estado', 'fa-calendar-check-o', 'Cronograma', 'Todos', this.estados, this.estado, true);
-            var todosClientes = _.findWhere(this.clientesOpciones, {id: null});
-            this._renderFaceta('clientes', 'clientes', 'fa-user-o', 'Clientes', 'Todos', _.reject(this.clientesOpciones, {id: null}),
-                               this.clientes === 'todos' ? null : this.clientes, false, todosClientes && todosClientes.n);
-            var segmento = this.clientes && this.clientes !== 'todos';
-            this._ref('facetas')
-                .toggleClass('is-empty', !this.financieras.length && !this.estados.length)
-                .toggleClass('is-filtered', this.financiera !== null || this.estado !== null || segmento);
+            var activos = this._filtrosAplicados();
+            this._ref('fpop-n').text(activos.length || '');
+            this._ref('fpop-wrap').toggleClass('is-filtered', activos.length > 0);
+            this._ref('aplicados').html(activos.length ? activos.map(function (f) {
+                return '<span class="adt_f360__achip' + (f.clase ? ' ' + f.clase : '') + '">' +
+                    '<i class="fa ' + f.icono + '" aria-hidden="true"></i>' +
+                    '<span class="adt_f360__achip-k">' + esc(f.titulo) + '</span>' + esc(f.valor) +
+                    '<button type="button" data-filtro-quitar="' + f.clave + '" title="Quitar filtro" aria-label="Quitar filtro ' +
+                    esc(f.titulo) + '"><i class="fa fa-times" aria-hidden="true"></i></button></span>';
+            }).join('') + '<button type="button" class="adt_f360__applied-clear" data-action="clear-facetas">Quitar filtros</button>' : '');
+            if (this._borrador) {
+                this._renderPopup();
+            }
         },
 
-        // Una fila: etiqueta fija a la izquierda y opciones en una franja desplazable.
+        _filtrosAplicados: function () {
+            var nombre = function (opciones, id) {
+                var o = _.findWhere(opciones, {id: id});
+                return o ? o.name : 'Seleccionado';
+            };
+            var lista = [];
+            if (this.grupo) {
+                var stock = this.grupo === 'stock';
+                lista.push({clave: 'grupo', icono: stock ? 'fa-cubes' : 'fa-user', titulo: 'Vehículos',
+                            valor: stock ? 'En stock' : 'Con cliente', clase: stock ? 'is-stock' : ''});
+            }
+            if (this.financiera !== null) {
+                lista.push({clave: 'financiera', icono: 'fa-university', titulo: 'Financiera', valor: nombre(this.financieras, this.financiera)});
+            }
+            if (this.estado !== null) {
+                lista.push({clave: 'estado', icono: 'fa-calendar-check-o', titulo: 'Cronograma', valor: nombre(this.estados, this.estado)});
+            }
+            if (this.clientes && this.clientes !== 'todos') {
+                lista.push({clave: 'clientes', icono: 'fa-user-o', titulo: 'Clientes', valor: nombre(this.clientesOpciones, this.clientes)});
+            }
+            return lista;
+        },
+
+        _renderPopup: function () {
+            var b = this._borrador;
+            var g = this.grupos;
+            var secciones = [];
+            if (g.clientes !== undefined) {
+                secciones.push(this._htmlSeccionFiltro('grupo', 'fa-th-large', 'Vehículos', 'Todos', [
+                    {id: 'clientes', name: 'Con cliente', n: g.clientes},
+                    {id: 'stock', name: 'En stock', n: g.stock},
+                ], b.grupo, false, g.clientes + g.stock));
+            }
+            secciones.push(this._htmlSeccionFiltro('financiera', 'fa-university', 'Financiera', 'Todas', this.financieras, b.financiera));
+            secciones.push(this._htmlSeccionFiltro('estado', 'fa-calendar-check-o', 'Cronograma', 'Todos', this.estados, b.estado, true));
+            var todosClientes = _.findWhere(this.clientesOpciones, {id: null});
+            secciones.push(this._htmlSeccionFiltro('clientes', 'fa-user-o', 'Clientes', 'Todos', _.reject(this.clientesOpciones, {id: null}),
+                                                   b.clientes === 'todos' ? null : b.clientes, false, todosClientes && todosClientes.n));
+            this._ref('fpop').html(
+                '<div class="adt_f360__fpop-head"><span>Filtros</span>' +
+                    '<button type="button" class="adt_f360__icon-btn" data-action="filtros-cerrar" title="Cerrar (Esc)" aria-label="Cerrar filtros">' +
+                    '<i class="fa fa-times" aria-hidden="true"></i></button></div>' +
+                '<div class="adt_f360__fpop-body">' + secciones.join('') + '</div>' +
+                '<div class="adt_f360__fpop-foot">' +
+                    '<button type="button" class="adt_f360__fpop-reset" data-action="filtros-limpiar">Limpiar</button>' +
+                    '<button type="button" class="adt_f360__btn" data-action="filtros-cerrar">Cancelar</button>' +
+                    '<button type="button" class="adt_f360__btn is-primary" data-action="filtros-aplicar">Aplicar</button>' +
+                '</div>');
+        },
+
+        // Una sección del popup: título y opciones en chips que pasan a la siguiente línea.
         // Las opciones sin vehículos se atenúan; con punto, cada estado lleva su color.
-        _renderFaceta: function (ref, atributo, icono, titulo, todos, opciones, actual, punto, totalTodos) {
+        _htmlSeccionFiltro: function (clave, icono, titulo, todos, opciones, actual, punto, totalTodos) {
             if (!opciones.length) {
-                this._ref(ref).empty();
-                return;
+                return '';
             }
             var total = totalTodos !== undefined ? totalTodos : opciones.reduce(function (s, o) { return s + (o.n || 0); }, 0);
             var chip = function (valor, nombre, n) {
                 var activo = valor === actual;
                 var clases = 'adt_f360__fchip' + (activo ? ' is-active' : '') + (!n && !activo ? ' is-zero' : '');
-                return '<button type="button" class="' + clases + '" data-' + atributo + '="' +
+                return '<button type="button" class="' + clases + '" data-fsel="' + clave + '" data-valor="' +
                     (valor === null ? 'todas' : esc(String(valor))) + '" aria-pressed="' + activo + '">' +
                     (punto && valor !== null ? '<i class="adt_f360__fchip-dot is-' + esc(String(valor)) + '" aria-hidden="true"></i>' : '') +
                     esc(nombre) + '<span class="adt_f360__fchip-n">' + entero(n || 0) + '</span></button>';
             };
-            this._ref(ref).html(
+            return '<section class="adt_f360__fpop-sec">' +
                 '<span class="adt_f360__facet-label"><i class="fa ' + icono + '" aria-hidden="true"></i>' + titulo + '</span>' +
-                '<div class="adt_f360__facet-chips">' + chip(null, todos, total) +
-                opciones.map(function (o) { return chip(o.id, o.name, o.n); }).join('') + '</div>');
+                '<div class="adt_f360__fpop-chips">' + chip(null, todos, total) +
+                opciones.map(function (o) { return chip(o.id, o.name, o.n); }).join('') + '</div></section>';
         },
 
         _renderCartera: function () {
             var c = this.cartera;
             var n = this.contadores;
             var celdas = [
-                this._celdaVehiculos(n.todos),
                 ['Cartera vencida', soles(c.vencido), plural(n.mora || 0, 'vehículo con atraso', 'vehículos con atraso'), c.vencido > 0 ? 'critico' : ''],
                 ['Mora por cobrar', soles(c.mora), 'Registrada en las cuentas', c.mora > 0 ? 'atencion' : ''],
                 ['Papeletas SAT pendientes', soles(c.papeletas), plural(n.papeletas || 0, 'vehículo', 'vehículos') +
@@ -504,21 +537,6 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     '<span class="adt_f360__figure-value">' + esc(x[1]) + '</span>' +
                     '<span class="adt_f360__figure-sub">' + esc(x[2]) + '</span></div>';
             }).join(''));
-        },
-
-        // Total de vehículos con el desglose clientes / stock, para no presentar el stock como flota colocada.
-        _celdaVehiculos: function (total) {
-            var g = this.grupos;
-            if (this.grupo === 'stock') {
-                return ['Vehículos en stock', entero(total), 'Sin dueño, disponibles para venta'];
-            }
-            if (this.grupo === 'clientes') {
-                return ['Vehículos con cliente', entero(total), this.termino ? 'Coinciden con la búsqueda' : 'Flota colocada, sin stock'];
-            }
-            if (g.clientes === undefined) {
-                return ['Vehículos', entero(total), this.termino ? 'Coinciden con la búsqueda' : 'Total de la flota'];
-            }
-            return ['Vehículos', entero(total), entero(g.clientes) + ' con cliente · ' + entero(g.stock) + ' en stock'];
         },
 
         _cabeceraTabla: function () {
@@ -1546,7 +1564,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             var n = c.evidencias.length + c.documentos.length;
             var alerta = c.alertas[0];
             return '<li class="adt_f360__papf is-' + c.badge.nivel + (c.id === this.capSel ? ' is-selected' : '') + '">' +
-                '<button type="button" class="adt_f360__papf-btn" data-cap="' + c.id + '" title="Ver el detalle de la ' + esc(c.titulo.toLowerCase()) + '">' +
+                '<button type="button" class="adt_f360__papf-btn" data-cap="' + c.id + '" title="' +
+                    (c.activa ? 'Gestionar la ' : 'Ver el recorrido de la ') + esc(c.titulo.toLowerCase()) + '">' +
                     '<span class="adt_f360__papf-main">' +
                         '<span class="adt_f360__pap-title"><span class="adt_f360__strong">' + esc(c.titulo) + '</span>' +
                             badge(c.badge.nivel, c.badge.texto) +
@@ -1558,7 +1577,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                         '<span class="adt_f360__sub">Pago ' + esc(((pago && pago.texto) || '').toLowerCase()) + '</span></span>' +
                     '<span class="adt_f360__papf-evid' + (n ? '' : ' is-empty') + '" title="' + plural(n, 'archivo', 'archivos') + '">' +
                         '<i class="fa fa-paperclip" aria-hidden="true"></i>' + n + '</span>' +
-                    '<span class="adt_f360__papf-go">Ver detalle<i class="fa fa-angle-right" aria-hidden="true"></i></span>' +
+                    '<span class="adt_f360__papf-go">' + (c.activa ? 'Gestionar' : 'Ver recorrido') +
+                        '<i class="fa fa-angle-right" aria-hidden="true"></i></span>' +
                 '</button></li>';
         },
 
@@ -3922,40 +3942,64 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             this._buscar(false);
         },
 
-        _onFinanciera: function (ev) {
-            var valor = ev.currentTarget.getAttribute('data-financiera');
-            var id = valor === 'todas' ? null : parseInt(valor, 10);
-            this.financiera = id === this.financiera ? null : id;
+        _onFiltrosAbrir: function () {
+            if (this._borrador) {
+                this._cerrarFiltros();
+                return;
+            }
+            this._borrador = {grupo: this.grupo, financiera: this.financiera, estado: this.estado, clientes: this.clientes};
+            this._renderPopup();
+            this._ref('fpop-wrap').addClass('is-open').find('[data-action="filtros-abrir"]').attr('aria-expanded', 'true');
+        },
+
+        // Cierra el popup sin aplicar lo elegido.
+        _cerrarFiltros: function () {
+            this._borrador = null;
+            this._ref('fpop-wrap').removeClass('is-open').find('[data-action="filtros-abrir"]').attr('aria-expanded', 'false');
+            this._ref('fpop').empty();
+        },
+
+        // Elegir una opción ya marcada la desmarca (vuelve a «Todos»).
+        _onFiltroSel: function (ev) {
+            var clave = ev.currentTarget.getAttribute('data-fsel');
+            var valor = ev.currentTarget.getAttribute('data-valor');
+            var v = valor === 'todas' ? null : (clave === 'financiera' ? parseInt(valor, 10) : valor);
+            if (v === this._borrador[clave]) {
+                v = null;
+            }
+            // Segmento de clientes: 'todos' deja el filtro visible sin aplicarlo.
+            this._borrador[clave] = clave === 'clientes' && v === null ? 'todos' : v;
+            this._renderPopup();
+        },
+
+        _onFiltrosLimpiar: function () {
+            this._borrador = {grupo: null, financiera: null, estado: null, clientes: this.clientes ? 'todos' : null};
+            this._renderPopup();
+        },
+
+        _onFiltrosAplicar: function () {
+            var b = this._borrador;
+            var cambio = b.grupo !== this.grupo || b.financiera !== this.financiera || b.estado !== this.estado || b.clientes !== this.clientes;
+            _.extend(this, b);
+            this._cerrarFiltros();
             this._renderFacetas();
-            this._buscar(false);
+            if (cambio) {
+                this._buscar(false);
+            }
         },
 
-        _onGrupo: function (ev) {
-            var valor = ev.currentTarget.getAttribute('data-grupo');
-            this.grupo = valor === 'todos' ? null : valor;
-            this._renderGrupos();
-            this._buscar(false);
-        },
-
-        _onClientes: function (ev) {
-            var valor = ev.currentTarget.getAttribute('data-clientes');
-            this.clientes = valor === 'todas' || valor === this.clientes ? 'todos' : valor;
+        _onFiltroQuitar: function (ev) {
+            var clave = ev.currentTarget.getAttribute('data-filtro-quitar');
+            this[clave] = clave === 'clientes' ? 'todos' : null;
             this._renderFacetas();
             this._buscar(false);
         },
 
         _onClearFacetas: function () {
+            this.grupo = null;
             this.financiera = null;
             this.estado = null;
-            this.clientes = null;
-            this._renderFacetas();
-            this._buscar(false);
-        },
-
-        _onEstado: function (ev) {
-            var valor = ev.currentTarget.getAttribute('data-estado');
-            var estado = valor === 'todas' ? null : valor;
-            this.estado = estado === this.estado ? null : estado;
+            this.clientes = this.clientes ? 'todos' : null;
             this._renderFacetas();
             this._buscar(false);
         },
@@ -4050,6 +4094,9 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             if (this.$el && !$(ev.target).closest('.adt_f360__menu-wrap').length) {
                 this.$('.adt_f360__menu-wrap.is-open').removeClass('is-open');
             }
+            if (this._borrador && !$(ev.target).closest('.adt_f360__fpop-wrap').length) {
+                this._cerrarFiltros();
+            }
         },
 
         _onGlobalKey: function (ev) {
@@ -4060,6 +4107,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
             if (ev.key === 'Escape') {
                 if (this._modal) {
                     this._cerrarModal();
+                } else if (this._borrador) {
+                    this._cerrarFiltros();
                 } else if (this.$('.adt_f360__menu-wrap.is-open').length) {
                     this.$('.adt_f360__menu-wrap.is-open').removeClass('is-open');
                 } else if (this.papSel) {

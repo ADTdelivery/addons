@@ -19,6 +19,8 @@
                                    aria-label="Buscar en la cartera"
                                    placeholder="Buscar por cliente, DNI, placa o n° de cuenta…"/>
                         </div>
+                        <!-- Financiera, cronograma y ver: en un popup, como en Flota 360. -->
+                        <div class="adt_cart__fpop-wrap" data-ref="fpop"/>
                         <div class="adt_cart__actions">
                             <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="exportar">
                                 <i class="fa fa-download" aria-hidden="true"/>Exportar CSV</button>
@@ -28,7 +30,10 @@
                                 <i class="fa fa-refresh" aria-hidden="true"/>Actualizar</button>
                         </div>
                     </div>
-                    <div class="adt_cart__chips" data-ref="chips"/>
+                    <div class="adt_cart__chips">
+                        <div class="adt_cart__count" data-ref="count"/>
+                        <div class="adt_cart__applied" data-ref="aplicados" aria-label="Filtros aplicados"/>
+                    </div>
                 </header>
                 <div class="adt_cart__body" data-ref="body">
                     <div class="adt_cart__empty">Calculando cartera…</div>

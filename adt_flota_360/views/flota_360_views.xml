@@ -6,9 +6,10 @@
         <field name="tag">adt_flota_360</field>
     </record>
 
-    <!-- Menú "Flota 360" de la app Flota: agrupa la consulta 360 y las vistas de
-         otros módulos que se cuelgan aquí (p. ej. candidatos a préstamo y
-         traspaso notarial de adt_comercial). -->
+    <!-- Menú "Flota 360" de la app Flota, numerado:
+         1. Consulta de vehículos  2. Papeletas SAT  3. Captura vehicular  4. Finanzas.
+         Las demás vistas quedan ocultas (active=False) por ahora; para volver a
+         mostrarlas basta con quitar ese atributo. -->
     <menuitem id="menu_adt_flota_360_root"
               name="Flota 360"
               parent="fleet.menu_root"
@@ -16,7 +17,7 @@
               sequence="1"/>
 
     <menuitem id="menu_adt_flota_360"
-              name="Consulta de vehículos"
+              name="1. Consulta de vehículos"
               parent="menu_adt_flota_360_root"
               action="action_adt_flota_360"
               groups="fleet.fleet_group_user"
@@ -25,20 +26,23 @@
     <!-- Las vistas de flota de adt_comercial se mueven aquí. Se hace desde este
          módulo (que depende de adt_comercial) para que el menú no dependa del
          orden en que se actualicen los módulos. -->
+    <!-- Ocultas por ahora. -->
     <record id="adt_comercial.menu_fleet_candidatos_prestamo" model="ir.ui.menu">
         <field name="parent_id" ref="menu_adt_flota_360_root"/>
+        <field name="active" eval="False"/>
     </record>
 
     <record id="adt_comercial.menu_fleet_traspaso_notarial" model="ir.ui.menu">
         <field name="parent_id" ref="menu_adt_flota_360_root"/>
+        <field name="active" eval="False"/>
     </record>
 
-    <!-- Acceso directo al dashboard de Cartera y financieras (sigue también en Comercial > Dashboards). -->
+    <!-- Finanzas: el dashboard de Cartera y financieras (sigue también en Comercial > Dashboards). -->
     <menuitem id="menu_adt_flota_360_cartera"
-              name="Cartera y financieras"
+              name="4. Finanzas"
               parent="menu_adt_flota_360_root"
               action="adt_comercial.action_cartera_reporte"
-              sequence="10"
+              sequence="4"
               groups="adt_comercial.group_access_adt_comercial_gerencia"/>
 
     <record id="action_cobranza_rentabilidad" model="ir.actions.client">
@@ -50,25 +54,38 @@
               parent="menu_adt_flota_360_root"
               action="action_cobranza_rentabilidad"
               sequence="9"
+              active="False"
               groups="adt_comercial.group_access_adt_comercial_gerencia"/>
 
     <record id="action_flota_360_indicadores" model="ir.actions.client">
-        <field name="name">Indicadores SAT</field>
+        <field name="name">Papeletas SAT</field>
         <field name="tag">adt_flota_360_indicadores</field>
     </record>
     <menuitem id="menu_adt_flota_360_indicadores"
-              name="Indicadores SAT"
+              name="2. Papeletas SAT"
               parent="menu_adt_flota_360_root"
               action="action_flota_360_indicadores"
               sequence="2"
               groups="adt_comercial.group_access_adt_comercial_gerencia"/>
+
+    <!-- Capturas paso a paso: posibles capturas (cuotas vencidas o papeletas SAT) hasta el cierre. -->
+    <record id="action_flota_360_capturas" model="ir.actions.client">
+        <field name="name">Captura vehicular</field>
+        <field name="tag">adt_flota_360_capturas</field>
+    </record>
+    <menuitem id="menu_adt_flota_360_capturas"
+              name="3. Captura vehicular"
+              parent="menu_adt_flota_360_root"
+              action="action_flota_360_capturas"
+              sequence="3"
+              groups="fleet.fleet_group_user"/>
 
     <record id="action_carteras" model="ir.actions.client">
         <field name="name">Carteras de cobranza</field>
         <field name="tag">adt_flota_360_carteras</field>
     </record>
     <menuitem id="menu_carteras" name="Carteras de cobranza" parent="menu_adt_flota_360_root"
-              action="action_carteras" sequence="11" groups="fleet.fleet_group_user"/>
+              action="action_carteras" sequence="11" groups="fleet.fleet_group_user" active="False"/>
     <record id="action_mi_cartera" model="ir.actions.client">
         <field name="name">Mi cartera</field>
         <field name="tag">adt_flota_360_carteras</field>

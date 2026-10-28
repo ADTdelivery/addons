@@ -25,9 +25,9 @@ FILTROS = [
     ('todos', 'Todos'),
     ('atencion', 'Requieren atención'),
     ('mora', 'Cuotas vencidas'),
-    ('papeletas', 'Papeletas SAT pendientes'),
-    ('papeletas_semana', 'Papeletas con más de una semana'),
-    ('coactiva', 'Papeletas en coactiva'),
+    # Una sola pestaña de papeletas: «más de una semana» y «coactiva» siguen contándose
+    # (cifras de la cartera), pero ya no se muestran como pestañas aparte.
+    ('papeletas', 'Papeletas SAT'),
     ('capturas', 'Capturados'),
     ('sin_expediente', 'Sin expediente'),
     ('sin_doc_financiera', 'Falta documento financiera'),
@@ -145,6 +145,12 @@ def cifra(etiqueta, valor, icono, sub='', nivel='', principal=False):
 
 def accion_tab(tab, label, icono='fa-angle-right'):
     return {'tipo': 'tab', 'tab': tab, 'label': label, 'icon': icono}
+
+
+def accion_captura(label, icono, captura_id=False, cuenta_id=False, primaria=True):
+    """Abre la gestión de la captura paso a paso (flota_360_capturas.js: CasoCaptura)."""
+    return {'tipo': 'captura', 'captura_id': captura_id, 'cuenta_id': cuenta_id,
+            'label': label, 'icon': icono, 'primary': primaria}
 
 
 class AdtFlota360(models.AbstractModel):
@@ -2040,8 +2046,9 @@ class AdtFlota360(models.AbstractModel):
             kpis.append({'label': 'Compromiso de pago', 'fecha': a_fecha(g('commitment_date')),
                          'nivel': 'critico' if retraso else False,
                          'sub': ('%s de retraso' % plural(retraso, 'día', 'días')) if retraso else ''})
-        if g('papeleta_id'):
-            kpis.append({'label': 'Monto papeleta', 'monto': g('papeleta_monto') or 0.0})
+        if g('papeletas_sat_pendientes'):
+            kpis.append({'label': 'Deuda SAT pendiente', 'monto': c.deuda_sat or 0.0, 'nivel': 'atencion' if activa else False,
+                         'sub': plural(c.papeletas_sat_pendientes, 'papeleta', 'papeletas')})
 
         cuenta = c.cuenta_id
         grupos = [{
@@ -2051,7 +2058,7 @@ class AdtFlota360(models.AbstractModel):
                 self._campo('Cuenta', cuenta.display_name if cuenta else False),
                 self._campo('Vehículo', c.vehicle_id.display_name or False),
                 self._campo('Origen', self._etiqueta(c, 'source_type', g('source_type'))),
-                self._campo('Papeleta', c.papeleta_id.display_name if g('papeleta_id') else False),
+                self._campo('Papeletas SAT', ', '.join(c.papeleta_sat_ids.mapped('name')) if g('papeleta_sat_ids') else False),
                 self._campo('Tipo de cartera', self._etiqueta(c, 'tipo_cartera', g('tipo_cartera'))),
                 self._campo('Capturador', c.capturador_id.name if g('capturador_id') else False),
                 self._campo('Supervisor', c.supervisor_id.name if g('supervisor_id') else False),
@@ -2115,21 +2122,10 @@ class AdtFlota360(models.AbstractModel):
         M = 'adt.captura.record'
         boton = lambda metodo, label, icono, **kw: accion_metodo('adt.flota360', c.id, 'accion_captura', label, icono,
                                                                  args=[c.id, metodo], **kw)
-        acciones, mas = [], []
-        if activa and pendiente and self._metodo(M, 'action_registrar_pago'):
-            acciones.append(boton('action_registrar_pago', 'Registrar pago', 'fa-money', primaria=True))
-        if supervisor:
-            if c.state in CAPTURA_ACTIVA and self._metodo(M, 'action_liberar'):
-                acciones.append(boton('action_liberar', 'Liberar vehículo', 'fa-unlock',
-                                      confirmar='¿Está seguro de liberar este vehículo?'))
-            if c.state == 'capturado' and self._metodo(M, 'action_retener'):
-                mas.append(boton('action_retener', 'Disolución de contrato', 'fa-ban'))
-            if c.state == 'disolucion_contrato' and self._metodo(M, 'action_recolocar'):
-                mas.append(boton('action_recolocar', 'Recolocar vehículo', 'fa-exchange',
-                                 confirmar='¿Está seguro de recolocar este vehículo?'))
-            if not g('es_estado_final') and c.state != 'recolocada' and self._metodo(M, 'action_cancelar'):
-                mas.append(boton('action_cancelar', 'Cancelar captura', 'fa-times', peligro=True,
-                                 confirmar='¿Está seguro de cancelar esta captura?'))
+        # Cobro, liberación, disolución, recolocación y cancelación: en la gestión paso a paso.
+        acciones = [accion_captura('Gestionar captura' if activa else 'Ver recorrido de la captura',
+                                   'fa-tasks', captura_id=c.id, primaria=activa)]
+        mas = []
         if c.vehicle_id and 'adt.tvs.mantenimiento' in self.env and self._metodo(M, 'action_ver_mantenimientos'):
             mas.append(boton('action_ver_mantenimientos', 'Ver mantenimientos', 'fa-wrench'))
         if cuenta:
@@ -2188,10 +2184,16 @@ class AdtFlota360(models.AbstractModel):
                 {'label': 'Total de capturas', 'texto': str(len(capturas))},
             ] if capturas else [],
             'vacio': 'Sin capturas registradas.',
-            'acciones': [accion_form('captura', 'Registrar captura', 'fa-plus')]
-            if self.env['adt.comercial.cuentas'].search_count(
-                [('vehiculo_id', '=', v.id), ('state', 'in', ('en_curso', 'aprobado'))]) else [],
+            'acciones': self._acciones_capturas(v, activas),
         }
+
+    def _acciones_capturas(self, v, activas):
+        """Gestionar la captura activa o, si no hay, iniciarla sobre la cuenta vigente."""
+        if activas:
+            return [accion_captura('Gestionar captura', 'fa-tasks', captura_id=activas[0].id)]
+        cuenta = self.env['adt.comercial.cuentas'].search(
+            [('vehiculo_id', '=', v.id), ('state', 'in', ('en_curso', 'aprobado'))], order='id desc', limit=1)
+        return [accion_captura('Iniciar captura', 'fa-lock', cuenta_id=cuenta.id)] if cuenta else []
 
     # --- Expediente (adt_expedientes) --------------------------------------
     # El expediente solo se relaciona con el cliente (cliente_id). Aquí se vincula

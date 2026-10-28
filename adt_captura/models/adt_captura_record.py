@@ -8,6 +8,28 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+# Origen de la captura: cuotas vencidas del cronograma, papeletas del SAT Lima o ambos.
+SOURCE_TYPES = [
+    ('mora', 'Mora (Cuotas)'),
+    ('papeleta', 'Papeleta SAT'),
+    ('ambos', 'Mora y Papeleta SAT'),
+    ('none', 'Ninguno'),
+]
+LIBERACION_TIPOS = [
+    ('refinanciamiento', 'Refinanciamiento'),
+    ('pago_total', 'Pago Total del Pendiente'),
+    ('pago_papeleta_sat', 'Pago de las papeletas SAT'),
+]
+RETENCION_MOTIVOS = [
+    ('motivo1', 'El cliente no se comunicó por más de 3 días'),
+    ('motivo2', 'El cliente decidio no continuar pagando el credito'),
+    ('otro', 'Otro'),
+]
+GRUPO_SUPERVISOR = 'adt_captura.group_captura_supervisor'
+# Evidencias y documentos de la captura se guardan tal como se subieron: sin esto Odoo
+# reduce las imágenes a 1920 px y las recomprime (base.image_autoresize_max_px).
+SIN_REDIMENSIONAR = {'image_no_postprocess': True}
+
 
 class ADTCapturaRecord(models.Model):
     _name = 'adt.captura.record'
@@ -34,6 +56,12 @@ class ADTCapturaRecord(models.Model):
 
     commitment_date = fields.Date(string='Fecha Compromiso', tracking=True,
                                    help='Fecha comprometida para el pago (solo si tipo = compromiso)')
+
+    # Persistent upload status shared by all Odoo workers.
+    evidencias_status = fields.Selection([
+        ('pending', 'Pendiente'), ('processing', 'Procesando'),
+        ('completed', 'Completado'), ('failed', 'Fallido'),
+    ], default='pending', required=True, copy=False, readonly=True)
 
     # Evidencia
     evidencia_archivos = fields.Many2many('ir.attachment',
@@ -73,11 +101,7 @@ class ADTCapturaRecord(models.Model):
     pagar_monto = fields.Boolean(string='¿Pagar monto?', default=True)
 
     # Retención
-    retention_reason = fields.Selection([
-         ('motivo1', 'El cliente no se comunicó por más de 3 días'),
-                ('motivo2', 'El cliente decidio no continuar pagando el credito'),
-                ('otro', 'Otro')
-    ], string='Motivo', tracking=True)
+    retention_reason = fields.Selection(RETENCION_MOTIVOS, string='Motivo', tracking=True)
 
     retention_date = fields.Date(string='Fecha de inicio', tracking=True)
     notes = fields.Text(string='Observaciones Adicionales', readonly=True)
@@ -147,32 +171,22 @@ class ADTCapturaRecord(models.Model):
     moto_recogida = fields.Boolean(string='¿Moto recogida?', default=False, tracking=True)
     motivo_no_recogida = fields.Text(string='Motivo si no se recogió', tracking=True)
 
-    liberacion_tipo = fields.Selection([
-        ('refinanciamiento', 'Refinanciamiento'),
-        ('pago_total', 'Pago Total del Pendiente'),
-         ('pago_papeleta_total', 'Pago Total de la papeleta'),
-          ('pago_fraccionado', 'Pago Fraccionado de la papeleta')
-    ], string='Tipo de Liberación', tracking=True)
+    liberacion_tipo = fields.Selection(LIBERACION_TIPOS, string='Tipo de Liberación', tracking=True)
 
     observaciones = fields.Text(string='Observaciones', tracking=True)
 
-    source_type = fields.Selection([
-        ('mora', 'Mora (Cuotas)'),
-        ('papeleta', 'Papeleta'),
-        ('ambos', 'Mora y Papeleta'),
-        ('none', 'Ninguno')
-    ], string='Origen', tracking=True)
+    source_type = fields.Selection(SOURCE_TYPES, string='Origen', tracking=True)
 
-    papeleta_id = fields.Many2one('adt.papeleta', string='Papeleta', tracking=True)
-
-    # Mostrar el monto de la papeleta vinculada (si existe)
-    papeleta_monto = fields.Monetary(
-        string='Monto Papeleta',
-        related='papeleta_id.monto',
-        currency_field='company_currency_id',
-        store=True,
-        readonly=True,
-    )
+    # Papeletas del SAT Lima pendientes al momento de la captura. Su pago lo confirma
+    # la sincronización con el SAT (adt_papeletas), no la captura.
+    papeleta_sat_ids = fields.Many2many(
+        'adt.papeleta.sat', 'adt_captura_papeleta_sat_rel', 'captura_id', 'papeleta_sat_id',
+        string='Papeletas SAT', readonly=True)
+    papeletas_sat_pendientes = fields.Integer(
+        string='Papeletas SAT pendientes', compute='_compute_deuda_sat',
+        help='Papeletas SAT de la captura que el SAT aún muestra pendientes de pago.')
+    deuda_sat = fields.Monetary(
+        string='Deuda SAT pendiente', compute='_compute_deuda_sat', currency_field='company_currency_id')
 
     company_currency_id = fields.Many2one('res.currency', string='Moneda', related='company_id.currency_id', readonly=True)
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
@@ -187,10 +201,12 @@ class ADTCapturaRecord(models.Model):
     documento_desafiliacion = fields.Binary(string='Documento de Desafiliación')
     evidencia_entrega = fields.Binary(string='Evidencia de la Entrega')
 
-    @api.depends('evidencia_archivos')
-    def _compute_evidence_count(self):
+    @api.depends('papeleta_sat_ids.estado_pago', 'papeleta_sat_ids.deuda')
+    def _compute_deuda_sat(self):
         for record in self:
-            record.evidence_count = len(record.evidencia_archivos)
+            pendientes = record.papeleta_sat_ids.filtered(lambda p: p.estado_pago == 'pendiente')
+            record.papeletas_sat_pendientes = len(pendientes)
+            record.deuda_sat = sum(pendientes.mapped('deuda'))
 
     @api.depends('cuenta_id', 'cuenta_id.cuota_ids')
     def _compute_mora_info(self):
@@ -319,29 +335,22 @@ class ADTCapturaRecord(models.Model):
         type = 'Captura Inmediata'
         if vals.get('capture_type') == 'compromiso':
             type = 'Compromiso de Pago'
-        # Log the state for debugging
-        _logger.info('Searching for fleet.vehicle.state with name Recolocada')
-        state = self.env['fleet.vehicle.state'].search([
-            ('name', '=', type)
-        ], limit=1)
-        _logger.info('Found state: %s', state)
-
         # Retrieve the vehicle_id from cuenta_id if not directly provided
-        if not vals.get('vehicle_id') and vals.get('cuenta_id'):
-            cuenta = self.env['adt.comercial.cuentas'].browse(vals['cuenta_id'])
+        cuenta = self.env['adt.comercial.cuentas'].browse(vals.get('cuenta_id'))
+        if not vals.get('vehicle_id') and cuenta:
             vals['vehicle_id'] = cuenta.vehiculo_id.id
 
         vehicle_id = vals.get('vehicle_id')
-        _logger.info('Vehicle Id: %s', str(vehicle_id))
         if vehicle_id:
-            vehicle = self.env['fleet.vehicle'].browse(vehicle_id)
-            vehicle.write({
-                'state_id': state.id
-            })
+            self._set_vehicle_state(self.env['fleet.vehicle'].browse(vehicle_id), type)
 
-        # Ensure papeleta is set from default context if provided
-        if not vals.get('papeleta_id') and self.env.context.get('default_papeleta_id'):
-            vals['papeleta_id'] = self.env.context.get('default_papeleta_id')
+        # Origen y papeletas SAT pendientes, tal como figuran en la lista de posibles capturas.
+        if cuenta and 'adt.captura.mora' in self.env:
+            mora = self.env['adt.captura.mora'].sudo().search([('cuenta_id', '=', cuenta.id)], limit=1)
+            if not vals.get('source_type'):
+                vals['source_type'] = mora.source_type or 'none'
+            if 'papeleta_sat_ids' not in vals and mora.papeletas_sat:
+                vals['papeleta_sat_ids'] = [(6, 0, self._papeletas_sat_pendientes(cuenta).ids)]
 
         # Validar fecha compromiso si es tipo compromiso
         if vals.get('capture_type') == 'compromiso':
@@ -352,6 +361,141 @@ class ADTCapturaRecord(models.Model):
                 raise ValidationError('La fecha de compromiso debe ser futura.')
 
         return super(ADTCapturaRecord, self).create(vals)
+
+    @api.model
+    def _papeletas_sat_pendientes(self, cuenta):
+        """Papeletas SAT pendientes de la cuenta, con el mismo criterio que adt.captura.mora."""
+        Sat = self.env['adt.papeleta.sat'].sudo()
+        if not cuenta.vehiculo_id or cuenta.state not in ('aprobado', 'en_curso'):
+            return Sat
+        domain = [('vehicle_id', '=', cuenta.vehiculo_id.id), ('estado_pago', '=', 'pendiente')]
+        if cuenta.fecha_desembolso:
+            domain += ['|', ('fecha_infraccion', '=', False), ('fecha_infraccion', '>=', cuenta.fecha_desembolso)]
+        return Sat.search(domain, order='fecha_infraccion asc, id asc')
+
+    @api.model
+    def _set_vehicle_state(self, vehicle, nombre):
+        """Pasa el vehículo al estado de flota `nombre` (si existe)."""
+        state = self.env['fleet.vehicle.state'].search([('name', '=', nombre)], limit=1)
+        if vehicle and state:
+            vehicle.write({'state_id': state.id})
+        elif vehicle:
+            _logger.warning('No existe el estado de flota "%s"; el vehículo %s no cambia de estado.', nombre, vehicle.id)
+
+    def _check_supervisor(self, accion):
+        if not self.env.user.has_group(GRUPO_SUPERVISOR):
+            raise UserError(_('Solo los supervisores pueden %s.') % accion)
+
+    # ------------------------------------------------------------------
+    # Pasos del proceso (los usan los asistentes y la vista de Flota 360)
+    # ------------------------------------------------------------------
+
+    def registrar_pago_intervencion(self, monto, payment_date, voucher_number=False, voucher_file=False,
+                                    voucher_filename=False, pagar_monto=True, motivo_no_pago=False):
+        """Paso "Cobrar": registra el pago de la intervención (o la exoneración con su motivo)."""
+        self.ensure_one()
+        if self.state not in ('capturado', 'disolucion_contrato'):
+            raise UserError(_('Solo puede registrar pago en estado Capturado o Disolución de Contrato.'))
+        payment_date = fields.Date.to_date(payment_date)
+        if not payment_date:
+            raise ValidationError(_('Indique la fecha de pago.'))
+        if payment_date > fields.Date.context_today(self):
+            raise ValidationError(_('La fecha de pago no puede ser futura.'))
+        if pagar_monto:
+            if not monto or monto <= 0:
+                raise ValidationError(_('El monto debe ser mayor a cero.'))
+            if not voucher_number or not voucher_file:
+                raise ValidationError(_('Indique el número de voucher y adjunte el voucher de pago.'))
+        elif not (motivo_no_pago or '').strip():
+            raise UserError(_('Debe especificar un motivo para no realizar el pago.'))
+        self.with_context(**SIN_REDIMENSIONAR).write({
+            'payment_state': 'pagado',
+            'voucher_file': voucher_file if pagar_monto else False,
+            'voucher_filename': voucher_filename if pagar_monto else False,
+            'voucher_number': voucher_number if pagar_monto else False,
+            'payment_date': payment_date,
+            'intervention_fee': monto if pagar_monto else self.intervention_fee,
+            'motivo_no_pago': False if pagar_monto else motivo_no_pago,
+            'pagar_monto': pagar_monto,
+        })
+        if pagar_monto:
+            mensaje = _('<p><strong>Pago Registrado</strong></p><ul><li>Monto: S/ %.2f</li><li>N° Voucher: %s</li>'
+                        '<li>Fecha: %s</li></ul>') % (monto, voucher_number, payment_date)
+        else:
+            mensaje = _('<p><strong>Intervención sin pago</strong></p><p>Motivo: %s</p>') % motivo_no_pago
+        self.message_post(body=mensaje, subject=_('Pago Registrado'))
+        return True
+
+    def liberar_vehiculo(self, liberacion_tipo, observaciones=False):
+        """Paso "Cerrar": libera el vehículo y lo devuelve a préstamo en progreso."""
+        self.ensure_one()
+        self._check_supervisor(_('liberar vehículos'))
+        if self.state != 'capturado':
+            raise UserError(_('Solo se pueden liberar capturas en estado Capturado.'))
+        if liberacion_tipo not in dict(LIBERACION_TIPOS):
+            raise ValidationError(_('Indique el tipo de liberación.'))
+        self._set_vehicle_state(self.vehicle_id, 'Prestamo en Progreso')
+        self.write({
+            'state': 'liberado',
+            'liberacion_tipo': liberacion_tipo,
+            'observaciones': observaciones,
+            'supervisor_id': self.env.user.id,
+        })
+        mensaje = _('Vehículo liberado por %s (%s).') % (self.env.user.name, dict(LIBERACION_TIPOS)[liberacion_tipo])
+        if liberacion_tipo == 'pago_papeleta_sat' and self.papeletas_sat_pendientes:
+            mensaje += _(' El SAT aún muestra %s papeleta(s) pendiente(s) por S/ %.2f: el pago se confirmará '
+                         'en la próxima consulta al SAT.') % (self.papeletas_sat_pendientes, self.deuda_sat)
+        self.message_post(body=mensaje)
+        return True
+
+    def iniciar_disolucion(self, retention_reason, retention_date, notes=False):
+        """Paso "Cerrar": retiene el vehículo e inicia la disolución del contrato."""
+        self.ensure_one()
+        self._check_supervisor(_('retener vehículos'))
+        if self.state != 'capturado':
+            raise UserError(_('Solo se pueden retener capturas en estado Capturado.'))
+        retention_date = fields.Date.to_date(retention_date)
+        if retention_reason not in dict(RETENCION_MOTIVOS):
+            raise ValidationError(_('Indique el motivo de la retención.'))
+        if not retention_date or retention_date > fields.Date.context_today(self):
+            raise ValidationError(_('La fecha de retención no puede ser futura.'))
+        if retention_reason == 'otro' and len((notes or '').strip()) < 10:
+            raise ValidationError(_('Las observaciones deben tener al menos 10 caracteres cuando el motivo es "Otro".'))
+        self.write({
+            'state': 'disolucion_contrato',
+            'retention_reason': retention_reason,
+            'retention_date': retention_date,
+            'notes': notes,
+            'supervisor_id': self.env.user.id,
+        })
+        self._set_vehicle_state(self.vehicle_id, 'Disolución de contrato')
+        mensaje = _('<p><strong>Vehículo Retenido</strong></p><p><strong>Motivo:</strong> %s</p>'
+                    '<p><strong>Fecha:</strong> %s</p><p><strong>Supervisor:</strong> %s</p>') % (
+            dict(RETENCION_MOTIVOS)[retention_reason], retention_date, self.env.user.name)
+        if notes:
+            mensaje += _('<p><strong>Observaciones:</strong> %s</p>') % notes
+        self.message_post(body=mensaje, subject=_('Vehículo Retenido'))
+        return True
+
+    def recolocar_vehiculo(self, documento_desafiliacion, evidencia_entrega):
+        """Último paso de la disolución: cancela la cuenta y marca el vehículo como recolocado."""
+        self.ensure_one()
+        self._check_supervisor(_('recolocar vehículos'))
+        if self.state != 'disolucion_contrato':
+            raise UserError(_('Solo se pueden recolocar vehículos en estado Disolución de Contrato.'))
+        if not documento_desafiliacion or not evidencia_entrega:
+            raise ValidationError(_('Adjunte el documento de desafiliación y la evidencia de la entrega.'))
+        self.with_context(**SIN_REDIMENSIONAR).write({
+            'state': 'recolocada',
+            'documento_desafiliacion': documento_desafiliacion,
+            'evidencia_entrega': evidencia_entrega,
+        })
+        if self.cuenta_id:
+            self.cuenta_id.write({'state': 'cancelado'})
+        self._set_vehicle_state(self.vehicle_id, 'Recolocada')
+        self.message_post(body=_('Vehículo recolocado por %s; la cuenta %s pasó a cancelada.')
+                          % (self.env.user.name, self.cuenta_id.reference_no or ''))
+        return True
 
     @api.constrains('commitment_date', 'capture_type')
     def _check_commitment_date(self):
@@ -429,9 +573,7 @@ class ADTCapturaRecord(models.Model):
     def action_cancelar(self):
         """Cancela la captura"""
         self.ensure_one()
-
-        if not self.env.user.has_group('adt_captura.group_captura_supervisor'):
-            raise UserError('Solo los supervisores pueden cancelar capturas.')
+        self._check_supervisor(_('cancelar capturas'))
 
         if self.es_estado_final:
             raise UserError('No se puede cancelar una captura en estado final.')
@@ -552,36 +694,12 @@ class ADTCapturaRecolocarWizard(models.TransientModel):
     _description = 'Recolocar Wizard'
 
     captura_id = fields.Many2one('adt.captura.record', string='Captura')
-    documento_desafiliacion = fields.Binary(string='Documento de Desafiliación', required=True)
-    evidencia_entrega = fields.Binary(string='Evidencia de la Entrega', required=True)
+    # attachment=False: el archivo pasa a la captura sin que Odoo lo redimensione.
+    documento_desafiliacion = fields.Binary(string='Documento de Desafiliación', required=True, attachment=False)
+    evidencia_entrega = fields.Binary(string='Evidencia de la Entrega', required=True, attachment=False)
 
     def confirmar_recolocacion(self):
         """Confirm recolocacion and perform necessary actions."""
         self.ensure_one()
-        self.captura_id.write({
-            'state': 'recolocada',
-            'documento_desafiliacion': self.documento_desafiliacion,
-            'evidencia_entrega': self.evidencia_entrega,
-        })
-
-        # Update the state of the related adt.comercial.cuentas record to 'cancelado'
-        comercial_cuenta = self.env['adt.comercial.cuentas'].search([('id', '=', self.captura_id.cuenta_id.id)], limit=1)
-        if comercial_cuenta:
-            comercial_cuenta.write({'state': 'cancelado'})
-
-
-        # Log the state for debugging
-        _logger.info('Searching for fleet.vehicle.state with name Recolocada')
-        state = self.env['fleet.vehicle.state'].search([
-            ('name', '=', 'Recolocada')
-        ], limit=1)
-        _logger.info('Found state: %s', state)
-
-        # Retrieve the vehicle_id from the captura_id
-        vehicle = self.captura_id.vehicle_id
-        if vehicle:
-            vehicle.write({
-                'state_id': state.id
-            })
-
+        self.captura_id.recolocar_vehiculo(self.documento_desafiliacion, self.evidencia_entrega)
         return {'type': 'ir.actions.act_window_close'}

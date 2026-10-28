@@ -3,6 +3,8 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
+from ..models.adt_captura_record import RETENCION_MOTIVOS
+
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -13,11 +15,7 @@ class ADTCapturaRetencionWizard(models.TransientModel):
     _description = 'Retener Vehículo'
 
     captura_id = fields.Many2one('adt.captura.record', string='Captura', required=True)
-    retention_reason = fields.Selection([
-        ('motivo1', 'El cliente no se comunicó por más de 3 días'),
-        ('motivo2', 'El cliente decidio no continuar pagando el credito'),
-        ('otro', 'Otro')
-    ], string='Motivo', required=True, default='motivo1')
+    retention_reason = fields.Selection(RETENCION_MOTIVOS, string='Motivo', required=True, default='motivo1')
     retention_date = fields.Date(string='Fecha', required=True,
                                  default=fields.Date.today)
     notes = fields.Text(string='Observaciones Adicionales', readonly=True)
@@ -47,60 +45,7 @@ class ADTCapturaRetencionWizard(models.TransientModel):
     def action_retener(self):
         """Retiene el vehículo"""
         self.ensure_one()
-
-        # Actualizar la captura
-        self.captura_id.write({
-            'state': 'disolucion_contrato',
-            'retention_reason': self.retention_reason,
-            'retention_date': self.retention_date,
-            'notes': self.notes,
-            'supervisor_id': self.env.user.id,
-        })
-
-        # Log the state for debugging
-        _logger.info('Searching for fleet.vehicle.state with name Recolocada')
-        state = self.env['fleet.vehicle.state'].search([
-            ('name', '=', 'Disolución de contrato')
-        ], limit=1)
-        _logger.info('Found state: %s', state)
-
-        # Retrieve the vehicle_id from the captura_id
-        vehicle = self.captura_id.vehicle_id
-        if vehicle:
-            vehicle.write({
-                'state_id': state.id
-            })
-
-            # If there is a pending papeleta for this vehicle, mark it as recolocada = True
-            try:
-                papeleta = self.env['adt.papeleta'].search([
-                    ('vehicle_id', '=', vehicle.id),
-                    ('state', '!=', 'pagado')
-                ], order='fecha_vencimiento_final asc, id asc', limit=1)
-                if papeleta:
-                    papeleta.write({'recolocada': True})
-                    try:
-                        papeleta.message_post(body=_('Papeleta marcada como <b>Recolocada</b> por retención del vehículo por %s') % (self.env.user.display_name,))
-                    except Exception:
-                        _logger.exception('Failed to post chatter message for papeleta %s', papeleta.id)
-            except Exception:
-                _logger.exception('Error while updating papeleta recolocada flag for vehicle %s', getattr(vehicle, 'id', None))
-
-        # Agregar nota en el chatter
-        mensaje = f"""
-        <p><strong>Vehículo Retenido</strong></p>
-        <p><strong>Motivo:</strong> {self.retention_reason}</p>
-        <p><strong>Fecha:</strong> {self.retention_date}</p>
-        <p><strong>Supervisor:</strong> {self.env.user.name}</p>
-        """
-        if self.notes:
-            mensaje += f"<p><strong>Observaciones:</strong> {self.notes}</p>"
-
-        self.captura_id.message_post(body=mensaje, subject='Vehículo Retenido')
-
-        _logger.info(f"Vehículo disolución contrato - Captura: {self.captura_id.name} - Supervisor: {self.env.user.name}")
-
-        # Cerrar el wizard y recargar la vista
+        self.captura_id.iniciar_disolucion(self.retention_reason, self.retention_date, self.notes)
         return {
             'type': 'ir.actions.client',
             'tag': 'reload',

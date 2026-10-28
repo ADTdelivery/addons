@@ -179,55 +179,176 @@
     .adt_f360__kbd { right: 14px; border-color: rgba(29, 53, 87, .3); background: var(--f3-surface); color: var(--f3-primary); }
 }
 
-// Selector Todos / Con cliente / En stock, junto al buscador.
-.adt_f360__groups {
+// Botón «Filtros» junto al buscador y su popup: vehículos, financiera, cronograma y clientes.
+.adt_f360__fpop-wrap {
+    position: relative;
     flex: none;
-    display: inline-flex;
-    padding: 3px;
-    border: 1px solid var(--f3-line);
-    border-radius: 10px;
-    background: var(--f3-bg);
-    &:empty { display: none; }
 }
 
-.adt_f360__group {
+.adt_f360__fpop-btn {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    height: 38px;
-    padding: 0 12px;
-    border: 0;
-    border-radius: 8px;
-    background: none;
+    gap: 8px;
+    height: 46px;
+    padding: 0 16px;
+    border: 1px solid var(--f3-line-strong);
+    border-radius: 10px;
+    background: var(--f3-surface);
     color: var(--f3-ink-2);
     font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
     .fa { color: var(--f3-muted); }
-    &:hover { color: var(--f3-ink); }
+    &:hover { border-color: var(--f3-primary); color: var(--f3-ink); }
     &:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--f3-focus); }
-    &.is-active {
-        background: var(--f3-surface);
+    .is-open > &, .is-filtered > & {
+        border-color: var(--f3-primary);
         color: var(--f3-primary);
-        box-shadow: 0 1px 3px rgba(16, 24, 40, .12);
         .fa { color: var(--f3-primary); }
     }
-    &.is-stock.is-active { color: var(--f3-accent); .fa { color: var(--f3-accent); } }
 }
 
-.adt_f360__group-n {
-    min-width: 24px;
+.adt_f360__fpop-badge {
+    min-width: 20px;
     padding: 0 6px;
     border-radius: 10px;
-    background: var(--f3-line);
-    color: var(--f3-ink-2);
+    background: var(--f3-primary);
+    color: #fff;
     font-size: 11px;
     line-height: 20px;
     text-align: center;
-    font-variant-numeric: tabular-nums;
-    .is-active > & { background: var(--f3-primary); color: #fff; }
-    .is-stock.is-active > & { background: var(--f3-accent); }
+    &:empty { display: none; }
+}
+
+.adt_f360__fpop {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    // Sin min(): el libsass de Odoo la toma como función de Sass y no compila.
+    width: 520px;
+    max-width: calc(100vw - 32px);
+    max-height: 70vh;
+    flex-direction: column;
+    border: 1px solid var(--f3-line);
+    border-radius: 10px;
+    background: var(--f3-surface);
+    box-shadow: 0 12px 32px rgba(16, 24, 40, .18);
+    .is-open > & { display: flex; }
+}
+
+.adt_f360__fpop-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 10px 16px;
+    border-bottom: 1px solid var(--f3-line);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.adt_f360__fpop-body {
+    display: grid;
+    gap: 16px;
+    padding: 14px 16px;
+    overflow-y: auto;
+}
+
+.adt_f360__fpop-sec {
+    display: grid;
+    gap: 8px;
+}
+
+.adt_f360__fpop-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.adt_f360__fpop-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--f3-line);
+    border-radius: 0 0 10px 10px;
+    background: var(--f3-subtle);
+}
+
+.adt_f360__fpop-reset {
+    margin-right: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--f3-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+}
+
+// Filtros aplicados: una línea de chips bajo el buscador, solo cuando hay alguno.
+.adt_f360__applied {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    &:empty { display: none; }
+}
+
+.adt_f360__achip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 4px 0 10px;
+    border: 1px solid var(--f3-info-line);
+    border-radius: 14px;
+    background: var(--f3-info-bg);
+    color: var(--f3-primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    > .fa { font-size: 12px; }
+    &.is-stock { border-color: #fed7aa; background: #fff7ed; color: var(--f3-accent); }
+
+    button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+        &:hover { background: rgba(16, 24, 40, .08); }
+        &:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--f3-focus); }
+    }
+}
+
+.adt_f360__achip-k {
+    color: var(--f3-muted);
+    font-weight: 500;
+    &::after { content: ":"; }
+}
+
+.adt_f360__applied-clear {
+    height: 28px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--f3-radius);
+    background: none;
+    color: var(--f3-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { background: var(--f3-bg); }
 }
 
 // Moto en stock en la lista: etiqueta en la columna de cliente y franja a la izquierda.
@@ -287,28 +408,7 @@
     &.is-alert { background: var(--f3-crit-bg); color: var(--f3-crit); }
 }
 
-// Filtros por financiera y por estado del cronograma: un panel compacto bajo los
-// filtros rápidos, una fila por criterio con la etiqueta alineada a la izquierda.
-.adt_f360__facets {
-    position: relative;
-    display: grid;
-    gap: 6px;
-    margin-top: 14px;
-    padding: 10px 0 8px;
-    border-top: 1px solid var(--f3-line);
-    &.is-empty { display: none; }
-    // Las pestañas van debajo: una línea las separa del panel.
-    + .adt_f360__filters { margin-top: 0; border-top: 1px solid var(--f3-line); }
-    &.is-filtered { padding-right: 120px; }
-}
-
-.adt_f360__facet {
-    display: grid;
-    grid-template-columns: 112px minmax(0, 1fr);
-    align-items: center;
-    &:empty { display: none; }
-}
-
+// Opciones del popup de filtros, con su contador de vehículos.
 .adt_f360__facet-label {
     display: inline-flex;
     align-items: center;
@@ -320,18 +420,6 @@
     text-transform: uppercase;
     white-space: nowrap;
     .fa { width: 14px; text-align: center; font-size: 12px; }
-}
-
-// Una sola línea por fila: si no caben, se desplazan en horizontal (no ocupan más alto).
-.adt_f360__facet-chips {
-    display: flex;
-    gap: 6px;
-    padding: 2px 0;
-    overflow-x: auto;
-    scrollbar-width: thin;
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
-    padding-right: 24px;
 }
 
 .adt_f360__fchip {
@@ -392,26 +480,6 @@
     &.is-sin_cuenta { background: transparent; border: 1.5px dashed var(--f3-neutral); }
 }
 
-.adt_f360__facets-clear {
-    display: none;
-    position: absolute;
-    top: 12px;
-    right: 0;
-    align-items: center;
-    gap: 6px;
-    height: 26px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: var(--f3-radius);
-    background: none;
-    color: var(--f3-primary);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    &:hover { background: var(--f3-bg); }
-    .is-filtered > & { display: inline-flex; }
-}
-
 // ── Cifras ────────────────────────────────────────────────────────────
 
 .adt_f360__figures,
@@ -423,7 +491,7 @@
     background: var(--f3-surface);
 }
 
-.adt_f360__figures { margin: 16px 0; }
+.adt_f360__figures { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 16px 0; }
 
 .adt_f360__figure {
     display: flex;
@@ -3430,9 +3498,12 @@ textarea.adt_f360__input { resize: vertical; }
 // ── Responsive ────────────────────────────────────────────────────────
 
 @media (max-width: 1100px) {
-    .adt_f360__figures, .adt_f360__acc-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .adt_f360__figure:nth-child(4) { border-left: 0; }
-    .adt_f360__figure:nth-child(n+4) { border-top: 1px solid var(--f3-line); }
+    .adt_f360__acc-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .adt_f360__acc-figures > .adt_f360__figure:nth-child(4) { border-left: 0; }
+    .adt_f360__acc-figures > .adt_f360__figure:nth-child(n+4) { border-top: 1px solid var(--f3-line); }
+    .adt_f360__figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .adt_f360__figures > .adt_f360__figure:nth-child(3) { border-left: 0; }
+    .adt_f360__figures > .adt_f360__figure:nth-child(n+3) { border-top: 1px solid var(--f3-line); }
     .adt_f360__cols, .adt_f360__exp-grid, .adt_f360__credit { grid-template-columns: 1fr; }
     .adt_f360__nav { width: 200px; }
 }
@@ -3440,15 +3511,13 @@ textarea.adt_f360__input { resize: vertical; }
 @media (max-width: 767px) {
     .adt_f360__scroll { padding: 0 12px 32px; }
     .adt_f360__top { margin: 0 -12px; padding: 12px 12px 0; }
-    .adt_f360__facet { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-    .adt_f360__facets.is-filtered { padding-right: 0; }
-    .adt_f360__facets-clear { position: static; justify-self: start; padding: 0; }
     .adt_f360__subtitle, .adt_f360__kbd { display: none; }
     .adt_f360__search-clear { right: 8px; }
     .adt_f360__headline { flex-wrap: wrap; gap: 8px; }
     .adt_f360__search.is-hero { flex-basis: 100%; }
-    .adt_f360__groups { flex-basis: 100%; }
-    .adt_f360__group { flex: 1 1 0; justify-content: center; padding: 0 6px; }
+    .adt_f360__fpop-wrap { flex-basis: 100%; }
+    .adt_f360__fpop-btn { width: 100%; height: 42px; justify-content: center; }
+    .adt_f360__fpop { left: 0; width: auto; }
     .adt_f360__search.is-hero .adt_f360__search-input { height: 42px; padding-right: 40px; font-size: 14px; }
     .adt_f360__search.is-hero .adt_f360__search-clear { right: 10px; }
     .adt_f360__figures, .adt_f360__acc-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }

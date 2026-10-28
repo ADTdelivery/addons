@@ -15,7 +15,7 @@
                 <field name="partner_id"/>
                 <field name="cuenta_id"/>
                 <field name="vehicle_id"/>
-                <field name="papeleta_id"/>
+                <field name="papeleta_sat_ids" widget="many2many_tags" optional="show"/>
                 <field name="capture_type"/>
                 <field name="dias_mora"/>
                 <field name="numero_cuotas_vencidas"/>
@@ -99,7 +99,11 @@
 
                     <group>
                         <field name="source_type" readonly="1"/>
-                        <field name="papeleta_id" readonly="1"/>
+                        <field name="papeleta_sat_ids" widget="many2many_tags" readonly="1"
+                               attrs="{'invisible': [('papeleta_sat_ids', '=', [])]}"/>
+                        <field name="deuda_sat" widget="monetary" options="{'currency_field': 'company_currency_id'}"
+                               attrs="{'invisible': [('papeleta_sat_ids', '=', [])]}"/>
+                        <field name="company_currency_id" invisible="1"/>
                     </group>
 
                     <group>
@@ -233,10 +237,10 @@
                 <field name="capturador_id"/>
 
                 <filter string="Origen: Mora" name="filter_origen_mora" domain="[('source_type','=','mora')]"/>
-                <filter string="Origen: Papeleta" name="filter_origen_papeleta" domain="[('source_type','=','papeleta')]"/>
+                <filter string="Origen: Papeleta SAT" name="filter_origen_papeleta" domain="[('source_type','=','papeleta')]"/>
                 <filter string="Origen: Ambos" name="filter_origen_ambos" domain="[('source_type','=','ambos')]"/>
-                <filter string="Tiene Papeleta" name="filter_tiene_papeleta" domain="[('papeleta_id','!=',False)]"/>
-                <filter string="Sin Papeleta" name="filter_sin_papeleta" domain="[('papeleta_id','=',False)]"/>
+                <filter string="Con papeletas SAT" name="filter_tiene_papeleta" domain="[('papeleta_sat_ids','!=',False)]"/>
+                <filter string="Sin papeletas SAT" name="filter_sin_papeleta" domain="[('papeleta_sat_ids','=',False)]"/>
 
                 <filter string="Capturados" name="filter_capturado"
                         domain="[('state', '=', 'capturado')]"/>

@@ -71,6 +71,7 @@
             'adt_comercial/static/src/scss/clientes_dashboard.scss',
             'adt_comercial/static/src/js/clientes_dashboard.js',
             'adt_comercial/static/src/scss/cartera_reporte.scss',
+            'adt_comercial/static/src/js/filtros_popup.js',
             'adt_comercial/static/src/js/cartera_reporte.js',
             'adt_comercial/static/src/scss/flota_clientes.scss',
             'adt_comercial/static/src/js/flota_clientes.js',

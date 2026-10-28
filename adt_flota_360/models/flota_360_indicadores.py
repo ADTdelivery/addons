@@ -33,7 +33,7 @@ class AdtFlota360Indicadores(models.AbstractModel):
     _inherit = 'adt.flota360'
 
     @api.model
-    def indicadores(self, financiera=None, estado=None, clientes=None):
+    def indicadores(self, financiera=None, estado=None, clientes=None, grupo=None):
         if not self.env.user.has_group(GRUPO_GERENCIA):
             raise AccessError(_('Solo gerencia puede ver los indicadores del SAT.'))
         hoy = fields.Date.context_today(self)
@@ -43,14 +43,15 @@ class AdtFlota360Indicadores(models.AbstractModel):
             return base
 
         vehiculos = self.env['fleet.vehicle'].search([], limit=MAX_ANALISIS)
-        f = self._filtrar(self._resumenes(vehiculos), financiera, estado, clientes=clientes or 'todos')
-        filtrado = financiera is not None or estado is not None or clientes not in (None, 'todos')
+        f = self._filtrar(self._resumenes(vehiculos), financiera, estado, grupo, clientes=clientes or 'todos')
+        filtrado = financiera is not None or estado is not None or clientes not in (None, 'todos') or grupo is not None
         dominio = [('vehicle_id', 'in', [r['id'] for r in f['resumenes']])] if filtrado else []
         filas = Sat.search_read(dominio, [
             'name', 'placa', 'vehicle_id', 'fecha_infraccion', 'primera_vez_visto', 'ultima_vez_visto',
             'resuelta_en', 'importe', 'deuda', 'estado_sat', 'estado_pago', 'vigente', 'revision', 'codigo_falta',
         ])
-        base.update(financieras=f['financieras'], estados=f['estados'], clientes=f['clientes'], filtrado=filtrado)
+        base.update(financieras=f['financieras'], estados=f['estados'], clientes=f['clientes'], grupos=f['grupos'],
+                    filtrado=filtrado)
         base.update(self._sat_indicadores(filas, hoy, filtrado))
         return base
 

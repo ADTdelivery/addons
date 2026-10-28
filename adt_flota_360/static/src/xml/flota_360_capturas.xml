@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Capturas paso a paso. Barra superior y filtros de "Cartera y financieras" (.adt_cart, de adt_comercial). -->
+    <t t-name="adt_flota_360.Capturas">
+        <div class="o_action adt_cart adt_find adt_cap">
+            <div class="adt_cart__scroll">
+                <header class="adt_cart__header">
+                    <div class="adt_find__top">
+                        <div class="adt_cart__titlebar">
+                            <h1 class="adt_cart__title">Capturas</h1>
+                            <p class="adt_cart__subtitle" data-ref="subtitle"/>
+                        </div>
+                        <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="refresh">
+                            <i class="fa fa-refresh" aria-hidden="true"/>Actualizar</button>
+                    </div>
+                    <nav class="adt_cap__steps" data-ref="steps" aria-label="Etapas de la captura"/>
+                </header>
+                <div class="adt_cart__body adt_find__body" data-ref="body">
+                    <div class="adt_cart__empty">Cargando…</div>
+                </div>
+            </div>
+            <!-- El detalle de un caso (CasoCaptura) se agrega aquí como drawer. -->
+        </div>
+    </t>
+
+</templates>

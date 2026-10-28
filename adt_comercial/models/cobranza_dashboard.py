@@ -11,8 +11,8 @@ MESES_HISTORIA = 12
 
 MOTIVOS = {
     'mora': 'Cuotas vencidas',
-    'papeleta': 'Papeleta vencida',
-    'ambos': 'Cuotas y papeleta',
+    'papeleta': 'Papeleta SAT pendiente',
+    'ambos': 'Cuotas y papeleta SAT',
     'otro': 'Sin motivo registrado',
 }
 GRUPOS_ACCESO = (

@@ -17,17 +17,19 @@
                             </button>
                             <kbd class="adt_f360__kbd" title="Atajo de teclado: pulsa / para buscar">/</kbd>
                         </div>
-                        <div class="adt_f360__groups" data-ref="grupos" role="group" aria-label="Clientes o stock"/>
+                        <!-- Vehículos (clientes / stock), financiera, cronograma y clientes: en un popup para liberar espacio. -->
+                        <div class="adt_f360__fpop-wrap" data-ref="fpop-wrap">
+                            <button type="button" class="adt_f360__fpop-btn" data-action="filtros-abrir"
+                                    aria-haspopup="dialog" aria-expanded="false" title="Filtrar por vehículos, financiera y cronograma">
+                                <i class="fa fa-sliders" aria-hidden="true"/> Filtros
+                                <span class="adt_f360__fpop-badge" data-ref="fpop-n"/>
+                            </button>
+                            <div class="adt_f360__fpop" data-ref="fpop" role="dialog" aria-label="Filtros"/>
+                        </div>
                     </div>
-                    <div class="adt_f360__facets" data-ref="facetas">
-                        <nav class="adt_f360__facet" data-ref="financieras" aria-label="Filtrar por financiera"/>
-                        <nav class="adt_f360__facet" data-ref="estados" aria-label="Filtrar por estado del cronograma de pagos"/>
-                        <nav class="adt_f360__facet" data-ref="clientes" aria-label="Filtrar por situación del cliente"/>
-                        <button type="button" class="adt_f360__facets-clear" data-action="clear-facetas" title="Quitar filtros de financiera y cronograma">
-                            <i class="fa fa-times" aria-hidden="true"/> Quitar filtros
-                        </button>
-                    </div>
-                    <!-- Pestañas de estado (Todos, Requiere atención, …) debajo de financiera y cronograma. -->
+                    <!-- Filtros aplicados desde el popup: cada uno se quita con su ×. -->
+                    <div class="adt_f360__applied" data-ref="aplicados" aria-label="Filtros aplicados"/>
+                    <!-- Pestañas de estado (Todos, Requiere atención, …) debajo de los filtros aplicados. -->
                     <nav class="adt_f360__filters" data-ref="filtros" aria-label="Filtros"/>
                 </header>
                 <section class="adt_f360__figures" data-ref="cartera" aria-label="Resumen de la selección"/>

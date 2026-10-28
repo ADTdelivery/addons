@@ -1,12 +1,35 @@
 # -*- coding: utf-8 -*-
 
+import base64
+import hashlib
+import hmac
 import json
 import logging
 import threading
-from odoo import http
-from odoo.http import request, Response
+import time
+from datetime import datetime, timezone
+from odoo import SUPERUSER_ID, http
+from odoo.http import content_disposition, request, Response
 
 _logger = logging.getLogger(__name__)
+
+# URL del documento del expediente: firmada y con vencimiento, para que la app la abra
+# sin sesión de Odoo (ver _documento_expediente y descargar_documento_expediente).
+DOC_URL_HORAS = 24
+DOC_FIRMA_SCOPE = 'adt_captura.expediente_documento'
+# El contenido manda, no la extensión (mismas firmas que adt.expediente).
+DOC_FIRMAS_MIME = (
+    (b'%PDF', 'application/pdf', '.pdf'),
+    (b'PK\x03\x04', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx'),
+    (b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1', 'application/msword', '.doc'),
+)
+DOC_EXT_MIME = {ext: mime for _f, mime, ext in DOC_FIRMAS_MIME}
+# Orden de GET /api/adt/captura/mora (parámetro order).
+MORA_ORDENES = {
+    # Lo que debe cada uno: cuotas vencidas + papeletas SAT pendientes; a igual monto, más días de mora.
+    'monto': lambda r: (-((r.monto_vencido or 0.0) + (r.deuda_sat or 0.0)), -(r.dias_mora or 0), r.id),
+    'dias': lambda r: (-(r.dias_mora or 0), r.fecha_cronograma or datetime.max.date(), r.id),
+}
 
 
 class CapturaAPI(http.Controller):
@@ -99,6 +122,188 @@ class CapturaAPI(http.Controller):
         except Exception:
             return ''
 
+    @staticmethod
+    def _papeleta_sat_data(p):
+        """Papeleta del SAT Lima (adt.papeleta.sat). Conserva las claves que usaba la
+        app con la papeleta interna (state, monto, fecha_emision...)."""
+        return {
+            'id': p.id,
+            'name': p.name or '',
+            'state': p.estado_pago or '',
+            'estado_sat': p.estado_sat or '',
+            'monto': p.deuda or 0.0,
+            'importe': p.importe or 0.0,
+            'deuda': p.deuda or 0.0,
+            'fecha_emision': p.fecha_infraccion.isoformat() if p.fecha_infraccion else None,
+            'dias': p.dias or 0,
+            'codigo_falta': p.codigo_falta or '',
+            'vigente': p.vigente,
+            'detalle': p.codigo_falta or '',
+            'vehicle_id': {
+                'id': p.vehicle_id.id,
+                'display_name': p.vehicle_id.display_name or '',
+            } if p.vehicle_id else None,
+        }
+
+    def _papeletas_sat_vehiculo(self, vehicle):
+        return request.env['adt.papeleta.sat'].sudo().search(
+            [('vehicle_id', '=', vehicle.id)], order='fecha_infraccion desc, id desc')
+
+    # ── Expediente como un solo documento ────────────────────────────────────
+    # Desde ahora el expediente se sube en un solo archivo PDF o Word
+    # (archivo_consolidado). Los expedientes anteriores, cargados como fotos
+    # sueltas, se entregan como un PDF generado con el reporte del expediente.
+    # En ambos casos la app recibe lo mismo: una URL al documento.
+
+    @staticmethod
+    def _firma_documento(expediente_id, expira):
+        secreto = request.env['ir.config_parameter'].sudo().get_param('database.secret') or ''
+        mensaje = '%s:%s:%s' % (DOC_FIRMA_SCOPE, expediente_id, expira)
+        return hmac.new(secreto.encode(), mensaje.encode(), hashlib.sha256).hexdigest()
+
+    @staticmethod
+    def _fotos_expediente(expediente):
+        """Campos de foto del expediente que tienen archivo (fotos sueltas, formato anterior)."""
+        exp = expediente.with_context(bin_size=True)
+        return [name for name, f in exp._fields.items()
+                if f.type == 'binary' and name.startswith('foto_') and exp[name]]
+
+    def _documento_expediente(self, expediente):
+        """
+        Documento único del expediente para la app, o None si no tiene nada cargado:
+            {url, nombre, mimetype, origen: 'archivo' | 'generado', estado, observaciones, expira}
+        """
+        exp = expediente.with_context(bin_size=True)
+        tiene_archivo = bool(exp.archivo_consolidado) if 'archivo_consolidado' in exp._fields else False
+        if not tiene_archivo and not self._fotos_expediente(expediente):
+            return None
+        expira = int(time.time()) + DOC_URL_HORAS * 3600
+        url = '%s/api/adt/expediente/%s/documento?expira=%s&firma=%s' % (
+            request.httprequest.host_url.rstrip('/'), expediente.id, expira,
+            self._firma_documento(expediente.id, expira))
+        if tiene_archivo:
+            nombre = exp.archivo_consolidado_nombre or 'Expediente_%s.pdf' % expediente.id
+            ext = ('.' + nombre.rsplit('.', 1)[-1].lower()) if '.' in nombre else ''
+            documento = {
+                'origen': 'archivo',
+                'nombre': nombre,
+                'mimetype': DOC_EXT_MIME.get(ext, 'application/octet-stream'),
+                'estado': exp.estado_archivo_consolidado or None,
+                'observaciones': exp.obs_archivo_consolidado or None,
+            }
+        else:
+            documento = {
+                'origen': 'generado',
+                'nombre': self._nombre_pdf_expediente(expediente),
+                'mimetype': 'application/pdf',
+                'estado': None,
+                'observaciones': None,
+            }
+        documento.update(url=url, expira=datetime.fromtimestamp(expira, timezone.utc).isoformat())
+        return documento
+
+    @staticmethod
+    def _nombre_pdf_expediente(expediente):
+        cliente = (expediente.cliente_id.name or 'cliente').strip().replace(' ', '_')
+        return 'Expediente_%s_%s.pdf' % (expediente.id, cliente)
+
+    def _contenido_documento(self, expediente):
+        """(bytes, nombre, mimetype) del documento del expediente, o None."""
+        exp = expediente.with_context(bin_size=False)
+        datos = exp.archivo_consolidado if 'archivo_consolidado' in exp._fields else False
+        if datos:
+            contenido = base64.b64decode(datos)
+            mime, ext = next(((m, e) for firma, m, e in DOC_FIRMAS_MIME if contenido.startswith(firma)),
+                             ('application/octet-stream', ''))
+            return contenido, exp.archivo_consolidado_nombre or 'Expediente_%s%s' % (expediente.id, ext), mime
+        if not self._fotos_expediente(expediente):
+            return None
+        reporte = request.env.ref('adt_expedientes.action_report_adt_expediente_pdf', raise_if_not_found=False)
+        if not reporte:
+            return None
+        pdf, _tipo = reporte.with_user(SUPERUSER_ID).sudo()._render_qweb_pdf([expediente.id])
+        return pdf, self._nombre_pdf_expediente(expediente), 'application/pdf'
+
+    def _expediente_data(self, expediente):
+        """Expediente para la app: datos básicos, el documento (una URL) y las referencias."""
+        referencias = []
+        for i in range(1, 5):
+            nombre = getattr(expediente, 'ref_%s_name' % i, False)
+            telefono = getattr(expediente, 'ref_%s_phone' % i, False)
+            if nombre or telefono:
+                referencias.append({
+                    'nombre': nombre or None,
+                    'telefono': telefono or None,
+                    'vinculo': getattr(expediente, 'ref_%s_vinculo' % i, False) or None,
+                })
+        return {
+            'id': expediente.id,
+            'name': expediente.display_name or '',
+            'state': expediente.state or '',
+            'fecha': expediente.fecha.isoformat() if expediente.fecha else None,
+            'cliente': {
+                'id': expediente.cliente_id.id,
+                'name': expediente.cliente_id.name or '',
+                'vat': expediente.cliente_id.vat or '',
+            } if expediente.cliente_id else None,
+            'asesora': {
+                'id': expediente.asesora_id.id,
+                'name': expediente.asesora_id.name or '',
+            } if expediente.asesora_id else None,
+            'documento': self._documento_expediente(expediente),
+            'referencias': referencias,
+        }
+
+    @http.route(
+        '/api/adt/expediente/<int:expediente_id>/documento',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+    )
+    def descargar_documento_expediente(self, expediente_id, expira=None, firma=None, descargar=None, **kwargs):
+        """
+        Documento del expediente (PDF o Word). La URL la arma la API (campo documento.url):
+        va firmada y vence a las DOC_URL_HORAS horas.
+
+        Query params:
+            - expira    : timestamp de vencimiento (lo pone la API)
+            - firma     : firma de la URL (la pone la API)
+            - descargar : 1 para forzar la descarga; sin él, el PDF se abre en el visor
+        """
+        def _error(msg, status):
+            return Response(json.dumps({'error': msg, 'code': status}, ensure_ascii=False),
+                            status=status, mimetype='application/json')
+
+        try:
+            expira_int = int(expira)
+        except (TypeError, ValueError):
+            return _error('Enlace inválido.', 403)
+        if not firma or not hmac.compare_digest(str(firma), self._firma_documento(expediente_id, expira_int)):
+            return _error('Enlace inválido.', 403)
+        if expira_int < time.time():
+            return _error('El enlace venció. Vuelve a consultar el expediente para obtener uno nuevo.', 410)
+        try:
+            expediente = request.env['adt.expediente'].sudo().browse(expediente_id)
+            if not expediente.exists():
+                return _error('Expediente no encontrado.', 404)
+            contenido = self._contenido_documento(expediente)
+            if not contenido:
+                return _error('El expediente no tiene documentos cargados.', 404)
+            datos, nombre, mime = contenido
+            disposicion = content_disposition(nombre)
+            if descargar not in ('1', 'true', 'True'):
+                disposicion = disposicion.replace('attachment', 'inline', 1)
+            return request.make_response(datos, headers=[
+                ('Content-Type', mime),
+                ('Content-Length', str(len(datos))),
+                ('Content-Disposition', disposicion),
+                ('Cache-Control', 'private, max-age=300'),
+            ])
+        except Exception as e:
+            _logger.exception('Error in /api/adt/expediente/%s/documento: %s', expediente_id, e)
+            return _error('No se pudo obtener el documento.', 500)
+
     @http.route(
         '/api/adt/captura/mora',
         type='http',
@@ -114,6 +319,8 @@ class CapturaAPI(http.Controller):
             - source_type     : filter by 'mora' | 'papeleta' | 'ambos' | 'none'
             - captura_prioridad: filter by 'normal' | 'urgente'
             - captura_existente: filter by '1' (true) | '0' (false)
+            - order           : 'monto' (default) = lo que debe cada uno (monto_vencido + deuda_sat),
+                                de mayor a menor | 'dias' = días de mora, de mayor a menor
             - limit           : max records to return (default 100)
             - offset          : pagination offset (default 0)
 
@@ -129,10 +336,13 @@ class CapturaAPI(http.Controller):
                         "license_plate": <str>
                     },
                     "source_type": <str>,
-                    "papeleta_id": {"id": <int>, "name": <str>} | null,
+                    "papeleta_id": {"id": <int>, "name": <str>, "monto": <float>} | null,  # papeleta SAT más antigua
+                    "papeletas_sat": <int>,
+                    "deuda_sat": <float>,
                     "dias_mora": <int>,
                     "numero_cuotas_vencidas": <int>,
                     "monto_vencido": <float>,
+                    "deuda_total": <float>,      # monto_vencido + deuda_sat (criterio del orden)
                     "fecha_cronograma": <str|null>,
                     "user_id": {"id": <int>, "name": <str>} | null,
                     "captura_existente": <bool>,
@@ -170,9 +380,13 @@ class CapturaAPI(http.Controller):
                 domain.append(('captura_existente', '=', False))
 
             # ── query ─────────────────────────────────────────────────────────
+            # El orden por monto suma dos columnas: se ordena en Python antes de paginar
+            # (adt.captura.mora es una vista SQL, una fila por cuenta).
+            orden = MORA_ORDENES.get((kwargs.get('order') or 'monto').lower(), MORA_ORDENES['monto'])
             MoraModel = request.env['adt.captura.mora'].sudo()
-            total_count = MoraModel.search_count(domain)
-            records = MoraModel.search(domain, limit=limit, offset=offset)
+            todos = MoraModel.search(domain).sorted(orden)
+            total_count = len(todos)
+            records = todos[offset:offset + limit]
 
             # ── batch SQL aggregation for cuota fields ────────────────────────
             # A single query replaces N per-cuenta ORM calls.
@@ -251,13 +465,13 @@ class CapturaAPI(http.Controller):
                         'license_plate': rec.vehicle_id.license_plate or '',
                     }
 
-                # papeleta
+                # papeleta SAT pendiente más antigua
                 papeleta_data = None
-                if rec.papeleta_id:
+                if rec.papeleta_sat_id:
                     papeleta_data = {
-                        'id': rec.papeleta_id.id,
-                        'name': rec.papeleta_id.display_name or '',
-                        'monto': rec.papeleta_id.monto or 0.0,
+                        'id': rec.papeleta_sat_id.id,
+                        'name': rec.papeleta_sat_id.name or '',
+                        'monto': rec.papeleta_sat_id.deuda or 0.0,
                     }
 
                 # user / asesor
@@ -300,9 +514,12 @@ class CapturaAPI(http.Controller):
                     'vehicle_id': vehicle_data,
                     'source_type': rec.source_type or 'none',
                     'papeleta_id': papeleta_data,
+                    'papeletas_sat': rec.papeletas_sat or 0,
+                    'deuda_sat': rec.deuda_sat or 0.0,
                     'dias_mora': rec.dias_mora or 0,
                     'numero_cuotas_vencidas': rec.numero_cuotas_vencidas or 0,
                     'monto_vencido': rec.monto_vencido or 0.0,
+                    'deuda_total': round((rec.monto_vencido or 0.0) + (rec.deuda_sat or 0.0), 2),
                     'fecha_cronograma': rec.fecha_cronograma.isoformat() if rec.fecha_cronograma else None,
                     'adviser': user_data,
                     'captura_existente': rec.captura_existente or False,
@@ -477,16 +694,17 @@ class CapturaAPI(http.Controller):
     )
     def get_detail_expediente(self, **kwargs):
         """
-        Returns expediente data for the partner linked to the given vehicle.
+        Returns the expediente of the client linked to the given vehicle, with the whole
+        expediente as ONE document URL (PDF or Word) instead of one URL per photo.
 
         Query param:
             - vehicle_id : ID of the fleet.vehicle record
 
-        Images are returned as absolute URLs:
-            https://<host>/web/image/adt.expediente/<id>/<field>
-        The app can load them directly (no base64 bloat).
-        To display in React Native:  <Image source={{ uri: url }} />
-        To display in Flutter:       Image.network(url)
+        record.documento:
+            - origen 'archivo'  : the PDF/Word uploaded as the whole expediente
+            - origen 'generado' : older expedientes (loose photos) → PDF built from them
+            - null              : nothing uploaded yet
+        The URL is signed and expires after DOC_URL_HORAS hours; ask again for a new one.
         """
         try:
             vehicle, err = self._resolve_vehicle(kwargs.get('vehicle_id'))
@@ -498,15 +716,10 @@ class CapturaAPI(http.Controller):
             cuenta = CuentaModel.search([('vehiculo_id', '=', vehicle.id)], limit=1, order='id desc')
             partner = cuenta.partner_id if cuenta and cuenta.partner_id else (vehicle.driver_id or None)
 
-            if not partner:
-                return Response(
-                    json.dumps({'count': 0, 'record': None}),
-                    status=200,
-                    mimetype='application/json',
-                )
-
-            Expediente = request.env['adt.expediente'].sudo()
-            expediente = Expediente.search([('cliente_id', '=', partner.id)], limit=1, order='id desc')
+            expediente = None
+            if partner:
+                expediente = request.env['adt.expediente'].sudo().search(
+                    [('cliente_id', '=', partner.id)], limit=1, order='id desc')
             if not expediente:
                 return Response(
                     json.dumps({'count': 0, 'record': None}),
@@ -514,79 +727,8 @@ class CapturaAPI(http.Controller):
                     mimetype='application/json',
                 )
 
-            # Build absolute base URL once (e.g. "https://odoo.miempresa.com")
-            base_url = request.httprequest.host_url.rstrip('/')
-
-            def _img_url(rec_id, field_name, has_data):
-                """Return an absolute public URL the app can fetch directly.
-                Returns None when the field is empty so the app knows not to show it."""
-                if not has_data:
-                    return None
-                return '%s/web/image/adt.expediente/%s/%s' % (base_url, rec_id, field_name)
-
-            eid = expediente.id
-            nat = getattr(expediente.cliente_id, 'nationality', False) or ''
-            occ = getattr(expediente.cliente_id, 'occupation', False) or ''
-            es_peruano = (nat.lower() in ('peruana', 'peru', 'pe'))
-            es_mototaxista = (occ.lower() == 'mototaxista')
-
-            expediente_data = {
-                'es_peruano': es_peruano,
-                'es_mototaxista': es_mototaxista,
-                'documento_identidad': {
-                    'foto_dni_frente': _img_url(eid, 'foto_dni_frente', expediente.foto_dni_frente),
-                    'foto_dni_reverso': _img_url(eid, 'foto_dni_reverso', expediente.foto_dni_reverso),
-                    'foto_ce_frente': _img_url(eid, 'foto_ce_frente', expediente.foto_ce_frente),
-                    'foto_ce_reverso': _img_url(eid, 'foto_ce_reverso', expediente.foto_ce_reverso),
-                    'foto_pasaporte_frente': _img_url(eid, 'foto_pasaporte_frente', expediente.foto_pasaporte_frente),
-                    'foto_pasaporte_reverso': _img_url(eid, 'foto_pasaporte_reverso', expediente.foto_pasaporte_reverso),
-                },
-                'licencia': {
-                    'foto_licencia': _img_url(eid, 'foto_licencia', expediente.foto_licencia),
-                },
-                'recibo_servicios': {
-                    'foto_recibo': _img_url(eid, 'foto_recibo', expediente.foto_recibo),
-                },
-                'sentinel': {
-                    'foto_sentinel_1': _img_url(eid, 'foto_sentinel_1', expediente.foto_sentinel_1),
-                    'foto_sentinel_2': _img_url(eid, 'foto_sentinel_2', expediente.foto_sentinel_2),
-                },
-                'mototaxista': {
-                    'foto_moto': _img_url(eid, 'foto_moto', expediente.foto_moto),
-                    'foto_soat': _img_url(eid, 'foto_soat', expediente.foto_soat),
-                    'foto_tarjeta_propiedad_frente': _img_url(eid, 'foto_tarjeta_propiedad_frente', expediente.foto_tarjeta_propiedad_frente),
-                    'foto_tarjeta_propiedad_reverso': _img_url(eid, 'foto_tarjeta_propiedad_reverso', expediente.foto_tarjeta_propiedad_reverso),
-                    'ganancia_diaria_mensual': expediente.ganancia_diaria_mensual or None,
-                    'tiempo_trabajando': expediente.tiempo_trabajando or None,
-                    'moto_empresa': expediente.moto_empresa or None,
-                    'moto_propiedad': expediente.moto_propiedad or None,
-                },
-                'no_mototaxista': {
-                    'foto_lugar_trabajo': _img_url(eid, 'foto_lugar_trabajo', expediente.foto_lugar_trabajo),
-                    'foto_lugar_negocio': _img_url(eid, 'foto_lugar_negocio', expediente.foto_lugar_negocio),
-                    'foto_boletas': _img_url(eid, 'foto_boletas', expediente.foto_boletas),
-                    'foto_estado_cuenta': _img_url(eid, 'foto_estado_cuenta', expediente.foto_estado_cuenta),
-                    'ganancia_diaria_mensual': expediente.ganancia_diaria_mensual_no or None,
-                    'tiempo_trabajando': expediente.tiempo_trabajando_no or None,
-                },
-                'domicilio': {
-                    'foto_ubicacion_actual': _img_url(eid, 'foto_ubicacion_actual', expediente.foto_ubicacion_actual),
-                    'foto_fachada_domicilio': _img_url(eid, 'foto_fachada_domicilio', expediente.foto_fachada_domicilio),
-                    'tipo_vivienda': expediente.tipo_vivienda or None,
-                    'propietario_contacto': expediente.propietario_contacto or None,
-                    'tiempo_viviendo': expediente.tiempo_viviendo or None,
-                    'foto_contrato_alquiler': _img_url(eid, 'foto_contrato_alquiler', expediente.foto_contrato_alquiler),
-                },
-                'referencias': [
-                    {'nombre': expediente.ref_1_name or None, 'telefono': expediente.ref_1_phone or None, 'vinculo': expediente.ref_1_vinculo or None},
-                    {'nombre': expediente.ref_2_name or None, 'telefono': expediente.ref_2_phone or None, 'vinculo': expediente.ref_2_vinculo or None},
-                    {'nombre': expediente.ref_3_name or None, 'telefono': expediente.ref_3_phone or None, 'vinculo': expediente.ref_3_vinculo or None},
-                    {'nombre': expediente.ref_4_name or None, 'telefono': expediente.ref_4_phone or None, 'vinculo': expediente.ref_4_vinculo or None},
-                ],
-            }
-
             return Response(
-                json.dumps({'count': 1, 'record': expediente_data}, ensure_ascii=False, default=str),
+                json.dumps({'count': 1, 'record': self._expediente_data(expediente)}, ensure_ascii=False, default=str),
                 status=200,
                 mimetype='application/json',
             )
@@ -607,7 +749,7 @@ class CapturaAPI(http.Controller):
     )
     def get_detail_papeletas(self, **kwargs):
         """
-        Returns all papeletas linked to the given vehicle.
+        Returns all SAT Lima papeletas (adt.papeleta.sat) of the given vehicle.
 
         Query param:
             - vehicle_id : ID of the fleet.vehicle record
@@ -617,37 +759,7 @@ class CapturaAPI(http.Controller):
             if err:
                 return err
 
-            Papeleta = request.env['adt.papeleta'].sudo()
-            papeletas = Papeleta.search([('vehicle_id', '=', vehicle.id)], order='fecha_papeleta desc')
-
-            papeletas_data = []
-            for p in papeletas:
-                p_cuotas = []
-                for pc in p.cuotas_ids.sorted('id'):
-                    p_cuotas.append({
-                        'id': pc.id,
-                        'name': pc.name or '',
-                        'due_date': pc.due_date.isoformat() if pc.due_date else None,
-                        'amount': pc.amount or 0.0,
-                        'state': pc.state or '',
-                    })
-                papeletas_data.append({
-                    'id': p.id,
-                    'name': p.name or '',
-                    'state': p.state or '',
-                    'monto': p.monto or 0.0,
-                    'fecha_emision': p.fecha_papeleta.isoformat() if p.fecha_papeleta else None,
-                    'fecha_vencimiento': p.fecha_vencimiento_final.isoformat() if p.fecha_vencimiento_final else None,
-                    'payment_method': p.payment_method or '',
-                    'capturado': p.capturado or False,
-                    'recolocada': p.recolocada or False,
-                    'detalle': p.detalle or '',
-                    'vehicle_id': {
-                        'id': p.vehicle_id.id,
-                        'display_name': p.vehicle_id.display_name or '',
-                    } if p.vehicle_id else None,
-                    'cuotas': p_cuotas,
-                })
+            papeletas_data = [self._papeleta_sat_data(p) for p in self._papeletas_sat_vehiculo(vehicle)]
 
             return Response(
                 json.dumps({'count': len(papeletas_data), 'records': papeletas_data}, ensure_ascii=False, default=str),
@@ -883,213 +995,18 @@ class CapturaAPI(http.Controller):
                 'cuotas': cuotas_data,
             }
 
-            # ── expediente: linked through partner_id ─────────────────────────
-            def _img_url(model_name, rec_id, field_name, has_data):
-                """Return Odoo image URL if the binary field has data, else None."""
-                if not has_data:
-                    return None
-                return '/web/image/%s/%s/%s' % (model_name, rec_id, field_name)
-
+            # ── expediente: linked through partner_id (un solo documento, ver _expediente_data) ──
             expediente_data = None
             if cuenta.partner_id:
-                Expediente = request.env['adt.expediente'].sudo()
-                expediente = Expediente.search(
-                    [('cliente_id', '=', cuenta.partner_id.id)],
-                    limit=1,
-                    order='id desc',
-                )
+                expediente = request.env['adt.expediente'].sudo().search(
+                    [('cliente_id', '=', cuenta.partner_id.id)], limit=1, order='id desc')
                 if expediente:
-                    eid = expediente.id
-                    emod = 'adt.expediente'
+                    expediente_data = self._expediente_data(expediente)
 
-                    expediente_data = {
-                        'id': eid,
-                        'name': expediente.display_name or '',
-                        'state': expediente.state or '',
-                        'cliente_id': {
-                            'id': expediente.cliente_id.id,
-                            'name': expediente.cliente_id.name or '',
-                        } if expediente.cliente_id else None,
-                        'asesora_id': {
-                            'id': expediente.asesora_id.id,
-                            'name': expediente.asesora_id.name or '',
-                        } if expediente.asesora_id else None,
-                        'fecha': expediente.fecha.isoformat() if expediente.fecha else None,
-                        'vehiculo': expediente.vehiculo or '',
-                        'placa': expediente.placa or '',
-                        'chasis': expediente.chasis or '',
-
-                        # ── Documento de identidad ────────────────────────────
-                        'documento_identidad': {
-                            'foto_dni_frente': _img_url(emod, eid, 'foto_dni_frente', expediente.foto_dni_frente),
-                            'foto_dni_reverso': _img_url(emod, eid, 'foto_dni_reverso', expediente.foto_dni_reverso),
-                            'estado_foto_dni': expediente.estado_foto_dni or None,
-                            'obs_foto_dni': expediente.obs_foto_dni or None,
-                            'foto_ce_frente': _img_url(emod, eid, 'foto_ce_frente', expediente.foto_ce_frente),
-                            'foto_ce_reverso': _img_url(emod, eid, 'foto_ce_reverso', expediente.foto_ce_reverso),
-                            'estado_foto_ce': expediente.estado_foto_ce or None,
-                            'obs_foto_ce': expediente.obs_foto_ce or None,
-                            'foto_pasaporte_frente': _img_url(emod, eid, 'foto_pasaporte_frente', expediente.foto_pasaporte_frente),
-                            'foto_pasaporte_reverso': _img_url(emod, eid, 'foto_pasaporte_reverso', expediente.foto_pasaporte_reverso),
-                            'estado_foto_pasaporte': expediente.estado_foto_pasaporte or None,
-                            'obs_foto_pasaporte': expediente.obs_foto_pasaporte or None,
-                        },
-
-                        # ── Domicilio ─────────────────────────────────────────
-                        'domicilio': {
-                            'direccion_cliente': expediente.direccion_cliente or None,
-                            'estado_direccion': expediente.estado_direccion or None,
-                            'obs_direccion': expediente.obs_direccion or None,
-                            'tipo_vivienda': expediente.tipo_vivienda or None,
-                            'tiempo_viviendo': expediente.tiempo_viviendo or None,
-                            'propietario_contacto': expediente.propietario_contacto or None,
-                            'foto_vivienda': _img_url(emod, eid, 'foto_vivienda', expediente.foto_vivienda),
-                            'estado_foto_vivienda': expediente.estado_foto_vivienda or None,
-                            'obs_foto_vivienda': expediente.obs_foto_vivienda or None,
-                            'foto_ubicacion_actual': _img_url(emod, eid, 'foto_ubicacion_actual', expediente.foto_ubicacion_actual),
-                            'estado_foto_ubicacion': expediente.estado_foto_ubicacion or None,
-                            'obs_foto_ubicacion': expediente.obs_foto_ubicacion or None,
-                            'foto_fachada_domicilio': _img_url(emod, eid, 'foto_fachada_domicilio', expediente.foto_fachada_domicilio),
-                            'estado_foto_fachada': expediente.estado_foto_fachada or None,
-                            'obs_foto_fachada': expediente.obs_foto_fachada or None,
-                            'foto_contrato_alquiler': _img_url(emod, eid, 'foto_contrato_alquiler', expediente.foto_contrato_alquiler),
-                            'estado_foto_contrato': expediente.estado_foto_contrato or None,
-                            'obs_foto_contrato': expediente.obs_foto_contrato or None,
-                        },
-
-                        # ── Ingresos ──────────────────────────────────────────
-                        'ingresos': {
-                            'foto_ingresos': _img_url(emod, eid, 'foto_ingresos', expediente.foto_ingresos),
-                            'estado_foto_ingresos': expediente.estado_foto_ingresos or None,
-                            'obs_foto_ingresos': expediente.obs_foto_ingresos or None,
-                            'foto_recibo': _img_url(emod, eid, 'foto_recibo', expediente.foto_recibo),
-                            'estado_foto_recibo': expediente.estado_foto_recibo or None,
-                            'obs_foto_recibo': expediente.obs_foto_recibo or None,
-                        },
-
-                        # ── Licencia ──────────────────────────────────────────
-                        'licencia': {
-                            'foto_licencia': _img_url(emod, eid, 'foto_licencia', expediente.foto_licencia),
-                            'estado_foto_licencia': expediente.estado_foto_licencia or None,
-                            'obs_foto_licencia': expediente.obs_foto_licencia or None,
-                        },
-
-                        # ── Mototaxista ───────────────────────────────────────
-                        'mototaxista': {
-                            'foto_moto': _img_url(emod, eid, 'foto_moto', expediente.foto_moto),
-                            'estado_foto_moto': expediente.estado_foto_moto or None,
-                            'obs_foto_moto': expediente.obs_foto_moto or None,
-                            'foto_soat': _img_url(emod, eid, 'foto_soat', expediente.foto_soat),
-                            'estado_foto_soat': expediente.estado_foto_soat or None,
-                            'obs_foto_soat': expediente.obs_foto_soat or None,
-                            'foto_tarjeta_propiedad_frente': _img_url(emod, eid, 'foto_tarjeta_propiedad_frente', expediente.foto_tarjeta_propiedad_frente),
-                            'foto_tarjeta_propiedad_reverso': _img_url(emod, eid, 'foto_tarjeta_propiedad_reverso', expediente.foto_tarjeta_propiedad_reverso),
-                            'estado_foto_tarjeta': expediente.estado_foto_tarjeta or None,
-                            'obs_foto_tarjeta': expediente.obs_foto_tarjeta or None,
-                            'ganancia_diaria_mensual': expediente.ganancia_diaria_mensual or None,
-                            'tiempo_trabajando': expediente.tiempo_trabajando or None,
-                            'moto_empresa': expediente.moto_empresa or None,
-                            'moto_propiedad': expediente.moto_propiedad or None,
-                        },
-
-                        # ── No mototaxista ────────────────────────────────────
-                        'no_mototaxista': {
-                            'foto_lugar_trabajo': _img_url(emod, eid, 'foto_lugar_trabajo', expediente.foto_lugar_trabajo),
-                            'estado_foto_lugar_trabajo': expediente.estado_foto_lugar_trabajo or None,
-                            'obs_foto_lugar_trabajo': expediente.obs_foto_lugar_trabajo or None,
-                            'foto_lugar_negocio': _img_url(emod, eid, 'foto_lugar_negocio', expediente.foto_lugar_negocio),
-                            'estado_foto_lugar_negocio': expediente.estado_foto_lugar_negocio or None,
-                            'obs_foto_lugar_negocio': expediente.obs_foto_lugar_negocio or None,
-                            'foto_boletas': _img_url(emod, eid, 'foto_boletas', expediente.foto_boletas),
-                            'estado_foto_boletas': expediente.estado_foto_boletas or None,
-                            'obs_foto_boletas': expediente.obs_foto_boletas or None,
-                            'foto_estado_cuenta': _img_url(emod, eid, 'foto_estado_cuenta', expediente.foto_estado_cuenta),
-                            'estado_foto_estado_cuenta': expediente.estado_foto_estado_cuenta or None,
-                            'obs_foto_estado_cuenta': expediente.obs_foto_estado_cuenta or None,
-                            'ganancia_diaria_mensual': expediente.ganancia_diaria_mensual_no or None,
-                            'tiempo_trabajando': expediente.tiempo_trabajando_no or None,
-                        },
-
-                        # ── Sentinel ──────────────────────────────────────────
-                        'sentinel': {
-                            'foto_sentinel_1': _img_url(emod, eid, 'foto_sentinel_1', expediente.foto_sentinel_1),
-                            'foto_sentinel_2': _img_url(emod, eid, 'foto_sentinel_2', expediente.foto_sentinel_2),
-                            'estado_foto_sentinel': expediente.estado_foto_sentinel or None,
-                            'obs_foto_sentinel': expediente.obs_foto_sentinel or None,
-                        },
-
-                        # ── Fase final ────────────────────────────────────────
-                        'fase_final': {
-                            'foto_entrega': _img_url(emod, eid, 'foto_entrega', expediente.foto_entrega),
-                            'placa': expediente.placa or None,
-                            'chasis': expediente.chasis or None,
-                        },
-
-                        # ── Referencias ───────────────────────────────────────
-                        'referencias': {
-                            'estado_referencias': expediente.estado_referencias or None,
-                            'obs_referencias': expediente.obs_referencias or None,
-                            'lista': [
-                                {
-                                    'nombre': expediente.ref_1_name or None,
-                                    'telefono': expediente.ref_1_phone or None,
-                                    'vinculo': expediente.ref_1_vinculo or None,
-                                },
-                                {
-                                    'nombre': expediente.ref_2_name or None,
-                                    'telefono': expediente.ref_2_phone or None,
-                                    'vinculo': expediente.ref_2_vinculo or None,
-                                },
-                                {
-                                    'nombre': expediente.ref_3_name or None,
-                                    'telefono': expediente.ref_3_phone or None,
-                                    'vinculo': expediente.ref_3_vinculo or None,
-                                },
-                                {
-                                    'nombre': expediente.ref_4_name or None,
-                                    'telefono': expediente.ref_4_phone or None,
-                                    'vinculo': expediente.ref_4_vinculo or None,
-                                },
-                            ],
-                        },
-                    }
-
-            # ── papeletas: all for this vehicle ───────────────────────────────
+            # ── papeletas SAT: all for this vehicle ───────────────────────────
             papeletas_data = []
             if cuenta.vehiculo_id:
-                Papeleta = request.env['adt.papeleta'].sudo()
-                papeletas = Papeleta.search(
-                    [('vehicle_id', '=', cuenta.vehiculo_id.id)],
-                    order='fecha_papeleta desc',
-                )
-                for p in papeletas:
-                    # Build cuotas list for fraccionado papeletas
-                    p_cuotas = []
-                    for pc in p.cuotas_ids.sorted('id'):
-                        p_cuotas.append({
-                            'id': pc.id,
-                            'name': pc.name or '',
-                            'due_date': pc.due_date.isoformat() if pc.due_date else None,
-                            'amount': pc.amount or 0.0,
-                            'state': pc.state or '',
-                        })
-                    papeletas_data.append({
-                        'id': p.id,
-                        'name': p.name or '',
-                        'state': p.state or '',
-                        'monto': p.monto or 0.0,
-                        'fecha_emision': p.fecha_papeleta.isoformat() if p.fecha_papeleta else None,
-                        'fecha_vencimiento': p.fecha_vencimiento_final.isoformat() if p.fecha_vencimiento_final else None,
-                        'payment_method': p.payment_method or '',
-                        'capturado': p.capturado or False,
-                        'recolocada': p.recolocada or False,
-                        'detalle': p.detalle or '',
-                        'vehicle_id': {
-                            'id': p.vehicle_id.id,
-                            'display_name': p.vehicle_id.display_name or '',
-                        } if p.vehicle_id else None,
-                        'cuotas': p_cuotas,
-                    })
+                papeletas_data = [self._papeleta_sat_data(p) for p in self._papeletas_sat_vehiculo(cuenta.vehiculo_id)]
 
             # ── vehicle detail ────────────────────────────────────────────────
             vehicle_data = None
@@ -1200,7 +1117,9 @@ class CapturaAPI(http.Controller):
                 "moto_recogida": false,
                 "motivo_no_recogida": "Cliente ausente",
                 "vehiculo_id": 120,
-                "registrado_por": 7
+                "registrado_por": 7,
+                "fecha_compromiso": "2026-11-05",      # obligatorio si tipo_captura = "compromiso"
+                "comentarios_captura": "..."           # opcional
             }
 
         Odoo's JSON dispatcher always stores the parsed body in
@@ -1233,10 +1152,23 @@ class CapturaAPI(http.Controller):
         vehiculo_id_raw       = _get('vehiculo_id')
         registrado_por        = _get('registrado_por')
         comentarios_captura   = (_get('comentarios_captura') or '').strip() or False
+        fecha_compromiso_raw  = (_get('fecha_compromiso') or '').strip()
 
         # ── Validate tipo_captura ─────────────────────────────────────────────
         if not tipo_captura or tipo_captura not in ('inmediata', 'compromiso'):
             _err('tipo_captura debe ser "inmediata" o "compromiso".')
+
+        # ── Validate fecha_compromiso (el modelo la exige para un compromiso de pago) ──
+        fecha_compromiso = False
+        if tipo_captura == 'compromiso':
+            if not fecha_compromiso_raw:
+                _err('fecha_compromiso es requerida cuando tipo_captura es "compromiso" (formato YYYY-MM-DD).', 422)
+            try:
+                fecha_compromiso = datetime.strptime(fecha_compromiso_raw, '%Y-%m-%d').date()
+            except ValueError:
+                _err('fecha_compromiso debe tener el formato YYYY-MM-DD.')
+            if fecha_compromiso <= datetime.now().date():
+                _err('fecha_compromiso debe ser una fecha futura.', 422)
 
         # ── Validate vehiculo_id ──────────────────────────────────────────────
         if vehiculo_id_raw is None:
@@ -1301,6 +1233,8 @@ class CapturaAPI(http.Controller):
             vals['motivo_no_recogida'] = motivo_no_recogida
         if comentarios_captura:
             vals['comentarios_captura'] = comentarios_captura
+        if fecha_compromiso:
+            vals['commitment_date'] = fecha_compromiso
 
         captura = request.env['adt.captura.record'].sudo().create(vals)
         request.env.cr.commit()
@@ -1386,9 +1320,6 @@ class CapturaAPI(http.Controller):
     # Upload evidence files (images / videos) asynchronously.
     # ─────────────────────────────────────────────────────────────────────────
 
-    # Simple in-memory status registry (process-local).
-    # For multi-worker setups, replace with a DB-backed status field.
-    _evidencia_status = {}
 
     @http.route(
         '/api/adt/captura/record/<int:captura_id>/evidencias',
@@ -1490,7 +1421,7 @@ class CapturaAPI(http.Controller):
                 })
 
             # Mark status as processing
-            CapturaAPI._evidencia_status[captura_id] = 'processing'
+            captura.write({'evidencias_status': 'processing'})
 
             # ── Background thread: save attachments ───────────────────────────
             db      = request.env.cr.dbname
@@ -1506,7 +1437,6 @@ class CapturaAPI(http.Controller):
                             captura = env['adt.captura.record'].browse(captura_id)
                             if not captura.exists():
                                 _logger.warning('Background upload: captura id=%s not found', captura_id)
-                                CapturaAPI._evidencia_status[captura_id] = 'failed'
                                 return
                             import base64
                             attachment_ids = []
@@ -1522,12 +1452,21 @@ class CapturaAPI(http.Controller):
                             # Link to evidencia_archivos (Many2many)
                             captura.write({
                                 'evidencia_archivos': [(4, att_id) for att_id in attachment_ids],
+                                'evidencias_status': 'completed',
                             })
                             cr.commit()
-                    CapturaAPI._evidencia_status[captura_id] = 'completed'
                     _logger.info('Background upload completed for captura id=%s (%s files)', captura_id, len(files_data))
                 except Exception:
-                    CapturaAPI._evidencia_status[captura_id] = 'failed'
+                    # A fresh transaction is required after the failed attachment transaction.
+                    try:
+                        with odoo.registry(db).cursor() as failure_cr:
+                            failure_env = odoo.api.Environment(failure_cr, uid, context)
+                            record = failure_env['adt.captura.record'].browse(captura_id).exists()
+                            if record:
+                                record.write({'evidencias_status': 'failed'})
+                            failure_cr.commit()
+                    except Exception:
+                        _logger.exception('Could not persist evidence failure for captura %s', captura_id)
                     _logger.exception('Background upload failed for captura id=%s', captura_id)
 
             t = threading.Thread(
@@ -1535,7 +1474,8 @@ class CapturaAPI(http.Controller):
                 args=(db, uid, context, captura_id, files_data),
                 daemon=True,
             )
-            t.start()
+            # Start only once the request transaction has committed the processing state.
+            request.env.cr.postcommit.add(t.start)
 
             return Response(
                 json.dumps({
@@ -1549,7 +1489,6 @@ class CapturaAPI(http.Controller):
 
         except Exception as e:
             _logger.exception('Error in POST /api/adt/captura/record/%s/evidencias: %s', captura_id, e)
-            CapturaAPI._evidencia_status[captura_id] = 'failed'
             return Response(
                 json.dumps({'error': str(e), 'code': 500}),
                 status=500,
@@ -1578,7 +1517,10 @@ class CapturaAPI(http.Controller):
             completed   – all files saved successfully
             failed      – background thread raised an exception
         """
-        status = CapturaAPI._evidencia_status.get(captura_id, 'pending')
+        captura = request.env['adt.captura.record'].sudo().browse(captura_id).exists()
+        if not captura:
+            return Response(json.dumps({'error': 'Captura no encontrada'}), status=404, mimetype='application/json')
+        status = captura.evidencias_status
         return Response(
             json.dumps({'captura_id': captura_id, 'evidencias_status': status}),
             status=200,

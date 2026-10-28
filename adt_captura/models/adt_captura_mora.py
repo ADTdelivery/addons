@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models, tools
-from odoo.tools import date_utils
 
 import logging
+
+from .adt_captura_record import SOURCE_TYPES
 
 _logger = logging.getLogger(__name__)
 
@@ -34,9 +35,11 @@ class ADTCapturaMora(models.Model):
     monto_vencido = fields.Float(string='Monto Vencido', readonly=True)
     numero_cuotas_vencidas = fields.Integer(string='# Cuotas Vencidas', readonly=True)
 
-    # Información de papeletas
-    fecha_vencimiento_papeleta = fields.Date(string='Fecha Vencimiento Papeleta', readonly=True)
-    papeleta_id = fields.Many2one('adt.papeleta', string='Papeleta', readonly=True)
+    # Papeletas del SAT Lima pendientes de pago (adt.papeleta.sat)
+    papeletas_sat = fields.Integer(string='Papeletas SAT pendientes', readonly=True)
+    deuda_sat = fields.Float(string='Deuda SAT', readonly=True)
+    fecha_papeleta_sat = fields.Date(string='Papeleta SAT más antigua', readonly=True)
+    papeleta_sat_id = fields.Many2one('adt.papeleta.sat', string='Papeleta SAT', readonly=True)
 
     # Información GPS
     gps_chip = fields.Char(string='GPS Chip', readonly=True)
@@ -64,85 +67,65 @@ class ADTCapturaMora(models.Model):
         ('urgente', 'Urgente')
     ], string='Prioridad de Captura', readonly=False, related='cuenta_id.captura_prioridad', store=False)
 
-    # Nuevo: Origen del problema (mora / papeleta / ambos / none)
-    source_type = fields.Selection([
-        ('mora', 'Mora (Cuotas)'),
-        ('papeleta', 'Papeleta'),
-        ('ambos', 'Mora y Papeleta'),
-        ('none', 'Ninguno')
-    ], string='Origen', readonly=True)
+    # Origen: cuotas vencidas del cronograma, papeletas SAT pendientes o ambos
+    source_type = fields.Selection(SOURCE_TYPES, string='Origen', readonly=True)
 
     def init(self):
-        """Crea la vista SQL para clientes en mora"""
+        """Posibles capturas: cuentas con cuotas vencidas del cronograma o con papeletas del
+        SAT Lima pendientes de pago. Una papeleta SAT solo cuenta para la cuenta vigente
+        (aprobada o en curso) del vehículo y si la infracción es posterior al desembolso,
+        para no cargarle al cliente las de un titular anterior."""
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute('''
             CREATE OR REPLACE VIEW {} AS (
+                WITH cuotas AS (
+                    SELECT
+                        cuota.cuenta_id,
+                        MIN(cuota.fecha_cronograma) AS fecha_cronograma,
+                        COALESCE(SUM(cuota.saldo), 0) AS monto_vencido,
+                        COUNT(cuota.id) AS numero_cuotas_vencidas
+                    FROM adt_comercial_cuotas cuota
+                    WHERE cuota.type = 'cuota'
+                      AND cuota.state IN ('pendiente', 'retrasado')
+                      AND cuota.fecha_cronograma < CURRENT_DATE
+                    GROUP BY cuota.cuenta_id
+                )
                 SELECT
                     cuenta.id,
-                    cuenta.partner_id as partner_id,
-                    cuenta.id as cuenta_id,
-                    cuenta.vehiculo_id as vehicle_id,
-                    cuenta.reference_no as reference_no,
+                    cuenta.partner_id,
+                    cuenta.id AS cuenta_id,
+                    cuenta.vehiculo_id AS vehicle_id,
+                    cuenta.reference_no,
+                    COALESCE(CURRENT_DATE - cu.fecha_cronograma, 0) AS dias_mora,
+                    cuenta.periodicidad AS tipo_cartera,
+                    cu.fecha_cronograma,
+                    COALESCE(cu.monto_vencido, 0) AS monto_vencido,
+                    COALESCE(cu.numero_cuotas_vencidas, 0) AS numero_cuotas_vencidas,
 
-                    -- Cálculo de días de mora (desde la cuota más antigua vencida)
-                    CAST(date_part('days', (now() - MIN(cuota.fecha_cronograma))) AS INTEGER) as dias_mora,
+                    COALESCE(sat.n, 0) AS papeletas_sat,
+                    COALESCE(sat.deuda, 0) AS deuda_sat,
+                    sat.fecha AS fecha_papeleta_sat,
+                    sat.primera AS papeleta_sat_id,
 
-                    -- Tipo de cartera
-                    cuenta.periodicidad as tipo_cartera,
+                    cuenta.gps_chip,
+                    cuenta.gps_activo,
+                    partner.phone,
+                    partner.mobile,
+                    partner.vat,
+                    cuenta.user_id,
 
-                    -- Información de cuotas vencidas
-                    MIN(cuota.fecha_cronograma) as fecha_cronograma,
-                    COALESCE(SUM(cuota.saldo), 0) as monto_vencido,
-                    COUNT(cuota.id) as numero_cuotas_vencidas,
+                    EXISTS (
+                        SELECT 1 FROM adt_captura_record r
+                        WHERE r.cuenta_id = cuenta.id
+                          AND r.state IN ('capturado', 'disolucion_contrato')
+                    ) AS captura_existente,
 
-                    -- Información de papeletas vencidas o capturadas (si aplica). Use conditional aggregation to
-                    -- include papeletas vencidas (fecha_vencimiento_final < now()) OR marcadas como capturadas,
-                    -- and explicitly exclude las que ya fueron recolocadas.
-                    MIN(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN p.fecha_vencimiento_final END) as fecha_vencimiento_papeleta,
-                    -- pick the papeleta id that corresponds to the earliest matching fecha_vencimiento_final (if any)
-                    (SELECT p2.id FROM adt_papeleta p2
-                        WHERE p2.vehicle_id = cuenta.vehiculo_id
-                          AND COALESCE(p2.state, '') != 'pagado'
-                          AND (p2.fecha_vencimiento_final < now() OR p2.capturado IS TRUE)
-                          AND (p2.recolocada IS NOT TRUE)
-                        ORDER BY p2.fecha_vencimiento_final ASC NULLS LAST
-                        LIMIT 1
-                    ) as papeleta_id,
-
-                    -- GPS
-                    cuenta.gps_chip as gps_chip,
-                    cuenta.gps_activo as gps_activo,
-
-                    -- Contacto
-                    partner.phone as phone,
-                    partner.mobile as mobile,
-                    partner.vat as vat,
-
-                    -- Asesor
-                    cuenta.user_id as user_id,
-
-                    -- Verificar si ya tiene captura activa
-                    CASE
-                        WHEN EXISTS (
-                            SELECT 1 FROM adt_captura_record
-                            WHERE cuenta_id = cuenta.id
-                            AND (state = 'capturado' OR state = 'disolucion_contrato')
-                        ) THEN true
-                        ELSE false
-                    END as captura_existente,
-
-                    -- Mantenimiento TVS: ¿el vehículo está actualmente en taller?
-                    CASE
-                        WHEN EXISTS (
-                            SELECT 1 FROM adt_tvs_mantenimiento tvs
-                            WHERE tvs.vehicle_id = cuenta.vehiculo_id
-                              AND tvs.state = 'in_progress'
-                              AND tvs.active = true
-                        ) THEN true
-                        ELSE false
-                    END as en_mantenimiento_tvs,
-
-                    -- Días que lleva el vehículo en mantenimiento TVS (0 si no aplica)
+                    EXISTS (
+                        SELECT 1 FROM adt_tvs_mantenimiento tvs
+                        WHERE tvs.vehicle_id = cuenta.vehiculo_id
+                          AND tvs.state = 'in_progress'
+                          AND tvs.active = true
+                    ) AS en_mantenimiento_tvs,
                     COALESCE((
                         SELECT tvs.days_in_taller FROM adt_tvs_mantenimiento tvs
                         WHERE tvs.vehicle_id = cuenta.vehiculo_id
@@ -150,59 +133,32 @@ class ADTCapturaMora(models.Model):
                           AND tvs.active = true
                         ORDER BY tvs.date_inicio_revision DESC
                         LIMIT 1
-                    ), 0) as dias_en_mantenimiento_tvs,
+                    ), 0) AS dias_en_mantenimiento_tvs,
 
-                    -- Flags intermedios para determinar origen
                     CASE
-                        WHEN (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
-                        THEN true
-                        ELSE false
-                    END as has_mora,
-
-                    -- has_papeleta = there exists at least one papeleta for this vehicle that is not pagada
-                    -- and that is either vencida or marked as captured, and not recolocada
-                    (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1) as has_papeleta,
-
-                    -- Origen: mora / papeleta / ambos / none
-                    CASE
-                        WHEN ( (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
-                               AND (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1) ) THEN 'ambos'
-                        WHEN (MIN(cuota.fecha_cronograma) IS NOT NULL AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0) THEN 'mora'
-                        WHEN (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1) THEN 'papeleta'
-                        ELSE 'none'
-                    END as source_type
+                        WHEN cu.cuenta_id IS NOT NULL AND sat.n > 0 THEN 'ambos'
+                        WHEN cu.cuenta_id IS NOT NULL THEN 'mora'
+                        ELSE 'papeleta'
+                    END AS source_type
 
                 FROM adt_comercial_cuentas cuenta
-                LEFT JOIN adt_comercial_cuotas cuota ON cuota.cuenta_id = cuenta.id
-                    AND cuota.type = 'cuota'
-                    AND cuota.state IN ('pendiente', 'retrasado')
-                    AND cuota.fecha_cronograma < now()
-                LEFT JOIN adt_papeleta p ON p.vehicle_id = cuenta.vehiculo_id
-                 LEFT JOIN res_partner partner ON cuenta.partner_id = partner.id
-
+                LEFT JOIN cuotas cu ON cu.cuenta_id = cuenta.id
+                LEFT JOIN LATERAL (
+                    SELECT
+                        COUNT(*) AS n,
+                        SUM(s.deuda) AS deuda,
+                        MIN(COALESCE(s.fecha_infraccion, s.primera_vez_visto::date)) AS fecha,
+                        (ARRAY_AGG(s.id ORDER BY COALESCE(s.fecha_infraccion, s.primera_vez_visto::date) ASC NULLS LAST, s.id))[1] AS primera
+                    FROM adt_papeleta_sat s
+                    WHERE s.vehicle_id = cuenta.vehiculo_id
+                      AND s.estado_pago = 'pendiente'
+                      AND cuenta.state IN ('aprobado', 'en_curso')
+                      AND (cuenta.fecha_desembolso IS NULL OR s.fecha_infraccion IS NULL
+                           OR s.fecha_infraccion >= cuenta.fecha_desembolso)
+                ) sat ON true
+                LEFT JOIN res_partner partner ON partner.id = cuenta.partner_id
                 WHERE cuenta.state != 'cancelado'
-
-                GROUP BY
-                    cuenta.id,
-                    cuenta.partner_id,
-                    cuenta.vehiculo_id,
-                    cuenta.reference_no,
-                    cuenta.periodicidad,
-                    cuenta.gps_chip,
-                    cuenta.gps_activo,
-                    cuenta.user_id,
-                    partner.phone,
-                    partner.mobile,
-                    partner.vat
-
-                -- Incluir cuentas que tienen cuotas vencidas (min fecha_cronograma) OR papeletas vencidas
-                HAVING (
-                    (MIN(cuota.fecha_cronograma) IS NOT NULL
-                     AND date_part('days', (now() - MIN(cuota.fecha_cronograma))) > 0)
-                    OR (MAX(CASE WHEN COALESCE(p.state, '') != 'pagado' AND (p.fecha_vencimiento_final < now() OR p.capturado IS TRUE) AND (p.recolocada IS NOT TRUE) THEN 1 ELSE 0 END) = 1)
-                )
-
-                ORDER BY dias_mora DESC, fecha_cronograma ASC
+                  AND (cu.cuenta_id IS NOT NULL OR sat.n > 0)
             )
         '''.format(self._table))
 
@@ -238,7 +194,6 @@ class ADTCapturaMora(models.Model):
                 'default_cuenta_id': self.cuenta_id.id,
                 'default_intervention_fee': 50.0,
                 'default_source_type': self.source_type,
-                'default_papeleta_id': self.papeleta_id and self.papeleta_id.id or False,
             },
             'target': 'current',
         }
