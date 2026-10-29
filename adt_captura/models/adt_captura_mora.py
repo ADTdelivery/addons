@@ -8,6 +8,12 @@ from .adt_captura_record import SOURCE_TYPES
 
 _logger = logging.getLogger(__name__)
 
+# Filtro de la lista de posibles capturas (Ajustes > Capturas). Las cuotas vencidas del
+# cronograma solo ponen la cuenta en captura si superan ambos límites; las papeletas SAT
+# pendientes entran siempre. Parámetro ausente o inválido = 0 (sin límite).
+PARAM_DIAS_MORA = 'adt_captura.cronograma_dias_mora_mayor_a'
+PARAM_CUOTAS_VENCIDAS = 'adt_captura.cronograma_cuotas_vencidas_mayor_a'
+
 
 class ADTCapturaMora(models.Model):
     """Vista SQL para identificar clientes en mora que requieren captura"""
@@ -70,15 +76,35 @@ class ADTCapturaMora(models.Model):
     # Origen: cuotas vencidas del cronograma, papeletas SAT pendientes o ambos
     source_type = fields.Selection(SOURCE_TYPES, string='Origen', readonly=True)
 
+    @api.model
+    def _filtro_captura(self):
+        """Límites vigentes del filtro, leídos igual que en la vista SQL."""
+        icp = self.env['ir.config_parameter'].sudo()
+        res = {}
+        for clave, param in (('dias_mora_mayor_a', PARAM_DIAS_MORA),
+                             ('cuotas_vencidas_mayor_a', PARAM_CUOTAS_VENCIDAS)):
+            valor = (icp.get_param(param) or '').strip()
+            res[clave] = int(valor) if valor.isdigit() else 0
+        return res
+
     def init(self):
-        """Posibles capturas: cuentas con cuotas vencidas del cronograma o con papeletas del
-        SAT Lima pendientes de pago. Una papeleta SAT solo cuenta para la cuenta vigente
+        """Posibles capturas: cuentas con cuotas vencidas del cronograma que superan el filtro
+        configurado (días de mora y cantidad de cuotas, ver _filtro_captura) o con papeletas
+        del SAT Lima pendientes de pago. Una papeleta SAT solo cuenta para la cuenta vigente
         (aprobada o en curso) del vehículo y si la infracción es posterior al desembolso,
-        para no cargarle al cliente las de un titular anterior."""
+        para no cargarle al cliente las de un titular anterior. El filtro se lee de
+        ir_config_parameter en cada consulta: cambiarlo no requiere actualizar el módulo."""
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute('''
-            CREATE OR REPLACE VIEW {} AS (
-                WITH cuotas AS (
+            CREATE OR REPLACE VIEW {table} AS (
+                WITH cfg AS (
+                    SELECT
+                        COALESCE((SELECT CASE WHEN TRIM(p.value) ~ '^[0-9]+$' THEN TRIM(p.value)::int END
+                                  FROM ir_config_parameter p WHERE p.key = '{param_dias}'), 0) AS dias_mora_mayor_a,
+                        COALESCE((SELECT CASE WHEN TRIM(p.value) ~ '^[0-9]+$' THEN TRIM(p.value)::int END
+                                  FROM ir_config_parameter p WHERE p.key = '{param_cuotas}'), 0) AS cuotas_vencidas_mayor_a
+                ),
+                cuotas AS (
                     SELECT
                         cuota.cuenta_id,
                         MIN(cuota.fecha_cronograma) AS fecha_cronograma,
@@ -136,13 +162,19 @@ class ADTCapturaMora(models.Model):
                     ), 0) AS dias_en_mantenimiento_tvs,
 
                     CASE
-                        WHEN cu.cuenta_id IS NOT NULL AND sat.n > 0 THEN 'ambos'
-                        WHEN cu.cuenta_id IS NOT NULL THEN 'mora'
+                        WHEN f.cronograma_ok AND sat.n > 0 THEN 'ambos'
+                        WHEN f.cronograma_ok THEN 'mora'
                         ELSE 'papeleta'
                     END AS source_type
 
                 FROM adt_comercial_cuentas cuenta
+                CROSS JOIN cfg
                 LEFT JOIN cuotas cu ON cu.cuenta_id = cuenta.id
+                LEFT JOIN LATERAL (
+                    SELECT COALESCE(CURRENT_DATE - cu.fecha_cronograma > cfg.dias_mora_mayor_a
+                                    AND cu.numero_cuotas_vencidas > cfg.cuotas_vencidas_mayor_a,
+                                    false) AS cronograma_ok
+                ) f ON true
                 LEFT JOIN LATERAL (
                     SELECT
                         COUNT(*) AS n,
@@ -158,9 +190,9 @@ class ADTCapturaMora(models.Model):
                 ) sat ON true
                 LEFT JOIN res_partner partner ON partner.id = cuenta.partner_id
                 WHERE cuenta.state != 'cancelado'
-                  AND (cu.cuenta_id IS NOT NULL OR sat.n > 0)
+                  AND (f.cronograma_ok OR sat.n > 0)
             )
-        '''.format(self._table))
+        '''.format(table=self._table, param_dias=PARAM_DIAS_MORA, param_cuotas=PARAM_CUOTAS_VENCIDAS))
 
     def action_iniciar_captura(self):
         """Abre el formulario para registrar una nueva captura"""

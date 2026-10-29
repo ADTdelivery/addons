@@ -4,3 +4,4 @@ from . import adt_captura_record
 from . import adt_captura_mora
 from . import adt_captura_dashboard
 from . import fleet_inherit
+from . import res_config_settings

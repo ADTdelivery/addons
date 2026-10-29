@@ -24,6 +24,7 @@ registrar la captura → subir evidencias.
 
 | Endpoint | Cambio | ¿Rompe la app? |
 |---|---|---|
+| `GET /mora` | Aplica el **filtro de posibles capturas** configurado en Odoo (Capturas > Configuración): por cronograma solo entran las cuentas con más de N días de mora **y** más de M cuotas vencidas (inicial: 7 días, 1 cuota); con papeletas SAT pendientes entran todas. Nuevo campo `filtro_captura` con los valores vigentes. | No. Solo cambian las filas que llegan. |
 | `GET /mora` | Orden por defecto: **lo que debe cada uno** (`monto_vencido + deuda_sat`) de mayor a menor. Nuevo campo `deuda_total`. Nuevo parámetro `order` (`monto` \| `dias`). | No. Antes ordenaba por días de mora; con `order=dias` se mantiene ese orden. |
 | `GET /mora/detail/expediente` | Ya **no** devuelve una URL por foto (`documento_identidad`, `licencia`, `domicilio`, …). Devuelve `record.documento` con **una sola URL** al expediente completo (PDF o Word). | **Sí.** La pantalla de expediente debe leer `record.documento.url`. |
 | `GET /api/adt/expediente/{id}/documento` | **Nuevo.** Entrega el documento del expediente con una URL firmada que vence a las 24 h. | — |
@@ -90,7 +91,11 @@ Respuesta OK:
 
 `GET /api/adt/captura/mora`
 
-Una fila por cuenta con cuotas vencidas y/o papeletas SAT pendientes. Por defecto, **ordenada
+Una fila por cuenta con cuotas vencidas y/o papeletas SAT pendientes, según el filtro de
+Capturas > Configuración (el mismo de la lista "Clientes en Mora" de Odoo): las cuotas vencidas
+cuentan solo si la más antigua tiene más de `dias_mora_mayor_a` días **y** son más de
+`cuotas_vencidas_mayor_a`; las papeletas SAT pendientes cuentan siempre. Una cuenta con cuotas
+bajo el filtro y papeletas sale con `source_type = "papeleta"`. Por defecto, **ordenada
 por lo que debe cada uno**: `deuda_total = monto_vencido + deuda_sat`, de mayor a menor. Si dos
 cuentas deben lo mismo, va primero la de más días de mora.
 
@@ -112,6 +117,7 @@ Ejemplo: `GET {{base}}/api/adt/captura/mora?limit=20&offset=0`
 ```json
 {
   "count": 352,
+  "filtro_captura": {"dias_mora_mayor_a": 7, "cuotas_vencidas_mayor_a": 1},
   "records": [
     {
       "client": {"id": 1532, "name": "ROSA QUISPE MAMANI"},

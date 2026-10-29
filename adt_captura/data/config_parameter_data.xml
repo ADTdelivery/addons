@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Filtro inicial de posibles capturas por cronograma: más de 7 días de mora y más de
+         1 cuota vencida. noupdate: lo configurado en Ajustes no se pisa al actualizar. -->
+    <data noupdate="1">
+        <record id="param_cronograma_dias_mora_mayor_a" model="ir.config_parameter">
+            <field name="key">adt_captura.cronograma_dias_mora_mayor_a</field>
+            <field name="value">7</field>
+        </record>
+        <record id="param_cronograma_cuotas_vencidas_mayor_a" model="ir.config_parameter">
+            <field name="key">adt_captura.cronograma_cuotas_vencidas_mayor_a</field>
+            <field name="value">1</field>
+        </record>
+    </data>
+</odoo>

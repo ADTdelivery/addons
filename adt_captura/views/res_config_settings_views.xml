@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_captura" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.captura</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <div id="companies" position="after">
+                <h2>Capturas</h2>
+                <div class="row mt16 o_settings_container" name="adt_captura">
+                    <div class="col-12 col-lg-6 o_setting_box">
+                        <div class="o_setting_left_pane"/>
+                        <div class="o_setting_right_pane">
+                            <span class="o_form_label">Filtro de posibles capturas por cronograma</span>
+                            <div class="text-muted">
+                                Una cuenta entra a captura por cuotas vencidas solo si supera ambos
+                                límites. Las cuentas con papeletas SAT pendientes entran siempre.
+                                Aplica a la lista de Clientes en Mora, el dashboard y la API de la app.
+                                0 = sin límite.
+                            </div>
+                            <div class="content-group">
+                                <div class="mt16 row">
+                                    <label for="adt_captura_dias_mora_mayor_a" class="col-4 o_light_label"/>
+                                    <field name="adt_captura_dias_mora_mayor_a" class="col-2"/>
+                                </div>
+                                <div class="mt8 row">
+                                    <label for="adt_captura_cuotas_vencidas_mayor_a" class="col-4 o_light_label"/>
+                                    <field name="adt_captura_cuotas_vencidas_mayor_a" class="col-2"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </field>
+    </record>
+
+    <record id="action_adt_captura_config" model="ir.actions.act_window">
+        <field name="name">Configuración</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'general_settings', 'bin_size': False}</field>
+    </record>
+
+</odoo>

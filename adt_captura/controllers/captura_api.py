@@ -364,6 +364,10 @@ class CapturaAPI(http.Controller):
         """
         Returns the list of vehicles/accounts that require capture action.
 
+        Aplica el filtro de Ajustes > Capturas (vista adt.captura.mora): las cuotas vencidas
+        del cronograma cuentan solo si superan los días de mora y la cantidad de cuotas
+        configurados; las papeletas SAT pendientes cuentan siempre.
+
         Optional query params:
             - source_type     : estado de la deuda: 'mora' (solo cronograma) | 'papeleta' (solo
                                 papeleta SAT) | 'ambos'. Acepta varios separados por coma
@@ -379,6 +383,7 @@ class CapturaAPI(http.Controller):
         Response body:
         {
             "count": <int>,
+            "filtro_captura": {"dias_mora_mayor_a": <int>, "cuotas_vencidas_mayor_a": <int>},
             "estados_deuda": [            # cantidad por estado de la deuda, con los demás filtros
                 {"key": "todos" | "mora" | "papeleta" | "ambos", "label": <str>, "count": <int>}, ...
             ],
@@ -605,6 +610,7 @@ class CapturaAPI(http.Controller):
 
             payload = {
                 'count': total_count,
+                'filtro_captura': MoraModel._filtro_captura(),
                 'estados_deuda': estados_deuda,
                 'records': result,
             }

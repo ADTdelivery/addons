@@ -61,4 +61,11 @@
               sequence="30"
               groups="adt_captura.group_captura_capturador"/>
 
+    <menuitem id="menu_adt_captura_config"
+              name="Configuración"
+              parent="menu_adt_captura_root"
+              action="action_adt_captura_config"
+              sequence="90"
+              groups="base.group_system"/>
+
 </odoo>
