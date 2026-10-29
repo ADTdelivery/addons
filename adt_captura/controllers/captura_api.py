@@ -44,6 +44,24 @@ MORA_ESTADOS_ALIAS = {'cronograma': 'mora', 'cuotas': 'mora', 'sat': 'papeleta',
 
 class CapturaAPI(http.Controller):
 
+    @staticmethod
+    def _mobile_detail_authorized():
+        """Allow the existing web session or a validated mobile Bearer token."""
+        authorization = request.httprequest.headers.get('Authorization', '').strip()
+        if authorization:
+            parts = authorization.split()
+            if len(parts) != 2 or parts[0].lower() != 'bearer':
+                return False
+            token = request.env['adt.mobile.token'].sudo().validate_token(parts[1], {
+                'ip': request.httprequest.remote_addr,
+                'endpoint': request.httprequest.path,
+                'method': request.httprequest.method,
+                'user_agent': request.httprequest.headers.get('User-Agent', ''),
+            })
+            return bool(token and token.user_id.active)
+        return bool(request.session.uid and request.env['res.users'].sudo().browse(request.session.uid).active)
+
+
     # ── Helper: captura summary (count + time since last) ────────────────────
     def _captura_summary(self, mora_rec, cap_dates_by_vehicle, cap_dates_by_cuenta):
         """
@@ -799,7 +817,7 @@ class CapturaAPI(http.Controller):
     @http.route(
         '/api/adt/captura/mora/detail/papeletas',
         type='http',
-        auth='user',
+        auth='public',
         methods=['GET'],
         csrf=False,
     )
@@ -810,6 +828,9 @@ class CapturaAPI(http.Controller):
         Query param:
             - vehicle_id : ID of the fleet.vehicle record
         """
+        if not self._mobile_detail_authorized():
+            return Response(json.dumps({'error': 'Tu sesión ha expirado. Inicia sesión nuevamente.'}),
+                            status=401, mimetype='application/json')
         try:
             vehicle, err = self._resolve_vehicle(kwargs.get('vehicle_id'))
             if err:
@@ -954,7 +975,7 @@ class CapturaAPI(http.Controller):
     @http.route(
         '/api/adt/captura/mora/detail',
         type='http',
-        auth='user',
+        auth='public',
         methods=['GET'],
         csrf=False,
     )
@@ -984,6 +1005,9 @@ class CapturaAPI(http.Controller):
         }
         Fechas con hora en ISO con zona (UTC). Las URLs de archivos vencen a las 24 horas.
         """
+        if not self._mobile_detail_authorized():
+            return Response(json.dumps({'error': 'Tu sesión ha expirado. Inicia sesión nuevamente.'}),
+                            status=401, mimetype='application/json')
         try:
             CuentaModel = request.env['adt.comercial.cuentas'].sudo()
             cuenta_id_raw = kwargs.get('cuenta_id')
