@@ -10,7 +10,10 @@ WIZARDS = {
     'cuota': ('adt.register.payment', 'action_create_payments'),
     'mora': ('adt.pagar.mora.wizard', 'action_confirm_pagar_mora'),
     'cascada': ('adt.cancelar.credito.wizard', 'action_pagar'),
+    # Todas las moras registradas pendientes de la cuenta, con un solo N° de operación.
+    'moras': ('adt.pagar.mora.wizard', None),
 }
+POR_CUENTA = ('cascada', 'moras')
 
 
 class Flota360Pagos(models.AbstractModel):
@@ -22,7 +25,7 @@ class Flota360Pagos(models.AbstractModel):
             raise ValidationError(_('Tipo de pago no válido.'))
         vehicle = self._vehiculo(vehicle_id)
         vehicle.check_access_rights('read')
-        model = 'adt.comercial.cuentas' if tipo == 'cascada' else 'adt.comercial.cuotas'
+        model = 'adt.comercial.cuentas' if tipo in POR_CUENTA else 'adt.comercial.cuotas'
         rec = self.env[model].browse(int(params.get('id') or 0)).exists()
         if not rec:
             raise ValidationError(_('La cuenta o cuota ya no existe.'))
@@ -30,7 +33,7 @@ class Flota360Pagos(models.AbstractModel):
         rec.check_access_rule('read')
         rec.check_access_rights('write')
         rec.check_access_rule('write')
-        account = rec if tipo == 'cascada' else rec.cuenta_id
+        account = rec if tipo in POR_CUENTA else rec.cuenta_id
         account.check_access_rights('read')
         account.check_access_rule('read')
         if account.vehiculo_id != vehicle or account.company_id not in self.env.companies:
@@ -49,6 +52,11 @@ class Flota360Pagos(models.AbstractModel):
             return {'capital': capital, 'mora_auto': mora, 'total': round(capital + mora, 2),
                     'cuotas': cantidad, 'mora_dias': 0, 'moneda': account.currency_id.name,
                     'detalle': self._cuotas_elegibles(account, fecha)}
+        if tipo == 'moras':
+            detalle = self._moras_pendientes(account)
+            total = round(sum(d['mora'] for d in detalle), 2)
+            return {'capital': 0, 'mora_auto': total, 'total': total, 'mora_dias': 0, 'cuotas': len(detalle),
+                    'moneda': account.currency_id.name, 'detalle': detalle}
         if tipo == 'mora':
             wizard = wizard_model.new({'cuota_id': rec.id})
             mora = wizard.mora_pendiente_real
@@ -75,6 +83,16 @@ class Flota360Pagos(models.AbstractModel):
                  'saldo': round(q.saldo, 2), 'mora': round(self._mora_cuota_pago(q, fecha), 2),
                  'vencida': bool(q.fecha_cronograma and q.fecha_cronograma < fecha), 'tipo': 'Cargo' if q.type == 'mora' else ''}
                 for q in cuotas]
+
+    def _moras_pendientes(self, account):
+        """Cuotas de la cuenta con mora registrada pendiente (en los pagos), en orden de vencimiento."""
+        M = self.env['adt.comercial.cuotas.masivas.wizard']
+        cuotas = account.cuota_ids.filtered(lambda q: q.state != 'anulada').sorted(
+            lambda q: (q.fecha_cronograma or fields.Date.today(), q.id))
+        filas = [(q, M._get_mora_pendiente_amount(q)) for q in cuotas]
+        return [{'id': q.id, 'nombre': q.name or '', 'mora': mora,
+                 'fecha': fields.Date.to_string(q.fecha_cronograma) if q.fecha_cronograma else ''}
+                for q, mora in filas if mora > 0]
 
     def _pagar_elegidas(self, account, cuotas, fecha, operacion, cobrar_mora):
         """Paga el saldo completo de cada cuota elegida con un mismo N° de operación (como la cascada)
@@ -122,8 +140,8 @@ class Flota360Pagos(models.AbstractModel):
         campo = lambda name, **kw: self._campo_spec(W, name, **kw)
         date = campo('payment_date', label='Fecha del pago', required=True)
         journal = campo('journal_id', label='Cuenta de destino / diario', type='selection',
-                        required=True, options=[[j.id, j.display_name] for j in journals]) if tipo != 'cascada' else None
-        operation = 'numero_operacion' if tipo == 'cascada' else ('mora_operacion' if tipo == 'mora' else 'communication')
+                        required=True, options=[[j.id, j.display_name] for j in journals]) if tipo not in POR_CUENTA else None
+        operation = 'numero_operacion' if tipo == 'cascada' else ('mora_operacion' if tipo in ('mora', 'moras') else 'communication')
         base = [date, campo(operation, label='N° de operación', required=True, placeholder='Número del depósito o transferencia')]
         if journal:
             base.append(journal)
@@ -138,6 +156,9 @@ class Flota360Pagos(models.AbstractModel):
                       'required': False, 'help': '', 'col': 2, 'visible': ['modo', 'elegir']}]
             values.update({'modo': 'todo', 'cancelar_todo': True, 'monto': summary['total'], 'cobrar_mora': True, 'cuota_ids': []})
             help_text = _('Paga toda la deuda, elige qué cuotas pagar o abona un monto que se aplica desde la cuota más antigua.')
+        elif tipo == 'moras':
+            help_text = _('Cancela la mora registrada pendiente de todas las cuotas con un solo número de operación. '
+                          'El capital de las cuotas no se toca.')
         else:
             base.append(campo('amount', label='Importe de la cuota' if tipo == 'cuota' else 'Importe de mora', required=True))
             values.update({'journal_id': journals[0].id, 'amount': min(float(params.get('monto') or summary['capital' if tipo == 'cuota' else 'total']), summary['capital' if tipo == 'cuota' else 'total'])})
@@ -150,9 +171,9 @@ class Flota360Pagos(models.AbstractModel):
                 values.update({'mora_manual': False, 'mora': summary['mora_auto'], 'mora_state': 'pending'})
         return {'clave': 'pago', 'res_id': False, 'titulo': {
             'cuota': _('Registrar pago de cuota'), 'mora': _('Registrar pago de mora'),
-            'cascada': _('Registrar pago de varias cuotas')}[tipo],
+            'cascada': _('Registrar pago de varias cuotas'), 'moras': _('Pagar todas las moras')}[tipo],
             'ayuda': '%s · %s%s' % (account.partner_id.display_name, account.reference_no,
-                                    ' · %s' % rec.name if tipo != 'cascada' else ''),
+                                    ' · %s' % rec.name if tipo not in POR_CUENTA else ''),
             'secciones': [{'titulo': 'Datos del pago', 'campos': [c for c in base if c]}] + sections,
             'valores': values, 'lateral': False, 'pago_resumen': summary, 'pago_ayuda': help_text}
 
@@ -171,13 +192,15 @@ class Flota360Pagos(models.AbstractModel):
             raise ValidationError(_('Indica la fecha del pago.'))
         fecha = fields.Date.to_date(fecha)
         summary = self._pago_calculo(tipo, rec, account, W, fecha)
-        operation_field = 'numero_operacion' if tipo == 'cascada' else ('mora_operacion' if tipo == 'mora' else 'communication')
+        operation_field = 'numero_operacion' if tipo == 'cascada' else ('mora_operacion' if tipo in ('mora', 'moras') else 'communication')
         operation = str(values.get(operation_field) or '').strip()
         if not operation:
             raise ValidationError(_('Indica el número de operación.'))
         if self.env['account.payment'].search_count(['|', ('ref', '=', operation), ('mora_operacion', '=', operation)]):
             raise ValidationError(_('Ya existe un pago con ese número de operación.'))
         vals = {'payment_date': fecha, operation_field: operation}
+        if tipo == 'moras':
+            return self._pagar_todas_moras(account, summary, fecha, operation)
         if tipo == 'cascada' and values.get('modo') == 'elegir':
             ids = [int(i) for i in (values.get('cuota_ids') or [])]
             cuotas = account.cuota_ids.filtered(lambda q: q.id in ids and q.state not in ('pagado', 'anulada') and q.saldo > 0)
@@ -245,3 +268,23 @@ class Flota360Pagos(models.AbstractModel):
                 'concepto': account.reference_no if tipo == 'cascada' else rec.name, 'operacion': operation,
                 'restante': restante, 'siguiente': siguiente,
                 'mora_pendiente': vals.get('mora', 0.0) if vals.get('mora_state') == 'pending' else 0.0}
+
+    def _pagar_todas_moras(self, account, summary, fecha, operacion):
+        """Paga completa la mora registrada pendiente de cada cuota (misma regla que la cascada)."""
+        if summary['total'] <= 0:
+            raise ValidationError(_('La cuenta no tiene mora pendiente.'))
+        M = self.env['adt.comercial.cuotas.masivas.wizard']
+        cuotas = self.env['adt.comercial.cuotas'].browse([d['id'] for d in summary['detalle']])
+        total = 0.0
+        with self.env.cr.savepoint():
+            for cuota in cuotas:
+                pendiente = M._get_mora_pendiente_amount(cuota)
+                if pendiente > 0:
+                    total += M._pagar_mora_pendiente(cuota, pendiente, fecha, operacion)[0]
+        total = round(total, 2)
+        nombres = ', '.join(cuotas.mapped('name'))
+        account.message_post(body=_('Pago de todas las moras por %s (operación %s): %s.') % (
+            account.currency_id.round(total), operacion, nombres))
+        return {'id': False, 'mensaje': _('Se pagó la mora de %s cuota(s).') % len(cuotas),
+                'total': total, 'moneda': account.currency_id.name, 'concepto': _('Moras: %s') % nombres,
+                'operacion': operacion, 'restante': 0.0, 'siguiente': False, 'mora_pendiente': 0.0}

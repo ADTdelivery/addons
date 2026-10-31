@@ -1170,6 +1170,12 @@ class AdtFlota360(models.AbstractModel):
             opciones.append(dict(
                 accion_metodo(M, mora['id'], 'action_pagar_mora', 'Pagar mora de %s' % mora['nombre'], 'fa-money'),
                 descripcion='%s de mora registrada pendiente.' % self._soles(mora['mora_registrada'])))
+        con_mora = [f for f in filas if f['mora_registrada'] > 0]
+        if len(con_mora) > 1:
+            opciones.append(dict(
+                accion_form('pago', 'Pagar todas las moras', 'fa-money', params={'tipo': 'moras', 'id': c.id}),
+                descripcion='%s de mora registrada en %s cuotas, con un solo N° de operación.' % (
+                    self._soles(sum(f['mora_registrada'] for f in con_mora)), len(con_mora))))
         return opciones
 
     # --- Financiera del vehículo -------------------------------------------

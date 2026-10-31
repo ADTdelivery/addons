@@ -34,7 +34,7 @@ class TestPagosFlota360(SavepointCase):
             'amount': 100, 'communication': 'QA360-OP', 'mora_manual': False, 'mora_state': 'pending'}
         data.update(values)
         return self.service.guardar('pago', self.vehicle.id, data,
-            params={'tipo': tipo, 'id': self.account.id if tipo == 'cascada' else self.quota.id})
+            params={'tipo': tipo, 'id': self.account.id if tipo in ('cascada', 'moras') else self.quota.id})
 
     def test_native_form_uses_same_company_journal(self):
         spec = self.service.formulario('pago', self.vehicle.id, params={'tipo': 'cuota', 'id': self.quota.id})
@@ -77,6 +77,25 @@ class TestPagosFlota360(SavepointCase):
         with self.assertRaises(ValidationError):
             self.pay(tipo='mora', amount=5, mora_operacion='QA360-MORA')
         self.assertEqual(self.quota.payment_ids.mora_pagado, 5)
+
+    def test_pay_all_moras_with_one_operation(self):
+        q2 = self.env['adt.comercial.cuotas'].create({'cuenta_id': self.account.id, 'company_id': self.company.id,
+            'name': '2', 'monto': 50, 'fecha_cronograma': fields.Date.today()})
+        self.pay(mora_manual=True, mora=20)
+        self.service.guardar('pago', self.vehicle.id, {'payment_date': str(fields.Date.today()), 'journal_id': self.journal.id,
+            'amount': 50, 'communication': 'QA360-OP2', 'mora_manual': True, 'mora': 8, 'mora_state': 'pending'},
+            params={'tipo': 'cuota', 'id': q2.id})
+        self.pay(tipo='mora', amount=5, mora_operacion='QA360-MORA1')
+        spec = self.service.formulario('pago', self.vehicle.id, params={'tipo': 'moras', 'id': self.account.id})
+        self.assertEqual(spec['pago_resumen']['total'], 23)
+        self.assertEqual({d['id'] for d in spec['pago_resumen']['detalle']}, {self.quota.id, q2.id})
+        res = self.pay(tipo='moras', mora_operacion='QA360-MORAS')
+        self.assertEqual(res['total'], 23)
+        pagos = (self.quota | q2).payment_ids
+        self.assertEqual(set(pagos.mapped('mora_state')), {'paid'})
+        self.assertEqual(set(pagos.mapped('mora_operacion')), {'QA360-MORAS'})
+        with self.assertRaises(ValidationError):
+            self.service.formulario('pago', self.vehicle.id, params={'tipo': 'moras', 'id': self.account.id})
 
     def test_cascade_payment_uses_existing_distribution(self):
         self.pay(tipo='cascada', cancelar_todo=False, monto=40, numero_operacion='QA360-CASCADE')

@@ -150,6 +150,12 @@ odoo.define('adt_flota_360.Pagos', function (require) {
                 saldo = Math.max(c.mora_auto - total, 0);
                 lineas.push(linea('Mora pendiente', c.mora_auto));
                 if (saldo > 0.004) { notas.push('Abono parcial: quedarán ' + money(saldo, cur) + ' de mora pendiente.'); }
+            } else if (tipo === 'moras') {
+                total = c.total;
+                (c.detalle || []).forEach(function (q) {
+                    lineas.push(linea('Mora de ' + esc(q.nombre) + (q.fecha ? ' <small>' + q.fecha.split('-').reverse().join('/') + '</small>' : ''), q.mora));
+                });
+                notas.push('Se cancela la mora de ' + (c.cuotas || 0) + ' cuota(s); el capital no cambia.');
             } else if (v.modo === 'elegir') {
                 var elegidas = (c.detalle || []).filter(function (q) { return _.contains(v.cuota_ids || [], q.id); });
                 var capital = elegidas.reduce(function (t, q) { return t + q.saldo; }, 0);
