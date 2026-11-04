@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Carga de cronogramas de la financiera. Barra superior y botones de
+         "Cartera y financieras" (.adt_cart, de adt_comercial). El contenido lo pinta el JS:
+         «Subir» (entrada + tarjetas por archivo) o «Historial». -->
+    <t t-name="adt_flota_360.CargaPdf">
+        <div class="o_action adt_cart adt_cpdf">
+            <div class="adt_cart__scroll">
+                <header class="adt_cart__header adt_cpdf__header">
+                    <div class="adt_cpdf__top">
+                        <div class="adt_cart__titlebar">
+                            <h1 class="adt_cart__title">Cronogramas de la financiera</h1>
+                        </div>
+                        <nav class="adt_cpdf__nav" aria-label="Secciones">
+                            <button type="button" class="adt_cart__chip is-active" data-vista="subir">
+                                <i class="fa fa-cloud-upload" aria-hidden="true"/> Subir</button>
+                            <button type="button" class="adt_cart__chip" data-vista="historial">
+                                <i class="fa fa-history" aria-hidden="true"/> Historial</button>
+                        </nav>
+                    </div>
+                </header>
+                <div class="adt_cpdf__body" data-ref="main"/>
+                <input type="file" class="adt_cpdf__input d-none" data-tipo="archivos" multiple="multiple"/>
+                <input type="file" class="adt_cpdf__input d-none" data-tipo="carpeta" multiple="multiple"
+                       webkitdirectory="webkitdirectory" directory="directory"/>
+            </div>
+        </div>
+    </t>
+
+</templates>

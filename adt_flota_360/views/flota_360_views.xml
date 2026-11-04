@@ -7,7 +7,8 @@
     </record>
 
     <!-- Menú "Flota 360" de la app Flota, numerado:
-         1. Consulta de vehículos  2. Papeletas SAT  3. Captura vehicular  4. Finanzas.
+         1. Consulta de vehículos  2. Papeletas SAT  3. Captura vehicular  4. Finanzas  5. Tracking de motos
+         6. Carga de cronogramas.
          Las demás vistas quedan ocultas (active=False) por ahora; para volver a
          mostrarlas basta con quitar ese atributo. -->
     <menuitem id="menu_adt_flota_360_root"
@@ -79,6 +80,36 @@
               action="action_flota_360_capturas"
               sequence="3"
               groups="fleet.fleet_group_user"/>
+
+    <!-- Tracking de motos en una sola vista: indicadores por etapa, tablero (logística y
+         placa desde la misma tarjeta), detalle de la moto y configuración en un drawer.
+         Requiere adt_tracking_moto; si no está instalado la vista lo indica. -->
+    <record id="action_flota_360_tracking" model="ir.actions.client">
+        <field name="name">Tracking de motos</field>
+        <field name="tag">adt_flota_360_tracking</field>
+    </record>
+    <menuitem id="menu_adt_flota_360_tracking"
+              name="5. Tracking de motos"
+              parent="menu_adt_flota_360_root"
+              action="action_flota_360_tracking"
+              sequence="5"
+              groups="fleet.fleet_group_user"/>
+
+    <!-- Carga masiva de los cronogramas (plan de pagos) de la financiera: PDF, ZIP o carpetas.
+         Se traslada aquí desde Comercial > Financiera; el lote y la lectura siguen en adt_comercial. -->
+    <record id="action_flota_360_carga_pdf" model="ir.actions.client">
+        <field name="name">Carga de cronogramas</field>
+        <field name="tag">adt_flota_360_carga_pdf</field>
+    </record>
+    <menuitem id="menu_adt_flota_360_carga_pdf"
+              name="6. Carga de cronogramas"
+              parent="menu_adt_flota_360_root"
+              action="action_flota_360_carga_pdf"
+              sequence="6"
+              groups="adt_comercial.group_access_adt_comercial_gerencia"/>
+    <record id="adt_comercial.adt_comercial_menu_financiera_carga_pdf" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
 
     <record id="action_carteras" model="ir.actions.client">
         <field name="name">Carteras de cobranza</field>

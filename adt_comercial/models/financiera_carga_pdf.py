@@ -156,6 +156,9 @@ class ADTFinancieraCargaPdf(models.Model):
     # ------------------------------------------------------------------ cron
 
     def _disparar_cron(self):
+        # La vista de Flota 360 procesa ella misma (en vivo) y solo pide el cron si se cierra a medias.
+        if self.env.context.get('carga_sin_cron'):
+            return
         cron = self.env.ref('adt_comercial.ir_cron_carga_pdf_financiera', raise_if_not_found=False)
         if cron:
             cron.sudo()._trigger()
@@ -164,12 +167,15 @@ class ADTFinancieraCargaPdf(models.Model):
     def _cron_procesar(self):
         inicio = time.time()
         Linea = self.env['adt.financiera.carga.pdf.linea']
+        ocupadas = []  # las está procesando otra transacción (p. ej. la vista de Flota 360)
         while time.time() - inicio < SEGUNDOS_POR_CRON:
-            tanda = Linea.search([('state', '=', 'pendiente'), ('carga_id.state', '=', 'procesando')],
+            tanda = Linea.search([('state', '=', 'pendiente'), ('carga_id.state', '=', 'procesando'),
+                                  ('id', 'not in', ocupadas)],
                                  order='carga_id, id', limit=LINEAS_POR_COMMIT)
             if not tanda:
                 break
-            tanda.mapped('carga_id')._procesar_lineas(tanda, commit=True)
+            hechas = tanda.mapped('carga_id')._procesar_lineas(tanda, commit=True)
+            ocupadas += (tanda - hechas).ids
         self.search([('state', '=', 'procesando')])._cerrar_terminados()
         if Linea.search_count([('state', '=', 'pendiente'), ('carga_id.state', '=', 'procesando')]):
             self._disparar_cron()
@@ -184,9 +190,24 @@ class ADTFinancieraCargaPdf(models.Model):
                         'c': rec.total_cargado, 's': rec.total_sin_cliente, 'r': rec.total_revisar,
                         'o': rec.total_omitido, 'e': rec.total_error})
 
+    def _bloquear_pendiente(self, linea):
+        """Bloquea la línea si sigue pendiente y nadie más la tiene: el cron y la vista de
+        Flota 360 pueden procesar el mismo lote a la vez sin leer dos veces el mismo PDF."""
+        self.env.cr.execute(
+            "SELECT id FROM adt_financiera_carga_pdf_linea WHERE id = %s AND state = 'pendiente' "
+            "FOR UPDATE SKIP LOCKED", (linea.id,))
+        libre = bool(self.env.cr.fetchone())
+        linea.invalidate_cache(['state'])
+        return libre
+
     def _procesar_lineas(self, lineas, commit):
+        """Procesa las líneas pendientes que pueda bloquear; devuelve las procesadas."""
         en_test = getattr(threading.current_thread(), 'testing', False)
+        hechas = self.env['adt.financiera.carga.pdf.linea']
         for linea in lineas:
+            if not self._bloquear_pendiente(linea):
+                continue
+            hechas |= linea
             try:
                 with self.env.cr.savepoint():
                     linea._procesar()
@@ -197,6 +218,7 @@ class ADTFinancieraCargaPdf(models.Model):
                 linea.write({'state': 'error', 'mensaje': str(e)[:500]})
         if commit and not en_test:
             self.env.cr.commit()
+        return hechas
 
 
 class ADTFinancieraCargaPdfLinea(models.Model):

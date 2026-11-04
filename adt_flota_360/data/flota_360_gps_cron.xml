@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Monitoreo GPS: lee Traccar cada pocos minutos (la frecuencia se cambia desde la vista). -->
+    <record id="cron_gps_monitor" model="ir.cron">
+        <field name="name">Flota 360: monitoreo GPS (Traccar)</field>
+        <field name="model_id" ref="model_adt_flota360_gps_dispositivo"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_sincronizar()</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

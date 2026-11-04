@@ -1,0 +1,599 @@
+// Monitoreo GPS: reutiliza los recuadros, barras y tablas de Papeletas SAT
+// (.adt_find / .adt_sat, flota_360_indicadores.scss) y los tokens --cart-* de adt_comercial.
+
+.adt_gps {
+    position: relative;
+    .adt_cart__btn.is-on { border-color: var(--cart-pos); color: var(--cart-pos); }
+    .adt_cart__btn.is-busy > .fa-refresh { animation: adt-gps-spin 1s linear infinite; }
+    a.adt_cart__btn { text-decoration: none; }
+}
+@keyframes adt-gps-spin { to { transform: rotate(360deg); } }
+
+.adt_gps__aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    font-size: 13px;
+    &.is-critico { border-color: var(--cart-neg); background: var(--cart-neg-bg); color: var(--cart-neg); }
+    &.is-atencion { border-color: var(--cart-warn); background: var(--cart-warn-bg); color: var(--cart-warn); }
+    .adt_sat__ico { margin-top: 2px; color: inherit; }
+}
+
+// Recuadros que filtran: el activo queda marcado.
+.adt_gps__grid .adt_find__box.is-active {
+    box-shadow: 0 0 0 2px var(--box-tone);
+    border-color: var(--box-tone);
+}
+.adt_gps__bar { grid-template-columns: minmax(140px, 2.4fr) minmax(60px, 2fr) 44px; }
+.adt_gps__bar.is-active { background: var(--cart-subtle); box-shadow: inset 3px 0 0 var(--cart-neg); }
+.adt_gps__bar .adt_sat__bar-label { white-space: normal; }
+
+// Barra de herramientas de la lista.
+.adt_gps__tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.adt_gps__seg {
+    display: inline-flex;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    overflow: hidden;
+    button {
+        height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-left: 1px solid var(--cart-border);
+        background: var(--cart-surface);
+        color: var(--cart-ink-2);
+        font-size: 12.5px;
+        &:first-child { border-left: 0; }
+        &.is-active { background: var(--cart-accent); color: #fff; }
+        &:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cart-focus); }
+    }
+}
+.adt_gps__search {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    margin: 0;
+    padding: 0 10px;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+    color: var(--cart-muted);
+    input { width: 200px; border: 0; outline: none; background: transparent; color: var(--cart-ink); font-size: 13px; }
+    &:focus-within { border-color: var(--cart-accent); box-shadow: 0 0 0 3px var(--cart-focus); }
+    &.is-wide { display: flex; width: 100%; height: 36px; input { width: 100%; } }
+    @media (max-width: 560px) { input { width: 130px; } }
+}
+.adt_gps__facetas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 18px 0; }
+.adt_gps__faceta {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--cart-info-bg);
+    color: var(--cart-info);
+    font-size: 12px;
+    font-weight: 600;
+}
+.adt_gps__link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cart-accent);
+    font-size: 12.5px;
+    text-decoration: underline;
+}
+
+.adt_gps__table {
+    tr[data-id] { cursor: pointer; }
+    tbody tr.is-ok td:first-child { box-shadow: inset 4px 0 0 var(--cart-pos); }
+    .adt_sat__motivo.is-ok { background: var(--cart-pos-bg); color: var(--cart-pos); .adt_sat__ico { color: inherit; } }
+    .adt_sat__motivo.is-neutral { background: var(--cart-subtle); color: var(--cart-ink-2); }
+    .adt_sat__chip.is-atencion { margin: 2px 0 0; background: var(--cart-warn-bg); color: var(--cart-warn); }
+}
+.adt_gps__motivo { min-width: 220px; max-width: 380px; font-size: 12.5px; }
+.adt_gps__sinv { color: var(--cart-ink-2); font-weight: 600; white-space: nowrap; }
+.adt_gps__mas { display: flex; justify-content: center; padding-top: 14px; }
+
+// ------------------------------------------------------------------
+// Drawer de detalle
+// ------------------------------------------------------------------
+
+.adt_gps__backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(16, 24, 40, .25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
+}
+.adt_gps__drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 21;
+    display: flex;
+    flex-direction: column;
+    width: 560px;
+    max-width: 100%;
+    &.is-detalle, &.is-geocerca { width: 760px; }
+    &.is-config { width: 640px; }
+    background: var(--cart-surface);
+    border-left: 1px solid var(--cart-border);
+    box-shadow: -8px 0 24px rgba(16, 24, 40, .12);
+    transform: translateX(100%);
+    transition: transform .18s ease-out;
+    visibility: hidden;
+}
+.adt_gps.is-drawer-open {
+    .adt_gps__backdrop { opacity: 1; pointer-events: auto; }
+    .adt_gps__drawer { transform: none; visibility: visible; }
+}
+.adt_gps__drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--cart-border);
+    h2 { margin: 0; color: var(--cart-ink); font-size: 20px; font-weight: 700; }
+}
+.adt_gps__close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+    color: var(--cart-ink-2);
+    &:hover { background: var(--cart-subtle); }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--cart-focus); }
+}
+.adt_gps__drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px 28px; }
+.adt_gps__diag {
+    padding: 14px 16px;
+    border: 1px solid var(--cart-border);
+    border-left: 4px solid var(--cart-pos);
+    border-radius: var(--cart-radius);
+    &.is-critico { border-left-color: var(--cart-neg); background: var(--cart-neg-bg); }
+    &.is-atencion { border-left-color: var(--cart-warn); background: var(--cart-warn-bg); }
+    &.is-neutral { border-left-color: var(--cart-muted); }
+    .adt_sat__motivo.is-ok { background: var(--cart-pos-bg); color: var(--cart-pos); .adt_sat__ico { color: inherit; } }
+    .adt_sat__motivo.is-neutral { background: var(--cart-subtle); color: var(--cart-ink-2); }
+}
+.adt_gps__diag-motivo { margin: 10px 0 4px; color: var(--cart-ink); font-size: 15px; font-weight: 600; }
+.adt_gps__hechos { margin: 8px 0 0; padding-left: 18px; color: var(--cart-ink-2); font-size: 12.5px; li { margin: 2px 0; } }
+.adt_gps__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.adt_gps__sec {
+    margin-top: 20px;
+    h4 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 8px;
+        color: var(--cart-ink);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        > .fa { color: var(--cart-muted); }
+    }
+}
+.adt_gps__nota { display: flex; gap: 2px; margin: 6px 0; color: var(--cart-ink-2); font-size: 13px; .adt_sat__ico { margin-top: 3px; } }
+.adt_gps__dl {
+    margin: 0;
+    > div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 7px 0;
+        border-top: 1px solid var(--cart-border);
+        &:first-child { border-top: 0; }
+    }
+    dt { color: var(--cart-muted); font-size: 12.5px; font-weight: 500; }
+    dd { margin: 0; color: var(--cart-ink); font-size: 13px; text-align: right; overflow-wrap: anywhere; }
+}
+.adt_gps__kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+    @media (max-width: 420px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.adt_gps__kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: var(--cart-radius);
+    background: var(--cart-subtle);
+    span { color: var(--cart-muted); font-size: 11.5px; }
+    b { color: var(--cart-ink); font-size: 15px; font-variant-numeric: tabular-nums; }
+}
+.adt_gps__eventos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    li { display: flex; gap: 4px; padding: 7px 0; border-top: 1px solid var(--cart-border); font-size: 13px; }
+    li:first-child { border-top: 0; }
+    b { color: var(--cart-ink); }
+    .adt_sat__ico { margin-top: 3px; }
+}
+.adt_gps__attrs {
+    margin-top: 10px;
+    summary { color: var(--cart-accent); font-size: 12.5px; cursor: pointer; }
+}
+
+// ------------------------------------------------------------------
+// Modal (relacionar vehículo, configuración)
+// ------------------------------------------------------------------
+
+.adt_gps__modal-wrap:empty { display: none; }
+.adt_gps__modal-back { position: fixed; inset: 0; z-index: 1050; background: rgba(16, 24, 40, .4); }
+.adt_gps__modal {
+    position: fixed;
+    top: 10vh;
+    left: 50%;
+    z-index: 1051;
+    display: flex;
+    flex-direction: column;
+    width: 520px;
+    max-width: calc(100% - 32px);
+    max-height: 80vh;
+    transform: translateX(-50%);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+    box-shadow: 0 12px 40px rgba(16, 24, 40, .25);
+    > header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--cart-border);
+        h3 { margin: 0; color: var(--cart-ink); font-size: 15px; font-weight: 700; }
+    }
+    > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--cart-border); }
+}
+.adt_gps__modal-body { overflow-y: auto; padding: 14px 18px; }
+.adt_gps__resultados {
+    margin-top: 10px;
+    ul { margin: 0; padding: 0; list-style: none; }
+    button {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        padding: 9px 10px;
+        border: 0;
+        border-top: 1px solid var(--cart-border);
+        background: none;
+        text-align: left;
+        &:hover { background: var(--cart-subtle); }
+        &:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cart-focus); }
+    }
+    li:first-child button { border-top: 0; }
+    .adt_sat__chip.is-atencion { margin: 3px 0 0; background: var(--cart-warn-bg); color: var(--cart-warn); }
+}
+.adt_gps__campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+                   @media (max-width: 560px) { grid-template-columns: minmax(0, 1fr); } }
+.adt_gps__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 0 12px;
+    > span { color: var(--cart-ink-2); font-size: 12.5px; font-weight: 600; }
+    input, textarea {
+        padding: 6px 8px;
+        border: 1px solid var(--cart-border);
+        border-radius: var(--cart-radius);
+        background: var(--cart-surface);
+        color: var(--cart-ink);
+        font-size: 13px;
+        &:focus { outline: none; border-color: var(--cart-accent); box-shadow: 0 0 0 3px var(--cart-focus); }
+    }
+    small { color: var(--cart-muted); font-size: 11.5px; }
+}
+
+// ------------------------------------------------------------------
+// Tiempo real, pestañas y filtros
+// ------------------------------------------------------------------
+
+.adt_gps__rt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--cart-subtle);
+    color: var(--cart-ink-2);
+    font-size: 12px;
+    font-weight: 600;
+    vertical-align: middle;
+    .fa { font-size: 9px; }
+    &.is-on { background: var(--cart-pos-bg); color: var(--cart-pos); .fa { animation: adt-gps-pulso 1.6s ease-in-out infinite; } }
+    &.is-on.is-critico { background: var(--cart-neg-bg); color: var(--cart-neg); }
+    &.is-on.is-atencion { background: var(--cart-warn-bg); color: var(--cart-warn); }
+}
+@keyframes adt-gps-pulso { 50% { opacity: .3; } }
+.adt_gps__aviso.is-info { border-color: var(--cart-info); background: var(--cart-info-bg); color: var(--cart-info); }
+
+.adt_gps__tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 14px;
+    border-bottom: 1px solid var(--cart-border);
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: none;
+        color: var(--cart-ink-2);
+        font-size: 13.5px;
+        font-weight: 600;
+        &.is-active { border-bottom-color: var(--cart-accent); color: var(--cart-ink); }
+        &:hover { color: var(--cart-ink); }
+        &:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cart-focus); }
+    }
+}
+.adt_gps__tab-n { padding: 0 6px; border-radius: 999px; background: var(--cart-subtle); color: var(--cart-ink-2); font-size: 11.5px; }
+
+.adt_gps__filtros:empty { display: none; }
+.adt_gps__filtros { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.adt_gps__busca { display: flex; flex-wrap: wrap; gap: 8px; }
+.adt_gps__search.is-placa { height: 36px; border-width: 2px; input { width: 220px; font-weight: 600; letter-spacing: .03em; } }
+.adt_gps__search.is-libre { height: 36px; flex: 1; min-width: 200px; input { width: 100%; } }
+.adt_gps__selects { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.adt_gps__select {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    > span { color: var(--cart-muted); font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+    select {
+        height: 32px;
+        padding: 0 8px;
+        border: 1px solid var(--cart-border);
+        border-radius: var(--cart-radius);
+        background: var(--cart-surface);
+        color: var(--cart-ink);
+        font-size: 13px;
+        &:focus { outline: none; border-color: var(--cart-accent); box-shadow: 0 0 0 3px var(--cart-focus); }
+    }
+    &.is-set select { border-color: var(--cart-accent); background: var(--cart-info-bg); font-weight: 600; }
+}
+.adt_gps__acciones-lista { display: flex; flex-wrap: wrap; gap: 8px; }
+.adt_gps__check { width: 36px; text-align: center; input { width: 16px; height: 16px; cursor: pointer; } }
+.adt_sat__chip.is-info { margin: 2px 4px 0 0; background: var(--cart-info-bg); color: var(--cart-info); }
+.adt_gps__lista-corta { margin: 8px 0 0; padding-left: 18px; font-size: 13px; }
+
+// ------------------------------------------------------------------
+// Mapas
+// ------------------------------------------------------------------
+
+.adt_gps__mapa {
+    position: relative;
+    z-index: 0;
+    width: 100%;
+    border-radius: var(--cart-radius);
+    background: var(--cart-subtle);
+    &.is-general { height: calc(100vh - 330px); min-height: 420px; border-radius: 0 0 var(--cart-radius) var(--cart-radius); }
+    &.is-geos { height: 100%; min-height: 460px; }
+    &.is-drawer { height: 360px; margin: 10px 0; }
+    &.is-editor { height: 380px; margin: 8px 0; cursor: crosshair; }
+}
+.adt_gps__mapa-panel { overflow: hidden; }
+.adt_gps__leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: var(--cart-ink-2);
+    font-size: 12px;
+    span { display: inline-flex; align-items: center; gap: 5px; }
+    i { width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px var(--cart-border); }
+}
+.adt_gps__pop { font-size: 12.5px; line-height: 1.5; }
+.adt_gps__pop-ver {
+    margin-top: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--cart-accent);
+    border-radius: var(--cart-radius);
+    background: var(--cart-accent);
+    color: #fff;
+    font-size: 12px;
+}
+.adt_gps__veh {
+    span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(16, 24, 40, .35);
+        color: #fff;
+        font-size: 14px;
+        // fa-location-arrow apunta al noreste: se corrige para que 0° sea el norte.
+        .fa { transform: rotate(-45deg); }
+    }
+}
+
+// ------------------------------------------------------------------
+// Geocercas
+// ------------------------------------------------------------------
+
+.adt_gps__geo-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(0, 1.6fr);
+    gap: 16px;
+    > .adt_sat__panel { min-height: 460px; overflow: hidden; }
+    @media (max-width: 900px) { grid-template-columns: minmax(0, 1fr); }
+}
+.adt_gps__geos { margin: 0; padding: 0; list-style: none; }
+.adt_gps__geo {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 6px;
+    border: 0;
+    border-top: 1px solid var(--cart-border);
+    background: none;
+    text-align: left;
+    &:hover { background: var(--cart-subtle); }
+    &:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cart-focus); }
+}
+.adt_gps__geos li:first-child .adt_gps__geo { border-top: 0; }
+.adt_gps__geo-color { flex: none; width: 14px; height: 14px; margin-top: 3px; border-radius: 4px; }
+.adt_gps__geo-txt { flex: 1; min-width: 0; b { color: var(--cart-ink); } }
+.adt_gps__geo-n { display: flex; flex-direction: column; align-items: center; color: var(--cart-muted); font-size: 11px;
+                  b { color: var(--cart-ink); font-size: 18px; } }
+.adt_gps__txt-error { color: var(--cart-neg); font-weight: 600; }
+.adt_gps__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.adt_gps__chip-geo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border: 1px solid var(--cart-border);
+    border-radius: 999px;
+    font-size: 12.5px;
+    i { width: 10px; height: 10px; border-radius: 3px; }
+}
+.adt_gps__radio {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
+    input[type="range"] { flex: 1; }
+    input[type="number"] { width: 90px; padding: 4px 6px; border: 1px solid var(--cart-border); border-radius: var(--cart-radius); }
+}
+.adt_gps__gdisp {
+    max-height: 220px;
+    margin: 6px 0 0;
+    padding: 0;
+    overflow-y: auto;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    list-style: none;
+    li { padding: 5px 10px; border-top: 1px solid var(--cart-border); font-size: 13px; }
+    li:first-child { border-top: 0; }
+    label { display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; }
+}
+
+// ------------------------------------------------------------------
+// Drawer: pestañas, pie, recorrido, configuración
+// ------------------------------------------------------------------
+
+.adt_gps__dtabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--cart-border);
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 12px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: none;
+        color: var(--cart-ink-2);
+        font-size: 13px;
+        font-weight: 600;
+        &.is-active { border-bottom-color: var(--cart-accent); color: var(--cart-ink); }
+        &:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cart-focus); }
+    }
+}
+.adt_gps__drawer-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--cart-border);
+    background: var(--cart-surface);
+}
+.adt_gps__spacer { flex: 1; }
+.adt_gps__btn-peligro { color: var(--cart-neg) !important; border-color: var(--cart-neg) !important; }
+.adt_gps__btn-peligro-solid { background: var(--cart-neg) !important; border-color: var(--cart-neg) !important; color: #fff !important; }
+
+.adt_gps__vivo-head { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+                      .adt_gps__rt { margin-left: 0; } }
+.adt_gps__check-label { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--cart-ink-2); font-size: 13px; cursor: pointer;
+                        input { width: 15px; height: 15px; } }
+
+.adt_gps__rango { padding: 12px; border: 1px solid var(--cart-border); border-radius: var(--cart-radius); }
+.adt_gps__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+    button {
+        padding: 3px 12px;
+        border: 1px solid var(--cart-border);
+        border-radius: 999px;
+        background: var(--cart-surface);
+        color: var(--cart-ink-2);
+        font-size: 12.5px;
+        &:hover { border-color: var(--cart-accent); color: var(--cart-accent); }
+    }
+}
+.adt_gps__fechas { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; .adt_gps__campo { margin: 0; } .adt_cart__btn { height: 32px; } }
+.adt_gps__play { display: flex; align-items: center; gap: 10px; input[type="range"] { flex: 1; } }
+.adt_gps__play-txt { min-width: 190px; color: var(--cart-ink-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.adt_gps__paradas {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    button {
+        display: block;
+        width: 100%;
+        padding: 7px 4px;
+        border: 0;
+        border-top: 1px solid var(--cart-border);
+        background: none;
+        color: var(--cart-ink-2);
+        font-size: 13px;
+        text-align: left;
+        &:hover { background: var(--cart-subtle); }
+    }
+    li:first-child button { border-top: 0; }
+}
+
+.adt_gps__config .adt_gps__sec:first-child { margin-top: 0; }
+.adt_gps__checks { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px;
+                   &.is-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); @media (max-width: 560px) { grid-template-columns: minmax(0, 1fr); } } }
+.adt_gps__copiar { display: flex; gap: 6px; input { flex: 1; font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; } }
+.adt_gps__pre {
+    max-height: 160px;
+    margin: 8px 0;
+    padding: 10px 12px;
+    overflow: auto;
+    border-radius: var(--cart-radius);
+    background: var(--cart-subtle);
+    color: var(--cart-ink);
+    font-size: 11.5px;
+    white-space: pre;
+}
+.adt_gps__campo select {
+    padding: 6px 8px;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+    color: var(--cart-ink);
+    font-size: 13px;
+}
+.adt_gps__campo.is-span2 { grid-column: span 2; @media (max-width: 560px) { grid-column: auto; } }
+.adt_gps__drawer.is-geocerca .adt_gps__campos { grid-template-columns: 2fr 1fr; }
+.adt_gps__drawer.is-geocerca .adt_gps__campo.is-span2 { grid-column: auto; }

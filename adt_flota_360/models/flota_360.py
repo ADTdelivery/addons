@@ -147,6 +147,11 @@ def accion_tab(tab, label, icono='fa-angle-right'):
     return {'tipo': 'tab', 'tab': tab, 'label': label, 'icon': icono}
 
 
+def accion_tracking(tracking_id, label='Ver tracking', icono='fa-road', primaria=True):
+    """Abre el detalle del tracking de la moto (flota_360_tracking.js: CasoTracking)."""
+    return {'tipo': 'tracking', 'tracking_id': tracking_id, 'label': label, 'icon': icono, 'primary': primaria}
+
+
 def accion_captura(label, icono, captura_id=False, cuenta_id=False, primaria=True):
     """Abre la gestión de la captura paso a paso (flota_360_capturas.js: CasoCaptura)."""
     return {'tipo': 'captura', 'captura_id': captura_id, 'cuenta_id': cuenta_id,
@@ -1917,7 +1922,7 @@ class AdtFlota360(models.AbstractModel):
                         {'label': 'Días totales', 'texto': '%.1f' % (tr.dias_totales or 0)},
                         {'label': 'Demorado', 'texto': 'Sí' if tr.demorado else 'No', 'nivel': 'atencion' if tr.demorado else False},
                     ],
-                    'acciones': [accion_abrir('adt.moto.tracking', tr.id, 'Abrir tracking')],
+                    'acciones': [accion_tracking(tr.id, 'Ver tracking y placa')],
                 })
         if Tramite is None and Tracking is None:
             return None

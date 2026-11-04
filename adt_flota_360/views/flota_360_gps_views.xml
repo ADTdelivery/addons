@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- 7. Monitoreo GPS: vehículos que reportan y que no, con alertas en el navegador. -->
+    <record id="action_flota_360_gps" model="ir.actions.client">
+        <field name="name">Monitoreo GPS</field>
+        <field name="tag">adt_flota_360_gps</field>
+    </record>
+    <menuitem id="menu_adt_flota_360_gps"
+              name="7. Monitoreo GPS"
+              parent="menu_adt_flota_360_root"
+              action="action_flota_360_gps"
+              sequence="7"
+              groups="fleet.fleet_group_user"/>
+
+    <!-- Vistas de respaldo (exportar, filtrar a mano); la vista principal es la acción JS. -->
+    <record id="view_gps_dispositivo_tree" model="ir.ui.view">
+        <field name="name">adt.flota360.gps.dispositivo.tree</field>
+        <field name="model">adt.flota360.gps.dispositivo</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="estado in ('sin_reporte', 'nunca')" decoration-warning="estado == 'demorado'"
+                  decoration-muted="estado == 'deshabilitado'">
+                <field name="name"/>
+                <field name="imei"/>
+                <field name="vehicle_id"/>
+                <field name="vinculo_metodo"/>
+                <field name="estado"/>
+                <field name="motivo"/>
+                <field name="ultimo_reporte"/>
+                <field name="traccar_status" optional="hide"/>
+                <field name="grupo" optional="hide"/>
+                <field name="telefono" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_gps_dispositivo_form" model="ir.ui.view">
+        <field name="name">adt.flota360.gps.dispositivo.form</field>
+        <field name="model">adt.flota360.gps.dispositivo</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group string="Estado">
+                            <field name="estado"/>
+                            <field name="estado_desde"/>
+                            <field name="motivo"/>
+                            <field name="motivo_detalle"/>
+                            <field name="ultimo_reporte"/>
+                            <field name="traccar_status"/>
+                            <field name="sincronizado"/>
+                        </group>
+                        <group string="Relación con Odoo">
+                            <field name="vehicle_id"/>
+                            <field name="vinculo_metodo"/>
+                            <field name="vinculo_manual"/>
+                            <field name="placa_detectada"/>
+                            <field name="vinculo_nota"/>
+                        </group>
+                        <group string="Equipo">
+                            <field name="traccar_id"/>
+                            <field name="imei"/>
+                            <field name="grupo"/>
+                            <field name="telefono"/>
+                            <field name="modelo_equipo"/>
+                            <field name="protocolo"/>
+                        </group>
+                        <group string="Última posición">
+                            <field name="ultima_posicion"/>
+                            <field name="latitud"/>
+                            <field name="longitud"/>
+                            <field name="velocidad_kmh"/>
+                            <field name="direccion"/>
+                            <field name="ignicion"/>
+                            <field name="bateria"/>
+                            <field name="voltaje"/>
+                            <field name="alarma"/>
+                            <field name="posicion_valida"/>
+                        </group>
+                    </group>
+                    <field name="evento_ids">
+                        <tree>
+                            <field name="fecha"/>
+                            <field name="tipo"/>
+                            <field name="mensaje"/>
+                        </tree>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_gps_dispositivo_search" model="ir.ui.view">
+        <field name="name">adt.flota360.gps.dispositivo.search</field>
+        <field name="model">adt.flota360.gps.dispositivo</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="imei"/>
+                <field name="vehicle_id"/>
+                <filter name="no_reporta" string="No reportan" domain="[('estado', 'in', ('sin_reporte', 'nunca'))]"/>
+                <filter name="sin_vehiculo" string="Sin vehículo en Odoo" domain="[('vehicle_id', '=', False)]"/>
+                <group expand="0" string="Agrupar">
+                    <filter name="g_estado" string="Estado" context="{'group_by': 'estado'}"/>
+                    <filter name="g_metodo" string="Relación" context="{'group_by': 'vinculo_metodo'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_gps_evento_tree" model="ir.ui.view">
+        <field name="name">adt.flota360.gps.evento.tree</field>
+        <field name="model">adt.flota360.gps.evento</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="tipo == 'sin_reporte'" decoration-success="tipo == 'volvio'">
+                <field name="fecha"/>
+                <field name="tipo"/>
+                <field name="dispositivo_id"/>
+                <field name="vehicle_id"/>
+                <field name="mensaje"/>
+            </tree>
+        </field>
+    </record>
+</odoo>

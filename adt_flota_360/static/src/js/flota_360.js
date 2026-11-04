@@ -2664,6 +2664,11 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                 this._irA(a.tab);
                 return;
             }
+            if (a.tipo === 'cliente') {
+                // Otra vista de Flota 360 (p. ej. Monitoreo GPS con el dispositivo abierto).
+                this.do_action({type: 'ir.actions.client', tag: a.tag, name: a.label, params: a.params || {}});
+                return;
+            }
             if (a.tipo === 'abrir') {
                 this.do_action({
                     type: 'ir.actions.act_window',

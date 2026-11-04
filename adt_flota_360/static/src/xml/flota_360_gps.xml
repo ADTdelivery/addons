@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Monitoreo GPS: misma barra superior y recuadros que Papeletas SAT (.adt_cart / .adt_find / .adt_sat). -->
+    <t t-name="adt_flota_360.Gps">
+        <div class="o_action adt_cart adt_find adt_sat adt_gps">
+            <div class="adt_cart__scroll">
+                <header class="adt_cart__header">
+                    <div class="adt_find__top">
+                        <div class="adt_cart__titlebar">
+                            <h1 class="adt_cart__title">Monitoreo GPS <span data-ref="vivo"/></h1>
+                            <p class="adt_cart__subtitle" data-ref="subtitle"/>
+                        </div>
+                        <div class="adt_find__actions">
+                            <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="notificaciones"
+                                    data-ref="notif"/>
+                            <button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="probar"
+                                    title="Envía una alerta de prueba a este navegador por el canal en tiempo real">
+                                <i class="fa fa-paper-plane-o" aria-hidden="true"/>Probar alerta</button>
+                            <button type="button" class="adt_cart__btn adt_cart__btn--ghost d-none" data-action="config"
+                                    data-ref="config">
+                                <i class="fa fa-sliders" aria-hidden="true"/>Configuración</button>
+                            <button type="button" class="adt_cart__btn" data-action="sync">
+                                <i class="fa fa-refresh" aria-hidden="true"/>Sincronizar ahora</button>
+                        </div>
+                    </div>
+                    <div data-ref="aviso"/>
+                    <nav class="adt_gps__tabs" role="tablist" data-ref="tabs"/>
+                    <div class="adt_gps__filtros" data-ref="filtros"/>
+                </header>
+                <div class="adt_cart__body adt_find__body" data-ref="body">
+                    <div class="adt_cart__empty">Cargando…</div>
+                </div>
+            </div>
+            <div class="adt_gps__backdrop" data-action="cerrar"/>
+            <aside class="adt_gps__drawer" data-ref="drawer" aria-label="Panel lateral"/>
+            <div class="adt_gps__modal-wrap" data-ref="modal"/>
+        </div>
+    </t>
+
+</templates>

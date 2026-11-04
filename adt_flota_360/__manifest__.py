@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'ADT Flota 360',
-    'version': '15.0.1.6.0',
+    'version': '15.0.1.10.0',
     'category': 'Human Resources/Fleet',
     'summary': 'Vista unificada del vehículo: buscador por placa, cliente o documento y estado de todos los módulos',
     'description': """
@@ -17,7 +17,17 @@ DNI/RUC o teléfono del cliente) y ver de un vistazo su estado en cada módulo:
 * Capturas (adt_captura), con una vista paso a paso: posibles capturas (cuotas
   vencidas o papeletas SAT pendientes), captura, cobro de la intervención,
   liberación o disolución y recolocación
+* Tracking de motos (adt_tracking_moto) en una sola vista: indicadores por etapa
+  (Gambeta, Base, Fibra por taller, Base con fibra), tablero donde cada tarjeta
+  avanza la logística e inicia el trámite de placa, detalle con los dos flujos
+  y configuración (etapas, talleres de fibra, parámetros de placa) en un drawer
 * Taller (maintenance_workshop)
+* Monitoreo GPS: todos los dispositivos de Traccar (con o sin vehículo en Odoo,
+  relacionados por placa aunque el nombre traiga texto extra), cuáles reportan y
+  cuáles no y por qué, con alertas en tiempo real (webhook de Traccar + bus de
+  Odoo) cuando un vehículo deja de reportar, se desconecta, lanza una alarma o
+  entra/sale de una geocerca; ubicación en vivo, recorrido por fechas y geocercas
+  programables publicadas en Traccar
 * Expediente del cliente y sus documentos (adt_expedientes)
 
 Cada módulo es opcional: si no está instalado, su sección no se muestra.
@@ -30,11 +40,13 @@ su cronograma. Los pagos de cuota, mora y varias cuotas usan popups JavaScript n
 con las validaciones y el registro contable de ADT Comercial.
     """,
     'author': 'CM Innovación',
-    'depends': ['base', 'web', 'fleet', 'adt_comercial'],
+    'depends': ['base', 'web', 'bus', 'fleet', 'adt_comercial'],
     'data': [
         'security/cartera_security.xml',
         'security/ir.model.access.csv',
         'views/flota_360_views.xml',
+        'views/flota_360_gps_views.xml',
+        'data/flota_360_gps_cron.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -50,12 +62,22 @@ con las validaciones y el registro contable de ADT Comercial.
             'adt_flota_360/static/src/scss/flota_360_indicadores.scss',
             'adt_flota_360/static/src/js/flota_360_capturas.js',
             'adt_flota_360/static/src/scss/flota_360_capturas.scss',
+            'adt_flota_360/static/src/js/flota_360_tracking.js',
+            'adt_flota_360/static/src/scss/flota_360_tracking.scss',
+            'adt_flota_360/static/src/js/flota_360_carga_pdf.js',
+            'adt_flota_360/static/src/scss/flota_360_carga_pdf.scss',
+            'adt_flota_360/static/src/js/flota_360_gps_mapa.js',
+            'adt_flota_360/static/src/js/flota_360_gps.js',
+            'adt_flota_360/static/src/js/flota_360_gps_alertas.js',
+            'adt_flota_360/static/src/scss/flota_360_gps.scss',
         ],
         'web.assets_qweb': [
             'adt_flota_360/static/src/xml/flota_360.xml',
             'adt_flota_360/static/src/xml/cobranza_rentabilidad.xml',
             'adt_flota_360/static/src/xml/flota_360_indicadores.xml',
             'adt_flota_360/static/src/xml/flota_360_capturas.xml',
+            'adt_flota_360/static/src/xml/flota_360_carga_pdf.xml',
+            'adt_flota_360/static/src/xml/flota_360_gps.xml',
         ],
     },
     'installable': True,

@@ -8,3 +8,9 @@ cartera_cuota_manager,cartera.cuota.manager,model_adt_flota360_cartera_cuota,adt
 cartera_cobrador,cartera.cobrador,model_adt_flota360_cartera,adt_flota_360.group_cobrador,1,0,0,0
 cartera_linea_cobrador,cartera.linea.cobrador,model_adt_flota360_cartera_linea,adt_flota_360.group_cobrador,1,1,0,0
 cartera_cuota_cobrador,cartera.cuota.cobrador,model_adt_flota360_cartera_cuota,adt_flota_360.group_cobrador,1,0,0,0
+gps_dispositivo_user,gps.dispositivo.user,model_adt_flota360_gps_dispositivo,fleet.fleet_group_user,1,0,0,0
+gps_dispositivo_manager,gps.dispositivo.manager,model_adt_flota360_gps_dispositivo,fleet.fleet_group_manager,1,1,1,1
+gps_evento_user,gps.evento.user,model_adt_flota360_gps_evento,fleet.fleet_group_user,1,0,0,0
+gps_evento_manager,gps.evento.manager,model_adt_flota360_gps_evento,fleet.fleet_group_manager,1,1,1,1
+gps_geocerca_user,gps.geocerca.user,model_adt_flota360_gps_geocerca,fleet.fleet_group_user,1,0,0,0
+gps_geocerca_manager,gps.geocerca.manager,model_adt_flota360_gps_geocerca,fleet.fleet_group_manager,1,1,1,1
