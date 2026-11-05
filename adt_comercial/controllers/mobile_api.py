@@ -540,6 +540,184 @@ def _notify_papeleta_channel(papeleta, vehicle, token_rec, foto_urls):
         _logger.exception('Error notificando papeleta %s al canal de conversaciones', getattr(papeleta, 'id', None))
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Papeletas (app cliente) — ver papeletas-app-cliente.md
+# ─────────────────────────────────────────────────────────────────────────────
+PAPELETA_DIAS_POR_VENCER = 5
+
+
+def _lima_today():
+    """Fecha de hoy en Lima (auth='none' no trae tz de usuario)."""
+    import pytz
+    return datetime.now(pytz.timezone('America/Lima')).date()
+
+
+def _papeleta_token_can_access(token_rec, vehicle):
+    """El token solo ve papeletas de su vehículo (login por placa) o de los
+    vehículos cuyo conductor es su cliente (login por email)."""
+    if not vehicle:
+        return False
+    if token_rec.vehicle_id:
+        return token_rec.vehicle_id.id == vehicle.id
+    if token_rec.partner_id:
+        return vehicle.driver_id.id == token_rec.partner_id.id
+    return False
+
+
+def _papeleta_resolve_vehicle(token_rec, params):
+    """Resuelve el vehículo desde plate / idVehiculo / vehicle_id / token.
+    Returns (vehicle | None, error | None)."""
+    plate = params.get('plate')
+    vehicle_id_raw = params.get('idVehiculo') or params.get('vehicle_id')
+
+    if plate:
+        plate_upper, plate_err = _validate_plate(plate)
+        if plate_err:
+            return None, plate_err
+        vehicle = request.env['fleet.vehicle'].sudo().search(
+            [('license_plate', '=ilike', plate_upper)], limit=1)
+        if not vehicle:
+            return None, _error(404, 'VEHICLE_NOT_FOUND', 'No existe un vehículo con la placa indicada.')
+    elif vehicle_id_raw is not None:
+        try:
+            vehicle_id = int(vehicle_id_raw)
+        except Exception:
+            return None, _error(422, 'VALIDATION_ERROR', 'idVehiculo (o vehicle_id) debe ser numérico.')
+        vehicle = request.env['fleet.vehicle'].sudo().browse(vehicle_id).exists()
+        if not vehicle:
+            return None, _error(404, 'VEHICLE_NOT_FOUND', 'El vehículo indicado no existe.')
+    elif token_rec.vehicle_id:
+        vehicle = token_rec.vehicle_id.sudo()
+    else:
+        return None, _error(422, 'VALIDATION_ERROR', 'Debe enviar plate o idVehiculo.')
+
+    if not _papeleta_token_can_access(token_rec, vehicle):
+        return None, _error(403, 'FORBIDDEN', 'El token no tiene permiso para consultar papeletas de este vehículo.')
+    return vehicle, None
+
+
+def _papeleta_vencimiento(papeleta, today):
+    """Calcula los días al vencimiento en vivo (los campos almacenados
+    dias_para_captura / texto_alerta solo se recalculan cuando cambia la
+    papeleta, no cada día)."""
+    if papeleta.state != 'pendiente' or not papeleta.fecha_vencimiento_final:
+        return None, 'PAGADA' if papeleta.state == 'pagado' else 'SIN_FECHA', None
+    dias = (papeleta.fecha_vencimiento_final - today).days
+    if dias < 0:
+        n = abs(dias)
+        return dias, 'VENCIDA', 'Venció hace 1 día' if n == 1 else 'Venció hace %s días' % n
+    if dias == 0:
+        return dias, 'VENCE_HOY', 'Vence hoy'
+    texto = 'Vence en 1 día' if dias == 1 else 'Vence en %s días' % dias
+    return dias, ('POR_VENCER' if dias <= PAPELETA_DIAS_POR_VENCER else 'AL_DIA'), texto
+
+
+def _papeleta_monto_pendiente(papeleta):
+    if papeleta.state == 'pagado':
+        return Decimal('0.00')
+    if papeleta.sat_vigente and papeleta.sat_deuda:
+        return _money(papeleta.sat_deuda)
+    if papeleta.payment_method == 'fraccionado' and papeleta.cuotas_ids:
+        return _money(sum(papeleta.cuotas_ids.filtered(lambda c: c.state == 'pendiente').mapped('amount')))
+    return _money(papeleta.monto)
+
+
+def _serialize_papeleta(papeleta, base_url, today, detalle=False):
+    foto_urls = [_public_attachment_url(att, base_url) for att in papeleta.attachment_ids.sudo()]
+    dias, estado_venc, texto_venc = _papeleta_vencimiento(papeleta, today)
+    cuotas = papeleta.cuotas_ids.sorted(lambda c: (c.due_date or today, c.id))
+    cuotas_pend = cuotas.filtered(lambda c: c.state == 'pendiente')
+
+    data = {
+        # ── Campos originales (no cambiar: la app ya los consume) ──
+        'id': papeleta.id,
+        'numeroPapeleta': papeleta.name,
+        'fechaPapeleta': _format_date(papeleta.fecha_papeleta),
+        'monto': float(_money(papeleta.monto)),
+        'idVehiculo': papeleta.vehicle_id.id,
+        'fotosCount': len(foto_urls),
+        'fotoUrls': foto_urls,
+        # ── Campos nuevos ──
+        'placa': papeleta.vehicle_id.license_plate or None,
+        'estado': (papeleta.state or 'pendiente').upper(),
+        'origen': (papeleta.origen or 'manual').upper(),
+        'modalidadPago': 'FRACCIONADO' if papeleta.payment_method == 'fraccionado' else 'PAGO_COMPLETO',
+        'montoPendiente': float(_papeleta_monto_pendiente(papeleta)),
+        'moneda': papeleta.company_currency_id.name or 'PEN',
+        'fechaVencimiento': _format_date(papeleta.fecha_vencimiento_final),
+        'diasParaVencer': dias,
+        'estadoVencimiento': estado_venc,
+        'textoAlerta': texto_venc,
+        'fechaPago': _format_date(papeleta.fecha_pago),
+        'tieneProrroga': bool(papeleta.tiene_prorroga),
+        'cuotasTotal': len(cuotas),
+        'cuotasPendientes': len(cuotas_pend),
+        'falta': papeleta.sat_codigo_falta or None,
+        'figuraEnSat': bool(papeleta.sat_vigente),
+    }
+    if not detalle:
+        return data
+
+    sat = papeleta.sat_id
+    sat_copias = []
+    if sat:
+        sat_copias = [_public_attachment_url(att, base_url) for att in sat.sudo()._imagenes()]
+
+    data.update({
+        'detalle': papeleta.detalle or None,
+        'fechaCaptura': _format_date(papeleta.fecha_captura),
+        'prorroga': {
+            'dias': papeleta.dias_prorroga or 0,
+            'motivo': papeleta.motivo_prorroga or None,
+        } if papeleta.tiene_prorroga else None,
+        'cuotas': [{
+            'id': c.id,
+            'nombre': c.name,
+            'fechaVencimiento': _format_date(c.due_date),
+            'monto': float(_money(c.amount)),
+            'estado': (c.state or 'pendiente').upper(),
+            'vencida': bool(c.state == 'pendiente' and c.due_date and c.due_date < today),
+        } for c in cuotas],
+        'evidenciasFraccionamientoUrls': [
+            _public_attachment_url(att, base_url) for att in papeleta.attachment_cuotas_ids.sudo()
+        ],
+        'sat': {
+            'numero': sat.name,
+            'estado': sat.estado_sat or None,
+            'figuraEnSat': bool(sat.vigente),
+            'fechaInfraccion': _format_date(sat.fecha_infraccion),
+            'reglamento': sat.reglamento or None,
+            'falta': sat.codigo_falta or None,
+            'importe': float(_money(sat.importe)),
+            'gastosCostas': float(_money(sat.gastos_costas)),
+            'descuento': float(_money(sat.descuento)),
+            'deuda': float(_money(sat.deuda)),
+            'numeroCompromisoPago': sat.numero_compromiso_pago or None,
+            'ultimaConsulta': _format_datetime(sat.ultima_vez_visto),
+            'dejoDeFigurarEn': _format_datetime(sat.resuelta_en),
+            'copiasUrls': sat_copias,
+        } if sat else None,
+    })
+    return data
+
+
+def _papeletas_resumen(items):
+    pendientes = [i for i in items if i['estado'] == 'PENDIENTE']
+    proximo = sorted(
+        [i for i in pendientes if i['fechaVencimiento']],
+        key=lambda i: i['fechaVencimiento'],
+    )
+    return {
+        'total': len(items),
+        'pendientes': len(pendientes),
+        'pagadas': len(items) - len(pendientes),
+        'vencidas': len([i for i in pendientes if i['estadoVencimiento'] == 'VENCIDA']),
+        'porVencer': len([i for i in pendientes if i['estadoVencimiento'] in ('VENCE_HOY', 'POR_VENCER')]),
+        'montoPendienteTotal': float(_money(sum(Decimal(str(i['montoPendiente'])) for i in pendientes))),
+        'proximoVencimiento': proximo[0]['fechaVencimiento'] if proximo else None,
+    }
+
+
 def _captura_record_reasons(rec):
     """
     Junta en una lista los distintos campos de motivo/observaciones de una
@@ -2735,9 +2913,15 @@ class MobileAPIController(http.Controller):
     )
     def list_papeletas(self, **kwargs):
         """
-        Lista las papeletas de un vehículo.
-        Query params opcionales: idVehiculo o vehicle_id.
-        Si no se envía, usa el vehicle_id del token (cuando exista).
+        Lista las papeletas de un vehículo (ver papeletas-app-cliente.md).
+
+        Query params (todos opcionales):
+          - plate | idVehiculo | vehicle_id : vehículo a consultar. Si no se envía,
+            se usa el vehicle_id del token.
+          - estado : PENDIENTE | PAGADO | TODAS (default TODAS).
+
+        Los campos originales (id, numeroPapeleta, fechaPapeleta, monto, idVehiculo,
+        fotosCount, fotoUrls) se mantienen; el resto son adiciones.
         """
         try:
             auth = request.httprequest.headers.get('Authorization', '')
@@ -2745,59 +2929,88 @@ class MobileAPIController(http.Controller):
             if token_err:
                 return _json_response(token_err, status=token_err['statusCode'])
 
-            vehicle_id_raw = kwargs.get('idVehiculo') or kwargs.get('vehicle_id')
-            if vehicle_id_raw is None and token_rec.vehicle_id:
-                vehicle_id_raw = token_rec.vehicle_id.id
+            vehicle, vehicle_err = _papeleta_resolve_vehicle(token_rec, kwargs)
+            if vehicle_err:
+                return _json_response(vehicle_err, status=vehicle_err['statusCode'])
 
-            try:
-                vehicle_id = int(vehicle_id_raw)
-            except Exception:
+            estado = (kwargs.get('estado') or 'TODAS').strip().upper()
+            if estado not in ('PENDIENTE', 'PAGADO', 'TODAS'):
                 return _json_response(
-                    _error(422, 'VALIDATION_ERROR', 'idVehiculo (o vehicle_id) es requerido y debe ser numérico.'),
+                    _error(422, 'VALIDATION_ERROR', 'estado debe ser PENDIENTE, PAGADO o TODAS.',
+                           [{'field': 'estado', 'issue': 'Valor inválido', 'rejectedValue': kwargs.get('estado')}]),
                     status=422,
                 )
 
-            vehicle = request.env['fleet.vehicle'].sudo().browse(vehicle_id)
-            if not vehicle.exists():
-                return _json_response(
-                    _error(404, 'VEHICLE_NOT_FOUND', 'El vehículo indicado no existe.'),
-                    status=404,
-                )
-
-            if token_rec.vehicle_id and token_rec.vehicle_id.id != vehicle.id:
-                return _json_response(
-                    _error(403, 'FORBIDDEN', 'El token no tiene permiso para consultar papeletas de este vehículo.'),
-                    status=403,
-                )
+            domain = [('vehicle_id', '=', vehicle.id)]
+            if estado != 'TODAS':
+                domain.append(('state', '=', estado.lower()))
 
             base_url = _get_base_url()
+            today = _lima_today()
             papeletas = request.env['adt.papeleta'].sudo().search(
-                [('vehicle_id', '=', vehicle.id)],
-                order='fecha_papeleta desc, id desc',
+                domain, order='fecha_papeleta desc, id desc',
             )
+            papeletas_data = [_serialize_papeleta(p, base_url, today) for p in papeletas]
 
-            papeletas_data = []
-            for papeleta in papeletas:
-                foto_urls = [_public_attachment_url(att, base_url) for att in papeleta.attachment_ids.sudo()]
-                papeletas_data.append({
-                    'id': papeleta.id,
-                    'numeroPapeleta': papeleta.name,
-                    'fechaPapeleta': _format_date(papeleta.fecha_papeleta),
-                    'monto': float(_money(papeleta.monto)),
-                    'idVehiculo': papeleta.vehicle_id.id,
-                    'fotosCount': len(foto_urls),
-                    'fotoUrls': foto_urls,
-                })
+            # El resumen siempre considera todas las papeletas del vehículo,
+            # sin importar el filtro "estado".
+            todas = papeletas if estado == 'TODAS' else request.env['adt.papeleta'].sudo().search(
+                [('vehicle_id', '=', vehicle.id)])
+            resumen = _papeletas_resumen(
+                papeletas_data if estado == 'TODAS'
+                else [_serialize_papeleta(p, base_url, today) for p in todas]
+            )
 
             return _json_response(_success({
                 'idVehiculo': vehicle.id,
                 'placa': vehicle.license_plate or None,
                 'totalPapeletas': len(papeletas_data),
+                'resumen': resumen,
                 'papeletas': papeletas_data,
             }))
 
         except Exception:
             _logger.exception('Error in GET /v1/papeletas')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/papeletas/<int:papeleta_id>',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def get_papeleta(self, papeleta_id, **kwargs):
+        """
+        Detalle de una papeleta: datos base, vencimiento, cuotas de
+        fraccionamiento, prórroga, datos del SAT Lima y evidencias.
+        """
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            papeleta = request.env['adt.papeleta'].sudo().browse(papeleta_id).exists()
+            if not papeleta:
+                return _json_response(
+                    _error(404, 'PAPELETA_NOT_FOUND', 'La papeleta indicada no existe.'), status=404,
+                )
+
+            if not _papeleta_token_can_access(token_rec, papeleta.vehicle_id):
+                # 404 en vez de 403 para no revelar papeletas de otros vehículos.
+                return _json_response(
+                    _error(404, 'PAPELETA_NOT_FOUND', 'La papeleta indicada no existe.'), status=404,
+                )
+
+            base_url = _get_base_url()
+            today = _lima_today()
+            data = _serialize_papeleta(papeleta, base_url, today, detalle=True)
+            return _json_response(_success(data))
+
+        except Exception:
+            _logger.exception('Error in GET /v1/papeletas/<id>')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     @http.route(
