@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_adt_captura_sat_root" name="Capturas SAT" sequence="96"
+              web_icon="fleet,static/description/icon.png"/>
+
+    <menuitem id="menu_adt_captura_sat_alertas" name="Alertas" parent="menu_adt_captura_sat_root" sequence="5"/>
+    <menuitem id="menu_adt_captura_sat_vigentes" name="Órdenes vigentes" parent="menu_adt_captura_sat_alertas"
+              action="action_adt_captura_sat_alertas" sequence="5"/>
+    <menuitem id="menu_adt_captura_sat_vehiculos" name="Vehículos con orden" parent="menu_adt_captura_sat_alertas"
+              action="action_fleet_vehicle_con_captura_sat" sequence="10"/>
+    <menuitem id="menu_adt_captura_sat_historial" name="Historial de órdenes" parent="menu_adt_captura_sat_alertas"
+              action="action_adt_captura_sat" sequence="15"/>
+
+    <menuitem id="menu_adt_captura_sat_agente" name="Consultas" parent="menu_adt_captura_sat_root" sequence="10"/>
+    <menuitem id="menu_adt_captura_sat_programas" name="Programas" parent="menu_adt_captura_sat_agente"
+              action="action_adt_captura_sat_programa" sequence="5"/>
+    <menuitem id="menu_adt_captura_sat_ejecuciones" name="Ejecuciones" parent="menu_adt_captura_sat_agente"
+              action="action_adt_captura_sat_ejecucion" sequence="10"/>
+    <menuitem id="menu_adt_captura_sat_consultas" name="Consultas por placa" parent="menu_adt_captura_sat_agente"
+              action="action_adt_captura_sat_consulta" sequence="15"/>
+</odoo>
