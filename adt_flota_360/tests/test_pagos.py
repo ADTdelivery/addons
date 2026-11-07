@@ -146,6 +146,17 @@ class TestPagosFlota360(SavepointCase):
             self.assertEqual(action['report_name'], report)
             self.assertEqual(action['context']['active_ids'], self.vehicle.ids)
 
+    def test_vehicle_section_shows_razon_social_and_factura(self):
+        # razon_social (adt_fleet) y x_id_facturacion (adt_facturacion_v1) son opcionales.
+        if 'razon_social' not in self.vehicle._fields or 'x_id_facturacion' not in self.vehicle._fields:
+            self.skipTest('adt_fleet o adt_facturacion_v1 no está instalado')
+        factura = self.env['account.move'].create({'move_type': 'entry'})
+        self.vehicle.write({'razon_social': 'adt_dkirjm', 'x_id_facturacion': factura.id})
+        section = self.service._seccion_vehiculo(self.vehicle)
+        propiedad = next(g for g in section['grupos'] if g['titulo'] == 'Propiedad')
+        self.assertIn(['Razón social', 'CORPORACION ADT DKIRJM S.A.C'], propiedad['campos'])
+        self.assertIn(['Factura', factura.name], propiedad['campos'])
+
     def test_credit_section_visible_without_technical_tracking_permission(self):
         user = self.env['res.users'].create({'name': 'QA operador pagos', 'login': 'qa360_pay_operator',
             'company_id': self.company.id, 'company_ids': [(6, 0, self.company.ids)],

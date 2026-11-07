@@ -21,6 +21,16 @@ class AdtFleetVehicleModel(models.Model):
 class FieldModels(models.Model):
     _inherit = 'fleet.vehicle'
 
+    razon_social = fields.Selection(
+        [
+            ('adt', 'CORPORACION ADT S.A.C'),
+            ('adt_dkirjm', 'CORPORACION ADT DKIRJM S.A.C'),
+        ],
+        string="Razón Social",
+        default='adt_dkirjm',
+        tracking=True,
+    )
+
     fecha_entrega = fields.Date(string="Fecha de Entrega")
     foto_entrega = fields.Binary(string="Foto de Entrega", attachment=True)
     foto_entrega_filename = fields.Char(string="Nombre foto entrega")

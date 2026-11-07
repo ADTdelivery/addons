@@ -362,7 +362,7 @@ class AdtFlota360(models.AbstractModel):
         ids = vehiculos.ids
 
         campos = [c for c in ('license_plate', 'model_id', 'brand_id', 'vin_sn', 'driver_id',
-                              'state_id', 'color', 'model_year') if c in Vehicle._fields]
+                              'state_id', 'color', 'model_year', 'razon_social') if c in Vehicle._fields]
         filas = vehiculos.read(campos)
 
         cuentas = self._lote_cuentas(ids, hoy)
@@ -413,6 +413,8 @@ class AdtFlota360(models.AbstractModel):
                 'anio': f.get('model_year') or '',
                 'color': f.get('color') or '',
                 'chasis': f.get('vin_sn') or '',
+                # Razón social (adt_fleet): etiqueta de la selección, p. ej. "CORPORACION ADT S.A.C".
+                'razon_social': self._etiqueta(Vehicle, 'razon_social', f.get('razon_social')),
                 'estado': self._m2o(f.get('state_id')),
                 'cliente': cliente,
                 'stock': not f.get('driver_id'),
@@ -889,6 +891,13 @@ class AdtFlota360(models.AbstractModel):
         if self._metodo('fleet.vehicle', 'action_print_contrato_tvs'):
             imprimir.append(accion_metodo('fleet.vehicle', v.id, 'action_print_contrato_tvs', 'Contrato TVS', 'fa-print'))
         km = g('traccar_km_actual')
+        razon_social = self._etiqueta(v, 'razon_social', g('razon_social'))
+        # La factura se lee con sudo: el usuario de Flota 360 no siempre tiene Contabilidad.
+        factura = g('x_id_facturacion')
+        factura = factura.sudo().name if factura else False
+        if g('x_factura_adjunto'):
+            acciones.append(accion_url('/web/content/fleet.vehicle/%s/x_factura_adjunto' % v.id,
+                                       'Ver factura (PDF)', 'fa-file-pdf-o'))
         return {
             'key': 'vehiculo', 'titulo': 'Vehículo', 'icon': 'fa-motorcycle',
             'encabezado': {
@@ -909,6 +918,8 @@ class AdtFlota360(models.AbstractModel):
                 ('Modelo', self._campos(self._campo('Marca', v.brand_id.name if 'brand_id' in v._fields else False),
                                         self._campo('Modelo', v.model_id.name), self._campo('Año', g('model_year')),
                                         self._campo('Color', g('color')))),
+                ('Propiedad', self._campos(self._campo('Razón social', razon_social),
+                                           self._campo('Factura', factura))),
             ) if c],
             'acciones': acciones,
             'menu': [{'titulo': 'Imprimir', 'acciones': imprimir}] if imprimir else [],

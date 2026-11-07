@@ -10,6 +10,35 @@
                 <field name="driver_id" string="Documento"
                        filter_domain="[('driver_id.vat', 'ilike', self)]"/>
                 <field name="vin_sn" string="Chasis"/>
+                <field name="razon_social"/>
+                <filter name="filter_razon_adt" string="CORPORACION ADT S.A.C"
+                        domain="[('razon_social', '=', 'adt')]"/>
+                <filter name="filter_razon_adt_dkirjm" string="CORPORACION ADT DKIRJM S.A.C"
+                        domain="[('razon_social', '=', 'adt_dkirjm')]"/>
+                <filter name="groupby_razon_social" string="Razón Social"
+                        context="{'group_by': 'razon_social'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="fleet_vehicle_form_inherit_razon_social" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.inherit.razon.social</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='driver_id']" position="before">
+                <field name="razon_social"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="fleet_vehicle_tree_inherit_razon_social" model="ir.ui.view">
+        <field name="name">fleet.vehicle.tree.inherit.razon.social</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='license_plate']" position="after">
+                <field name="razon_social" optional="show"/>
             </xpath>
         </field>
     </record>

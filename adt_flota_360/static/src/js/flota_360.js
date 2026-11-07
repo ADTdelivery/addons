@@ -879,6 +879,8 @@ odoo.define('adt_flota_360.Flota360', function (require) {
                     this._htmlPlaca(d, true) +
                     '<span class="adt_f360__sumhead-main">' + esc([d.marca, d.modelo].filter(Boolean).join(' ') || 'Vehículo') + '</span>' +
                     (vehiculo ? '<span class="adt_f360__sub">' + esc(vehiculo) + '</span>' : '') +
+                    (d.razon_social ? '<span class="adt_f360__sumhead-chips"><span title="Razón social">' +
+                        '<i class="fa fa-building-o" aria-hidden="true"></i>' + esc(d.razon_social) + '</span></span>' : '') +
                 '</div>' +
                 '<div class="adt_f360__sumhead-col">' +
                     '<span class="adt_f360__sumhead-label"><i class="fa fa-user-o" aria-hidden="true"></i>Cliente</span>' +

@@ -74,6 +74,8 @@ VEHICULO_DOCUMENTOS = [
     ('contrato_attachment', 'Contrato', 'contrato_filename', True),
     ('foto_entrega', 'Foto de entrega', 'foto_entrega_filename', True),
     ('chip_gnv_attachment', 'Chip GNV', 'chip_gnv_filename', False),
+    # PDF de la factura (adt_facturacion_v1): se copia desde la factura al vehículo.
+    ('x_factura_adjunto', 'Factura', 'x_factura_adjunto_nombre', False),
 ]
 
 # Modelos que se pueden consultar desde los selectores de la vista.
