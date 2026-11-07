@@ -58,6 +58,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             'click [data-tab]': '_onTab',
             'click [data-orden]': '_onOrden',
             'click [data-papeleta]': '_onPapeleta',
+            'click [data-action="programas-captura"]': '_onProgramasCaptura',
             'click [data-lista]': '_onLista',
             'click [data-vehiculo]': '_onVehiculo',
             'keydown tr[data-vehiculo]': '_onVehiculoTecla',
@@ -360,7 +361,10 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
                     }).join('') + '</tbody></table></div>'
                 : '<p class="adt_sat__vacio"><i class="fa fa-check-circle" aria-hidden="true"></i> Ningún vehículo con orden de captura vigente.</p>';
             return this._panel('Cruce: órdenes de captura · flota · papeletas', 'fa-random', cuerpo,
-                '<span class="adt_sat__muted">Primero las motos con cliente; el documento de la orden se cruza con el número de papeleta</span>');
+                '<span class="adt_sat__muted">Primero las motos con cliente; el documento de la orden se cruza con el número de papeleta</span>' +
+                '<button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="programas-captura" ' +
+                'title="Qué placas se consultan, a qué hora y qué días">' +
+                '<i class="fa fa-clock-o" aria-hidden="true"></i>Programar consultas</button>');
         },
 
         _onTab: function (ev) {
@@ -373,6 +377,11 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
                 return;
             }
             this._render();
+        },
+
+        // Programas de consulta de capturas: alcance, hora y días de ejecución automática.
+        _onProgramasCaptura: function () {
+            this.do_action('adt_captura_sat.action_adt_captura_sat_programa');
         },
 
         _onOrden: function (ev) {

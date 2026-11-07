@@ -75,6 +75,7 @@ class ADTCapturaSatPrograma(models.Model):
     sabado = fields.Boolean(string='Sábado', default=True)
     domingo = fields.Boolean(default=True)
     ultima_programada = fields.Datetime(string='Último lanzamiento automático', readonly=True, copy=False)
+    dias_texto = fields.Char(string='Días', compute='_compute_dias_texto')
 
     responsable_ids = fields.Many2many('res.users', 'adt_captura_sat_programa_user_rel', 'programa_id', 'user_id',
                                        string='Notificar a', default=lambda self: self.env.user,
@@ -102,6 +103,18 @@ class ADTCapturaSatPrograma(models.Model):
                 rec.total_placas = len(rec._placas())
             except UserError:
                 rec.total_placas = 0
+
+    @api.depends('programado', *DIAS)
+    def _compute_dias_texto(self):
+        cortos = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+        for rec in self:
+            elegidos = [c for c, d in zip(cortos, DIAS) if rec[d]]
+            if not rec.programado:
+                rec.dias_texto = _('Solo manual')
+            elif len(elegidos) == 7:
+                rec.dias_texto = _('Todos los días')
+            else:
+                rec.dias_texto = ', '.join(elegidos) or _('Ningún día')
 
     def _compute_ultima(self):
         Ejecucion = self.env['adt.captura.sat.ejecucion']

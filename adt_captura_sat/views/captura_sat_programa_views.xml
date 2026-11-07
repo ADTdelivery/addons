@@ -13,6 +13,7 @@
                 <field name="razon_social" optional="show"/>
                 <field name="programado" widget="boolean_toggle"/>
                 <field name="hora" widget="float_time"/>
+                <field name="dias_texto"/>
                 <field name="ultima_ejecucion_id" optional="show"/>
                 <field name="ultimo_estado" widget="badge"
                        decoration-success="ultimo_estado == 'completada'"
