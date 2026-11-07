@@ -8,7 +8,7 @@
                 <header class="adt_cart__header">
                     <div class="adt_find__top">
                         <div class="adt_cart__titlebar">
-                            <h1 class="adt_cart__title">Papeletas SAT</h1>
+                            <h1 class="adt_cart__title">SAT</h1>
                             <p class="adt_cart__subtitle" data-ref="subtitle"/>
                         </div>
                         <div class="adt_find__actions">
@@ -19,6 +19,14 @@
                         </div>
                     </div>
                     <div class="adt_find__facetas adt_cart__applied" data-ref="aplicados" aria-label="Filtros aplicados"/>
+                    <!-- Pestañas: papeletas del SAT y órdenes de captura cruzadas con la flota. -->
+                    <nav class="adt_sat__tabs" role="tablist" aria-label="Vistas SAT">
+                        <button type="button" role="tab" class="adt_sat__tab" data-tab="papeletas">
+                            <i class="fa fa-university" aria-hidden="true"/>Papeletas SAT</button>
+                        <button type="button" role="tab" class="adt_sat__tab" data-tab="capturas">
+                            <i class="fa fa-lock" aria-hidden="true"/>Captura SAT
+                            <span class="adt_sat__tab-n" data-ref="tab-capturas-n"/></button>
+                    </nav>
                 </header>
                 <div class="adt_cart__body adt_find__body" data-ref="body">
                     <div class="adt_cart__empty">Calculando…</div>

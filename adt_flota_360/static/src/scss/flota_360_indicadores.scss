@@ -251,3 +251,65 @@
     &.is-ok .adt_sat__fecha-v { color: var(--cart-pos); }
 }
 .adt_sat__fecha-v { color: var(--cart-ink); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+// Pestañas de la vista SAT: Papeletas SAT · Captura SAT.
+.adt_sat__tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 14px;
+    border-bottom: 1px solid var(--cart-border);
+}
+.adt_sat__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -1px;
+    padding: 8px 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--cart-ink-2);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { color: var(--cart-ink); }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--cart-focus); border-radius: 4px 4px 0 0; }
+    &.is-active { border-bottom-color: var(--cart-ink); color: var(--cart-ink); }
+}
+.adt_sat__tab-n:not(:empty) {
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--cart-neg-bg);
+    color: var(--cart-neg);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+// Cruce de órdenes de captura con la flota y las papeletas.
+.adt_sat__cruce td { vertical-align: top; }
+.adt_sat__hallazgos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+    li { display: flex; align-items: baseline; gap: 6px; padding: 1px 0; color: var(--cart-ink-2); }
+    li.is-critico { color: var(--cart-neg); font-weight: 600; }
+    li.is-atencion { color: var(--cart-warn); }
+    .adt_sat__ico { flex: none; }
+}
+.adt_sat__orden + .adt_sat__orden { margin-top: 8px; }
+.adt_sat__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cart-info);
+    font-weight: 600;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--cart-focus); border-radius: 3px; }
+}
+.adt_sat__chip.is-atencion { background: var(--cart-warn-bg); color: var(--cart-warn); }
+.adt_sat__cruce .adt_sat__chip { margin: 3px 0 0; }

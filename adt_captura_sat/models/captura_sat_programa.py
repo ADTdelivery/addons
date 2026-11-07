@@ -41,10 +41,22 @@ class ADTCapturaSatPrograma(models.Model):
 
     alcance = fields.Selection([
         ('todas', 'Toda la flota'),
+        ('financiera', 'Por financiera'),
+        ('razon_social', 'Por razón social'),
         ('papeletas', 'Placas de un programa de papeletas'),
         ('filtro', 'Filtro de vehículos'),
-        ('lista', 'Lista de vehículos'),
+        ('lista', 'Lista de vehículos (elegir manualmente)'),
     ], string='Placas a consultar', required=True, default='todas', tracking=True)
+    financiera_ids = fields.Many2many('adt.comercial.financiera', 'adt_captura_sat_programa_financiera_rel',
+                                      'programa_id', 'financiera_id', string='Financieras',
+                                      help='Vehículos con una cuenta comercial de alguna de estas financieras.')
+    estado_cuenta_ids = fields.Many2many('adt.papeleta.sat.estado.cuenta', 'adt_captura_sat_programa_estado_rel',
+                                         'programa_id', 'estado_id', string='Estados del cronograma',
+                                         default=lambda self: self._estados_vigentes(),
+                                         help='Estados de la cuenta comercial a incluir. Vacío: todos los estados.')
+    razon_social = fields.Selection(lambda self: self.env['fleet.vehicle']._fields['razon_social'].selection,
+                                    string='Razón social', tracking=True,
+                                    help='Razón social del vehículo (Flota).')
     papeleta_programa_id = fields.Many2one('adt.papeleta.sat.programa', string='Programa de papeletas',
                                            help='Reutiliza el alcance (financieras, estados, filtro…) de ese programa.')
     vehicle_domain = fields.Char(string='Filtro', default='[]')
@@ -75,10 +87,15 @@ class ADTCapturaSatPrograma(models.Model):
                                      string='Último resultado', compute='_compute_ultima')
 
     @api.model
+    def _estados_vigentes(self):
+        return self.env['adt.papeleta.sat.estado.cuenta'].search([('vigente', '=', True)])
+
+    @api.model
     def _tz_get(self):
         return [(tz, tz) for tz in sorted(pytz.all_timezones, key=lambda tz: tz if not tz.startswith('Etc/') else '_')]
 
-    @api.depends('alcance', 'papeleta_programa_id', 'vehicle_domain', 'vehicle_ids')
+    @api.depends('alcance', 'papeleta_programa_id', 'vehicle_domain', 'vehicle_ids',
+                 'financiera_ids', 'estado_cuenta_ids', 'razon_social')
     def _compute_total_placas(self):
         for rec in self:
             try:
@@ -108,6 +125,17 @@ class ADTCapturaSatPrograma(models.Model):
             except Exception as exc:
                 raise UserError(_('El filtro de vehículos no es válido: %s') % exc)
             return Vehiculo.search(dominio + [('license_plate', '!=', False)])
+        if self.alcance == 'financiera':
+            if not self.financiera_ids:
+                raise UserError(_('Elija al menos una financiera del programa «%s».') % self.name)
+            dominio = [('tipo_financiera_id', 'in', self.financiera_ids.ids), ('vehiculo_id', '!=', False)]
+            if self.estado_cuenta_ids:
+                dominio.append(('state', 'in', self.estado_cuenta_ids.mapped('code')))
+            return self.env['adt.comercial.cuentas'].sudo().search(dominio).mapped('vehiculo_id')
+        if self.alcance == 'razon_social':
+            if not self.razon_social:
+                raise UserError(_('Elija la razón social del programa «%s».') % self.name)
+            return Vehiculo.search([('razon_social', '=', self.razon_social), ('license_plate', '!=', False)])
         if not self.papeleta_programa_id:
             raise UserError(_('Elija el programa de papeletas del programa «%s».') % self.name)
         return self.papeleta_programa_id.sudo()._vehiculos()

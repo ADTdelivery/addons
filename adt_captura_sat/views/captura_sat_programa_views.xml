@@ -9,6 +9,8 @@
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="alcance"/>
+                <field name="financiera_ids" widget="many2many_tags" optional="show"/>
+                <field name="razon_social" optional="show"/>
                 <field name="programado" widget="boolean_toggle"/>
                 <field name="hora" widget="float_time"/>
                 <field name="ultima_ejecucion_id" optional="show"/>
@@ -46,6 +48,14 @@
                     <group>
                         <group string="Placas a consultar">
                             <field name="alcance" widget="radio"/>
+                            <field name="financiera_ids" widget="many2many_tags" options="{'no_create': True}"
+                                   attrs="{'invisible': [('alcance', '!=', 'financiera')],
+                                           'required': [('alcance', '=', 'financiera')]}"/>
+                            <field name="estado_cuenta_ids" widget="many2many_tags" options="{'no_create': True}"
+                                   attrs="{'invisible': [('alcance', '!=', 'financiera')]}"/>
+                            <field name="razon_social"
+                                   attrs="{'invisible': [('alcance', '!=', 'razon_social')],
+                                           'required': [('alcance', '=', 'razon_social')]}"/>
                             <field name="papeleta_programa_id" options="{'no_create': True}"
                                    attrs="{'invisible': [('alcance', '!=', 'papeletas')],
                                            'required': [('alcance', '=', 'papeletas')]}"/>

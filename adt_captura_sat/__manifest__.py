@@ -5,7 +5,7 @@
     'description': """
         Integra el agente de capturas SAT (contenedor Docker independiente) con Odoo:
 
-        * Programas de consulta (toda la flota, filtro, lista o las placas de un programa
+        * Programas de consulta (toda la flota, por financiera, por razón social, filtro, lista o las placas de un programa
           de papeletas) con ejecución automática o manual.
         * El agente toma las ejecuciones por /api/capturas/sat/ejecuciones/tomar, consulta
           cada placa y envía el resultado a /api/capturas/sat/import.
@@ -18,7 +18,7 @@
     'category': 'Fleet Management',
     'version': '15.0.1.0.0',
     'license': 'LGPL-3',
-    'depends': ['base', 'mail', 'fleet', 'adt_papeletas'],
+    'depends': ['base', 'mail', 'fleet', 'adt_papeletas', 'adt_comercial', 'adt_fleet'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',

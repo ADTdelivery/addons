@@ -13,3 +13,4 @@ from . import flota_360_tracking
 from . import flota_360_carga_pdf
 from . import flota_360_gps_geocerca
 from . import flota_360_gps
+from . import flota_360_captura_sat

@@ -8,6 +8,10 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
      * Cada recuadro y barra abre la lista de esas papeletas SAT; las urgentes y los
      * vehículos abren su ficha de Flota 360 en la pestaña Papeleta SAT.
      * Usa los filtros de "Cartera y financieras" (.adt_cart, de adt_comercial).
+     *
+     * Pestaña «Captura SAT»: órdenes de captura del SAT (adt_captura_sat) cruzadas con la
+     * flota (vehículo, cliente, razón social, financiera, captura interna) y con las
+     * papeletas (SAT o internas) del documento de cada orden. Se carga al abrirla.
      */
     var AbstractAction = require('web.AbstractAction');
     var core = require('web.core');
@@ -38,19 +42,32 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             '" aria-hidden="true"></i>';
     }
 
+    var MODELOS = {
+        'adt.papeleta.sat': {nombre: 'Papeletas SAT', uno: 'papeleta', varios: 'papeletas'},
+        'adt.captura.sat': {nombre: 'Órdenes de captura SAT', uno: 'orden', varios: 'órdenes'},
+        'fleet.vehicle': {nombre: 'Vehículos', uno: 'vehículo', varios: 'vehículos'},
+    };
+    var COINCIDE = {exacta: 'Mismo número y placa', vehiculo: 'Mismo número y vehículo', documento: 'Solo coincide el número'};
+
     var Indicadores = AbstractAction.extend(FiltrosPopup.mixin, {
         template: 'adt_flota_360.Indicadores',
         hasControlPanel: false,
 
         events: _.extend({}, FiltrosPopup.events, {
             'click [data-action="refresh"]': '_onRefresh',
+            'click [data-tab]': '_onTab',
+            'click [data-orden]': '_onOrden',
+            'click [data-papeleta]': '_onPapeleta',
             'click [data-lista]': '_onLista',
             'click [data-vehiculo]': '_onVehiculo',
             'keydown tr[data-vehiculo]': '_onVehiculoTecla',
         }),
 
-        init: function () {
+        init: function (parent, action) {
             this._super.apply(this, arguments);
+            var params = (action && action.params) || {};
+            this.tab = params.tab === 'capturas' ? 'capturas' : 'papeletas';
+            this.cap = null;  // datos de la pestaña Captura SAT (se piden al abrirla)
             this.financiera = null;
             this.estado = null;
             this.clientes = null;
@@ -73,15 +90,25 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             return this.$('[data-ref="' + name + '"]');
         },
 
+        _filtros: function () {
+            return {financiera: this.financiera, estado: this.estado, clientes: this.clientes, grupo: this.grupo};
+        },
+
+        // Papeletas siempre (de ahí salen los conteos del popup de filtros); capturas solo si
+        // la pestaña está abierta o ya se cargó, para no consultarlas sin necesidad.
         _load: function () {
             var self = this;
             var seq = ++this._seq;
-            return this._rpc({
-                model: 'adt.flota360', method: 'indicadores', args: [],
-                kwargs: {financiera: this.financiera, estado: this.estado, clientes: this.clientes, grupo: this.grupo},
-            }).then(function (data) {
+            var pedidos = [this._rpc({model: 'adt.flota360', method: 'indicadores', args: [], kwargs: this._filtros()})];
+            if (this.tab === 'capturas' || this.cap) {
+                pedidos.push(this._rpc({model: 'adt.flota360', method: 'capturas_sat', args: [], kwargs: this._filtros()}));
+            }
+            return Promise.all(pedidos).then(function (res) {
                 if (seq === self._seq) {
-                    self.data = data;
+                    self.data = res[0];
+                    if (res.length > 1) {
+                        self.cap = res[1];
+                    }
                 }
             });
         },
@@ -96,15 +123,27 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
         },
 
         // Guarda los ids de una lista y devuelve su clave para data-lista.
-        _lista: function (titulo, ids) {
+        _lista: function (titulo, ids, modelo) {
             var clave = 'l' + _.size(this._listas);
-            this._listas[clave] = {titulo: titulo, ids: ids};
+            this._listas[clave] = {titulo: titulo, ids: ids, modelo: modelo || 'adt.papeleta.sat'};
             return clave;
         },
 
         _render: function () {
             var d = this.data;
+            var self = this;
             this._listas = {};
+            this.$('[data-tab]').each(function () {
+                var activa = this.getAttribute('data-tab') === self.tab;
+                this.classList.toggle('is-active', activa);
+                this.setAttribute('aria-selected', activa ? 'true' : 'false');
+            });
+            this._ref('tab-capturas-n').text(this.cap && this.cap.disponible && this.cap.total ? entero(this.cap.total) : '');
+            if (this.tab === 'capturas') {
+                this._fpopRender();
+                this._renderCapturas();
+                return;
+            }
             if (!d.disponible) {
                 this._ref('subtitle').text('');
                 this._ref('fpop').empty();
@@ -134,9 +173,10 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             var self = this;
             return '<section class="adt_find__grid adt_sat__grid">' + recuadros.map(function (t) {
                 var vacio = !t.ids.length;
+                var m = MODELOS[t.modelo || 'adt.papeleta.sat'];
                 return '<button type="button" class="adt_find__box is-' + t.nivel + (vacio ? ' is-empty' : '') + '"' +
-                    (vacio ? ' disabled="disabled"' : ' data-lista="' + self._lista(t.label, t.ids) + '"') +
-                    ' title="' + (vacio ? 'Sin papeletas' : 'Ver las papeletas') + '">' +
+                    (vacio ? ' disabled="disabled"' : ' data-lista="' + self._lista(t.label, t.ids, t.modelo) + '"') +
+                    ' title="' + (vacio ? 'Sin ' + m.varios : 'Ver ' + m.varios) + '">' +
                     '<span class="adt_find__box-head"><i class="fa ' + t.icon + '" aria-hidden="true"></i>' + esc(t.label) +
                         (vacio ? '' : '<i class="fa fa-angle-right adt_find__box-go" aria-hidden="true"></i>') + '</span>' +
                     '<span class="adt_find__box-value">' + esc(t.valor) + '</span>' +
@@ -151,16 +191,17 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
         },
 
         // Barras horizontales: una sola medida (cantidad), el monto va en texto al lado.
-        _htmlBarras: function (titulo, icono, filas, vacio) {
+        _htmlBarras: function (titulo, icono, filas, vacio, modelo) {
             var self = this;
+            var m = MODELOS[modelo || 'adt.papeleta.sat'];
             var max = _.max(_.pluck(filas, 'n').concat([1]));
             var cuerpo = filas.length && _.some(filas, function (f) { return f.n; })
                 ? '<ul class="adt_sat__bars">' + filas.map(function (f) {
                     var nivel = f.nivel || 'info';
                     var ancho = f.n ? Math.max(f.n * 100 / max, 2) : 0;
-                    var detalle = plural(f.n, 'papeleta', 'papeletas') + ' · ' + soles(f.monto);
+                    var detalle = plural(f.n, m.uno, m.varios) + ' · ' + soles(f.monto);
                     return '<li><button type="button" class="adt_sat__bar' + (f.n ? '' : ' is-zero') + '"' +
-                        (f.n ? ' data-lista="' + self._lista(titulo + ': ' + f.label, f.ids) + '"' : ' disabled="disabled"') +
+                        (f.n ? ' data-lista="' + self._lista(titulo + ': ' + f.label, f.ids, modelo) + '"' : ' disabled="disabled"') +
                         ' title="' + esc(f.label + ': ' + detalle) + '">' +
                         '<span class="adt_sat__bar-label">' + (f.nivel ? nivelPunto(nivel) : '') + esc(f.label) + '</span>' +
                         '<span class="adt_sat__bar-track"><span class="adt_sat__bar-fill is-' + nivel + '" style="width:' + ancho + '%"></span></span>' +
@@ -222,6 +263,138 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             }).join('') + '</dl>');
         },
 
+        // ------------------------------------------------------------------
+        // Pestaña Captura SAT
+        // ------------------------------------------------------------------
+
+        _renderCapturas: function () {
+            var c = this.cap;
+            if (!c) {
+                this._ref('subtitle').text('');
+                this._ref('body').html('<div class="adt_cart__empty">Cruzando las órdenes de captura con la flota y las papeletas…</div>');
+                return;
+            }
+            if (!c.disponible) {
+                this._ref('subtitle').text('');
+                this._ref('body').html('<div class="adt_cart__empty">El módulo de capturas SAT (adt_captura_sat) no está instalado ' +
+                    'o no tienes acceso.</div>');
+                return;
+            }
+            var cob = c.cobertura;
+            this._ref('subtitle').text('Al ' + fecha(c.fecha) + ' · ' + plural(c.total, 'orden vigente', 'órdenes vigentes') +
+                ' · ' + plural(c.vehiculos_n, 'vehículo', 'vehículos') + ' · ' + soles(c.monto) +
+                (cob && cob.ultima ? ' · última consulta ' + moment.utc(cob.ultima).local().format('DD/MM/YYYY HH:mm') : ''));
+            var M = 'adt.captura.sat';
+            this._ref('body').html(
+                this._htmlRecuadros(c.recuadros) +
+                this._htmlCruce(c.filas) +
+                '<section class="adt_sat__cols">' +
+                    this._htmlBarras('Por razón social', 'fa-building-o', c.por_razon_social, 'Sin órdenes vigentes.', M) +
+                    this._htmlBarras('Por financiera', 'fa-university', c.por_financiera, 'Sin órdenes vigentes.', M) +
+                '</section>' +
+                this._htmlBarras('Por concepto', 'fa-gavel', c.por_concepto, 'Sin órdenes vigentes.', M));
+        },
+
+        _htmlHallazgos: function (lista) {
+            return '<ul class="adt_sat__hallazgos">' + lista.map(function (h) {
+                return '<li class="is-' + h.nivel + '">' + nivelPunto(h.nivel) + esc(h.texto) + '</li>';
+            }).join('') + '</ul>';
+        },
+
+        _htmlPapeleta: function (p) {
+            if (!p) {
+                return '<span class="adt_sat__muted">Sin papeleta</span>';
+            }
+            var titulo = (p.tipo === 'sat' ? 'Papeleta SAT' : 'Papeleta interna') + ' · ' + (COINCIDE[p.coincide] || '');
+            return '<button type="button" class="adt_sat__link" data-papeleta="' + p.id + '" data-papeleta-tipo="' + p.tipo +
+                '" title="' + esc(titulo) + '">' + '<i class="fa fa-link" aria-hidden="true"></i>' + esc(p.numero) + '</button>' +
+                '<span class="adt_sat__sub">' + esc([p.estado, p.deuda ? soles(p.deuda) : '', p.falta].filter(Boolean).join(' · ')) +
+                (p.tipo === 'sat' && p.interna ? ' · interna ' + esc(p.interna) : '') +
+                (p.coincide === 'documento' ? ' <span class="adt_sat__chip is-atencion">solo número</span>' : '') + '</span>';
+        },
+
+        // Tabla del cruce: una fila por vehículo (o placa fuera de la flota) con sus órdenes.
+        _htmlCruce: function (filas) {
+            var self = this;
+            var MATCH = {placa: 'Encontrado por placa (sin vincular)', placa_original: 'Encontrado por placa original',
+                         sin_flota: 'No está en la flota'};
+            var cuerpo = filas.length
+                ? '<div class="adt_sat__table-wrap"><table class="adt_sat__table adt_sat__cruce"><thead><tr>' +
+                    '<th>Hallazgos</th><th>Vehículo en flota</th><th>Cliente / empresa</th>' +
+                    '<th>Orden SAT</th><th>Papeleta relacionada</th><th class="is-num">Días</th><th class="is-num">Monto</th><th></th>' +
+                    '</tr></thead><tbody>' +
+                    filas.map(function (f) {
+                        var v = f.vehiculo;
+                        var abre = f.vehicle_id ? ' data-vehiculo="' + f.vehicle_id + '" tabindex="0"' : '';
+                        var vehiculo = v
+                            ? '<span class="adt_sat__strong">' + esc(v.placa || f.placa) + '</span>' +
+                              '<span class="adt_sat__sub">' + esc(v.nombre || '') + '</span>' +
+                              (MATCH[f.match] ? '<span class="adt_sat__chip is-atencion">' + esc(MATCH[f.match]) + '</span>' : '')
+                            : '<span class="adt_sat__strong">' + esc(f.placa) + '</span>' +
+                              '<span class="adt_sat__chip is-atencion">' + esc(MATCH.sin_flota) + '</span>';
+                        var cliente = v
+                            ? (v.con_cliente
+                                ? '<span class="adt_sat__strong">' + esc(v.cliente || 'Con cliente') + '</span>' +
+                                  (v.documento ? '<span class="adt_sat__sub">' + esc(v.documento) + '</span>' : '')
+                                : '<span class="adt_sat__muted"><i class="fa fa-cubes" aria-hidden="true"></i> En stock</span>') +
+                              '<span class="adt_sat__sub">' + esc([v.razon_social, v.financiera].filter(Boolean).join(' · ')) + '</span>'
+                            : '<span class="adt_sat__muted">—</span>';
+                        var ordenes = f.ordenes.map(function (o) {
+                            return '<div class="adt_sat__orden"><button type="button" class="adt_sat__link adt_sat__mono" data-orden="' + o.id +
+                                '" title="Abrir la orden de captura">' + esc(o.documento) + '</button>' +
+                                '<span class="adt_sat__sub">' + esc([o.concepto, o.anio, soles(o.monto), o.gestion,
+                                                                     o.responsable].filter(Boolean).join(' · ')) + '</span></div>';
+                        }).join('');
+                        var papeletas = f.ordenes.map(function (o) {
+                            return '<div class="adt_sat__orden">' + self._htmlPapeleta(o.papeleta) + '</div>';
+                        }).join('');
+                        return '<tr class="is-' + f.nivel + '"' + abre + '>' +
+                            '<td>' + self._htmlHallazgos(f.hallazgos) + '</td>' +
+                            '<td>' + vehiculo + '</td>' +
+                            '<td>' + cliente + '</td>' +
+                            '<td>' + ordenes + '</td>' +
+                            '<td>' + papeletas + '</td>' +
+                            '<td class="is-num adt_sat__dias is-' + f.nivel + '">' + entero(f.dias) + '</td>' +
+                            '<td class="is-num adt_sat__strong">' + soles(f.monto) + '</td>' +
+                            '<td class="is-num">' + (f.vehicle_id ? '<i class="fa fa-angle-right" aria-hidden="true"></i>' : '') + '</td></tr>';
+                    }).join('') + '</tbody></table></div>'
+                : '<p class="adt_sat__vacio"><i class="fa fa-check-circle" aria-hidden="true"></i> Ningún vehículo con orden de captura vigente.</p>';
+            return this._panel('Cruce: órdenes de captura · flota · papeletas', 'fa-random', cuerpo,
+                '<span class="adt_sat__muted">Primero las motos con cliente; el documento de la orden se cruza con el número de papeleta</span>');
+        },
+
+        _onTab: function (ev) {
+            var tab = ev.currentTarget.getAttribute('data-tab');
+            if (tab === this.tab) { return; }
+            this.tab = tab;
+            if (tab === 'capturas' && !this.cap) {
+                this._render();  // «Cruzando…» mientras llega
+                this._recargar();
+                return;
+            }
+            this._render();
+        },
+
+        _onOrden: function (ev) {
+            ev.stopPropagation();
+            this.do_action({
+                type: 'ir.actions.act_window', name: 'Orden de captura SAT', res_model: 'adt.captura.sat',
+                res_id: parseInt(ev.currentTarget.getAttribute('data-orden'), 10),
+                views: [[false, 'form']], target: 'current',
+            });
+        },
+
+        _onPapeleta: function (ev) {
+            ev.stopPropagation();
+            var sat = ev.currentTarget.getAttribute('data-papeleta-tipo') === 'sat';
+            this.do_action({
+                type: 'ir.actions.act_window', name: sat ? 'Papeleta SAT' : 'Papeleta',
+                res_model: sat ? 'adt.papeleta.sat' : 'adt.papeleta',
+                res_id: parseInt(ev.currentTarget.getAttribute('data-papeleta'), 10),
+                views: [[false, 'form']], target: 'current',
+            });
+        },
+
         _fpopValores: function () {
             return {grupo: this.grupo, financiera: this.financiera, estado: this.estado, clientes: this.clientes};
         },
@@ -268,7 +441,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             var l = this._listas[ev.currentTarget.getAttribute('data-lista')];
             if (!l) { return; }
             this.do_action({
-                type: 'ir.actions.act_window', name: 'Papeletas SAT · ' + l.titulo, res_model: 'adt.papeleta.sat',
+                type: 'ir.actions.act_window', name: MODELOS[l.modelo].nombre + ' · ' + l.titulo, res_model: l.modelo,
                 views: [[false, 'list'], [false, 'form']], domain: [['id', 'in', l.ids]], target: 'current',
             });
         },
@@ -277,7 +450,8 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
         _onVehiculo: function (ev) {
             this.do_action({
                 type: 'ir.actions.client', tag: 'adt_flota_360', name: 'Flota 360',
-                params: {vehicle_id: parseInt(ev.currentTarget.getAttribute('data-vehiculo'), 10), tab: 'papeletas'},
+                params: {vehicle_id: parseInt(ev.currentTarget.getAttribute('data-vehiculo'), 10),
+                         tab: this.tab === 'capturas' ? null : 'papeletas'},
             });
         },
 

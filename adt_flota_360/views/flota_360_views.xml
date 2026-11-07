@@ -7,7 +7,7 @@
     </record>
 
     <!-- Menú "Flota 360" de la app Flota, numerado:
-         1. Consulta de vehículos  2. Papeletas SAT  3. Captura vehicular  4. Finanzas  5. Tracking de motos
+         1. Consulta de vehículos  2. SAT (papeletas y capturas)  3. Captura vehicular  4. Finanzas  5. Tracking de motos
          6. Carga de cronogramas.
          Las demás vistas quedan ocultas (active=False) por ahora; para volver a
          mostrarlas basta con quitar ese atributo. -->
@@ -59,11 +59,11 @@
               groups="adt_comercial.group_access_adt_comercial_gerencia"/>
 
     <record id="action_flota_360_indicadores" model="ir.actions.client">
-        <field name="name">Papeletas SAT</field>
+        <field name="name">SAT</field>
         <field name="tag">adt_flota_360_indicadores</field>
     </record>
     <menuitem id="menu_adt_flota_360_indicadores"
-              name="2. Papeletas SAT"
+              name="2. SAT"
               parent="menu_adt_flota_360_root"
               action="action_flota_360_indicadores"
               sequence="2"
