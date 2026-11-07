@@ -336,7 +336,9 @@
     bottom: 0;
     display: flex;
     flex-direction: column;
-    width: min(760px, 100%);
+    // Sin min(): libsass (Odoo 15) lo toma como función de Sass y falla con px y %.
+    width: 760px;
+    max-width: 100%;
     background: var(--cart-bg, #f7f8fa);
     box-shadow: -8px 0 24px rgba(16, 24, 40, .18);
     animation: adt_sat_drawer_in .18s ease-out;
