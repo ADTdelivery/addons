@@ -7,6 +7,7 @@ Implements the following endpoints:
   HU-002  GET  /v1/loans?plate=ABC-123      (bearer token)
   HU-003  GET  /v1/documents?plate=ABC-123  (bearer token)
           GET  /v1/vehicles/captura-status?plate=ABC-123  (bearer token)
+          GET  /v1/papeletas, /v1/papeletas/<id>, /v1/capturas-sat  (bearer token, datos SAT Lima)
   HU-004  GET  /v1/promotions               (bearer token, pagination)
   HU-005  GET  /v1/notifications            (bearer token, pagination)
   HU-006  POST /v1/auth/logout              (bearer token)
@@ -541,15 +542,8 @@ def _notify_papeleta_channel(papeleta, vehicle, token_rec, foto_urls):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Papeletas (app cliente) — ver papeletas-app-cliente.md
+# Papeletas SAT y órdenes de captura SAT (app cliente) — ver papeletas-app-cliente.md
 # ─────────────────────────────────────────────────────────────────────────────
-PAPELETA_DIAS_POR_VENCER = 5
-
-
-def _lima_today():
-    """Fecha de hoy en Lima (auth='none' no trae tz de usuario)."""
-    import pytz
-    return datetime.now(pytz.timezone('America/Lima')).date()
 
 
 def _papeleta_token_can_access(token_rec, vehicle):
@@ -596,91 +590,81 @@ def _papeleta_resolve_vehicle(token_rec, params):
     return vehicle, None
 
 
-def _papeleta_vencimiento(papeleta, today):
-    """Calcula los días al vencimiento en vivo (los campos almacenados
-    dias_para_captura / texto_alerta solo se recalculan cuando cambia la
-    papeleta, no cada día)."""
-    if papeleta.state != 'pendiente' or not papeleta.fecha_vencimiento_final:
-        return None, 'PAGADA' if papeleta.state == 'pagado' else 'SIN_FECHA', None
-    dias = (papeleta.fecha_vencimiento_final - today).days
-    if dias < 0:
-        n = abs(dias)
-        return dias, 'VENCIDA', 'Venció hace 1 día' if n == 1 else 'Venció hace %s días' % n
-    if dias == 0:
-        return dias, 'VENCE_HOY', 'Vence hoy'
-    texto = 'Vence en 1 día' if dias == 1 else 'Vence en %s días' % dias
-    return dias, ('POR_VENCER' if dias <= PAPELETA_DIAS_POR_VENCER else 'AL_DIA'), texto
+def _sat_placa(vehicle):
+    """Placa como la guarda el SAT (adt_papeletas/adt_captura_sat): sin guiones ni espacios."""
+    return re.sub(r'[^A-Z0-9]', '', (vehicle.license_plate or '').upper())
 
 
-def _papeleta_monto_pendiente(papeleta):
-    if papeleta.state == 'pagado':
+def _sat_vehicle_domain(vehicle):
+    """Registros SAT del vehículo: vinculados por vehicle_id o, si el monitor no
+    lo pudo vincular, por la placa normalizada."""
+    placa = _sat_placa(vehicle)
+    if not placa:
+        return [('vehicle_id', '=', vehicle.id)]
+    return ['|', ('vehicle_id', '=', vehicle.id), ('placa', '=', placa)]
+
+
+def _sat_record_vehicle(token_rec, rec):
+    """Vehículo de una papeleta/orden SAT que el token puede ver, o None.
+    Sin vehicle_id se busca por placa entre los vehículos del token (la placa
+    puede repetirse en flota)."""
+    if rec.vehicle_id:
+        return rec.vehicle_id if _papeleta_token_can_access(token_rec, rec.vehicle_id) else None
+    candidatos = token_rec.vehicle_id.sudo()
+    if not candidatos and token_rec.partner_id:
+        candidatos = request.env['fleet.vehicle'].sudo().search(
+            [('driver_id', '=', token_rec.partner_id.id)])
+    return next((v for v in candidatos if rec.placa and _sat_placa(v) == rec.placa), None)
+
+
+def _papeleta_sat_monto_pendiente(sat):
+    if sat.estado_pago == 'pagado':
         return Decimal('0.00')
-    if papeleta.sat_vigente and papeleta.sat_deuda:
-        return _money(papeleta.sat_deuda)
-    if papeleta.payment_method == 'fraccionado' and papeleta.cuotas_ids:
-        return _money(sum(papeleta.cuotas_ids.filtered(lambda c: c.state == 'pendiente').mapped('amount')))
-    return _money(papeleta.monto)
+    return _money(sat.deuda or sat.importe)
 
 
-def _serialize_papeleta(papeleta, base_url, today, detalle=False):
-    foto_urls = [_public_attachment_url(att, base_url) for att in papeleta.attachment_ids.sudo()]
-    dias, estado_venc, texto_venc = _papeleta_vencimiento(papeleta, today)
-    cuotas = papeleta.cuotas_ids.sorted(lambda c: (c.due_date or today, c.id))
-    cuotas_pend = cuotas.filtered(lambda c: c.state == 'pendiente')
-
+def _serialize_papeleta_sat(sat, vehicle, base_url, detalle=False):
+    """Serializa un adt.papeleta.sat (papeleta del SAT Lima) para la app."""
+    copias = sat.sudo()._imagenes()
+    copias_urls = [_public_attachment_url(att, base_url) for att in copias]
     data = {
-        # ── Campos originales (no cambiar: la app ya los consume) ──
-        'id': papeleta.id,
-        'numeroPapeleta': papeleta.name,
-        'fechaPapeleta': _format_date(papeleta.fecha_papeleta),
-        'monto': float(_money(papeleta.monto)),
-        'idVehiculo': papeleta.vehicle_id.id,
-        'fotosCount': len(foto_urls),
-        'fotoUrls': foto_urls,
-        # ── Campos nuevos ──
-        'placa': papeleta.vehicle_id.license_plate or None,
-        'estado': (papeleta.state or 'pendiente').upper(),
-        'origen': (papeleta.origen or 'manual').upper(),
-        'modalidadPago': 'FRACCIONADO' if papeleta.payment_method == 'fraccionado' else 'PAGO_COMPLETO',
-        'montoPendiente': float(_papeleta_monto_pendiente(papeleta)),
-        'moneda': papeleta.company_currency_id.name or 'PEN',
-        'fechaVencimiento': _format_date(papeleta.fecha_vencimiento_final),
-        'diasParaVencer': dias,
-        'estadoVencimiento': estado_venc,
-        'textoAlerta': texto_venc,
-        'fechaPago': _format_date(papeleta.fecha_pago),
-        'tieneProrroga': bool(papeleta.tiene_prorroga),
-        'cuotasTotal': len(cuotas),
-        'cuotasPendientes': len(cuotas_pend),
-        'falta': papeleta.sat_codigo_falta or None,
-        'figuraEnSat': bool(papeleta.sat_vigente),
+        # ── Campos que la app ya consume (mismos nombres) ──
+        'id': sat.id,
+        'numeroPapeleta': sat.name,
+        'fechaPapeleta': _format_date(sat.fecha_infraccion),
+        'monto': float(_money(sat.importe)),
+        'idVehiculo': vehicle.id if vehicle else None,
+        'fotosCount': len(copias_urls),
+        'fotoUrls': copias_urls,
+        'placa': (vehicle.license_plate if vehicle else None) or sat.placa or None,
+        'estado': (sat.estado_pago or 'pendiente').upper(),
+        'origen': 'SAT',
+        'montoPendiente': float(_papeleta_sat_monto_pendiente(sat)),
+        'moneda': sat.currency_id.name or 'PEN',
+        'falta': sat.codigo_falta or None,
+        'figuraEnSat': bool(sat.vigente),
+        # ── Datos del SAT ──
+        'estadoSat': sat.estado_sat or None,
+        'reglamento': sat.reglamento or None,
+        'importe': float(_money(sat.importe)),
+        'gastosCostas': float(_money(sat.gastos_costas)),
+        'descuento': float(_money(sat.descuento)),
+        'deuda': float(_money(sat.deuda)),
+        'diasDesdeInfraccion': sat.dias,
+        'alerta': bool(sat.alerta_dias),
+        'ultimaConsulta': _format_datetime(sat.ultima_vez_visto),
+        'dejoDeFigurarEn': _format_datetime(sat.resuelta_en),
     }
     if not detalle:
         return data
-
-    sat = papeleta.sat_id
-    sat_copias = []
-    if sat:
-        sat_copias = [_public_attachment_url(att, base_url) for att in sat.sudo()._imagenes()]
-
     data.update({
-        'detalle': papeleta.detalle or None,
-        'fechaCaptura': _format_date(papeleta.fecha_captura),
-        'prorroga': {
-            'dias': papeleta.dias_prorroga or 0,
-            'motivo': papeleta.motivo_prorroga or None,
-        } if papeleta.tiene_prorroga else None,
-        'cuotas': [{
-            'id': c.id,
-            'nombre': c.name,
-            'fechaVencimiento': _format_date(c.due_date),
-            'monto': float(_money(c.amount)),
-            'estado': (c.state or 'pendiente').upper(),
-            'vencida': bool(c.state == 'pendiente' and c.due_date and c.due_date < today),
-        } for c in cuotas],
-        'evidenciasFraccionamientoUrls': [
-            _public_attachment_url(att, base_url) for att in papeleta.attachment_cuotas_ids.sudo()
-        ],
+        'numeroCompromisoPago': sat.numero_compromiso_pago or None,
+        'licenciaConducir': sat.licencia_conducir or None,
+        'tipoDocumento': sat.tipo_documento or None,
+        'numeroDocumento': sat.numero_documento or None,
+        'primeraVezVista': _format_datetime(sat.primera_vez_visto),
+        'urlCopiaSat': sat.url_copia or None,
+        # Bloque "sat" que la app ya consume en el detalle.
         'sat': {
             'numero': sat.name,
             'estado': sat.estado_sat or None,
@@ -695,26 +679,76 @@ def _serialize_papeleta(papeleta, base_url, today, detalle=False):
             'numeroCompromisoPago': sat.numero_compromiso_pago or None,
             'ultimaConsulta': _format_datetime(sat.ultima_vez_visto),
             'dejoDeFigurarEn': _format_datetime(sat.resuelta_en),
-            'copiasUrls': sat_copias,
-        } if sat else None,
+            'copiasUrls': copias_urls,
+        },
     })
     return data
 
 
 def _papeletas_resumen(items):
     pendientes = [i for i in items if i['estado'] == 'PENDIENTE']
-    proximo = sorted(
-        [i for i in pendientes if i['fechaVencimiento']],
-        key=lambda i: i['fechaVencimiento'],
-    )
     return {
         'total': len(items),
         'pendientes': len(pendientes),
         'pagadas': len(items) - len(pendientes),
-        'vencidas': len([i for i in pendientes if i['estadoVencimiento'] == 'VENCIDA']),
-        'porVencer': len([i for i in pendientes if i['estadoVencimiento'] in ('VENCE_HOY', 'POR_VENCER')]),
+        'conAlerta': len([i for i in pendientes if i['alerta']]),
         'montoPendienteTotal': float(_money(sum(Decimal(str(i['montoPendiente'])) for i in pendientes))),
-        'proximoVencimiento': proximo[0]['fechaVencimiento'] if proximo else None,
+    }
+
+
+def _papeletas_sat_ultima_consulta(vehicle):
+    """Última consulta válida del monitor de papeletas SAT para el vehículo."""
+    Import = request.env['adt.papeleta.sat.import'].sudo()
+    consulta = Import.search(
+        _sat_vehicle_domain(vehicle) + [('state', '=', 'ok')],
+        order='consultado_en desc, id desc', limit=1,
+    )
+    if not consulta:
+        return None
+    return {
+        'fecha': _format_datetime(consulta.consultado_en),
+        'resultado': (consulta.estado_consulta or '').upper() or None,
+        'mensaje': consulta.mensaje or None,
+    }
+
+
+def _serialize_captura_sat(orden):
+    """Serializa un adt.captura.sat (orden de captura del SAT Lima)."""
+    return {
+        'id': orden.id,
+        'documento': orden.name,
+        'placa': orden.placa,
+        'anio': orden.anio or None,
+        'concepto': orden.concepto or None,
+        'placaOriginal': orden.placa_original or None,
+        'referencia': orden.referencia or None,
+        'monto': float(_money(orden.monto)),
+        'moneda': orden.currency_id.name or 'PEN',
+        'vigente': bool(orden.vigente),
+        'informeSatAl': _format_date(orden.fecha_actualizacion_sat),
+        'detectadaEn': _format_datetime(orden.primera_vez_visto),
+        'ultimaConsulta': _format_datetime(orden.ultima_vez_visto),
+        'levantadaEn': _format_datetime(orden.levantada_en),
+        'diasVigente': orden.dias,
+    }
+
+
+def _captura_sat_vehiculo(vehicle):
+    """Estado de órdenes de captura SAT del vehículo (módulo adt_captura_sat).
+    None si el módulo no está instalado."""
+    if 'adt.captura.sat' not in request.env:
+        return None
+    ordenes = request.env['adt.captura.sat'].sudo().search(
+        _sat_vehicle_domain(vehicle), order='vigente desc, primera_vez_visto desc, id desc')
+    vigentes = ordenes.filtered('vigente')
+    estado = vehicle.captura_sat_estado or 'sin_consultar'
+    return {
+        'estado': estado.upper(),
+        'tieneOrdenCaptura': estado == 'con_orden',
+        'ultimaConsulta': _format_datetime(vehicle.captura_sat_ultima_consulta),
+        'ordenesVigentes': len(vigentes),
+        'montoEnCaptura': float(_money(sum(vigentes.mapped('monto')))),
+        'ordenes': [_serialize_captura_sat(o) for o in ordenes],
     }
 
 
@@ -2913,15 +2947,13 @@ class MobileAPIController(http.Controller):
     )
     def list_papeletas(self, **kwargs):
         """
-        Lista las papeletas de un vehículo (ver papeletas-app-cliente.md).
+        Papeletas del SAT Lima del vehículo (adt.papeleta.sat) y sus órdenes de
+        captura SAT (adt.captura.sat). Ver papeletas-app-cliente.md.
 
         Query params (todos opcionales):
           - plate | idVehiculo | vehicle_id : vehículo a consultar. Si no se envía,
             se usa el vehicle_id del token.
           - estado : PENDIENTE | PAGADO | TODAS (default TODAS).
-
-        Los campos originales (id, numeroPapeleta, fechaPapeleta, monto, idVehiculo,
-        fotosCount, fotoUrls) se mantienen; el resto son adiciones.
         """
         try:
             auth = request.httprequest.headers.get('Authorization', '')
@@ -2941,32 +2973,22 @@ class MobileAPIController(http.Controller):
                     status=422,
                 )
 
-            domain = [('vehicle_id', '=', vehicle.id)]
-            if estado != 'TODAS':
-                domain.append(('state', '=', estado.lower()))
-
             base_url = _get_base_url()
-            today = _lima_today()
-            papeletas = request.env['adt.papeleta'].sudo().search(
-                domain, order='fecha_papeleta desc, id desc',
-            )
-            papeletas_data = [_serialize_papeleta(p, base_url, today) for p in papeletas]
-
-            # El resumen siempre considera todas las papeletas del vehículo,
-            # sin importar el filtro "estado".
-            todas = papeletas if estado == 'TODAS' else request.env['adt.papeleta'].sudo().search(
-                [('vehicle_id', '=', vehicle.id)])
-            resumen = _papeletas_resumen(
-                papeletas_data if estado == 'TODAS'
-                else [_serialize_papeleta(p, base_url, today) for p in todas]
-            )
+            # Todas las del vehículo: el resumen no depende del filtro "estado".
+            todas = request.env['adt.papeleta.sat'].sudo().search(
+                _sat_vehicle_domain(vehicle), order='vigente desc, fecha_infraccion desc, id desc')
+            todas_data = [_serialize_papeleta_sat(p, vehicle, base_url) for p in todas]
+            papeletas_data = todas_data if estado == 'TODAS' else [
+                p for p in todas_data if p['estado'] == estado]
 
             return _json_response(_success({
                 'idVehiculo': vehicle.id,
                 'placa': vehicle.license_plate or None,
                 'totalPapeletas': len(papeletas_data),
-                'resumen': resumen,
+                'resumen': _papeletas_resumen(todas_data),
+                'consultaSat': _papeletas_sat_ultima_consulta(vehicle),
                 'papeletas': papeletas_data,
+                'capturaSat': _captura_sat_vehiculo(vehicle),
             }))
 
         except Exception:
@@ -2982,35 +3004,60 @@ class MobileAPIController(http.Controller):
         cors='*',
     )
     def get_papeleta(self, papeleta_id, **kwargs):
-        """
-        Detalle de una papeleta: datos base, vencimiento, cuotas de
-        fraccionamiento, prórroga, datos del SAT Lima y evidencias.
-        """
+        """Detalle de una papeleta del SAT Lima (adt.papeleta.sat) con sus copias."""
         try:
             auth = request.httprequest.headers.get('Authorization', '')
             token_rec, token_err = _get_token_record(auth)
             if token_err:
                 return _json_response(token_err, status=token_err['statusCode'])
 
-            papeleta = request.env['adt.papeleta'].sudo().browse(papeleta_id).exists()
-            if not papeleta:
+            papeleta = request.env['adt.papeleta.sat'].sudo().browse(papeleta_id).exists()
+            vehicle = _sat_record_vehicle(token_rec, papeleta) if papeleta else None
+            if not vehicle:
+                # 404 también si es de otro vehículo, para no revelar que existe.
                 return _json_response(
                     _error(404, 'PAPELETA_NOT_FOUND', 'La papeleta indicada no existe.'), status=404,
                 )
 
-            if not _papeleta_token_can_access(token_rec, papeleta.vehicle_id):
-                # 404 en vez de 403 para no revelar papeletas de otros vehículos.
-                return _json_response(
-                    _error(404, 'PAPELETA_NOT_FOUND', 'La papeleta indicada no existe.'), status=404,
-                )
-
-            base_url = _get_base_url()
-            today = _lima_today()
-            data = _serialize_papeleta(papeleta, base_url, today, detalle=True)
+            data = _serialize_papeleta_sat(papeleta, vehicle, _get_base_url(), detalle=True)
             return _json_response(_success(data))
 
         except Exception:
             _logger.exception('Error in GET /v1/papeletas/<id>')
+            return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
+
+    @http.route(
+        '/v1/capturas-sat',
+        type='http',
+        auth='none',
+        methods=['GET'],
+        csrf=False,
+        cors='*',
+    )
+    def list_capturas_sat(self, **kwargs):
+        """Órdenes de captura del SAT Lima del vehículo (adt.captura.sat).
+        Mismos query params de vehículo que /v1/papeletas."""
+        try:
+            auth = request.httprequest.headers.get('Authorization', '')
+            token_rec, token_err = _get_token_record(auth)
+            if token_err:
+                return _json_response(token_err, status=token_err['statusCode'])
+
+            vehicle, vehicle_err = _papeleta_resolve_vehicle(token_rec, kwargs)
+            if vehicle_err:
+                return _json_response(vehicle_err, status=vehicle_err['statusCode'])
+
+            captura = _captura_sat_vehiculo(vehicle)
+            if captura is None:
+                return _json_response(
+                    _error(503, 'MODULE_NOT_INSTALLED', 'El módulo de capturas SAT no está instalado.'),
+                    status=503,
+                )
+            return _json_response(_success(dict(
+                captura, idVehiculo=vehicle.id, placa=vehicle.license_plate or None)))
+
+        except Exception:
+            _logger.exception('Error in GET /v1/capturas-sat')
             return _json_response(_error(500, 'INTERNAL_ERROR', 'Error inesperado en el servidor.'), status=500)
 
     @http.route(

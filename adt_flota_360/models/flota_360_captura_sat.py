@@ -74,8 +74,10 @@ class AdtFlota360CapturaSat(models.AbstractModel):
 
         self._cap_vehiculos(vigentes + levantadas)
         if filtrado:
-            vigentes = [o for o in vigentes if o['_vid'] in resumen_de]
-            levantadas = [o for o in levantadas if o['_vid'] in resumen_de]
+            # Entra la orden si cualquiera de sus dos vehículos (placa actual u original) está en el filtro.
+            en_filtro = lambda o: o['_vid'] in resumen_de or o['_vid_original'] in resumen_de
+            vigentes = [o for o in vigentes if en_filtro(o)]
+            levantadas = [o for o in levantadas if en_filtro(o)]
         self._cap_contexto(vigentes, resumen_de)
         self._cap_papeletas(vigentes)
         for o in vigentes:
@@ -90,7 +92,12 @@ class AdtFlota360CapturaSat(models.AbstractModel):
     # ------------------------------------------------------------------ cruce
 
     def _cap_vehiculos(self, ordenes):
-        """Vehículo de cada orden: el vinculado o, si no hay, el de la placa / placa original."""
+        """Los dos vehículos posibles de cada orden.
+
+        * _vid_actual: el vinculado a la orden o, si no hay, el de la placa actual;
+        * _vid_original: el de la placa original, cuando el SAT la publica distinta;
+        * _vid: el principal (actual o, si no está en la flota, el original).
+        """
         Sat = self.env['adt.papeleta.sat'] if 'adt.papeleta.sat' in self.env else None
         cache = {}
 
@@ -104,40 +111,65 @@ class AdtFlota360CapturaSat(models.AbstractModel):
 
         for o in ordenes:
             o['_cambio_placa'] = bool(o['placa_original']) and _clave(o['placa_original']) != _clave(o['placa'])
+            o['_vid_original'] = buscar(o['placa_original']) if o['_cambio_placa'] else False
             if o['vehicle_id']:
-                o['_vid'], o['_match'] = o['vehicle_id'][0], 'vinculado'
+                o['_vid_actual'], o['_match'] = o['vehicle_id'][0], 'vinculado'
             elif buscar(o['placa']):
-                o['_vid'], o['_match'] = buscar(o['placa']), 'placa'
-            elif o['_cambio_placa'] and buscar(o['placa_original']):
-                o['_vid'], o['_match'] = buscar(o['placa_original']), 'placa_original'
+                o['_vid_actual'], o['_match'] = buscar(o['placa']), 'placa'
             else:
-                o['_vid'], o['_match'] = False, 'sin_flota'
+                o['_vid_actual'] = False
+                o['_match'] = 'placa_original' if o['_vid_original'] else 'sin_flota'
+            if o['_vid_original'] == o['_vid_actual']:
+                o['_vid_original'] = False  # la placa original es del mismo vehículo
+            o['_vid'] = o['_vid_actual'] or o['_vid_original']
 
     def _cap_contexto(self, ordenes, resumen_de):
-        """Cliente, razón social, financiera y captura interna del vehículo de cada orden."""
-        faltan = {o['_vid'] for o in ordenes if o['_vid'] and o['_vid'] not in resumen_de}
+        """Resumen de los vehículos de cada orden: cliente, razón social, financiera, captura interna…"""
+        vids = {v for o in ordenes for v in (o['_vid_actual'], o['_vid_original']) if v}
+        faltan = vids - set(resumen_de)
+        resumen_de = dict(resumen_de)  # copia: los vehículos extra no cuentan en la cobertura del filtro
+        Vehicle = self.env['fleet.vehicle'].with_context(active_test=False)
         if faltan:
-            # Vehículos archivados o fuera del análisis: solo se muestra su nombre.
-            for v in self.env['fleet.vehicle'].with_context(active_test=False).browse(list(faltan)).read(
-                    ['display_name', 'license_plate']):
-                resumen_de[v['id']] = {'id': v['id'], 'placa': v['license_plate'] or '', 'modelo': v['display_name'],
-                                       'marca': '', 'cliente': {}, 'stock': True, 'modulos': [], 'financiera': '',
-                                       'razon_social': '', 'archivado': True}
-        for o in ordenes:
-            r = resumen_de.get(o['_vid']) or {}
+            # Vehículos archivados, fuera del análisis o fuera del filtro (la placa original de otro vehículo).
+            for r in self._resumenes(Vehicle.browse(list(faltan))):
+                resumen_de[r['id']] = r
+        extra = {}
+        campos = [c for c in ('active', 'captura_sat_estado', 'captura_sat_count') if c in Vehicle._fields]
+        if vids:
+            extra = {v['id']: v for v in Vehicle.browse(list(vids)).read(campos)}
+
+        def tarjeta(vid):
+            r = resumen_de.get(vid)
+            if not r:
+                return None
+            cliente = r.get('cliente') or {}
             interna = next((m for m in r.get('modulos', []) if m['key'] == 'capturas'), None)
-            o['_vehiculo'] = r and {
+            x = extra.get(vid, {})
+            return {
                 'id': r['id'],
                 'placa': r['placa'],
                 'nombre': ' '.join(filter(None, [r.get('marca'), r.get('modelo')])),
-                'cliente': (r.get('cliente') or {}).get('nombre') or '',
-                'documento': (r.get('cliente') or {}).get('documento') or '',
+                'anio': r.get('anio') or '',
+                'color': r.get('color') or '',
+                'chasis': r.get('chasis') or '',
+                'estado': r.get('estado') or '',
+                'cliente': cliente.get('nombre') or '',
+                'documento': cliente.get('documento') or '',
+                'telefono': cliente.get('telefono') or '',
                 'con_cliente': not r.get('stock'),
                 'razon_social': r.get('razon_social') or '',
                 'financiera': r.get('financiera') or '',
                 'captura_interna': interna['texto'] if interna else '',
-                'archivado': r.get('archivado', False),
+                'captura_sat': self._etiqueta(Vehicle, 'captura_sat_estado', x.get('captura_sat_estado')),
+                'ordenes_sat': x.get('captura_sat_count') or 0,
+                'archivado': not x.get('active', True),
+                'alertas': [a['texto'] for a in (r.get('alertas') or [])[:3]],
             }
+
+        for o in ordenes:
+            o['_vehiculo_actual'] = tarjeta(o['_vid_actual'])
+            o['_vehiculo_original'] = tarjeta(o['_vid_original'])
+            o['_vehiculo'] = o['_vehiculo_actual'] or o['_vehiculo_original'] or {}
 
     def _cap_papeletas(self, ordenes):
         """Papeleta SAT o interna del documento de cada orden (el documento es el número de la papeleta)."""
@@ -165,7 +197,8 @@ class AdtFlota360CapturaSat(models.AbstractModel):
             candidatas = por_clave.get(_clave_documento(o['name'])) or []
             # Prioridad: misma placa que la orden; luego, la del mismo vehículo; luego, cualquiera.
             exacta = [p for p in candidatas if _clave(p['placa']) in (_clave(o['placa']), _clave(o['placa_original']))]
-            mismo_vehiculo = [p for p in candidatas if o['_vid'] and self._id(p['vehicle_id']) == o['_vid']]
+            suyos = {v for v in (o['_vid_actual'], o['_vid_original']) if v}
+            mismo_vehiculo = [p for p in candidatas if self._id(p['vehicle_id']) in suyos]
             p = (exacta or mismo_vehiculo or candidatas or [None])[0]
             if p:
                 o['_papeleta'] = {
@@ -211,6 +244,11 @@ class AdtFlota360CapturaSat(models.AbstractModel):
             add('atencion', _('Encontrado por placa original %s') % o['placa_original'])
         elif o['_cambio_placa']:
             add('info', _('Placa original distinta: %s') % o['placa_original'])
+        if o['_vehiculo_actual'] and o['_vehiculo_original']:
+            orig = o['_vehiculo_original']
+            add('critico' if orig['con_cliente'] and not orig['captura_interna'] else 'atencion',
+                _('La placa original %s es de otro vehículo de la flota%s: dos vehículos afectados')
+                % (o['placa_original'], ' (con cliente: %s)' % orig['cliente'] if orig['con_cliente'] else ''))
         if v and v.get('archivado'):
             add('atencion', _('El vehículo está archivado'))
         if p and p['pagada']:
@@ -324,9 +362,10 @@ class AdtFlota360CapturaSat(models.AbstractModel):
         """Una fila por vehículo (o placa fuera de la flota), con sus órdenes y papeletas."""
         grupos = defaultdict(list)
         for o in vigentes:
-            grupos[('v', o['_vid']) if o['_vid'] else ('p', _clave(o['placa']))].append(o)
+            clave = ('v', o['_vid']) if o['_vid'] else ('p', _clave(o['placa']))
+            grupos[clave + (o['_vid_original'] or _clave(o['placa_original']) if o['_cambio_placa'] else '',)].append(o)
         filas = []
-        for (_tipo, _k), lista in grupos.items():
+        for lista in grupos.values():
             hallazgos, vistos = [], set()
             for o in lista:
                 for h in o['hallazgos']:
@@ -340,13 +379,20 @@ class AdtFlota360CapturaSat(models.AbstractModel):
                 'vehicle_id': primera['_vid'] or False,
                 'match': primera['_match'],
                 'vehiculo': primera['_vehiculo'] or None,
+                'placa_original': primera['placa_original'] if primera['_cambio_placa'] else '',
+                'vehiculo_actual': primera['_vehiculo_actual'],
+                'vehiculo_original': primera['_vehiculo_original'],
                 'nivel': hallazgos[0]['nivel'] if hallazgos else 'info',
                 'hallazgos': hallazgos,
                 'monto': sum(o['monto'] or 0.0 for o in lista),
                 'dias': max(o['dias'] for o in lista),
                 'ordenes': [{
                     'id': o['id'], 'documento': o['name'], 'concepto': o['concepto'] or '', 'anio': o['anio'] or '',
+                    'referencia': o['referencia'] or '', 'placa_original': o['placa_original'] or '',
                     'monto': o['monto'] or 0.0, 'dias': o['dias'],
+                    'detectada': fields.Datetime.to_string(o['primera_vez_visto']) if o['primera_vez_visto'] else False,
+                    'ultima_consulta': fields.Datetime.to_string(o['ultima_vez_visto']) if o['ultima_vez_visto'] else False,
+                    'hallazgos': o['hallazgos'],
                     'gestion': self._etiqueta(self.env['adt.captura.sat'], 'gestion', o['gestion']),
                     'responsable': self._m2o(o['responsable_id']),
                     'papeleta': o['_papeleta'],

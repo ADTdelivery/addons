@@ -77,6 +77,18 @@ class TestCapturaSatCruce(SavepointCase):
         self.assertIn(self.orden_pagada.id, recuadros['pagadas']['ids'])
         self.assertIn(self.orden_fuera.id, recuadros['sin_flota']['ids'])
 
+    def test_placa_original_de_otro_vehiculo(self):
+        # La placa original es de otra moto de la flota: la fila muestra los dos vehículos.
+        self.env['adt.captura.sat'].create({'name': '0099004', 'placa': 'CS1002', 'placa_original': 'CS-1001',
+                                            'concepto': 'Inf. RNT', 'monto': 50.0,
+                                            'primera_vez_visto': fields.Datetime.now()})
+        data = self.service.capturas_sat()
+        fila = next(f for f in data['filas'] if f['placa_original'] == 'CS-1001')
+        self.assertEqual(fila['vehiculo_actual']['id'], self.stock.id)
+        self.assertEqual(fila['vehiculo_original']['id'], self.con_cliente.id)
+        self.assertTrue(fila['vehiculo_original']['con_cliente'])
+        self.assertTrue(any('dos vehículos afectados' in h['texto'] for h in fila['hallazgos']))
+
     def test_filtro_stock_excluye_fuera_de_flota(self):
         data = self.service.capturas_sat(grupo='stock')
         placas = {f['placa'] for f in data['filas']}

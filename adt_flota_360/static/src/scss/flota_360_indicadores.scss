@@ -313,3 +313,106 @@
 }
 .adt_sat__chip.is-atencion { background: var(--cart-warn-bg); color: var(--cart-warn); }
 .adt_sat__cruce .adt_sat__chip { margin: 3px 0 0; }
+
+// Enlace a la placa original en la tabla del cruce.
+.adt_sat__origen { margin-top: 3px; .adt_sat__link { font-size: 12px; } }
+.adt_sat__cruce tbody tr[data-fila] { cursor: pointer; }
+.adt_sat__label {
+    display: block;
+    color: var(--cart-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+// Drawer: resumen de la orden de captura y de los vehículos afectados.
+.adt_sat__overlay { position: fixed; inset: 0; z-index: 1050; }
+.adt_sat__backdrop { position: absolute; inset: 0; background: rgba(16, 24, 40, .35); }
+.adt_sat__drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(760px, 100%);
+    background: var(--cart-bg, #f7f8fa);
+    box-shadow: -8px 0 24px rgba(16, 24, 40, .18);
+    animation: adt_sat_drawer_in .18s ease-out;
+}
+@keyframes adt_sat_drawer_in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.adt_sat__drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 24px;
+    border-top: 4px solid var(--cart-info);
+    border-bottom: 1px solid var(--cart-border);
+    background: var(--cart-surface);
+    h2 { margin: 4px 0 2px; color: var(--cart-ink); font-size: 22px; font-weight: 700; small { color: var(--cart-muted); font-size: 14px; font-weight: 600; } }
+    p { margin: 0; color: var(--cart-ink-2); font-size: 13px; }
+    &.is-critico { border-top-color: var(--cart-neg); }
+    &.is-atencion { border-top-color: var(--cart-warn); }
+}
+.adt_sat__close {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--cart-border);
+    border-radius: 6px;
+    background: var(--cart-surface);
+    color: var(--cart-ink-2);
+    cursor: pointer;
+    &:hover { color: var(--cart-ink); border-color: var(--cart-border-strong); }
+    &:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--cart-focus); }
+}
+.adt_sat__drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px 32px;
+    > section + section { margin-top: 20px; }
+    h3 { margin: 0 0 8px; color: var(--cart-ink); font-size: 14px; font-weight: 700; }
+}
+.adt_sat__vehs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.adt_sat__veh {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--cart-border);
+    border-left: 4px solid var(--cart-warn);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+    &.is-critico { border-left-color: var(--cart-neg); }
+    &.is-ok { border-left-color: var(--cart-pos); }
+    &.is-vacio { border-left-color: var(--cart-border-strong); }
+    header { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+    footer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+    .adt_sat__motivo.is-ok { background: var(--cart-pos-bg, #ecf8f1); color: var(--cart-pos); .adt_sat__ico { color: inherit; } }
+}
+.adt_sat__veh-placa { color: var(--cart-ink); font-size: 18px; font-weight: 700; letter-spacing: .02em; }
+.adt_sat__datos {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    margin: 0;
+    font-size: 12.5px;
+    > div { display: contents; }
+    dt { color: var(--cart-muted); font-weight: 500; }
+    dd { margin: 0; color: var(--cart-ink); overflow-wrap: anywhere; }
+}
+.adt_sat__ordenes { margin: 0; padding: 0; list-style: none; }
+.adt_sat__orden-det {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+    border: 1px solid var(--cart-border);
+    border-radius: var(--cart-radius);
+    background: var(--cart-surface);
+    & + & { margin-top: 8px; }
+}
+.adt_sat__orden-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.adt_sat__orden-pap { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--cart-border); }

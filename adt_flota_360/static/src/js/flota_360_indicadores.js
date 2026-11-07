@@ -59,6 +59,11 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             'click [data-orden]': '_onOrden',
             'click [data-papeleta]': '_onPapeleta',
             'click [data-action="programas-captura"]': '_onProgramasCaptura',
+            'click [data-fila]': '_onFila',
+            'keydown tr[data-fila]': '_onFilaTecla',
+            'click [data-ir-vehiculo]': '_onIrVehiculo',
+            'click [data-ficha-vehiculo]': '_onFichaVehiculo',
+            'click [data-action="cerrar-drawer"]': '_cerrarDrawer',
             'click [data-lista]': '_onLista',
             'click [data-vehiculo]': '_onVehiculo',
             'keydown tr[data-vehiculo]': '_onVehiculoTecla',
@@ -69,6 +74,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             var params = (action && action.params) || {};
             this.tab = params.tab === 'capturas' ? 'capturas' : 'papeletas';
             this.cap = null;  // datos de la pestaña Captura SAT (se piden al abrirla)
+            this._onTeclaDrawer = this._onTeclaDrawer.bind(this);
             this.financiera = null;
             this.estado = null;
             this.clientes = null;
@@ -134,6 +140,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
             var d = this.data;
             var self = this;
             this._listas = {};
+            this._cerrarDrawer();
             this.$('[data-tab]').each(function () {
                 var activa = this.getAttribute('data-tab') === self.tab;
                 this.classList.toggle('is-active', activa);
@@ -324,15 +331,21 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
                     '<th>Hallazgos</th><th>Vehículo en flota</th><th>Cliente / empresa</th>' +
                     '<th>Orden SAT</th><th>Papeleta relacionada</th><th class="is-num">Días</th><th class="is-num">Monto</th><th></th>' +
                     '</tr></thead><tbody>' +
-                    filas.map(function (f) {
+                    filas.map(function (f, i) {
                         var v = f.vehiculo;
-                        var abre = f.vehicle_id ? ' data-vehiculo="' + f.vehicle_id + '" tabindex="0"' : '';
-                        var vehiculo = v
-                            ? '<span class="adt_sat__strong">' + esc(v.placa || f.placa) + '</span>' +
-                              '<span class="adt_sat__sub">' + esc(v.nombre || '') + '</span>' +
-                              (MATCH[f.match] ? '<span class="adt_sat__chip is-atencion">' + esc(MATCH[f.match]) + '</span>' : '')
-                            : '<span class="adt_sat__strong">' + esc(f.placa) + '</span>' +
-                              '<span class="adt_sat__chip is-atencion">' + esc(MATCH.sin_flota) + '</span>';
+                        var abre = ' data-fila="' + i + '" tabindex="0" title="Ver el detalle"';
+                        var actual = f.vehiculo_actual;
+                        var original = f.vehiculo_original;
+                        var vehiculo = (actual
+                                ? self._htmlIrVehiculo(actual, actual.placa || f.placa) +
+                                  '<span class="adt_sat__sub">' + esc(actual.nombre || '') + '</span>'
+                                : '<span class="adt_sat__strong">' + esc(f.placa) + '</span>') +
+                            (f.placa_original
+                                ? '<span class="adt_sat__sub adt_sat__origen">Placa original: ' +
+                                  (original ? self._htmlIrVehiculo(original, f.placa_original)
+                                            : esc(f.placa_original) + ' <span class="adt_sat__muted">(no está en la flota)</span>') + '</span>'
+                                : '') +
+                            (MATCH[f.match] ? '<span class="adt_sat__chip is-atencion">' + esc(MATCH[f.match]) + '</span>' : '');
                         var cliente = v
                             ? (v.con_cliente
                                 ? '<span class="adt_sat__strong">' + esc(v.cliente || 'Con cliente') + '</span>' +
@@ -357,7 +370,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
                             '<td>' + papeletas + '</td>' +
                             '<td class="is-num adt_sat__dias is-' + f.nivel + '">' + entero(f.dias) + '</td>' +
                             '<td class="is-num adt_sat__strong">' + soles(f.monto) + '</td>' +
-                            '<td class="is-num">' + (f.vehicle_id ? '<i class="fa fa-angle-right" aria-hidden="true"></i>' : '') + '</td></tr>';
+                            '<td class="is-num"><i class="fa fa-angle-right" aria-hidden="true"></i></td></tr>';
                     }).join('') + '</tbody></table></div>'
                 : '<p class="adt_sat__vacio"><i class="fa fa-check-circle" aria-hidden="true"></i> Ningún vehículo con orden de captura vigente.</p>';
             return this._panel('Cruce: órdenes de captura · flota · papeletas', 'fa-random', cuerpo,
@@ -365,6 +378,132 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
                 '<button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-action="programas-captura" ' +
                 'title="Qué placas se consultan, a qué hora y qué días">' +
                 '<i class="fa fa-clock-o" aria-hidden="true"></i>Programar consultas</button>');
+        },
+
+        // Enlace directo a un vehículo (abre su ficha en Flota 360 sin pasar por el drawer).
+        _htmlIrVehiculo: function (v, placa) {
+            return '<button type="button" class="adt_sat__link adt_sat__strong" data-ir-vehiculo="' + v.id + '" ' +
+                'title="Abrir el vehículo en Flota 360"><i class="fa fa-motorcycle" aria-hidden="true"></i>' + esc(placa) + '</button>';
+        },
+
+        // ------------------------------------------------------------------
+        // Drawer: resumen de la captura y de los dos vehículos afectados
+        // ------------------------------------------------------------------
+
+        _htmlTarjetaVehiculo: function (titulo, placa, v) {
+            if (!v) {
+                return '<section class="adt_sat__veh is-vacio"><header><span class="adt_sat__label">' + esc(titulo) + '</span>' +
+                    '<span class="adt_sat__strong">' + esc(placa || '—') + '</span></header>' +
+                    '<p class="adt_sat__muted"><i class="fa fa-question-circle" aria-hidden="true"></i> Esta placa no está en la flota.</p></section>';
+            }
+            var dato = function (label, valor) {
+                return valor ? '<div><dt>' + esc(label) + '</dt><dd>' + esc(valor) + '</dd></div>' : '';
+            };
+            var nivel = v.captura_interna ? 'ok' : (v.con_cliente ? 'critico' : 'atencion');
+            var situacion = v.captura_interna ? 'Retenida por ADT (' + v.captura_interna + ')'
+                : (v.con_cliente ? 'Con cliente: en circulación' : 'En stock');
+            return '<section class="adt_sat__veh is-' + nivel + '"><header>' +
+                    '<span class="adt_sat__label">' + esc(titulo) + '</span>' +
+                    '<span class="adt_sat__veh-placa">' + esc(v.placa || placa) + '</span>' +
+                    '<span class="adt_sat__sub">' + esc([v.nombre, v.anio, v.color].filter(Boolean).join(' · ')) + '</span>' +
+                    '<span class="adt_sat__motivo is-' + nivel + '">' + nivelPunto(nivel) + esc(situacion) + '</span>' +
+                    (v.archivado ? ' <span class="adt_sat__chip is-atencion">Archivado</span>' : '') +
+                '</header><dl class="adt_sat__datos">' +
+                    dato('Cliente', v.cliente) + dato('Documento', v.documento) + dato('Teléfono', v.telefono) +
+                    dato('Razón social', v.razon_social) + dato('Financiera', v.financiera) +
+                    dato('Estado', v.estado) + dato('Chasis', v.chasis) +
+                    dato('Captura SAT', v.captura_sat + (v.ordenes_sat ? ' · ' + plural(v.ordenes_sat, 'orden vigente', 'órdenes vigentes') : '')) +
+                '</dl>' +
+                (v.alertas.length ? '<ul class="adt_sat__hallazgos">' + v.alertas.map(function (a) {
+                    return '<li>' + nivelPunto('info') + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
+                '<footer><button type="button" class="adt_cart__btn" data-ir-vehiculo="' + v.id + '">' +
+                    '<i class="fa fa-external-link" aria-hidden="true"></i>Ver en Flota 360</button>' +
+                '<button type="button" class="adt_cart__btn adt_cart__btn--ghost" data-ficha-vehiculo="' + v.id + '">' +
+                    '<i class="fa fa-pencil-square-o" aria-hidden="true"></i>Ficha de Flota</button></footer></section>';
+        },
+
+        _htmlDrawer: function (f) {
+            var self = this;
+            var hora = function (h) { return h ? moment.utc(h).local().format('DD/MM/YYYY HH:mm') : '—'; };
+            var vehiculos = this._htmlTarjetaVehiculo('Placa actual', f.placa, f.vehiculo_actual) +
+                (f.placa_original ? this._htmlTarjetaVehiculo('Placa original', f.placa_original, f.vehiculo_original) : '');
+            var ordenes = f.ordenes.map(function (o) {
+                return '<li class="adt_sat__orden-det"><div class="adt_sat__orden-head">' +
+                        '<button type="button" class="adt_sat__link adt_sat__mono" data-orden="' + o.id + '">' + esc(o.documento) + '</button>' +
+                        '<span class="adt_sat__strong">' + soles(o.monto) + '</span></div>' +
+                    '<span class="adt_sat__sub">' + esc([o.concepto, o.anio, o.referencia && 'Ref. ' + o.referencia,
+                        o.placa_original && 'Placa original ' + o.placa_original].filter(Boolean).join(' · ')) + '</span>' +
+                    '<span class="adt_sat__sub">Detectada ' + hora(o.detectada) + ' · ' + plural(o.dias, 'día', 'días') +
+                        ' · última consulta ' + hora(o.ultima_consulta) + '</span>' +
+                    '<span class="adt_sat__sub">Gestión: ' + esc(o.gestion) + (o.responsable ? ' · ' + esc(o.responsable) : '') + '</span>' +
+                    '<div class="adt_sat__orden-pap"><span class="adt_sat__label">Papeleta</span>' + self._htmlPapeleta(o.papeleta) + '</div>' +
+                '</li>';
+            }).join('');
+            return '<div class="adt_sat__backdrop" data-action="cerrar-drawer"></div>' +
+                '<aside class="adt_sat__drawer" role="dialog" aria-modal="true" aria-label="Detalle de la captura SAT">' +
+                    '<header class="adt_sat__drawer-head is-' + f.nivel + '"><div>' +
+                        '<span class="adt_sat__label"><i class="fa fa-lock" aria-hidden="true"></i> Orden de captura SAT</span>' +
+                        '<h2>' + esc(f.placa) + (f.placa_original ? ' <small>· original ' + esc(f.placa_original) + '</small>' : '') + '</h2>' +
+                        '<p>' + plural(f.ordenes.length, 'orden', 'órdenes') + ' · ' + soles(f.monto) + ' · ' + plural(f.dias, 'día', 'días') + '</p>' +
+                    '</div><button type="button" class="adt_sat__close" data-action="cerrar-drawer" aria-label="Cerrar" title="Cerrar (Esc)">' +
+                        '<i class="fa fa-times" aria-hidden="true"></i></button></header>' +
+                    '<div class="adt_sat__drawer-body">' +
+                        '<section><h3>Hallazgos</h3>' + this._htmlHallazgos(f.hallazgos) + '</section>' +
+                        '<section><h3>' + (f.placa_original ? 'Vehículos afectados' : 'Vehículo afectado') + '</h3>' +
+                            '<div class="adt_sat__vehs">' + vehiculos + '</div></section>' +
+                        '<section><h3>Órdenes y papeletas</h3><ul class="adt_sat__ordenes">' + ordenes + '</ul></section>' +
+                    '</div></aside>';
+        },
+
+        _onFila: function (ev) {
+            var f = this.cap && this.cap.filas[parseInt(ev.currentTarget.getAttribute('data-fila'), 10)];
+            if (!f) { return; }
+            this._cerrarDrawer();
+            this.$drawer = $('<div class="adt_sat__overlay"></div>').html(this._htmlDrawer(f)).appendTo(this.$el);
+            document.addEventListener('keydown', this._onTeclaDrawer);
+            this.$drawer.find('.adt_sat__close').focus();
+        },
+
+        _onFilaTecla: function (ev) {
+            if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) {
+                ev.preventDefault();
+                this._onFila(ev);
+            }
+        },
+
+        _cerrarDrawer: function () {
+            if (this.$drawer) {
+                this.$drawer.remove();
+                this.$drawer = null;
+                document.removeEventListener('keydown', this._onTeclaDrawer);
+            }
+        },
+
+        _onTeclaDrawer: function (ev) {
+            if (ev.key === 'Escape') {
+                this._cerrarDrawer();
+            }
+        },
+
+        destroy: function () {
+            document.removeEventListener('keydown', this._onTeclaDrawer);
+            return this._super.apply(this, arguments);
+        },
+
+        // Abre el vehículo en Flota 360 (desde la tabla o el drawer).
+        _onIrVehiculo: function (ev) {
+            ev.stopPropagation();
+            var id = parseInt(ev.currentTarget.getAttribute('data-ir-vehiculo'), 10);
+            this._cerrarDrawer();
+            this.do_action({type: 'ir.actions.client', tag: 'adt_flota_360', name: 'Flota 360', params: {vehicle_id: id}});
+        },
+
+        _onFichaVehiculo: function (ev) {
+            ev.stopPropagation();
+            var id = parseInt(ev.currentTarget.getAttribute('data-ficha-vehiculo'), 10);
+            this._cerrarDrawer();
+            this.do_action({type: 'ir.actions.act_window', res_model: 'fleet.vehicle', res_id: id,
+                            views: [[false, 'form']], target: 'current'});
         },
 
         _onTab: function (ev) {
@@ -386,6 +525,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
 
         _onOrden: function (ev) {
             ev.stopPropagation();
+            this._cerrarDrawer();
             this.do_action({
                 type: 'ir.actions.act_window', name: 'Orden de captura SAT', res_model: 'adt.captura.sat',
                 res_id: parseInt(ev.currentTarget.getAttribute('data-orden'), 10),
@@ -395,6 +535,7 @@ odoo.define('adt_flota_360.Indicadores', function (require) {
 
         _onPapeleta: function (ev) {
             ev.stopPropagation();
+            this._cerrarDrawer();
             var sat = ev.currentTarget.getAttribute('data-papeleta-tipo') === 'sat';
             this.do_action({
                 type: 'ir.actions.act_window', name: sat ? 'Papeleta SAT' : 'Papeleta',
