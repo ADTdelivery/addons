@@ -10,6 +10,7 @@
     'data': [
         'views/fleet_state.xml',
         'views/adt_fleet_views.xml',
+        'report/report_adt_word_layout.xml',
         'report/report_acta_vehicular.xml',
         'report/report_contrato_tvs.xml',
         'views/adt_fleet_documents.xml',
