@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'ADT Captura',
-    'version': '15.0.1.3.0',
+    'version': '15.0.1.4.0',
     'category': 'Custom',
     'summary': 'Gestión de Capturas de Vehículos en Mora',
     'description': """
         Módulo para gestionar el proceso completo de captura de vehículos:
         - Identificación de posibles capturas: cuotas vencidas del cronograma (filtro
           configurable de días de mora y cuotas en Ajustes) y papeletas del SAT Lima
-          pendientes de pago (adt_papeletas)
+          pendientes de pago (adt_papeletas) y órdenes de captura vigentes del SAT Lima
+          (adt_captura_sat)
         - Registro de capturas con evidencia
         - Gestión de pagos de intervención
         - Control de liberación y retención
         - Historial y trazabilidad completa
     """,
     'author': 'ADT',
-    'depends': ['base', 'base_setup', 'web', 'fleet', 'adt_comercial', 'adt_papeletas'],
+    'depends': ['base', 'base_setup', 'web', 'fleet', 'adt_comercial', 'adt_papeletas', 'adt_captura_sat'],
     'data': [
         'security/security_groups.xml',
         'security/ir.model.access.csv',

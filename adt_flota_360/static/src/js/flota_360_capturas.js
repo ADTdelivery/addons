@@ -26,7 +26,7 @@ odoo.define('adt_flota_360.Capturas', function (require) {
         por_capturar: 'Revisar y capturar', por_cobrar: 'Cobrar intervención', por_decidir: 'Liberar o retener',
         disolucion: 'Recolocar', cerradas: 'Ver',
     };
-    var ORIGEN_TEXTO = {mora: 'Cuotas vencidas', papeleta: 'Papeletas SAT', ambos: 'Cuotas y papeletas SAT'};
+    var ORIGEN_TEXTO = {mora: 'Cuotas vencidas', papeleta: 'Papeletas SAT', ambos: 'Cuotas y papeletas SAT', captura_sat: 'Orden de captura SAT'};
     // Prioridad de captura de la cuenta: valor, texto, color (nivel) y qué significa.
     var PRIORIDADES = [
         ['', 'Sin prioridad', 'neutral', 'Aún no se clasificó.'],
@@ -931,7 +931,7 @@ odoo.define('adt_flota_360.Capturas', function (require) {
                             '<span class="adt_cap__sub">' + esc(_.compact([it.documento, it.telefono]).join(' · ') || '—') + '</span></td>' +
                         '<td><span class="adt_cap__strong">' + esc(it.placa || 'Sin placa') + '</span>' +
                             '<span class="adt_cap__sub">' + esc(it.cuenta) + (it.asesor ? ' · ' + esc(it.asesor) : '') + '</span></td>' +
-                        '<td>' + chip(ORIGEN_TEXTO[it.origen] || it.origen, it.origen === 'ambos' ? 'critico' : (it.origen === 'papeleta' ? 'info' : 'atencion')) + '</td>' +
+                        '<td>' + chip(ORIGEN_TEXTO[it.origen] || it.origen, (it.origen === 'ambos' || it.origen === 'captura_sat') ? 'critico' : (it.origen === 'papeleta' ? 'info' : 'atencion')) + '</td>' +
                         '<td class="is-num">' + (it.cuotas ? '<span class="adt_cap__strong">' + soles(it.monto_vencido) + '</span>' +
                             '<span class="adt_cap__sub">' + plural(it.cuotas, 'cuota', 'cuotas') + ' · ' + plural(it.dias_mora, 'día', 'días') + '</span>' : '—') + '</td>' +
                         '<td class="is-num">' + (it.papeletas_sat ? '<span class="adt_cap__strong">' + soles(it.deuda_sat) + '</span>' +

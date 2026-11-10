@@ -10,7 +10,8 @@ _logger = logging.getLogger(__name__)
 
 # Filtro de la lista de posibles capturas (Ajustes > Capturas). Las cuotas vencidas del
 # cronograma solo ponen la cuenta en captura si superan ambos límites; las papeletas SAT
-# pendientes entran siempre. Parámetro ausente o inválido = 0 (sin límite).
+# pendientes y las órdenes de captura vigentes del SAT (adt_captura_sat) entran siempre.
+# Parámetro ausente o inválido = 0 (sin límite).
 PARAM_DIAS_MORA = 'adt_captura.cronograma_dias_mora_mayor_a'
 PARAM_CUOTAS_VENCIDAS = 'adt_captura.cronograma_cuotas_vencidas_mayor_a'
 
@@ -47,6 +48,12 @@ class ADTCapturaMora(models.Model):
     fecha_papeleta_sat = fields.Date(string='Papeleta SAT más antigua', readonly=True)
     papeleta_sat_id = fields.Many2one('adt.papeleta.sat', string='Papeleta SAT', readonly=True)
 
+    # Órdenes de captura vigentes del SAT Lima sobre el vehículo (adt.captura.sat)
+    orden_captura_sat = fields.Boolean(string='Orden de captura SAT', readonly=True)
+    ordenes_captura_sat = fields.Integer(string='Órdenes de captura SAT', readonly=True)
+    monto_captura_sat = fields.Float(string='Monto en captura SAT', readonly=True)
+    fecha_captura_sat = fields.Datetime(string='Orden SAT detectada', readonly=True)
+
     # Información GPS
     gps_chip = fields.Char(string='GPS Chip', readonly=True)
     gps_activo = fields.Boolean(string='GPS Activo', readonly=True)
@@ -73,7 +80,8 @@ class ADTCapturaMora(models.Model):
         ('urgente', 'Urgente')
     ], string='Prioridad de Captura', readonly=False, related='cuenta_id.captura_prioridad', store=False)
 
-    # Origen: cuotas vencidas del cronograma, papeletas SAT pendientes o ambos
+    # Origen: cuotas vencidas del cronograma, papeletas SAT pendientes o ambos; 'captura_sat'
+    # cuando la cuenta solo está en la lista por una orden de captura del SAT.
     source_type = fields.Selection(SOURCE_TYPES, string='Origen', readonly=True)
 
     @api.model
@@ -89,10 +97,11 @@ class ADTCapturaMora(models.Model):
 
     def init(self):
         """Posibles capturas: cuentas con cuotas vencidas del cronograma que superan el filtro
-        configurado (días de mora y cantidad de cuotas, ver _filtro_captura) o con papeletas
-        del SAT Lima pendientes de pago. Una papeleta SAT solo cuenta para la cuenta vigente
-        (aprobada o en curso) del vehículo y si la infracción es posterior al desembolso,
-        para no cargarle al cliente las de un titular anterior. El filtro se lee de
+        configurado (días de mora y cantidad de cuotas, ver _filtro_captura), con papeletas
+        del SAT Lima pendientes de pago o con una orden de captura vigente del SAT sobre el
+        vehículo (no marcada como resuelta en adt.captura.sat). Una papeleta u orden SAT solo
+        cuenta para la cuenta vigente (aprobada o en curso) del vehículo; la papeleta, además,
+        si la infracción es posterior al desembolso, para no cargarle al cliente las de un titular anterior. El filtro se lee de
         ir_config_parameter en cada consulta: cambiarlo no requiere actualizar el módulo."""
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute('''
@@ -133,6 +142,11 @@ class ADTCapturaMora(models.Model):
                     sat.fecha AS fecha_papeleta_sat,
                     sat.primera AS papeleta_sat_id,
 
+                    COALESCE(cap.n, 0) > 0 AS orden_captura_sat,
+                    COALESCE(cap.n, 0) AS ordenes_captura_sat,
+                    COALESCE(cap.monto, 0) AS monto_captura_sat,
+                    cap.desde AS fecha_captura_sat,
+
                     cuenta.gps_chip,
                     cuenta.gps_activo,
                     partner.phone,
@@ -164,7 +178,8 @@ class ADTCapturaMora(models.Model):
                     CASE
                         WHEN f.cronograma_ok AND sat.n > 0 THEN 'ambos'
                         WHEN f.cronograma_ok THEN 'mora'
-                        ELSE 'papeleta'
+                        WHEN sat.n > 0 THEN 'papeleta'
+                        ELSE 'captura_sat'
                     END AS source_type
 
                 FROM adt_comercial_cuentas cuenta
@@ -188,9 +203,20 @@ class ADTCapturaMora(models.Model):
                       AND (cuenta.fecha_desembolso IS NULL OR s.fecha_infraccion IS NULL
                            OR s.fecha_infraccion >= cuenta.fecha_desembolso)
                 ) sat ON true
+                LEFT JOIN LATERAL (
+                    SELECT
+                        COUNT(*) AS n,
+                        SUM(o.monto) AS monto,
+                        MIN(o.primera_vez_visto) AS desde
+                    FROM adt_captura_sat o
+                    WHERE o.vehicle_id = cuenta.vehiculo_id
+                      AND o.vigente
+                      AND o.gestion != 'resuelta'
+                      AND cuenta.state IN ('aprobado', 'en_curso')
+                ) cap ON true
                 LEFT JOIN res_partner partner ON partner.id = cuenta.partner_id
                 WHERE cuenta.state != 'cancelado'
-                  AND (f.cronograma_ok OR sat.n > 0)
+                  AND (f.cronograma_ok OR sat.n > 0 OR cap.n > 0)
             )
         '''.format(table=self._table, param_dias=PARAM_DIAS_MORA, param_cuotas=PARAM_CUOTAS_VENCIDAS))
 

@@ -13,6 +13,7 @@ MOTIVOS = {
     'mora': 'Cuotas vencidas',
     'papeleta': 'Papeleta SAT pendiente',
     'ambos': 'Cuotas y papeleta SAT',
+    'captura_sat': 'Orden de captura SAT',
     'otro': 'Sin motivo registrado',
 }
 GRUPOS_ACCESO = (

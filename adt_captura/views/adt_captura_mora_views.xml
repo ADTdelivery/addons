@@ -8,7 +8,7 @@
             <tree string="Clientes en Mora"
                   create="false"
                   delete="false"
-                  decoration-danger="dias_mora &gt;= 30"
+                  decoration-danger="dias_mora &gt;= 30 or orden_captura_sat"
                   decoration-warning="dias_mora &gt;= 14 and dias_mora &lt; 30">
                 <field name="partner_id"/>
                 <field name="reference_no"/>
@@ -16,6 +16,10 @@
                 <field name="source_type"/>
                 <field name="papeletas_sat" string="Papeletas SAT"/>
                 <field name="deuda_sat" optional="show"/>
+                <field name="orden_captura_sat" widget="boolean" string="Orden SAT"/>
+                <field name="ordenes_captura_sat" string="Órdenes SAT" optional="hide"/>
+                <field name="monto_captura_sat" optional="show"
+                       attrs="{'invisible': [('orden_captura_sat', '=', False)]}"/>
                 <field name="dias_mora"/>
                 <field name="numero_cuotas_vencidas"/>
                 <field name="monto_vencido"/>
@@ -129,6 +133,14 @@
                         <field name="papeleta_sat_id" readonly="1"/>
                     </group>
 
+                    <group string="Orden de captura SAT"
+                           attrs="{'invisible': [('orden_captura_sat', '=', False)]}">
+                        <field name="orden_captura_sat" readonly="1"/>
+                        <field name="ordenes_captura_sat" readonly="1"/>
+                        <field name="monto_captura_sat" readonly="1"/>
+                        <field name="fecha_captura_sat" readonly="1"/>
+                    </group>
+
                 </sheet>
             </form>
         </field>
@@ -177,6 +189,10 @@
                         domain="[('papeletas_sat', '&gt;', 0)]"/>
                 <filter string="Origen: Ambos" name="filter_origen_ambos"
                         domain="[('source_type', '=', 'ambos')]"/>
+                <filter string="Origen: Orden de captura SAT" name="filter_origen_captura_sat"
+                        domain="[('source_type', '=', 'captura_sat')]"/>
+                <filter string="Con orden de captura SAT" name="filter_con_orden_captura_sat"
+                        domain="[('orden_captura_sat', '=', True)]"/>
                 <separator/>
                 <group expand="0" string="Agrupar por">
                     <filter string="Tipo Cartera" name="group_tipo_cartera"
@@ -224,6 +240,9 @@
                 <field name="captura_existente"/>
                 <field name="papeletas_sat"/>
                 <field name="source_type"/>
+                <field name="orden_captura_sat"/>
+                <field name="ordenes_captura_sat"/>
+                <field name="monto_captura_sat"/>
                 <templates>
                     <t t-name="kanban-box">
                         <div class="oe_kanban_global_click">
@@ -237,7 +256,9 @@
                                     </span>
                                 </div>
                                 <div>
-                                    <span t-if="record.source_type.raw_value == 'papeleta'" class="badge badge-primary">Papeleta SAT</span>
+                                    <span t-if="record.orden_captura_sat.raw_value" class="badge badge-danger mr-1">Orden SAT</span>
+                                    <span t-if="record.source_type.raw_value == 'captura_sat'"/>
+                                    <span t-elif="record.source_type.raw_value == 'papeleta'" class="badge badge-primary">Papeleta SAT</span>
                                     <span t-elif="record.source_type.raw_value == 'mora'" class="badge badge-warning">Mora</span>
                                     <span t-elif="record.source_type.raw_value == 'ambos'" class="badge badge-danger">Ambos</span>
                                     <span t-elif="record.dias_mora.raw_value &gt;= 30" class="badge badge-danger">
@@ -256,6 +277,7 @@
                                 <div>Cuotas: <strong><field name="numero_cuotas_vencidas"/></strong></div>
                                 <div>Monto: <strong>S/ <field name="monto_vencido"/></strong></div>
                                 <div t-if="record.papeletas_sat.raw_value">Papeletas SAT: <strong><field name="papeletas_sat"/></strong></div>
+                                <div t-if="record.orden_captura_sat.raw_value">Órdenes de captura SAT: <strong><field name="ordenes_captura_sat"/></strong> (S/ <field name="monto_captura_sat"/>)</div>
                             </div>
                             <div class="o_kanban_record_bottom">
                                 <div class="oe_kanban_bottom_left">

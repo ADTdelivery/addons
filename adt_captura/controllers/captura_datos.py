@@ -256,6 +256,43 @@ def papeletas_sat_pendientes_por_cuenta(env, cuentas):
     return resultado
 
 
+# ── órdenes de captura SAT ──────────────────────────────────────────────────
+
+def ordenes_captura_sat_por_vehiculo(env, vehiculos):
+    """{vehicle_id: órdenes de captura SAT vigentes y no resueltas}, con el criterio de
+    adt.captura.mora. Una sola consulta para toda la página."""
+    if not vehiculos:
+        return {}
+    ordenes = env['adt.captura.sat'].sudo().search(
+        [('vehicle_id', 'in', vehiculos.ids), ('vigente', '=', True), ('gestion', '!=', 'resuelta')],
+        order='primera_vez_visto asc, id asc')
+    resultado = {}
+    for o in ordenes:
+        resultado.setdefault(o.vehicle_id.id, env['adt.captura.sat'].sudo())
+        resultado[o.vehicle_id.id] |= o
+    return resultado
+
+
+def orden_captura_sat_data(o):
+    """Una orden de captura del SAT Lima (adt.captura.sat)."""
+    return {
+        'id': o.id,
+        'documento': o.name or '',
+        'placa': o.placa or '',
+        'anio': o.anio or None,
+        'concepto': o.concepto or '',
+        'referencia': o.referencia or '',
+        'monto': o.monto or 0.0,
+        'informe_sat_al': fecha(o.fecha_actualizacion_sat),
+        'detectada_en': fecha_hora(o.primera_vez_visto),
+        'ultima_consulta': fecha_hora(o.ultima_vez_visto),
+        'dias_vigente': o.dias or 0,
+        'gestion': o.gestion or '',
+        'gestion_label': etiqueta(o, 'gestion'),
+        'responsable': ref(o.responsable_id, 'name'),
+    }
+
+
 # ── GPS ─────────────────────────────────────────────────────────────────────
 
 def gps_data(vehicle):

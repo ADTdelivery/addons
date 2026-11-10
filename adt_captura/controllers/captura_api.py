@@ -37,9 +37,11 @@ MORA_ESTADOS_DEUDA = [
     ('mora', 'Cronograma'),
     ('papeleta', 'Papeleta SAT'),
     ('ambos', 'Cronograma y papeleta SAT'),
+    ('captura_sat', 'Orden de captura SAT'),
 ]
 # Alias aceptados en source_type.
-MORA_ESTADOS_ALIAS = {'cronograma': 'mora', 'cuotas': 'mora', 'sat': 'papeleta', 'papeleta_sat': 'papeleta'}
+MORA_ESTADOS_ALIAS = {'cronograma': 'mora', 'cuotas': 'mora', 'sat': 'papeleta', 'papeleta_sat': 'papeleta',
+                      'orden_sat': 'captura_sat', 'orden_captura_sat': 'captura_sat'}
 
 
 class CapturaAPI(http.Controller):
@@ -366,13 +368,17 @@ class CapturaAPI(http.Controller):
 
         Aplica el filtro de Ajustes > Capturas (vista adt.captura.mora): las cuotas vencidas
         del cronograma cuentan solo si superan los días de mora y la cantidad de cuotas
-        configurados; las papeletas SAT pendientes cuentan siempre.
+        configurados; las papeletas SAT pendientes y las órdenes de captura vigentes del SAT
+        (adt.captura.sat, no resueltas) cuentan siempre.
 
         Optional query params:
             - source_type     : estado de la deuda: 'mora' (solo cronograma) | 'papeleta' (solo
-                                papeleta SAT) | 'ambos'. Acepta varios separados por coma
-                                (p. ej. 'mora,ambos' = todo lo que tiene cuotas vencidas) y los
-                                alias 'cronograma' y 'sat'.
+                                papeleta SAT) | 'ambos' | 'captura_sat' (solo orden de captura
+                                SAT). Acepta varios separados por coma (p. ej. 'mora,ambos' =
+                                todo lo que tiene cuotas vencidas) y los alias 'cronograma',
+                                'sat' y 'orden_sat'.
+            - orden_captura_sat: '1' = solo vehículos con orden de captura SAT vigente (cualquier
+                                origen) | '0' = solo sin orden
             - captura_prioridad: filter by 'normal' | 'urgente'
             - captura_existente: filter by '1' (true) | '0' (false)
             - order           : 'monto' (default) = lo que debe cada uno (monto_vencido + deuda_sat),
@@ -385,8 +391,10 @@ class CapturaAPI(http.Controller):
             "count": <int>,
             "filtro_captura": {"dias_mora_mayor_a": <int>, "cuotas_vencidas_mayor_a": <int>},
             "estados_deuda": [            # cantidad por estado de la deuda, con los demás filtros
-                {"key": "todos" | "mora" | "papeleta" | "ambos", "label": <str>, "count": <int>}, ...
+                {"key": "todos" | "mora" | "papeleta" | "ambos" | "captura_sat", "label": <str>,
+                 "count": <int>}, ...
             ],
+            "con_orden_captura_sat": <int>,  # filas con orden de captura SAT (cualquier origen)
             "records": [
                 {
                     "client": {"id", "name", "documento", "tipo_documento", "telefono", "celular",
@@ -401,6 +409,9 @@ class CapturaAPI(http.Controller):
                     "papeleta_id": {"id": <int>, "name": <str>, "monto": <float>} | null,  # papeleta SAT más antigua
                     "papeletas_sat": <int>,
                     "deuda_sat": <float>,
+                    "orden_captura_sat": <bool>,          # orden de captura SAT vigente
+                    "ordenes_captura_sat": [ {"documento", "concepto", "anio", "monto", ...} ],
+                    "monto_captura_sat": <float>,
                     "dias_mora": <int>,
                     "numero_cuotas_vencidas": <int>,
                     "monto_vencido": <float>,
@@ -437,8 +448,13 @@ class CapturaAPI(http.Controller):
                 # Por defecto excluir cuentas que ya tienen una captura activa
                 domain.append(('captura_existente', '=', False))
 
+            orden_captura_sat = (kwargs.get('orden_captura_sat') or '').strip().lower()
+            if orden_captura_sat in ('1', 'true', '0', 'false'):
+                domain.append(('orden_captura_sat', '=', orden_captura_sat in ('1', 'true')))
+
             # Cantidad por estado de la deuda, con los demás filtros (antes de filtrar por estado).
             MoraModel = request.env['adt.captura.mora'].sudo()
+            con_orden_captura_sat = MoraModel.search_count(domain + [('orden_captura_sat', '=', True)])
             por_estado = {g['source_type']: g['source_type_count']
                           for g in MoraModel.read_group(domain, ['source_type'], ['source_type'])}
             estados_deuda = [{'key': 'todos', 'label': 'Todos', 'count': sum(por_estado.values())}]
@@ -531,6 +547,8 @@ class CapturaAPI(http.Controller):
             for pps in papeletas_por_cuenta.values():
                 todas_papeletas |= pps
             copias = datos.adjuntos_por_registro(request.env, 'adt.papeleta.sat', todas_papeletas.ids)
+            ordenes_sat = datos.ordenes_captura_sat_por_vehiculo(
+                request.env, records.filtered('orden_captura_sat').mapped('vehicle_id'))
 
             result = []
             for rec in records:
@@ -594,6 +612,10 @@ class CapturaAPI(http.Controller):
                     'papeletas': [datos.papeleta_sat_data(p, host, copias.get(p.id)) for p in papeletas],
                     'papeletas_sat': rec.papeletas_sat or 0,
                     'deuda_sat': rec.deuda_sat or 0.0,
+                    'orden_captura_sat': rec.orden_captura_sat or False,
+                    'ordenes_captura_sat': [datos.orden_captura_sat_data(o)
+                                            for o in ordenes_sat.get(rec.vehicle_id.id) or []],
+                    'monto_captura_sat': rec.monto_captura_sat or 0.0,
                     'dias_mora': rec.dias_mora or 0,
                     'numero_cuotas_vencidas': rec.numero_cuotas_vencidas or 0,
                     'monto_vencido': rec.monto_vencido or 0.0,
@@ -612,6 +634,7 @@ class CapturaAPI(http.Controller):
                 'count': total_count,
                 'filtro_captura': MoraModel._filtro_captura(),
                 'estados_deuda': estados_deuda,
+                'con_orden_captura_sat': con_orden_captura_sat,
                 'records': result,
             }
 
@@ -997,7 +1020,8 @@ class CapturaAPI(http.Controller):
         {
             "count": 1,
             "record": {
-                "deuda": {"estado", "estado_label", "cronograma": {...}, "papeletas_sat": {...}, "total"},
+                "deuda": {"estado", "estado_label", "cronograma": {...}, "papeletas_sat": {...},
+                          "orden_captura_sat": {"vigente", "cantidad", "monto", "ordenes": [...]}, "total"},
                 "contacto": { ...datos personales, domicilio, referencias, otras cuentas... },
                 "gps": { ...estado del GPS (Traccar)... },
                 "refinanciamientos": {"total", "registros": [...], "capturas_liberadas_por_refinanciamiento": [...]},
@@ -1121,6 +1145,8 @@ class CapturaAPI(http.Controller):
             pendientes = datos.papeletas_sat_pendientes_por_cuenta(request.env, cuenta).get(cuenta.id) or []
             monto_vencido = mora.monto_vencido or 0.0
             deuda_sat = sum(p.deuda or 0.0 for p in pendientes)
+            ordenes_sat = (datos.ordenes_captura_sat_por_vehiculo(request.env, cuenta.vehiculo_id)
+                           .get(cuenta.vehiculo_id.id) or []) if cuenta.state in ('aprobado', 'en_curso') else []
             deuda_data = {
                 'estado': mora.source_type or 'none',
                 'estado_label': dict(MORA_ESTADOS_DEUDA).get(mora.source_type, 'Sin deuda vencida'),
@@ -1136,6 +1162,12 @@ class CapturaAPI(http.Controller):
                     'deuda': deuda_sat,
                     'mas_antigua': datos.fecha(min((p.fecha_infraccion for p in pendientes if p.fecha_infraccion), default=None)),
                     'ids': [p.id for p in pendientes],
+                },
+                'orden_captura_sat': {
+                    'vigente': bool(ordenes_sat),
+                    'cantidad': len(ordenes_sat),
+                    'monto': sum(o.monto or 0.0 for o in ordenes_sat),
+                    'ordenes': [datos.orden_captura_sat_data(o) for o in ordenes_sat],
                 },
                 'total': round(monto_vencido + deuda_sat, 2),
                 'captura_prioridad': datos.etiqueta(cuenta, 'captura_prioridad'),

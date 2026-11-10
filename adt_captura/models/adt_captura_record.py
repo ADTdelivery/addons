@@ -13,6 +13,7 @@ SOURCE_TYPES = [
     ('mora', 'Mora (Cuotas)'),
     ('papeleta', 'Papeleta SAT'),
     ('ambos', 'Mora y Papeleta SAT'),
+    ('captura_sat', 'Orden de captura SAT'),
     ('none', 'Ninguno'),
 ]
 LIBERACION_TIPOS = [

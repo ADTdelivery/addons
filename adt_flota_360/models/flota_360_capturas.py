@@ -42,7 +42,8 @@ ETAPAS = [
     ('cerradas', 'Cerradas', 'fa-check-circle',
      'Capturas liberadas, recolocadas o canceladas en los últimos %s días.' % DIAS_CERRADAS),
 ]
-ORIGENES = [('mora', 'Cuotas vencidas'), ('papeleta', 'Papeletas SAT'), ('ambos', 'Cuotas y papeletas SAT')]
+ORIGENES = [('mora', 'Cuotas vencidas'), ('papeleta', 'Papeletas SAT'), ('ambos', 'Cuotas y papeletas SAT'),
+            ('captura_sat', 'Orden de captura SAT')]
 
 
 class AdtFlota360Capturas(models.AbstractModel):
@@ -153,7 +154,8 @@ class AdtFlota360Capturas(models.AbstractModel):
         items = []
         for m in filas:
             urgente = m.cuenta_id.captura_prioridad == 'urgente'
-            nivel = 'critico' if urgente or m.dias_mora >= 30 or m.source_type == 'ambos' else (
+            nivel = 'critico' if urgente or m.dias_mora >= 30 or m.source_type == 'ambos' \
+                or ('orden_captura_sat' in m._fields and m.orden_captura_sat) else (
                 'atencion' if m.dias_mora >= 14 or m.papeletas_sat else 'info')
             items.append({
                 'cuenta_id': m.cuenta_id.id, 'vehicle_id': m.vehicle_id.id,
